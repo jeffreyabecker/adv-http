@@ -1,0 +1,17 @@
+{
+    "[cpp]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools",
+        "editor.formatOnSave": true
+    },
+    "C_Cpp.standard": "c++17",
+    "C_Cpp.intelliSenseEngine": "default",
+    "C_Cpp.default.compilerPath": "arm-none-eabi-g++",
+    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.clang_format_sortIncludes": true,
+    "files.exclude": {
+        "**/.git": false,
+        "**/build": true,
+        "**/.pio": true,
+        "**/__pycache__": true
+    }
+}

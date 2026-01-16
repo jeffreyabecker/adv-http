@@ -1,0 +1,35 @@
+# Build artifacts
+/build/
+/dist/
+*.o
+*.a
+*.so
+*.elf
+*.hex
+*.bin
+
+# Arduino IDE
+.arduino*/
+*.ino.cpp
+
+# VSCode
+.vscode/extensions.json
+.vscode/launch.json
+.vscode/tasks.json
+
+# Editor backups
+*~
+*.swp
+*.swo
+*.swn
+.DS_Store
+
+# Dependencies
+.pio/
+.venv/
+__pycache__/
+
+# IDE
+.clangd/
+.cache/
+compile_commands.json

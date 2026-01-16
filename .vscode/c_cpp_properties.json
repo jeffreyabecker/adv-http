@@ -1,0 +1,32 @@
+{
+    "configurations": [
+        {
+            "name": "Raspberry Pi Pico",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${env:ARDUINO_USER_LIBRARIES}/hardware/rp2040/*/cores/rp2040",
+                "${env:ARDUINO_USER_LIBRARIES}/hardware/rp2040/*/variants/rpipico",
+                "${env:ARDUINO_USER_LIBRARIES}/hardware/rp2040/*/libraries/**"
+            ],
+            "defines": [
+                "ARDUINO=10819",
+                "ARDUINO_RASPBERRY_PI_PICO",
+                "ARDUINO_ARCH_RP2040"
+            ],
+            "compilerPath": "arm-none-eabi-g++",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-arm",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}",
+                    "${env:ARDUINO_USER_LIBRARIES}/hardware/rp2040/*/cores/rp2040",
+                    "${env:ARDUINO_USER_LIBRARIES}/hardware/rp2040/*/variants/rpipico",
+                    "${env:ARDUINO_USER_LIBRARIES}/hardware/rp2040/*/libraries/**"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}
