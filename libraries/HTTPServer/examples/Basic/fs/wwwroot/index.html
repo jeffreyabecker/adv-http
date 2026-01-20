@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Hello Test</title>
+</head>
+
+<body>
+    <h1>API Hello Test</h1>
+    <button id="helloButton">Call /api/hello</button>
+    <div id="result"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('helloButton').addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/api/hello');
+                    const data = await response.text();
+                    document.getElementById('result').textContent = data;
+                } catch (error) {
+                    document.getElementById('result').textContent = 'Error: ' + error.message;
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
