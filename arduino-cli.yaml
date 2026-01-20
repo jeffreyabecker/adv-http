@@ -8,6 +8,7 @@ build:
 
 directories:
   user: ${HOME}/.arduino15
-  data: ${ARDUINO_DATA_DIR}
-  downloads: ${ARDUINO_DATA_DIR}/staging
-  builtin.tools: ${ARDUINO_TOOLS_DIR}
+  data: ./.arduino
+  downloads: ./.arduino/staging
+
+
