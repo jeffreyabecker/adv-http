@@ -22,6 +22,7 @@ namespace HttpServerAdvanced
         size_t bodyBytesReceived_ = 0;
         HttpRequestPhaseFlags completedPhases_ = 0;
         std::function<void(std::unique_ptr<Stream>)> onStreamReady_;
+        mutable std::map<String, std::any> items_;
 
         // Merged from HttpRequest
         const char *method_;
@@ -179,7 +180,7 @@ namespace HttpServerAdvanced
         {
             onStreamReady_ = onStreamReady;
         }
-        HttpRequest(HttpServerAdvanced::HttpServerBase &server) 
+        HttpRequest(HttpServerAdvanced::HttpServerBase &server)
             : server_(server), handler_(nullptr), completedPhases_(0),
               method_(nullptr), version_(), url_(), headers_(),
               remoteIP_(), remotePort_(0), localIP_(), localPort_(0) {}
@@ -199,7 +200,7 @@ namespace HttpServerAdvanced
         uint16_t remotePort() { return remotePort_; }
         IPAddress localIP() { return localIP_; }
         uint16_t localPort() { return localPort_; }
-
+        std::map<String, std::any> &items() const;
         // void sendResponse(std::unique_ptr<IHttpResponse> response);
 
     public:
@@ -215,7 +216,8 @@ namespace HttpServerAdvanced
                 std::function<void(HttpServerAdvanced::IPipelineHandler *)>>(
                 new HttpRequest(server),
                 [](HttpServerAdvanced::IPipelineHandler *p)
-                { delete static_cast<HttpRequest *>(p); });;
+                { delete static_cast<HttpRequest *>(p); });
+            ;
         }
     };
 
