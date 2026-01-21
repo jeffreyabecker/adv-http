@@ -24,9 +24,23 @@ namespace HttpServerAdvanced
     protected:
         BoundedStreamIterable(size_t index, size_t maxIndex)
             : index_(index), maxIndex_(maxIndex) {}
-        virtual value_type getAt(size_t index) = 0;
+        virtual value_type getAt(size_t index) const = 0;
 
     public:
+        // Copyable to satisfy forward iterator requirements; reset transient current_
+        BoundedStreamIterable(const BoundedStreamIterable &other)
+            : index_(other.index_), maxIndex_(other.maxIndex_), current_(nullptr) {}
+        BoundedStreamIterable &operator=(const BoundedStreamIterable &other)
+        {
+            if (this != &other)
+            {
+                index_ = other.index_;
+                maxIndex_ = other.maxIndex_;
+                current_.reset();
+            }
+            return *this;
+        }
+
         reference operator*() const
         {
             if (current_ == nullptr && index_ < maxIndex_)
@@ -40,7 +54,7 @@ namespace HttpServerAdvanced
         {
             ++index_;
             current_ = nullptr;
-            return *this;
+            return static_cast<TSelf &>(*this);
         }
 
         bool operator==(const TSelf &other) const

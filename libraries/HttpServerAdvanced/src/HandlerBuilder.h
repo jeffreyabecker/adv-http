@@ -23,7 +23,7 @@ namespace HttpServerAdvanced
             }
             return THandler::makeFactory(invocation, extractor_);
         }
-        static inline std::function<std::vector<String>> EmptyParameters(HttpContext &context)
+        static std::function<std::vector<String>> EmptyParameters(HttpContext &context)
         {
             return {};
         }

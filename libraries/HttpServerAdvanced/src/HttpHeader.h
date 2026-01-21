@@ -173,7 +173,7 @@ namespace HttpServerAdvanced
   public:
     HttpHeadersCollection() = default;
 
-    inline HttpHeadersCollection(std::initializer_list<HttpHeader> headers)
+    HttpHeadersCollection(std::initializer_list<HttpHeader> headers)
         : HttpHeadersCollection()
     {
       for (const auto &h : headers)
@@ -182,7 +182,7 @@ namespace HttpServerAdvanced
       }
     }
 
-    inline HttpHeadersCollection(std::initializer_list<std::pair<const String &, const String &>> headers)
+    HttpHeadersCollection(std::initializer_list<std::pair<const String &, const String &>> headers)
     {
       for (const auto &h : headers)
       {
@@ -190,7 +190,7 @@ namespace HttpServerAdvanced
       }
     }
 
-    inline std::optional<HttpHeader> find(const String &name) const
+    std::optional<HttpHeader> find(const String &name) const
     {
       auto it = std::find_if(begin(), end(), [&name](const HttpHeader &header)
                              { return header.name().equalsIgnoreCase(name); });
@@ -201,25 +201,25 @@ namespace HttpServerAdvanced
       return std::nullopt;
     }
 
-    inline bool exists(const String &name) const
+    bool exists(const String &name) const
     {
       auto it = find(name);
       return it.has_value();
     }
 
-    inline bool exists(const String &name, const String &value) const
+    bool exists(const String &name, const String &value) const
     {
       auto it = std::find_if(begin(), end(), [&name, &value](const HttpHeader &header)
                              { return header.name().equalsIgnoreCase(name) && header.value().equals(value); });
       return it != end();
     }
 
-    inline void set(const HttpHeader &header, bool forceOverwrite = false)
+    void set(const HttpHeader &header, bool forceOverwrite = false)
     {
       set(header.name(), header.value(), forceOverwrite);
     }
 
-    inline void set(HttpHeader &&header, bool forceOverwrite = false)
+    void set(HttpHeader &&header, bool forceOverwrite = false)
     {
       static const char *const duplicable[] = {
           HttpHeader::SetCookie,
@@ -302,20 +302,20 @@ namespace HttpServerAdvanced
       }
     }
 
-    inline void set(const String &name, const String &value, bool forceOverwrite = false)
+    void set(const String &name, const String &value, bool forceOverwrite = false)
     {
       HttpHeader header(name, value);
       set(std::move(header), forceOverwrite);
     }
 
-    inline void remove(const String &name)
+    void remove(const String &name)
     {
       erase(std::remove_if(begin(), end(), [&](const HttpHeader &h)
                            { return h.name().equalsIgnoreCase(name); }),
             end());
     }
 
-    inline void remove(const String &name, const String &value)
+    void remove(const String &name, const String &value)
     {
       erase(std::remove_if(begin(), end(), [&](const HttpHeader &h)
                            { return h.name().equalsIgnoreCase(name) && h.value().equals(value); }),

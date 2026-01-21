@@ -62,7 +62,7 @@ namespace HttpServerAdvanced
         };
 
         template <typename T>
-        inline constexpr bool is_secure_http_server_config_like_v = is_secure_http_server_config_like<T>::value;
+        constexpr bool is_secure_http_server_config_like_v = is_secure_http_server_config_like<T>::value;
 
         // Convenience alias for SFINAE
         template <typename T, typename = std::enable_if_t<is_secure_http_server_config_like_v<T>>>

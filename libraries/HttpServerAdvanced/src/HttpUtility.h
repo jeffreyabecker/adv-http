@@ -14,75 +14,10 @@ namespace HttpServerAdvanced
     {
 
     public:
-        static std::vector<std::pair<String, String>> ParseQueryString(const char *query, std::size_t length)
-        {
-            std::vector<std::pair<String, String>> params;
-            size_t pos = 0;
-            while (pos < length)
-            {
-                size_t amp_pos = StringUtil::indexOf(query, length, "&", 1, pos);
-                size_t eq_pos = StringUtil::indexOf(query, length, "=", 1, pos);
-                if (eq_pos == -1 || (amp_pos != -1 && amp_pos < eq_pos))
-                {
-                    // No '=' found, or '&' comes before '='
-                    String key = DecodeURIComponent(query + pos, (amp_pos == -1 ? length : amp_pos) - pos);
-                    params.emplace_back(key, String());
-                }
-                else
-                {
-                    String key = DecodeURIComponent(query + pos, eq_pos - pos);
-                    String value;
-                    if (amp_pos == -1)
-                    {
-                        value = DecodeURIComponent(query + eq_pos + 1, length - (eq_pos + 1));
-                    }
-                    else
-                    {
-                        value = DecodeURIComponent(query + eq_pos + 1, amp_pos - (eq_pos + 1));
-                    }
-                    params.emplace_back(key, value);
-                }
-                if (amp_pos == -1)
-                {
-                    break;
-                }
-                pos = amp_pos + 1;
-            }
-            return params;
-        }
-        static std::vector<std::pair<String, String>> ParseQueryString(const String &query)
-        {
-            return ParseQueryString(query.c_str(), query.length());
-        }
-        static String DecodeURIComponent(const String &str)
-        {
-            return DecodeURIComponent(str.c_str(), str.length());
-        }
-
-        // Decodes a URL-encoded string - const char* overload delegates to String implementation
-        static String DecodeURIComponent(const char *str, std::size_t length)
-        {
-            String ret;
-            for (size_t i = 0; i < length; ++i)
-            {
-                if (str[i] == '+')
-                {
-                    ret += ' ';
-                }
-                else if (str[i] == '%' && i + 2 < length)
-                {
-                    char hex[3] = {str[i + 1], str[i + 2], '\0'};
-                    char decoded = static_cast<char>(strtol(hex, nullptr, 16));
-                    ret += decoded;
-                    i += 2;
-                }
-                else
-                {
-                    ret += str[i];
-                }
-            }
-            return ret;
-        }
+        static std::vector<std::pair<String, String>> ParseQueryString(const char *query, std::size_t length);
+        static std::vector<std::pair<String, String>> ParseQueryString(const String &query);
+        static String DecodeURIComponent(const String &str);
+        static String DecodeURIComponent(const char *str, std::size_t length);
 
         // Serializes any container of key-value pairs into a URL-encoded string
         template <typename Container>
@@ -117,289 +52,28 @@ namespace HttpServerAdvanced
             return result;
         }
         // Overload for initializer_list
-        static String SerializeQueryString(std::initializer_list<std::pair<String, String>> params)
-        {
-            return SerializeQueryString<std::initializer_list<std::pair<String, String>>>(params);
-        }
+        static String SerializeQueryString(std::initializer_list<std::pair<String, String>> params);
 
-        // Encodes a string for URL encoding - String implementation (core logic)
-        static String EncodeURIComponent(const char *str, std::size_t length)
-        {
-            String ret;
-            const char *hex = "0123456789ABCDEF";
-            for (size_t i = 0; i < length; ++i)
-            {
-                char c = str[i];
-                if ((c >= 'a' && c <= 'z') ||
-                    (c >= 'A' && c <= 'Z') ||
-                    (c >= '0' && c <= '9') ||
-                    c == '-' || c == '_' || c == '.' || c == '~')
-                {
-                    ret += c;
-                }
-                else if (c == ' ')
-                {
-                    ret += '+';
-                }
-                else
-                {
-                    unsigned char byte = static_cast<unsigned char>(c);
-                    ret += '%';
-                    ret += hex[(byte >> 4) & 0xF];
-                    ret += hex[byte & 0xF];
-                }
-            }
-            return ret;
-        }
+        static String EncodeURIComponent(const char *str, std::size_t length);
+        static String EncodeURIComponent(const String &str);
 
-        // Encodes a string for URL encoding - primary implementation (delegates to String)
-        static String EncodeURIComponent(const String &str)
-        {
-            return EncodeURIComponent(str.c_str(), str.length());
-        }
+        static String HtmlEncode(const char *str, std::size_t length);
+        static String HtmlEncode(String str);
+        static String HtmlEncode(const char *input);
 
-        static String HtmlEncode(const char *str, std::size_t length)
-        {
-            if (str == nullptr || length == 0)
-                return String();
-            String output;
-            output.reserve(length);
-            for (size_t i = 0; i < length; ++i)
-            {
-                char c = str[i];
-                // Encode special HTML characters
-                if (c == '&')
-                {
-                    output += F("&amp;");
-                }
-                else if (c == '<')
-                {
-                    output += F("&lt;");
-                }
-                else if (c == '>')
-                {
-                    output += F("&gt;");
-                }
-                else if (c == '"')
-                {
-                    output += F("&quot;");
-                }
-                else if (c == '\'')
-                {
-                    output += F("&#39;");
-                }
-                else
-                {
-                    output += c;
-                }
-            }
-            return output;
-        }
-        static String HtmlEncode(String str)
-        {
-            return HtmlEncode(str.c_str(), str.length());
-        }
+        static String HtmlAttributeEncode(const char *input, std::size_t length);
+        static String HtmlAttributeEncode(String input);
+        static String HtmlAttributeEncode(const char *input);
 
-        // Overload for String - delegates to main implementation
+        static String JavaScriptStringEncode(String input, bool includeQuotes = true);
 
-        // Overload for const char* - delegates to main implementation
-        static String HtmlEncode(const char *input)
-        {
-            return HtmlEncode(String(input));
-        }
-        static String HtmlAttributeEncode(const char *input, std::size_t length)
-        {
-            if (input == nullptr || length == 0)
-                return String();
+        static String Base64Encode(String input, bool urlCompatible = false);
+        static String Base64Encode(const uint8_t *data, std::size_t length, bool urlCompatible = false);
+        static std::vector<uint8_t> Base64Decode(String input, bool urlCompatible = false);
+        static String Base64DecodeToString(String input, bool urlCompatible = false);
+        static String Base64DecodeToString(const char *data, std::size_t length, bool urlCompatible = false);
 
-            String output;
-            output.reserve(length);
-            for (size_t i = 0; i < length; ++i)
-            {
-                char c = input[i];
-                // Encode special HTML attribute characters
-                if (c == '&')
-                {
-                    output += F("&amp;");
-                }
-                else if (c == '"')
-                {
-                    output += F("&quot;");
-                }
-                else if (c == '\'')
-                {
-                    output += F("&#39;");
-                }
-                else if (c == '<')
-                {
-                    output += F("&lt;");
-                }
-                else if (c == '>')
-                {
-                    output += F("&gt;");
-                }
-                else
-                {
-                    output += c;
-                }
-            }
-            return output;
-        }
-        static String HtmlAttributeEncode(String input)
-        {
-            return HtmlAttributeEncode(input.c_str(), input.length());
-        }
-
-        // Overload for null-terminated string
-        static String HtmlAttributeEncode(const char *input)
-        {
-            return HtmlAttributeEncode(String(input));
-        }
-
-        // Overload for String
-
-        static String JavaScriptStringEncode(String input, bool includeQuotes = true)
-        {
-            if (input.isEmpty())
-                return includeQuotes ? String("\"\"") : String();
-
-            String output;
-            output.reserve(input.length() + (includeQuotes ? 2 : 0));
-            if (includeQuotes)
-                output += '\"';
-
-            for (char c : input)
-            {
-                switch (c)
-                {
-                case '\"':
-                    output += "\\\"";
-                    break;
-                case '\\':
-                    output += "\\\\";
-                    break;
-                case '\b':
-                    output += "\\b";
-                    break;
-                case '\f':
-                    output += "\\f";
-                    break;
-                case '\n':
-                    output += "\\n";
-                    break;
-                case '\r':
-                    output += "\\r";
-                    break;
-                case '\t':
-                    output += "\\t";
-                    break;
-                default:
-                    if (static_cast<unsigned char>(c) < 0x20 || static_cast<unsigned char>(c) > 0x7E)
-                    {
-                        char buf[7];
-                        snprintf(buf, sizeof(buf), "\\u%04X", static_cast<unsigned char>(c));
-                        output += buf;
-                    }
-                    else
-                    {
-                        output += c;
-                    }
-                    break;
-                }
-            }
-
-            if (includeQuotes)
-                output += '\"';
-
-            return output;
-        }
-
-        static String Base64Encode(String input, bool urlCompatible = false)
-        {
-            if (urlCompatible)
-            {
-                return Base64Url.encode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
-            }
-            else
-            {
-                return Base64.encode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
-            }
-        }
-        static String Base64Encode(const uint8_t *data, std::size_t length, bool urlCompatible = false)
-        {
-            if (urlCompatible)
-            {
-                return Base64Url.encode(data, length);
-            }
-            else
-            {
-                return Base64.encode(data, length);
-            }
-        }
-        static std::vector<uint8_t> Base64Decode(String input, bool urlCompatible = false)
-        {
-            if (urlCompatible)
-            {
-                return Base64Url.decode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
-            }
-            else
-            {
-                return Base64.decode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
-            }
-        }
-        static String Base64DecodeToString(String input, bool urlCompatible = false)
-        {
-            return Base64DecodeToString(input.begin(), input.length(), urlCompatible);
-        }
-        static String Base64DecodeToString(const char *data, std::size_t length, bool urlCompatible = false)
-        {
-            auto decodedBytes = Base64Decode(String(data, length), urlCompatible);
-            return String(reinterpret_cast<const char *>(decodedBytes.data()), decodedBytes.size());
-        }
-
-        static std::vector<std::pair<String, std::optional<String>>> ParseHeaderDirectives(const String &val)
-        {
-            std::vector<std::pair<String, std::optional<String>>> directives;
-            if (val.isEmpty())
-            {
-                return directives;
-            }
-
-            auto parseSingleDirective = [&](const String &directive)
-            {
-                int eqPos = directive.indexOf('=');
-                if (eqPos == -1)
-                {
-                    directives.emplace_back(directive, std::nullopt);
-                }
-                else
-                {
-                    String key = directive.substring(0, eqPos);
-                    String value = directive.substring(eqPos + 1);
-                    key.trim();
-                    value.trim();
-                    directives.emplace_back(key, value);
-                }
-            };
-
-            // Split by comma
-            int start = 0;
-            int end = val.indexOf(',');
-            while (end != -1)
-            {
-                String directive = val.substring(start, end);
-                directive.trim();
-                parseSingleDirective(directive);
-                start = end + 1;
-                end = val.indexOf(',', start);
-            }
-            // Last one
-            String directive = val.substring(start);
-            directive.trim();
-            parseSingleDirective(directive);
-
-            return directives;
-        }
+        static std::vector<std::pair<String, std::optional<String>>> ParseHeaderDirectives(const String &val);
     };
 
-} // namespace ExtendedHttp
+} // namespace HttpServerAdvanced

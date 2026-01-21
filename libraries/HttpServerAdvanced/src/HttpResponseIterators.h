@@ -5,12 +5,13 @@
 #include "./Streams.h"
 #include "./Iterators.h"
 #include "./HttpResponseBodyStream.h"
+#include "./IHttpResponse.h"
 
 namespace HttpServerAdvanced
 {
 
   // Helper functions
-  inline String getHeaderDateValue()
+  String getHeaderDateValue()
   {
     // This assumes the system time is correctly set using the NTP system
     struct tm tm_time;
@@ -24,7 +25,7 @@ namespace HttpServerAdvanced
     return String(buf);
   }
 
-  inline void EnsureRequiredHeaders(HttpHeadersCollection &headers, ssize_t body_size)
+  void EnsureRequiredHeaders(HttpHeadersCollection &headers, ssize_t body_size)
   {
     // Date header (RFC 7231 section 7.1.1.2 - MUST be sent by origin servers)
     if (!headers.exists(HttpHeader::Date))
@@ -59,25 +60,26 @@ namespace HttpServerAdvanced
 
   namespace ResponseStringConstants
   {
-    inline constexpr const char CRLF[3] = "\r\n";
-    inline constexpr const char START_LINE_DELIMITER[2] = " ";
-    inline constexpr const char HEADER_DELIMITER[3] = ": ";
-    inline constexpr const char HTTP_VERSION[10] = "HTTP/1.1 ";
+    constexpr const char CRLF[3] = "\r\n";
+    constexpr const char START_LINE_DELIMITER[2] = " ";
+    constexpr const char HEADER_DELIMITER[3] = ": ";
+    constexpr const char HTTP_VERSION[10] = "HTTP/1.1 ";
   } // namespace ResponseStringConstants
 
-  class HttpHeadersStartLineIterator : FixedStreamIterable<HttpHeadersStartLineIterator, 5>
+  class HttpHeadersStartLineIterator : public FixedStreamIterable<HttpHeadersStartLineIterator, 5>
   {
   public:
     using FixedStreamIterable<HttpHeadersStartLineIterator, 5>::begin;
     using FixedStreamIterable<HttpHeadersStartLineIterator, 5>::end;
 
   private:
-    HttpStatus &status_;
-    HttpHeadersStartLineIterator(size_t index, HttpStatus &status)
+    const HttpStatus status_;
+  public:
+    HttpHeadersStartLineIterator(size_t index, HttpStatus status)
         : FixedStreamIterable<HttpHeadersStartLineIterator, 5>(index), status_(status) {}
 
   protected:
-    value_type getAt(size_t index) override
+    value_type getAt(size_t index) const override
     {
       switch (index)
       {
@@ -97,15 +99,16 @@ namespace HttpServerAdvanced
     }
   };
 
-  class HttpHeaderStreamIterator : FixedStreamIterable<HttpHeaderStreamIterator, 4>
+  class HttpHeaderStreamIterator : public FixedStreamIterable<HttpHeaderStreamIterator, 4>
   {
   private:
-    HttpHeader &header_;
-    HttpHeaderStreamIterator(size_t index, HttpHeader &header)
+    const HttpHeader header_;
+  public:
+    HttpHeaderStreamIterator(size_t index, HttpHeader header)
         : FixedStreamIterable<HttpHeaderStreamIterator, 4>(index), header_(header) {}
 
   protected:
-    value_type getAt(size_t index) override
+    value_type getAt(size_t index) const override
     {
       switch (index)
       {
@@ -127,26 +130,27 @@ namespace HttpServerAdvanced
     using FixedStreamIterable<HttpHeaderStreamIterator, 4>::end;
   };
 
-  class HttpHeadersCollectionStreamIterator : BoundedStreamIterable<HttpHeadersCollectionStreamIterator>
+  class HttpHeadersCollectionStreamIterator : public BoundedStreamIterable<HttpHeadersCollectionStreamIterator>
   {
   private:
-    HttpHeadersCollection &headers_;
-    HttpHeadersCollectionStreamIterator(size_t index, HttpHeadersCollection &headers)
+    const HttpHeadersCollection &headers_;
+  public:
+    HttpHeadersCollectionStreamIterator(size_t index, const HttpHeadersCollection &headers)
         : BoundedStreamIterable<HttpHeadersCollectionStreamIterator>(index, headers.size()), headers_(headers) {}
 
   protected:
-    value_type getAt(size_t index) override
+    value_type getAt(size_t index) const override
     {
       return std::make_unique<IndefiniteConcatStream<HttpHeaderStreamIterator>>(HttpHeaderStreamIterator::begin(headers_[index]),
                                                                                 HttpHeaderStreamIterator::end(headers_[index]));
     }
 
   public:
-    static HttpHeadersCollectionStreamIterator begin(HttpHeadersCollection &headers)
+    static HttpHeadersCollectionStreamIterator begin(const HttpHeadersCollection &headers)
     {
       return HttpHeadersCollectionStreamIterator(0, headers);
     }
-    static HttpHeadersCollectionStreamIterator end(HttpHeadersCollection &headers)
+    static HttpHeadersCollectionStreamIterator end(const HttpHeadersCollection &headers)
     {
       return HttpHeadersCollectionStreamIterator(headers.size(), headers);
     }
@@ -189,16 +193,17 @@ namespace HttpServerAdvanced
 
   public:
     HttpPipelineResponseStream(std::unique_ptr<IHttpResponse> response)
-        : response_(std::move(response)), ConcatStream<5>(getStartLineStream(),
+        : response_(std::move(response)), ConcatStream<5>(std::array<std::unique_ptr<Stream>, 5>{
+                                                        getStartLineStream(),
                                                         getCrlfStream(),
                                                         getHeadersStream(),
                                                         getCrlfStream(),
-                                                        getBodyStream())
+                                                        getBodyStream()})
     {
     }
   };
 
-  inline std::unique_ptr<Stream> CreateResponseStream(std::unique_ptr<IHttpResponse> response)
+  std::unique_ptr<Stream> CreateResponseStream(std::unique_ptr<IHttpResponse> response)
   {
     return std::make_unique<HttpPipelineResponseStream>(std::move(response));
   }

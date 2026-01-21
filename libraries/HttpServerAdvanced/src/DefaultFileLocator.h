@@ -25,118 +25,27 @@ namespace HttpServerAdvanced
         RequestPathMapper pathMapper_;
         FS &filesystem_;
 
-        static RequestPathPredicate createPathPredicate(const String &includePrefix, const String &excludePrefix)
-        {
-            return [includePrefix, excludePrefix](const String &path)
-            {
-                if (includePrefix.isEmpty() || path.startsWith(includePrefix))
-                {
-                    if (!excludePrefix.isEmpty() && path.startsWith(excludePrefix))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-                return false;
-            };
-        }
+        static RequestPathPredicate createPathPredicate(const String &includePrefix, const String &excludePrefix);
 
-        static RequestPathMapper createPathMapper(const String &root)
-        {
-            return [root](const String &path)
-            {
-                String mappedPath = path;
-                while (mappedPath.endsWith("/"))
-                {
-                    mappedPath = mappedPath.substring(0, mappedPath.length() - 1);
-                }
-                while (mappedPath.startsWith("/"))
-                {
-                    mappedPath = mappedPath.substring(1);
-                }
-                mappedPath = root + "/" + mappedPath;
-                return mappedPath;
-            };
-        }
+        static RequestPathMapper createPathMapper(const String &root);
 
-        virtual String getLocalPath(const HttpRequest &request)
-        {
-            String path = request.url();
-
-            int queryIndex = path.indexOf('?');
-            if (queryIndex != -1)
-            {
-                path = path.substring(0, queryIndex);
-            }
-            while (path.startsWith("//"))
-            {
-                path = path.substring(1);
-            }
-            while (path.endsWith("/"))
-            {
-                path = path.substring(0, path.length() - 1);
-            }
-            return path;
-        }
+        virtual String getLocalPath(const HttpRequest &request);
 
     public:
-        DefaultFileLocator(FS &fs) : filesystem_(fs), pathPredicate_(createPathPredicate(DefaultIncludePrefix, DefaultExcludePrefix)), pathMapper_(createPathMapper(DefaultFSRoot)) {}
-        DefaultFileLocator(FS &fs, RequestPathPredicate predicate, RequestPathMapper mapper)
-            : filesystem_(fs), pathPredicate_(predicate), pathMapper_(mapper)
-        {
-        }
+        DefaultFileLocator(FS &fs);
+        DefaultFileLocator(FS &fs, RequestPathPredicate predicate, RequestPathMapper mapper);
 
-        virtual void setPathPredicate(RequestPathPredicate predicate)
-        {
-            pathPredicate_ = predicate;
-        }
+        virtual void setPathPredicate(RequestPathPredicate predicate);
 
-        virtual void setPathMapper(RequestPathMapper mapper)
-        {
-            pathMapper_ = mapper;
-        }
+        virtual void setPathMapper(RequestPathMapper mapper);
 
-        virtual void setRequestPathPrefixes(const String &includePrefix, const String &excludePrefix = DefaultFileLocator::DefaultExcludePrefix)
-        {
-            setPathPredicate(createPathPredicate(includePrefix, excludePrefix));
-        }
+        virtual void setRequestPathPrefixes(const String &includePrefix, const String &excludePrefix = DefaultFileLocator::DefaultExcludePrefix);
 
-        virtual void setFilesystemContentRoot(const String &root)
-        {
-            setPathMapper(createPathMapper(root));
-        }
+        virtual void setFilesystemContentRoot(const String &root);
 
-        virtual File getFile(HttpContext &context) override
-        {
-            String path = this->getLocalPath(context.request());
-            if (pathMapper_)
-            {
-                path = pathMapper_(path);
-            }
+        virtual File getFile(HttpContext &context) override;
 
-            File file = filesystem_.open(path, "r");
-            if (!file)
-            {
-                return file;
-            }
-            if (file.isDirectory())
-            {
-                String indexPath = path;
-                while (indexPath.endsWith("/"))
-                {
-                    indexPath = indexPath.substring(0, indexPath.length() - 1);
-                }
-                indexPath += "/index.html";
-                file.close();
-                file = filesystem_.open(indexPath, "r");
-            }
-            return file;
-        }
-
-        virtual bool canHandle(const String& path) override
-        {
-            return pathPredicate_(path);
-        }
+        virtual bool canHandle(const String& path) override;
     };
 
 } // namespace HttpServerAdvanced

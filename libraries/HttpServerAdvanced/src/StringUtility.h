@@ -9,7 +9,7 @@ namespace HttpServerAdvanced
     {
         // ========== Implementations ==========
 
-        inline int compareTo(const char* a, size_t aLength, const char* b, size_t bLength, bool ignoreCase)
+        int compareTo(const char* a, size_t aLength, const char* b, size_t bLength, bool ignoreCase)
         {
             if (aLength == 0 && bLength == 0)
                 return 0;
@@ -41,7 +41,7 @@ namespace HttpServerAdvanced
             return 0;
         }
 
-        inline bool startsWith(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, bool ignoreCase)
+        bool startsWith(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, bool ignoreCase)
         {
             if (needleLength > haystackLength)
                 return false;
@@ -50,7 +50,7 @@ namespace HttpServerAdvanced
             return compareTo(haystack, needleLength, needle, needleLength, ignoreCase) == 0;
         }
 
-        inline bool endsWith(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, bool ignoreCase)
+        bool endsWith(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, bool ignoreCase)
         {
             if (needleLength > haystackLength)
                 return false;
@@ -59,7 +59,7 @@ namespace HttpServerAdvanced
             return compareTo(haystack + haystackLength - needleLength, needleLength, needle, needleLength, ignoreCase) == 0;
         }
 
-        inline std::ptrdiff_t indexOf(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, size_t fromIndex = 0, bool ignoreCase = false)
+        std::ptrdiff_t indexOf(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, size_t fromIndex = 0, bool ignoreCase = false)
         {
             if (fromIndex >= haystackLength || needleLength == 0)
                 return -1;
@@ -93,7 +93,7 @@ namespace HttpServerAdvanced
             return -1;
         }
 
-        inline std::ptrdiff_t lastIndexOf(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, size_t fromIndex = 0, bool ignoreCase = false)
+        std::ptrdiff_t lastIndexOf(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, size_t fromIndex = 0, bool ignoreCase = false)
         {
             if (fromIndex >= haystackLength || needleLength == 0)
                 return -1;
@@ -134,19 +134,19 @@ namespace HttpServerAdvanced
         }
 
         // Overloads for Arduino String
-        inline int compareTo(const String& a, const String& b, bool ignoreCase){
+        int compareTo(const String& a, const String& b, bool ignoreCase){
             return compareTo(a.c_str(), a.length(), b.c_str(), b.length(), ignoreCase);
         }
-        inline bool startsWith(const String& haystack, const String& needle, bool ignoreCase){
+        bool startsWith(const String& haystack, const String& needle, bool ignoreCase){
             return startsWith(haystack.c_str(), haystack.length(), needle.c_str(), needle.length(), ignoreCase);
         }
-        inline bool endsWith(const String& haystack, const String& needle, bool ignoreCase){
+        bool endsWith(const String& haystack, const String& needle, bool ignoreCase){
             return endsWith(haystack.c_str(), haystack.length(), needle.c_str(), needle.length(), ignoreCase);
         }
-        inline std::ptrdiff_t indexOf(const String& haystack, const String& needle, size_t fromIndex = 0, bool ignoreCase = false){
+        std::ptrdiff_t indexOf(const String& haystack, const String& needle, size_t fromIndex = 0, bool ignoreCase = false){
             return indexOf(haystack.c_str(), haystack.length(), needle.c_str(), needle.length(), fromIndex, ignoreCase);
         }
-        inline std::ptrdiff_t lastIndexOf(const String& haystack, const String& needle, size_t fromIndex = 0, bool ignoreCase = false){
+        std::ptrdiff_t lastIndexOf(const String& haystack, const String& needle, size_t fromIndex = 0, bool ignoreCase = false){
             return lastIndexOf(haystack.c_str(), haystack.length(), needle.c_str(), needle.length(), fromIndex, ignoreCase);
         }
     }

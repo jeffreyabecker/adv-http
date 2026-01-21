@@ -56,13 +56,7 @@ namespace HttpServerAdvanced
         };
 
     private:
-        static std::unique_ptr<IHttpHandler> createDefaultHandler(HttpContext &context)
-        {
-            return std::make_unique<HttpHandler>(
-                HttpResponse::create(HttpStatus::NotFound(), "404 Not Found", HttpHeadersCollection{HttpHeader(HttpHeader::ContentType, "text/plain")}),
-                [](const HttpContext &)
-                { return true; });
-        }
+        static std::unique_ptr<IHttpHandler> createDefaultHandler(HttpContext &context);
         std::vector<std::reference_wrapper<IHttpHandlerFactoryItem>> factories_;
         std::vector<std::unique_ptr<IHttpHandlerFactoryItem>> ownedFactoryItems_;
         IHttpHandler::Factory defaultFactory_ = nullptr;
@@ -95,51 +89,10 @@ namespace HttpServerAdvanced
 
     public:
         HttpHandlerFactory() {}
-        std::unique_ptr<IHttpHandler> createContextHandler(HttpContext &context)
-        {
-            if (!globalRequestFilter_ || globalRequestFilter_(context))
-            {
-                for (auto &creator : factories_)
-                {
-                    HttpHandlerFactory::IHttpHandlerFactoryItem &factory = creator.get();
-                    if (factory.canHandle(const_cast<HttpContext &>(context)))
-                    {
-                        return factory.create(const_cast<HttpContext &>(context));
-                    }
-                }
-            }
-            auto inner = defaultFactory_ ? defaultFactory_(const_cast<HttpContext &>(context)) : createDefaultHandler(const_cast<HttpContext &>(context));
-            if (globalResponseFilter_)
-            {
-                return std::make_unique<ResponseFilterApplicator>(std::move(inner), globalResponseFilter_);
-            }
-            return inner;
-        }
-        void setDefaultHandlerFactory(IHttpHandler::Factory creator)
-        {
-            defaultFactory_ = creator;
-        }
+        std::unique_ptr<IHttpHandler> createContextHandler(HttpContext &context);
+        void setDefaultHandlerFactory(IHttpHandler::Factory creator);
 
-        void add(IHttpHandlerFactoryItem &handlerFactory, AddPosition position = AddAt::End)
-        {
-            if (position == AddAt::Beginning)
-            {
-                factories_.insert(factories_.begin(), handlerFactory);
-                return;
-            }
-            else if (position != AddAt::End)
-            {
-                size_t pos = static_cast<size_t>(position);
-                if (pos > factories_.size())
-                {
-                    pos = factories_.size();
-                }
-                factories_.insert(factories_.begin() + pos, handlerFactory);
-                return;
-            }
-            else
-                factories_.emplace_back(handlerFactory);
-        }
+        void add(IHttpHandlerFactoryItem &handlerFactory, AddPosition position = AddAt::End);
         template <typename THandler, typename... Args>
         void add(Args &&...args)
         {
@@ -157,42 +110,11 @@ namespace HttpServerAdvanced
             add(ref, position);
         }
 
-        void add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, AddPosition position = AddAt::End)
-        {
-            auto item = std::make_unique<ClosureFactoryItem>(handler, predicate);
-            auto &ref = *item;
-            ownedFactoryItems_.push_back(std::move(item));
-            add(ref, position);
-        }
-        void add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End)
-        {
-            add(predicate, [invocation](HttpContext &context)
-                { return std::make_unique<HttpHandler>(invocation, [](const HttpContext &)
-                                                       { return true; }); }, position);
-        }
-        void setGlobalRequestFilter(IHttpHandler::Predicate predicate)
-        {
-            globalRequestFilter_ = predicate;
-        }
-        void getGlobalRequestFilter(IHttpHandler::Predicate &predicate)
-        {
-            predicate = globalRequestFilter_;
-        }
-        void addResponseFilter(IHttpResponse::ResponseFilter filter)
-        {
-            if (globalResponseFilter_)
-            {
-                auto previousFilter = globalResponseFilter_;
-                globalResponseFilter_ = [previousFilter, filter](std::unique_ptr<IHttpResponse> resp) -> std::unique_ptr<IHttpResponse>
-                {
-                    return filter(previousFilter(std::move(resp)));
-                };
-            }
-            else
-            {
-                globalResponseFilter_ = filter;
-            }
-        }
+        void add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, AddPosition position = AddAt::End);
+        void add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End);
+        void setGlobalRequestFilter(IHttpHandler::Predicate predicate);
+        void getGlobalRequestFilter(IHttpHandler::Predicate &predicate);
+        void addResponseFilter(IHttpResponse::ResponseFilter filter);
     };
 }
 

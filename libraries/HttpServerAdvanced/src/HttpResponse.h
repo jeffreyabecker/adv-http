@@ -22,75 +22,26 @@ namespace HttpServerAdvanced
     std::unique_ptr<HttpResponseBodyStream> body_;
 
     static constexpr const char *defaultContentType = "text/plain";
-    
-    void init(size_t contentLength) {
-      if (contentLength >= 0) {
-        headers_.set(HttpHeader::ContentLength, String(contentLength));
-        if (!headers_.exists(HttpHeader::ContentType)) {
-          headers_.set(HttpHeader::ContentType, defaultContentType);
-        }
-      }
-      if (contentLength < 0) {
-        headers_.remove(HttpHeader::ContentLength);
-        headers_.set(HttpHeader::TransferEncoding, "chunked");
-      }
-    }
+    void init(size_t contentLength);
 
   public:
-    HttpResponse(HttpStatus status, String &&body, HttpHeadersCollection headers)
-        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(std::move(body))) {
-      init(body_->available());
-    }
-    
-    HttpResponse(HttpStatus status, const String &body, HttpHeadersCollection headers)
-        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(body)) {
-      init(body_->available());
-    }
-    
-    HttpResponse(HttpStatus status, const char *body, HttpHeadersCollection headers)
-        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(body)) {
-      init(body_->available());
-    }
-    
-    HttpResponse(HttpStatus status, const uint8_t *body, size_t length, HttpHeadersCollection headers)
-        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(body, length)) {
-      init(body_->available());
-    }
-    
-    HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeadersCollection headers)
-        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(std::move(body))) {
-      init(body_->available());
-    }
+    HttpResponse(HttpStatus status, String &&body, HttpHeadersCollection headers);
+    HttpResponse(HttpStatus status, const String &body, HttpHeadersCollection headers);
+    HttpResponse(HttpStatus status, const char *body, HttpHeadersCollection headers);
+    HttpResponse(HttpStatus status, const uint8_t *body, size_t length, HttpHeadersCollection headers);
+    HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeadersCollection headers);
 
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &body, HttpHeadersCollection headers = HttpHeadersCollection()){
-      return std::make_unique<HttpResponse>(status, body, headers);
-    }
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, String &&body, HttpHeadersCollection headers = HttpHeadersCollection()){
-      return std::make_unique<HttpResponse>(status, std::move(body), headers);
-    }
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const char *body, HttpHeadersCollection headers = HttpHeadersCollection()){
-      return std::make_unique<HttpResponse>(status, body, headers);
-    }
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const uint8_t *body, size_t length, HttpHeadersCollection headers = HttpHeadersCollection()){
-      return std::make_unique<HttpResponse>(status, body, length, headers);
-    }
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, std::unique_ptr<Stream> body, HttpHeadersCollection headers = HttpHeadersCollection()){
-      return std::make_unique<HttpResponse>(status, std::move(body), headers);
-    }
+    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &body, HttpHeadersCollection headers = HttpHeadersCollection());
+    static std::unique_ptr<IHttpResponse> create(HttpStatus status, String &&body, HttpHeadersCollection headers = HttpHeadersCollection());
+    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const char *body, HttpHeadersCollection headers = HttpHeadersCollection());
+    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const uint8_t *body, size_t length, HttpHeadersCollection headers = HttpHeadersCollection());
+    static std::unique_ptr<IHttpResponse> create(HttpStatus status, std::unique_ptr<Stream> body, HttpHeadersCollection headers = HttpHeadersCollection());
 
     ~HttpResponse() override = default;
 
-    HttpStatus status() const override {
-      return status_;
-    }
-    
-    HttpHeadersCollection &headers() override {
-      return headers_;
-    }
-    
-    std::unique_ptr<HttpResponseBodyStream> getBody() override {
-      return std::move(body_);
-    }
+    HttpStatus status() const override;
+    HttpHeadersCollection &headers() override;
+    std::unique_ptr<HttpResponseBodyStream> getBody() override;
   };
 
   std::unique_ptr<Stream> CreateResponseStream(std::unique_ptr<IHttpResponse> response);

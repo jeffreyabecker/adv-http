@@ -18,7 +18,7 @@ namespace HttpServerAdvanced
         IHttpHandler::InvocationCallback invocation_;
 
     public:
-        static bool defaultFilter(const HttpContext &context) { return context.completedPhases() == HttpContextPhase::CompletedReadingHeaders + HttpContextPhase::CompletedStartingLine; }
+        static bool defaultFilter(const HttpContext &context);
 
         HttpHandler(IHttpHandler::InvocationCallback invocation)
             : invocation_(invocation), filter_(defaultFilter) {}
@@ -27,14 +27,19 @@ namespace HttpServerAdvanced
             : invocation_(invocation), filter_(filter) {}
 
         HttpHandler(std::unique_ptr<IHttpResponse> response)
-            : invocation_([response = std::move(response)](HttpContext &context) mutable -> IHttpHandler::HandlerResult
-                          { return std::move(response); }),
+            : invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpContext &) mutable -> IHttpHandler::HandlerResult
+                          { return std::move(*resp); }),
               filter_(defaultFilter) {}
 
         HttpHandler(std::unique_ptr<IHttpResponse> response, std::function<bool(const HttpContext &)> filter)
-            : invocation_([response = std::move(response)](HttpContext &context) mutable -> IHttpHandler::HandlerResult
-                          { return std::move(response); }),
+            : invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpContext &) mutable -> IHttpHandler::HandlerResult
+                          { return std::move(*resp); }),
               filter_(filter) {}
+
+        HttpHandler(std::unique_ptr<IHttpResponse> response, HttpContextPhaseFlags callAt)
+            : invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpContext &) mutable -> IHttpHandler::HandlerResult
+                          { return std::move(*resp); }),
+              filter_([](const HttpContext &) { return true; }) {} // will be set via setPhaseFilter
 
         template <typename... Args>
         static std::unique_ptr<IHttpHandler> create(Args &&...args)
@@ -43,6 +48,8 @@ namespace HttpServerAdvanced
         }
 
         virtual ~HttpHandler() = default;
+
+        void setPhaseFilter(HttpContextPhaseFlags callAt);
 
         virtual HandlerResult handleStep(HttpContext &context) override
         {
@@ -63,3 +70,14 @@ namespace HttpServerAdvanced
 
 // Include HttpContext after class definition to resolve circular dependency
 #include "./HttpContext.h"
+
+namespace HttpServerAdvanced {
+    bool HttpHandler::defaultFilter(const HttpContext &context) {
+        return context.completedPhases() == HttpContextPhase::CompletedReadingHeaders + HttpContextPhase::CompletedStartingLine;
+    }
+
+    // Helper for setting filter when using phase-based constructor: call after construction
+    void HttpHandler::setPhaseFilter(HttpContextPhaseFlags callAt) {
+        filter_ = [callAt](const HttpContext &ctx) { return ctx.completedPhases() == callAt; };
+    }
+}

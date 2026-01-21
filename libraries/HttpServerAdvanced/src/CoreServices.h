@@ -4,7 +4,6 @@
 #include "./Defines.h"
 #include "./HttpHandlerFactory.h"
 #include "./HttpContext.h"
-
 #include "./HandlersBuilder.h"
 #include "./HttpContentTypes.h"
 #include <any>
@@ -29,68 +28,20 @@ namespace HttpServerAdvanced
         friend std::function<void(HttpServerAdvanced::HttpServerBase &)> CoreServices(std::function<void(CoreServicesBuilder &)> setupFunc);
 
     protected:
-        void init(HttpServerAdvanced::HttpServerBase &server)
-        {
-            server.setPipelineHandlerFactory(HttpContext::createPipelineHandler);
-            server.addService<CoreServicesBuilder *>(server, ServiceName, this);
-
-            server.addService<HttpHandlerFactory *>(server, HttpHandlerFactory::ServiceName, &handlerFactory_);
-            server.addService<HttpContext::HandlerFactoryFunction>(server, HttpContext::HandlerFactoryServiceName,
-                                      [this](HttpContext &context)
-                                      {
-                                          return handlerFactory_.createContextHandler(context);
-                                      });
-            server.addService<HttpContentTypes *>(server, HttpContentTypes::ServiceName, &contentTypes_);
-
-            if (setupFunc_)
-            {
-                setupFunc_(*this);
-            }
-        }
+        void init(HttpServerAdvanced::HttpServerBase &server);
         static constexpr const char *ServiceName = "CoreServices";
 
     public:
-        CoreServicesBuilder(CoreServicesSetupFunc setupFunc)
-            : setupFunc_(setupFunc), handlersBuilder_(handlerFactory_)
-        {
-        }
+        CoreServicesBuilder(CoreServicesSetupFunc setupFunc);
         ~CoreServicesBuilder();
 
-        CoreServicesBuilder &use(std::function<void(CoreServicesBuilder &)> component)
-        {
-            component(*this);
-            return *this;
-        }
+        CoreServicesBuilder &use(std::function<void(CoreServicesBuilder &)> component);
 
-        HttpHandlerFactory &handlerFactory()
-        {
-            return handlerFactory_;
-        }
+        HttpHandlerFactory &handlerFactory();
 
-        HandlersBuilder &handlers()
-        {
-            return handlersBuilder_;
-        }
-        HttpContentTypes &contentTypes()
-        {
-            return contentTypes_;
-        }
+        HandlersBuilder &handlers();
+        HttpContentTypes &contentTypes();
     };
-    std::function<void(HttpServerAdvanced::HttpServerBase &)> CoreServices(std::function<void(CoreServicesBuilder &)> setupFunc)
-    {
-        static CoreServicesBuilder *instance = nullptr;
-        if (instance == nullptr)
-        {
-            instance = new CoreServicesBuilder(setupFunc);
-        }
-        return [](HttpServerAdvanced::HttpServerBase &server)
-        {
-            instance->server_ = &server;
-            if (!server.hasService(CoreServicesBuilder::ServiceName))
-            {
-                instance->init(server);
-            }
-        };
-    }
+    std::function<void(HttpServerAdvanced::HttpServerBase &)> CoreServices(std::function<void(CoreServicesBuilder &)> setupFunc);
 
 } // namespace HttpServerAdvanced

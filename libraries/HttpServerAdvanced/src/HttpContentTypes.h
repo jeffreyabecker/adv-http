@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include <unordered_map>
+#include <map>
 #include <algorithm>
 
 namespace HttpServerAdvanced
@@ -9,7 +9,7 @@ namespace HttpServerAdvanced
     class HttpContentTypes
     {
     private:
-        std::unordered_map<String, const char *> contentTypes_;
+        std::map<String, const char *> contentTypes_;
 
     public:
         static constexpr const char *ServiceName = "HttpContentTypesLookup";
@@ -72,9 +72,9 @@ namespace HttpServerAdvanced
         }
 
     private:
-        static const std::unordered_map<String, const char *> &getTable()
+        static const std::map<String, const char *> &getTable()
         {
-            static const std::unordered_map<String, const char *> standardTypes = {
+            static const std::map<String, const char *> standardTypes = {
                 {"html", HTML},
                 {"htm", HTML},
                 {"css", CSS},

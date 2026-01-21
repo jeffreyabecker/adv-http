@@ -18,79 +18,21 @@ namespace HttpServerAdvanced
     class HttpServerBase
     {
     public:
-        HttpServerBase()
-            : pipelineHandlerFactory_(nullptr),
-              currentPipeline_(nullptr)
-        {
-        }
-        virtual ~HttpServerBase()
-        {
-            end();
-        }
+        HttpServerBase();
+        virtual ~HttpServerBase();
 
-        void handleClient()
-        {
-            if (pipelineHandlerFactory_)
-            {
-                if (!currentPipeline_)
-                {
-                    std::unique_ptr<IClient> accepted = accept();
-                    if (accepted)
-                    {
-                        PipelineHandlerPtr handler = pipelineHandlerFactory_(*this);
-                        currentPipeline_ = std::make_unique<HttpPipeline>(
-                            std::move(accepted),
-                            *this,
-                            timeouts_,
-                            std::move(handler));
+        void handleClient();
 
-                       
-                    }
-                }
-                if (currentPipeline_)
-                {
-                    auto result = currentPipeline_->handleClient();
-                    if (isPipelineHandleClientResultFinal(result))
-                    {
-                        currentPipeline_ = nullptr;
-                    }
-                }
-            }
-            else
-            {
-                assert(false && "No Pipeline Hander Factory was setup");
-            }
-        }
+        virtual void begin();
+        virtual void end();
 
-        virtual void begin() {}
-        virtual void end()
-        {
-            currentPipeline_ = nullptr;
-        }
+        HttpTimeouts &timeouts();
+        void setTimeouts(const HttpTimeouts &timeouts);
 
-        HttpTimeouts &timeouts()
-        {
-            return timeouts_;
-        }
-        void setTimeouts(const HttpTimeouts &timeouts)
-        {
-            timeouts_ = timeouts;
-        }
+        std::map<String, std::any> &items() const;
 
-        std::map<String, std::any> &items() const
-        {
-            return items_;
-        }
-
-        bool hasService(const String &serviceName) const
-        {
-            return items_.find(serviceName) != items_.end();
-        }
-        HttpServerBase &use(std::function<void(HttpServerBase &)> setupFunc)
-        {
-            setupFunc(static_cast<HttpServerBase &>(*this));
-            return static_cast<HttpServerBase &>(*this);
-        }
+        bool hasService(const String &serviceName) const;
+        HttpServerBase &use(std::function<void(HttpServerBase &)> setupFunc);
 
         template <typename T>
         T *getService(const String &serviceName) const
@@ -105,10 +47,7 @@ namespace HttpServerAdvanced
             }
             return nullptr;
         }
-        void addService(HttpServerBase &server, const String &serviceName, std::any serviceInstance)
-        {
-            items_[serviceName] = serviceInstance;
-        }
+        void addService(HttpServerBase &server, const String &serviceName, std::any serviceInstance);
         template <typename TServiceInstance>
         void addServiceOnce(HttpServerBase &server, const String &serviceName, TServiceInstance serviceInstance)
         {
@@ -122,10 +61,7 @@ namespace HttpServerAdvanced
         {
             items_[serviceName] = std::make_any<TServiceInstance>(serviceInstance);
         }
-        void setPipelineHandlerFactory(std::function<PipelineHandlerPtr(HttpServerBase &)> factory)
-        {
-            pipelineHandlerFactory_ = factory;
-        }
+        void setPipelineHandlerFactory(std::function<PipelineHandlerPtr(HttpServerBase &)> factory);
 
     protected:
         std::function<PipelineHandlerPtr(HttpServerBase &)> pipelineHandlerFactory_;
