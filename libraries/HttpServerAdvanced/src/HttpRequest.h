@@ -5,6 +5,7 @@
 #include "./HttpResponse.h"
 #include "./HttpRequestPhase.h"
 #include "./IHttpHandler.h"
+#include "./PipelineError.h"
 
 namespace HttpServerAdvanced
 {
@@ -161,7 +162,37 @@ namespace HttpServerAdvanced
         {
             if (!haveSentResponse_)
             {
-                response_ = HttpResponse::create(HttpStatus::BadRequest(), String("Bad Request: ") + String(error.message()));
+                HttpStatus status;
+                String message;
+
+                switch (error.code())
+                {
+                case HttpServerAdvanced::PipelineErrorCode::InvalidVersion:
+                case HttpServerAdvanced::PipelineErrorCode::InvalidMethod:
+                    status = HttpStatus::BadRequest();
+                    message = "Bad Request: ";
+                    break;
+                case HttpServerAdvanced::PipelineErrorCode::UriTooLong:
+                case HttpServerAdvanced::PipelineErrorCode::HeaderTooLarge:
+                case HttpServerAdvanced::PipelineErrorCode::BodyTooLarge:
+                    status = HttpStatus::PayloadTooLarge();
+                    message = "Payload Too Large: ";
+                    break;
+                case HttpServerAdvanced::PipelineErrorCode::Timeout:
+                    status = HttpStatus::RequestTimeout();
+                    message = "Request Timeout: ";
+                    break;
+                case HttpServerAdvanced::PipelineErrorCode::UnsupportedMediaType:
+                    status = HttpStatus::UnsupportedMediaType();
+                    message = "Unsupported Media Type: ";
+                    break;
+                default:
+                    status = HttpStatus::BadRequest();
+                    message = "Bad Request: ";
+                    break;
+                }
+
+                response_ = HttpResponse::create(status, message + String(error.message()));
                 sendResponse();
             }
         }
