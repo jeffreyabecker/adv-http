@@ -37,6 +37,19 @@ namespace HttpServerAdvanced
         http_parser_settings settings_;
         RequestParserEvent currentEvent_ = RequestParserEvent::None;
         IPipelineHandler &eventHandler_;
+        /**
+        Recommendation
+        For memory-constrained embedded devices (RP2040, ESP8266):
+
+        Factor	Winner	Why
+        Worst-case predictability	Static	No fragmentation, bounded
+        Average-case efficiency	Dynamic	Typical requests use less
+        Real-time/latency	Static	No malloc during parse
+        Long-running stability	Static	Fragmentation accumulates over time
+        Verdict: The current static buffer is the safer choice for an HTTP server that must run indefinitely without reboot. The ~800 B savings from dynamic allocation isn't worth the fragmentation risk on systems without virtual memory.
+
+        If you wanted to pursue dynamic allocation, I'd suggest the hybrid approach with a 256-byte inline buffer—but only if profiling shows memory pressure in real workloads.
+        */
         std::array<char, HttpServerAdvanced::REQUEST_PARSER_BUFFER_LENGTH> buffer_{};
         std::size_t writePos_ = 0;
         std::size_t urlPos_ = 0;
@@ -132,7 +145,7 @@ namespace HttpServerAdvanced
                         return result;
                     }
                 }
-                
+
                 // If we were processing a header value and now we're starting a new field,
                 // it means the previous header is complete
                 if (self->currentEvent_ == RequestParserEvent::HeaderValue && self->headerFieldLen_ > 0)
@@ -144,15 +157,14 @@ namespace HttpServerAdvanced
                     ++self->headerCount_;
                     int result = self->eventHandler_.onHeader(
                         String(self->buffer_.data() + self->headerFieldPos_, self->headerFieldLen_),
-                        String(self->buffer_.data() + self->headerValuePos_, self->headerValueLen_)
-                    );
+                        String(self->buffer_.data() + self->headerValuePos_, self->headerValueLen_));
                     self->resetBuffer();
                     if (result != 0)
                     {
                         return result;
                     }
                 }
-                
+
                 self->currentEvent_ = RequestParserEvent::HeaderField;
                 // Buffer the header field chunk
                 if (!self->appendToBuffer(at, length, HttpServerAdvanced::MAX_REQUEST_HEADER_NAME_LENGTH, self->headerFieldPos_, self->headerFieldLen_))
@@ -193,15 +205,14 @@ namespace HttpServerAdvanced
                     ++self->headerCount_;
                     int result = self->eventHandler_.onHeader(
                         String(self->buffer_.data() + self->headerFieldPos_, self->headerFieldLen_),
-                        String(self->buffer_.data() + self->headerValuePos_, self->headerValueLen_)
-                    );
+                        String(self->buffer_.data() + self->headerValuePos_, self->headerValueLen_));
                     self->resetBuffer();
                     if (result != 0)
                     {
                         return result;
                     }
                 }
-                
+
                 self->currentEvent_ = RequestParserEvent::HeadersComplete;
                 return self->eventHandler_.onHeadersComplete();
             }

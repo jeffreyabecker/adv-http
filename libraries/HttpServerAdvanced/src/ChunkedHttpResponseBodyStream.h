@@ -1,5 +1,4 @@
 #pragma once
-#include <array>
 #include <memory>
 #include "./HttpResponseBodyStream.h"
 #include "./Defines.h"
@@ -7,31 +6,47 @@
 namespace HttpServerAdvanced
 {
 
+  /**
+   * @brief Wraps a stream and emits HTTP chunked transfer encoding on-the-fly.
+   *
+   * This implementation avoids buffering entire chunks. It reads a fixed-size
+   * "window" of inner stream bytes and emits: hex-length CRLF <data> CRLF,
+   * repeating until the inner stream is exhausted, then emits the final "0\r\n\r\n".
+   *
+   * State machine:
+   *   Header  -> emitting "XX\r\n" (chunk size in hex + CRLF)
+   *   Body    -> streaming inner bytes (chunkRemaining_ bytes)
+   *   Trailer -> emitting "\r\n"
+   *   Final   -> emitting "0\r\n\r\n"
+   *   Done    -> available() == 0
+   */
   class ChunkedHttpResponseBodyStream : public HttpResponseBodyStream
   {
   private:
-    std::unique_ptr<Stream> innerStream_;
-    std::array<uint8_t, HttpServerAdvanced::CHUNKED_RESPONSE_BUFFER_SIZE> buffer_;
-    size_t head_ = 0;
-    size_t length_ = 0;
-    bool done_ = false;
-    bool haveBufferedTerminalChunk_ = false;
-    static constexpr size_t finalChunkLength = 6;
-    static constexpr const char finalChunk[finalChunkLength] = "0\r\n\r\n";
+    enum class State { Header, Body, Trailer, Final, Done };
 
-    void consume();
-    constexpr std::size_t hex_length(std::uint64_t n);
-    void bufferNextChunk();
+    State state_ = State::Header;
+    size_t chunkRemaining_ = 0;       ///< bytes left in current body phase
+    char headerBuf_[12] = {};         ///< "XXXX\r\n" (max 8 hex digits + CRLF + NUL)
+    size_t headerPos_ = 0;
+    size_t headerLen_ = 0;
+    size_t trailerPos_ = 0;
+    size_t finalPos_ = 0;
+
+    static constexpr size_t chunkDataSize_ = HttpServerAdvanced::CHUNKED_RESPONSE_BUFFER_SIZE;
+    static constexpr const char trailer_[3] = "\r\n";
+    static constexpr const char finalChunk_[6] = "0\r\n\r\n";
+
+    void prepareHeader();
+    int peekInner() const;
 
   public:
-    ChunkedHttpResponseBodyStream(std::unique_ptr<Stream> innerStream);
+    explicit ChunkedHttpResponseBodyStream(std::unique_ptr<Stream> innerStream);
     static std::unique_ptr<HttpResponseBodyStream> create(std::unique_ptr<Stream> innerStream);
     virtual int available() override;
     virtual int read() override;
     virtual int peek() override;
     virtual size_t write(uint8_t b) override;
   };
-
-  // Implementations moved to .cpp
 
 } // namespace HttpServerAdvanced
