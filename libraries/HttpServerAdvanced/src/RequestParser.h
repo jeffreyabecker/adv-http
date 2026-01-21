@@ -10,6 +10,9 @@
 #include <cstdint>
 #include <optional>
 #include <algorithm>
+#include <array>
+#include <cstring>
+#include "./Defines.h"
 
 namespace HttpServerAdvanced
 {
@@ -34,9 +37,47 @@ namespace HttpServerAdvanced
         http_parser_settings settings_;
         RequestParserEvent currentEvent_ = RequestParserEvent::None;
         IPipelineHandler &eventHandler_;
-        String urlBuffer_;
-        String headerFieldBuffer_;
-        String headerValueBuffer_;
+        std::array<char, HttpServerAdvanced::REQUEST_PARSER_BUFFER_LENGTH> buffer_{};
+        std::size_t writePos_ = 0;
+        std::size_t urlPos_ = 0;
+        std::size_t urlLen_ = 0;
+        std::size_t headerFieldPos_ = 0;
+        std::size_t headerFieldLen_ = 0;
+        std::size_t headerValuePos_ = 0;
+        std::size_t headerValueLen_ = 0;
+        std::size_t headerCount_ = 0;
+
+        bool appendToBuffer(const char *data, std::size_t length, std::size_t maxAllowed, std::size_t &startPos, std::size_t &curLen)
+        {
+            if (curLen == 0)
+            {
+                startPos = writePos_;
+            }
+            if (length == 0)
+            {
+                return true;
+            }
+            if (writePos_ + length > buffer_.size())
+            {
+                return false;
+            }
+            if (curLen + length > maxAllowed)
+            {
+                return false;
+            }
+            std::memcpy(buffer_.data() + writePos_, data, length);
+            writePos_ += length;
+            curLen += length;
+            return true;
+        }
+
+        void resetBuffer()
+        {
+            writePos_ = 0;
+            urlLen_ = 0;
+            headerFieldLen_ = 0;
+            headerValueLen_ = 0;
+        }
 
         // Helper to get HttpRequestParser* from http_parser
         static RequestParser *get_instance(http_parser *parser)
@@ -63,7 +104,10 @@ namespace HttpServerAdvanced
             {
                 self->currentEvent_ = RequestParserEvent::Url;
                 // Buffer the URL chunk
-                self->urlBuffer_.concat(at, length);
+                if (!self->appendToBuffer(at, length, HttpServerAdvanced::MAX_REQUEST_URI_LENGTH, self->urlPos_, self->urlLen_))
+                {
+                    return -1;
+                }
             }
             return 0;
         }
@@ -74,14 +118,14 @@ namespace HttpServerAdvanced
             if (self)
             {
                 // If we haven't invoked onMessageBegin yet and we're starting headers, do it now
-                if (self->currentEvent_ == RequestParserEvent::Url && !self->urlBuffer_.isEmpty())
+                if (self->currentEvent_ == RequestParserEvent::Url && self->urlLen_ > 0)
                 {
                     int result = self->eventHandler_.onMessageBegin(
                         http_method_str(static_cast<http_method>(self->parser_.method)),
                         self->parser_.http_major,
                         self->parser_.http_minor,
-                        std::move(self->urlBuffer_));
-                    self->urlBuffer_ = String(); // Clear buffer after moving
+                        String(self->buffer_.data() + self->urlPos_, self->urlLen_));
+                    self->resetBuffer();
 
                     if (result != 0)
                     {
@@ -91,14 +135,18 @@ namespace HttpServerAdvanced
                 
                 // If we were processing a header value and now we're starting a new field,
                 // it means the previous header is complete
-                if (self->currentEvent_ == RequestParserEvent::HeaderValue && !self->headerFieldBuffer_.isEmpty())
+                if (self->currentEvent_ == RequestParserEvent::HeaderValue && self->headerFieldLen_ > 0)
                 {
+                    if (self->headerCount_ >= HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT)
+                    {
+                        return -1;
+                    }
+                    ++self->headerCount_;
                     int result = self->eventHandler_.onHeader(
-                        std::move(self->headerFieldBuffer_),
-                        std::move(self->headerValueBuffer_)
+                        String(self->buffer_.data() + self->headerFieldPos_, self->headerFieldLen_),
+                        String(self->buffer_.data() + self->headerValuePos_, self->headerValueLen_)
                     );
-                    self->headerFieldBuffer_ = String();
-                    self->headerValueBuffer_ = String();
+                    self->resetBuffer();
                     if (result != 0)
                     {
                         return result;
@@ -107,7 +155,10 @@ namespace HttpServerAdvanced
                 
                 self->currentEvent_ = RequestParserEvent::HeaderField;
                 // Buffer the header field chunk
-                self->headerFieldBuffer_.concat(at, length);
+                if (!self->appendToBuffer(at, length, HttpServerAdvanced::MAX_REQUEST_HEADER_NAME_LENGTH, self->headerFieldPos_, self->headerFieldLen_))
+                {
+                    return -1;
+                }
             }
             return 0;
         }
@@ -119,7 +170,10 @@ namespace HttpServerAdvanced
             {
                 self->currentEvent_ = RequestParserEvent::HeaderValue;
                 // Buffer the header value chunk
-                self->headerValueBuffer_.concat(at, length);
+                if (!self->appendToBuffer(at, length, HttpServerAdvanced::MAX_REQUEST_HEADER_VALUE_LENGTH, self->headerValuePos_, self->headerValueLen_))
+                {
+                    return -1;
+                }
             }
             return 0;
         }
@@ -130,14 +184,18 @@ namespace HttpServerAdvanced
             if (self)
             {
                 // Complete the last header if we have one
-                if (!self->headerFieldBuffer_.isEmpty())
+                if (self->headerFieldLen_ > 0)
                 {
+                    if (self->headerCount_ >= HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT)
+                    {
+                        return -1;
+                    }
+                    ++self->headerCount_;
                     int result = self->eventHandler_.onHeader(
-                        std::move(self->headerFieldBuffer_),
-                        std::move(self->headerValueBuffer_)
+                        String(self->buffer_.data() + self->headerFieldPos_, self->headerFieldLen_),
+                        String(self->buffer_.data() + self->headerValuePos_, self->headerValueLen_)
                     );
-                    self->headerFieldBuffer_ = String();
-                    self->headerValueBuffer_ = String();
+                    self->resetBuffer();
                     if (result != 0)
                     {
                         return result;
@@ -196,6 +254,12 @@ namespace HttpServerAdvanced
             {
                 currentEvent_ = RequestParserEvent::Error;
                 eventHandler_.onError(PipelineParserError(static_cast<enum http_errno>(parser_.http_errno)));
+            }
+            // Reset header counter for the next request on reused parser
+            if (currentEvent_ == RequestParserEvent::MessageComplete || currentEvent_ == RequestParserEvent::Error)
+            {
+                headerCount_ = 0;
+                resetBuffer();
             }
             return result;
         }

@@ -5,64 +5,106 @@
 namespace HttpServerAdvanced
 {
 
-
     constexpr std::size_t ETHERNET_FRAME_BUFFER_SIZE = 1436; // Standard Ethernet MTU minus headers
 
 // no direct equivalent in WebServer as it does a bunch of dynamic allocations in parsing.h
-#ifndef HTTPSERVER_REQUEST_BUFFER_SIZE
+#ifndef HTTPSERVER_ADVANCED_REQUEST_BUFFER_SIZE
     constexpr std::size_t REQUEST_BUFFER_SIZE = ETHERNET_FRAME_BUFFER_SIZE; // default to 1 ethernet packet worth of data
 #else
-    constexpr std::size_t REQUEST_BUFFER_SIZE = HTTPSERVER_REQUEST_BUFFER_SIZE;
+    constexpr std::size_t REQUEST_BUFFER_SIZE = HTTPSERVER_ADVANCED_REQUEST_BUFFER_SIZE;
 #endif
 
 // corresponds to HTTP_RAW_BUFLEN
-#ifndef HTTPSERVER_REQUEST_BODY_BUFFER_SIZE
-    constexpr std::size_t REQUEST_BODY_BUFFER_SIZE = ETHERNET_FRAME_BUFFER_SIZE; // default to same as request buffer size 
+#ifndef HTTPSERVER_ADVANCED_REQUEST_BODY_BUFFER_SIZE
+    constexpr std::size_t REQUEST_BODY_BUFFER_SIZE = ETHERNET_FRAME_BUFFER_SIZE; // default to same as request buffer size
 #else
-    constexpr std::size_t REQUEST_BODY_BUFFER_SIZE = HTTPSERVER_REQUEST_BODY_BUFFER_SIZE;
+    constexpr std::size_t REQUEST_BODY_BUFFER_SIZE = HTTPSERVER_ADVANCED_REQUEST_BODY_BUFFER_SIZE;
 #endif
 
 // no direct equivalent in WebServer as it does a bunch of dynamic allocations in HttpServer.cpp
 // eg all the response headers are built into a single String
 // this framework does a shell game of streams to minimize allocations
-#ifndef HTTPSERVER_CHUNKED_RESPONSE_BUFFER_SIZE
+#ifndef HTTPSERVER_ADVANCED_CHUNKED_RESPONSE_BUFFER_SIZE
     constexpr std::size_t CHUNKED_RESPONSE_BUFFER_SIZE = REQUEST_BUFFER_SIZE;
 #else
-    constexpr std::size_t CHUNKED_RESPONSE_BUFFER_SIZE = HTTPSERVER_CHUNKED_RESPONSE_BUFFER_SIZE;
+    constexpr std::size_t CHUNKED_RESPONSE_BUFFER_SIZE = HTTPSERVER_ADVANCED_CHUNKED_RESPONSE_BUFFER_SIZE;
 #endif
     static_assert(CHUNKED_RESPONSE_BUFFER_SIZE >= ETHERNET_FRAME_BUFFER_SIZE, "CHUNKED_RESPONSE_BUFFER_SIZE must be at least ETHERNET_FRAME_BUFFER_SIZE and should probably be an integer multiple of that size.");
-
 
 /**
  * @brief Maximum total time allowed for a complete HTTP request in a pipeline
  */
-#ifndef HTTPSERVER_PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS
+#ifndef HTTPSERVER_ADVANCED_PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS
     constexpr uint32_t PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS = 5000UL; // Default: 5 seconds
 #else
-    constexpr uint32_t PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS = HTTPSERVER_PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS;
+    constexpr uint32_t PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS = HTTPSERVER_ADVANCED_PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS;
 #endif
 
 /**
  * @brief Timeout for activity on the pipeline (resets on each successful read/write)
  */
-#ifndef HTTPSERVER_PIPELINE_ACTIVITY_TIMEOUT
+#ifndef HTTPSERVER_ADVANCED_PIPELINE_ACTIVITY_TIMEOUT
     constexpr uint32_t PIPELINE_ACTIVITY_TIMEOUT = 1000UL; // Default: 1 second
 #else
-    constexpr uint32_t PIPELINE_ACTIVITY_TIMEOUT = HTTPSERVER_PIPELINE_ACTIVITY_TIMEOUT;
+    constexpr uint32_t PIPELINE_ACTIVITY_TIMEOUT = HTTPSERVER_ADVANCED_PIPELINE_ACTIVITY_TIMEOUT;
 #endif
 
 /**
  * @brief Timeout for a single client->read call in the pipeline
  */
-#ifndef HTTPSERVER_PIPELINE_READ_TIMEOUT
+#ifndef HTTPSERVER_ADVANCED_PIPELINE_READ_TIMEOUT
     constexpr uint32_t PIPELINE_READ_TIMEOUT = 500UL; // Default: 500 ms
 #else
-    constexpr uint32_t PIPELINE_READ_TIMEOUT = HTTPSERVER_PIPELINE_READ_TIMEOUT;
+    constexpr uint32_t PIPELINE_READ_TIMEOUT = HTTPSERVER_ADVANCED_PIPELINE_READ_TIMEOUT;
 #endif
-    
-#ifndef HTTPSERVER_REQUEST_MATCHER_PATH_WILDCARD_CHAR
+
+#ifndef HTTPSERVER_ADVANCED_REQUEST_MATCHER_PATH_WILDCARD_CHAR
     constexpr char REQUEST_MATCHER_PATH_WILDCARD_CHAR = '?';
 #else
-    constexpr char REQUEST_MATCHER_PATH_WILDCARD_CHAR = HTTPSERVER_REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+    constexpr char REQUEST_MATCHER_PATH_WILDCARD_CHAR = HTTPSERVER_ADVANCED_REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+#endif
+
+#ifndef HTTPSERVER_ADVANCED_MAX_URI_LENGTH
+    constexpr size_t MAX_REQUEST_URI_LENGTH = 1024; // 1 KB
+#else
+    constexpr size_t MAX_URI_LENGTH = HTTPSERVER_ADVANCED_MAX_URI_LENGTH;
+#endif
+
+#ifndef HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_COUNT
+    constexpr size_t MAX_REQUEST_HEADER_COUNT = 100;
+#else
+    constexpr size_t MAX_REQUEST_HEADER_COUNT = HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_COUNT;
+#endif
+
+// limits for header name/value lengths
+// the longest canned header is  "Attribution-Reporting-Register-Trigger", length 38 characters.
+// 64 is slightly less than double that, allowing some room for custom headers.
+#ifndef HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_NAME_LENGTH
+    constexpr size_t MAX_REQUEST_HEADER_NAME_LENGTH = 64;
+#else
+    constexpr size_t MAX_REQUEST_HEADER_NAME_LENGTH = HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_NAME_LENGTH;
+#endif
+#ifndef HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_VALUE_LENGTH
+    constexpr size_t MAX_REQUEST_HEADER_VALUE_LENGTH = 512; // 512 bytes
+#else
+    constexpr size_t MAX_REQUEST_HEADER_VALUE_LENGTH = HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_VALUE_LENGTH;
+#endif
+
+#ifndef HTTPSERVER_ADVANCED_REQUEST_PARSER_BUFFER_LENGTH
+    constexpr size_t REQUEST_PARSER_BUFFER_LENGTH =
+        std::max(MAX_REQUEST_URI_LENGTH,
+                 MAX_REQUEST_HEADER_NAME_LENGTH + MAX_REQUEST_HEADER_VALUE_LENGTH); // 2 KB
+#else
+    constexpr size_t REQUEST_BUFFER_LENGTH = std::max(HTTPSERVER_ADVANCED_REQUEST_PARSER_BUFFER_LENGTH, MAX_URI_LENGTH,
+                                                      MAX_REQUEST_HEADER_NAME_LENGTH + MAX_REQUEST_HEADER_VALUE_LENGTH);
+
+#endif
+
+#ifndef HTTPSERVER_ADVANCED_MAX_BUFFERED_BODY_LENGTH
+    constexpr ssize_t MAX_BUFFERED_BODY_LENGTH = 2048; // 2 KB
+#else
+    constexpr ssize_t MAX_BUFFERED_BODY_LENGTH = HTTPSERVER_ADVANCED_MAX_BUFFERED_BODY_LENGTH;
 #endif
 } // namespace HttpServerAdvanced
+
+
