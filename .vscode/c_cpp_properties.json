@@ -87,8 +87,7 @@
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/libraries/ESPHost/src",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/libraries/FatFS/src",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/libraries/FatFSUSB/src",
-                "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/libraries/HTTPServer/src",
-                "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/libraries/HTTPServer/src/core",
+
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/libraries/HID_Bluetooth/src",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/libraries/HID_Joystick/src",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/libraries/HID_Keyboard/src",
@@ -145,7 +144,13 @@
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/libraries/rp2350",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/cores/rp2040/lwip/src/include",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/pico-sdk/src/rp2_common/pico_platform_common/include",
-                "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/pico-sdk/lib/cyw43-driver/src"
+                "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/pico-sdk/lib/cyw43-driver/src",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/core",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/core/handlers",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/util",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/static",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/pipeline"
                 
             ],
             "defines": [

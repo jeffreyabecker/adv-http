@@ -1,14 +1,8 @@
-board_manager:
-  additional_urls:
-    - https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
-
 build:
   cache:
     enable: true
 
 directories:
-  user: ${HOME}/.arduino15
+  user: ./.arduino/user
   data: ./.arduino
   downloads: ./.arduino/staging
-
-

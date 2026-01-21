@@ -1,6 +1,6 @@
 #pragma once
 #include "./StandardHttpServer.h"
-#include <WiFiServerSecureBearSSL.h>
+#include <WiFi.h>
 #include <type_traits>
 #include <utility>
 namespace HttpServerAdvanced
@@ -57,8 +57,7 @@ namespace HttpServerAdvanced
                   has_getCache<T>,
                   has_getCertificateChain<T>,
                   has_getPrivateKey<T>,
-                  has_getKeyType<T>,
-                  std::negation<std::is_base_of<ISecureHttpServerConfig, std::remove_cv_t<std::remove_reference_t<T>>>>>
+                  has_getKeyType<T>>
         {
         };
 
@@ -72,7 +71,7 @@ namespace HttpServerAdvanced
     } // namespace Restrictions
     template <uint32_t KEY_TYPE, size_t CACHE_SIZE = 8,
               typename = std::enable_if_t<(KEY_TYPE | BR_KEYTYPE_EC > 0) || (KEY_TYPE | BR_KEYTYPE_RSA > 0)>>
-    class SecureHttpServerConfig 
+    class SecureHttpServerConfig
     {
     protected:
         BearSSL::X509List chain_;
@@ -85,8 +84,6 @@ namespace HttpServerAdvanced
             : chain_(serverCert), sk_(privateKey), cache_(CACHE_SIZE), keyType_(KEY_TYPE)
         {
         }
-        
-
 
         BearSSL::ServerSessions *getCache() { return &cache_; }
         BearSSL::X509List *getCertificateChain() { return &chain_; }

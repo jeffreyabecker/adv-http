@@ -1,11 +1,12 @@
 #pragma once
 #include <Arduino.h>
-#include "./util/Util.h"
+#include "./StringUtility.h"
 #include <vector>
 #include <map>
 #include <initializer_list>
 #include <unordered_map>
 #include <algorithm>
+#include "./Base64Encoder.h"
 
 namespace HttpServerAdvanced
 {
@@ -13,31 +14,31 @@ namespace HttpServerAdvanced
     {
 
     public:
-        static std::vector<std::pair<String, String>> parseQueryString(const StringView &query)
+        static std::vector<std::pair<String, String>> ParseQueryString(const char *query, std::size_t length)
         {
             std::vector<std::pair<String, String>> params;
             size_t pos = 0;
-            while (pos < query.length())
+            while (pos < length)
             {
-                size_t amp_pos = query.indexOf('&', pos);
-                size_t eq_pos = query.indexOf('=', pos);
+                size_t amp_pos = StringUtil::indexOf(query, length, "&", 1, pos);
+                size_t eq_pos = StringUtil::indexOf(query, length, "=", 1, pos);
                 if (eq_pos == -1 || (amp_pos != -1 && amp_pos < eq_pos))
                 {
                     // No '=' found, or '&' comes before '='
-                    String key = decodeURIComponent(query.substring(pos, amp_pos == -1 ? query.length() : amp_pos));
+                    String key = DecodeURIComponent(query + pos, (amp_pos == -1 ? length : amp_pos) - pos);
                     params.emplace_back(key, String());
                 }
                 else
                 {
-                    String key = decodeURIComponent(query.substring(pos, eq_pos));
+                    String key = DecodeURIComponent(query + pos, eq_pos - pos);
                     String value;
                     if (amp_pos == -1)
                     {
-                        value = decodeURIComponent(query.substring(eq_pos + 1));
+                        value = DecodeURIComponent(query + eq_pos + 1, length - (eq_pos + 1));
                     }
                     else
                     {
-                        value = decodeURIComponent(query.substring(eq_pos + 1, amp_pos));
+                        value = DecodeURIComponent(query + eq_pos + 1, amp_pos - (eq_pos + 1));
                     }
                     params.emplace_back(key, value);
                 }
@@ -49,16 +50,26 @@ namespace HttpServerAdvanced
             }
             return params;
         }
-        static String decodeURIComponent(const StringView &str)
+        static std::vector<std::pair<String, String>> ParseQueryString(const String &query)
+        {
+            return ParseQueryString(query.c_str(), query.length());
+        }
+        static String DecodeURIComponent(const String &str)
+        {
+            return DecodeURIComponent(str.c_str(), str.length());
+        }
+
+        // Decodes a URL-encoded string - const char* overload delegates to String implementation
+        static String DecodeURIComponent(const char *str, std::size_t length)
         {
             String ret;
-            for (size_t i = 0; i < str.length(); ++i)
+            for (size_t i = 0; i < length; ++i)
             {
                 if (str[i] == '+')
                 {
                     ret += ' ';
                 }
-                else if (str[i] == '%' && i + 2 < str.length())
+                else if (str[i] == '%' && i + 2 < length)
                 {
                     char hex[3] = {str[i + 1], str[i + 2], '\0'};
                     char decoded = static_cast<char>(strtol(hex, nullptr, 16));
@@ -73,33 +84,21 @@ namespace HttpServerAdvanced
             return ret;
         }
 
-        // Decodes a URL-encoded string - const char* overload delegates to StringView implementation
-        static String decodeURIComponent(const char *str, std::size_t length)
-        {
-            return decodeURIComponent(StringView(str, length));
-        }
-
-        // Decodes a URL-encoded string - String overload delegates to StringView implementation
-        static String decodeURIComponent(const String &str)
-        {
-            return decodeURIComponent(StringView(str));
-        }
-
         // Serializes any container of key-value pairs into a URL-encoded string
         template <typename Container>
-        static String serializeQueryString(const Container &params)
+        static String SerializeQueryString(const Container &params)
         {
             String result;
-            std::vector<std::pair<StringView, StringView>> param_list;
+            std::vector<std::pair<String, String>> param_list;
             for (const auto &kv : params)
             {
-                param_list.emplace_back(StringView(kv.first), StringView(kv.second));
+                param_list.emplace_back(String(kv.first), String(kv.second));
             }
             size_t total_size = 0;
             for (const auto &kv : param_list)
             {
-                String encoded_key = encodeURIComponent(kv.first);
-                String encoded_value = encodeURIComponent(kv.second);
+                String encoded_key = EncodeURIComponent(kv.first);
+                String encoded_value = EncodeURIComponent(kv.second);
                 total_size += encoded_key.length() + encoded_value.length() + 1; // +1 for '='
             }
             if (param_list.size() > 1)
@@ -112,23 +111,23 @@ namespace HttpServerAdvanced
             {
                 if (!first)
                     result += '&';
-                result += encodeURIComponent(kv.first) + '=' + encodeURIComponent(kv.second);
+                result += EncodeURIComponent(kv.first) + '=' + EncodeURIComponent(kv.second);
                 first = false;
             }
             return result;
         }
         // Overload for initializer_list
-        static String serializeQueryString(std::initializer_list<std::pair<String, String>> params)
+        static String SerializeQueryString(std::initializer_list<std::pair<String, String>> params)
         {
-            return serializeQueryString<std::initializer_list<std::pair<String, String>>>(params);
+            return SerializeQueryString<std::initializer_list<std::pair<String, String>>>(params);
         }
 
-        // Encodes a string for URL encoding - StringView implementation (core logic)
-        static String encodeURIComponent(const StringView &str)
+        // Encodes a string for URL encoding - String implementation (core logic)
+        static String EncodeURIComponent(const char *str, std::size_t length)
         {
             String ret;
             const char *hex = "0123456789ABCDEF";
-            for (size_t i = 0; i < str.length(); ++i)
+            for (size_t i = 0; i < length; ++i)
             {
                 char c = str[i];
                 if ((c >= 'a' && c <= 'z') ||
@@ -153,24 +152,19 @@ namespace HttpServerAdvanced
             return ret;
         }
 
-        // Encodes a string for URL encoding - primary implementation (delegates to StringView)
-        static String encodeURIComponent(const char *str, std::size_t length)
+        // Encodes a string for URL encoding - primary implementation (delegates to String)
+        static String EncodeURIComponent(const String &str)
         {
-            return encodeURIComponent(StringView(str, length));
+            return EncodeURIComponent(str.c_str(), str.length());
         }
 
-        static String htmlEncode(const char *str, std::size_t length)
+        static String HtmlEncode(const char *str, std::size_t length)
         {
-            return htmlEncode(StringView(str, length));
-        }
-        static String htmlEncode(StringView str)
-        {
-            if (str.isEmpty())
+            if (str == nullptr || length == 0)
                 return String();
-
             String output;
-            output.reserve(str.length());
-            for (size_t i = 0; i < str.length(); ++i)
+            output.reserve(length);
+            for (size_t i = 0; i < length; ++i)
             {
                 char c = str[i];
                 // Encode special HTML characters
@@ -201,26 +195,26 @@ namespace HttpServerAdvanced
             }
             return output;
         }
+        static String HtmlEncode(String str)
+        {
+            return HtmlEncode(str.c_str(), str.length());
+        }
 
         // Overload for String - delegates to main implementation
 
         // Overload for const char* - delegates to main implementation
-        static String htmlEncode(const char *input)
+        static String HtmlEncode(const char *input)
         {
-            return htmlEncode(StringView(input));
+            return HtmlEncode(String(input));
         }
-        static String htmlAttributeEncode(const char *input, std::size_t length)
+        static String HtmlAttributeEncode(const char *input, std::size_t length)
         {
-            return htmlAttributeEncode(StringView(input, length));
-        }
-        static String htmlAttributeEncode(StringView input)
-        {
-            if (input.isEmpty())
+            if (input == nullptr || length == 0)
                 return String();
 
             String output;
-            output.reserve(input.length());
-            for (size_t i = 0; i < input.length(); ++i)
+            output.reserve(length);
+            for (size_t i = 0; i < length; ++i)
             {
                 char c = input[i];
                 // Encode special HTML attribute characters
@@ -251,16 +245,20 @@ namespace HttpServerAdvanced
             }
             return output;
         }
+        static String HtmlAttributeEncode(String input)
+        {
+            return HtmlAttributeEncode(input.c_str(), input.length());
+        }
 
         // Overload for null-terminated string
-        static String htmlAttributeEncode(const char *input)
+        static String HtmlAttributeEncode(const char *input)
         {
-            return htmlAttributeEncode(StringView(input));
+            return HtmlAttributeEncode(String(input));
         }
 
         // Overload for String
 
-        static String javascriptStringEncode(StringView input, bool includeQuotes = true)
+        static String JavaScriptStringEncode(String input, bool includeQuotes = true)
         {
             if (input.isEmpty())
                 return includeQuotes ? String("\"\"") : String();
@@ -316,50 +314,50 @@ namespace HttpServerAdvanced
             return output;
         }
 
-        static String base64Encode(StringView input, bool urlCompatible = false)
+        static String Base64Encode(String input, bool urlCompatible = false)
         {
             if (urlCompatible)
             {
-                return Util::Base64Url.encode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
+                return Base64Url.encode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
             }
             else
             {
-                return Util::Base64.encode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
+                return Base64.encode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
             }
         }
-        static String base64Encode(const uint8_t *data, std::size_t length, bool urlCompatible = false)
+        static String Base64Encode(const uint8_t *data, std::size_t length, bool urlCompatible = false)
         {
             if (urlCompatible)
             {
-                return Util::Base64Url.encode(data, length);
+                return Base64Url.encode(data, length);
             }
             else
             {
-                return Util::Base64.encode(data, length);
+                return Base64.encode(data, length);
             }
         }
-        static std::vector<uint8_t> base64Decode(StringView input, bool urlCompatible = false)
+        static std::vector<uint8_t> Base64Decode(String input, bool urlCompatible = false)
         {
             if (urlCompatible)
             {
-                return Util::Base64Url.decode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
+                return Base64Url.decode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
             }
             else
             {
-                return Util::Base64.decode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
+                return Base64.decode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
             }
         }
-        static String base64DecodeToString(StringView input, bool urlCompatible = false)
+        static String Base64DecodeToString(String input, bool urlCompatible = false)
         {
-            return base64DecodeToString(input.begin(), input.length(), urlCompatible);
+            return Base64DecodeToString(input.begin(), input.length(), urlCompatible);
         }
-        static String base64DecodeToString(const char *data, std::size_t length, bool urlCompatible = false)
+        static String Base64DecodeToString(const char *data, std::size_t length, bool urlCompatible = false)
         {
-            auto decodedBytes = base64Decode(StringView(data, length), urlCompatible);
+            auto decodedBytes = Base64Decode(String(data, length), urlCompatible);
             return String(reinterpret_cast<const char *>(decodedBytes.data()), decodedBytes.size());
         }
 
-        static std::vector<std::pair<String, std::optional<String>>> parseDirectives(const String &val)
+        static std::vector<std::pair<String, std::optional<String>>> ParseHeaderDirectives(const String &val)
         {
             std::vector<std::pair<String, std::optional<String>>> directives;
             if (val.isEmpty())
