@@ -157,7 +157,7 @@ namespace HttpServerAdvanced
             completedReadingMessage();
             return 0;
         }
-        virtual void onError(HttpServerAdvanced::PipelineParserError error) override
+        virtual void onError(HttpServerAdvanced::PipelineError error) override
         {
             if (!haveSentResponse_)
             {

@@ -66,10 +66,20 @@ namespace HttpServerAdvanced
         {
             return;
         }
+        // Mark that response writing has started before emitting bytes
+        if (!haveStartedWritingResponse_)
+        {
+            haveStartedWritingResponse_ = true;
+            if (handler_)
+            {
+                handler_->onResponseStarted();
+            }
+        }
+
         startActivity();
         // ClientContext.h uses a 256 byte buffer for copying streams so we will do the same here
         // see: Wifi/src/include/ClientContext.h:379
-    uint8_t buffer[HttpServerAdvanced::PIPELINE_STACK_BUFFER_SIZE];
+        uint8_t buffer[HttpServerAdvanced::PIPELINE_STACK_BUFFER_SIZE];
         int available = 0;
         while ((available = responseStream_->available()) > 0)
         {
@@ -128,6 +138,23 @@ namespace HttpServerAdvanced
         if (currentMillis - startMillis_ > timeouts_.getTotalRequestLengthMs())
         {
             timedOutUnrecoverably_ = true;
+            // If we already started sending the response, close connection and abort immediately.
+            if (haveStartedWritingResponse_)
+            {
+                if (handler_)
+                {
+                    handler_->onError(PipelineError(PipelineErrorCode::Timeout));
+                }
+                // Force close the connection and abort pipeline
+                client_->stop();
+                abort();
+                return PipelineHandleClientResult::TimedOutUnrecoverably;
+            }
+            // Otherwise, notify handler and allow the pipeline to transition to timed-out state
+            if (handler_)
+            {
+                handler_->onError(PipelineError(PipelineErrorCode::Timeout));
+            }
             return PipelineHandleClientResult::TimedOutUnrecoverably;
         }
         if (aborted_)
@@ -160,6 +187,18 @@ namespace HttpServerAdvanced
         uint32_t currentMillis = millis();
         if (currentMillis - lastActivityMillis_ > timeouts_.getActivityTimeout())
         {
+            // Activity timeout: notify handler and mark pipeline as timed out
+            if (handler_)
+            {
+                handler_->onError(PipelineError(PipelineErrorCode::Timeout));
+            }
+            timedOutUnrecoverably_ = true;
+            // If response already started, close the connection
+            if (haveStartedWritingResponse_)
+            {
+                client_->stop();
+                abort();
+            }
             return false;
         }
         return true;

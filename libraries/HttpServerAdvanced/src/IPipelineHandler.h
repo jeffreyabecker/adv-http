@@ -3,8 +3,8 @@
 #include <functional>
 
 #include "./HttpTimeouts.h"
+#include "./PipelineError.h"
 
-#include <http_parser.h>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -12,19 +12,7 @@
 
 namespace HttpServerAdvanced
 {
-    // HttpRequestParser types and classes consolidated from HttpParser.h
-    class PipelineParserError
-    {
-    public:
-        PipelineParserError(enum http_errno err) : error_(err) {}
-        enum http_errno error() const { return error_; }
-        int32_t code() const { return static_cast<int32_t>(error_); }
-        const char *message() const { return http_errno_description(error_); }
-        const char *name() const { return http_errno_name(error_); }
 
-    private:
-        enum http_errno error_;
-    };
 
 
 
@@ -40,7 +28,7 @@ namespace HttpServerAdvanced
         virtual int onHeadersComplete() = 0;
         virtual int onBody(const uint8_t *at, std::size_t length) = 0;
         virtual int onMessageComplete() = 0;
-        virtual void onError(PipelineParserError error) = 0;
+        virtual void onError(PipelineError error) = 0;
         virtual void onResponseStarted() = 0;
         virtual void onResponseCompleted() = 0;
         virtual void onClientDisconnected() = 0;        

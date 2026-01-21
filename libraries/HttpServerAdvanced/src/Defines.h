@@ -14,6 +14,11 @@ namespace HttpServerAdvanced
     constexpr std::size_t PIPELINE_STACK_BUFFER_SIZE = HTTPSERVER_ADVANCED_PIPELINE_STACK_BUFFER_SIZE;
 #endif
 
+#ifndef HTTPSERVER_ADVANCED_MULTIPART_FORM_DATABUFFER_SIZE
+    constexpr std::size_t MULTIPART_FORM_DATA_BUFFER_SIZE = 1436; // Standard Ethernet MTU minus headers
+#else
+    constexpr std::size_t MULTIPART_FORM_DATA_BUFFER_SIZE = HTTPSERVER_ADVANCED_MULTIPART_FORM_DATABUFFER_SIZE;
+#endif
 
 
 

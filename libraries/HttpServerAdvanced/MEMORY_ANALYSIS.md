@@ -10,6 +10,45 @@
 | `http_parser_settings` struct | ~64 B | Part of `RequestParser` |
 | **Total static per-pipeline** | **~1.2 KB** | |
 
+## Multipart Form Data Handler Memory
+
+The `MultipartFormDataHandler` adds additional memory usage when processing `multipart/form-data` requests (file uploads):
+
+| Component | Size | Notes |
+|-----------|------|-------|
+| `buffer_` | **1,436 B** | `MULTIPART_FORM_DATA_BUFFER_SIZE` — fixed buffer for boundary detection |
+| `boundary_` | ~40–70 B typical | Parsed from Content-Type header |
+| `filename_`, `contentType_`, `partName_` | Variable | Heap strings for current part metadata |
+| `partData_` | Variable | `std::vector<uint8_t>` accumulates data between handler callbacks |
+| **Total static** | **~1.5 KB** | Plus heap for part metadata strings |
+
+### Streaming Design
+
+The multipart handler is designed for **memory-efficient large file uploads**:
+
+1. **Chunked delivery** — Parts are streamed to the handler in chunks, not buffered entirely
+2. **Status tracking** — `MultipartStatus` enum indicates `FirstChunk`, `SubsequentChunk`, or `FinalChunk`
+3. **Handler called multiple times** — For large files, the handler receives many callbacks with partial data
+4. **Boundary tail retention** — Only keeps `boundary_.length() + 4` bytes (~44 B) as tail buffer to detect split boundaries
+
+Example handler for streaming file upload:
+
+```cpp
+server.on(HttpMethod::POST, "/upload",
+    HttpServerAdvanced::Multipart::makeFactory(
+        [](HttpRequest &req, std::vector<String> &params, MultipartFormDataBuffer buffer) {
+            if (buffer.status() == MultipartStatus::FirstChunk) {
+                // Open file for writing
+            }
+            // Write buffer.data() / buffer.size() to file
+            if (buffer.status() == MultipartStatus::FinalChunk) {
+                // Close file
+            }
+            return nullptr; // Continue processing
+        },
+        HttpServerAdvanced::Matchers::none()));
+```
+
 ## Stack Memory (During Request Processing)
 
 | Component | Size | Notes |
@@ -44,12 +83,13 @@
 | **Minimal request** (GET, no body, ~5 headers) | ~1.5 KB |
 | **Average request** (GET/POST, ~15 headers, small body buffered) | ~5–8 KB |
 | **Maximum request** (32 headers at max lengths, 2 KB body buffered) | ~13 KB |
+| **Multipart file upload** (streaming, per-chunk) | ~3 KB + handler's usage |
 
 ## Key Observations
 
 1. **Parsing is bounded** — The `RequestParser` uses a single fixed buffer (`REQUEST_PARSER_BUFFER_LENGTH` = 1,024 B) and enforces length limits on URI, header names, and header values. Oversized data returns an error.
 
-2. **Header storage is the main heap cost** — `HttpHeadersCollection` is a `std::vector<HttpHeader>` where each `HttpHeader` holds two `String` objects. With 100 headers at max lengths, this can reach ~60 KB.
+2. **Header storage is the main heap cost** — `HttpHeadersCollection` is a `std::vector<HttpHeader>` where each `HttpHeader` holds two `String` objects. With 32 headers at max lengths, this can reach ~11 KB.
 
 3. **Body buffering is now bounded** — `BufferingHttpHandlerBase` respects `MAX_BUFFERED_BODY_LENGTH` (2 KB default). Setting it to 0 disables buffering entirely; negative means uncapped.
 
@@ -59,11 +99,14 @@
 
 6. **Chunked encoding is buffer-free** — `ChunkedHttpResponseBodyStream` uses a state machine to emit chunk headers/trailers on-the-fly, streaming body bytes directly from the inner stream without buffering entire chunks. This saves ~1.4 KB per response compared to the previous buffered implementation.
 
+7. **Multipart uploads stream efficiently** — Large file uploads are delivered to handlers in chunks (~1.4 KB each), with `MultipartStatus` indicating `FirstChunk`/`SubsequentChunk`/`FinalChunk`. Handlers can write directly to flash/SD without buffering entire files.
+
 ## Configurable Limits (Defines.h)
 
 | Macro Override | Default | Description |
 |----------------|---------|-------------|
 | `HTTPSERVER_ADVANCED_PIPELINE_STACK_BUFFER_SIZE` | 256 B | Stack buffer for read/write loops |
+| `HTTPSERVER_ADVANCED_MULTIPART_FORM_DATABUFFER_SIZE` | 1,436 B | Multipart boundary detection buffer |
 | `HTTPSERVER_ADVANCED_MAX_REQUEST_URI_LENGTH` | 1,024 B | Maximum URL length |
 | `HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_COUNT` | 32 | Maximum number of headers |
 | `HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_NAME_LENGTH` | 64 B | Maximum header name length |

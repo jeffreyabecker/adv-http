@@ -6,8 +6,10 @@
 #include "./IPipelineHandler.h"
 
 #include <http_parser.h>
+#include "./PipelineError.h"
 #include <cstddef>
 #include <cstdint>
+#include <cstddef>
 #include <optional>
 #include <algorithm>
 #include <array>
@@ -119,6 +121,9 @@ namespace HttpServerAdvanced
                 // Buffer the URL chunk
                 if (!self->appendToBuffer(at, length, HttpServerAdvanced::MAX_REQUEST_URI_LENGTH, self->urlPos_, self->urlLen_))
                 {
+                    // Notify handler about the overflow and abort parsing
+                    self->currentEvent_ = RequestParserEvent::Error;
+                    self->eventHandler_.onError(PipelineError(PipelineErrorCode::UriTooLong));
                     return -1;
                 }
             }
@@ -152,6 +157,9 @@ namespace HttpServerAdvanced
                 {
                     if (self->headerCount_ >= HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT)
                     {
+                        // Too many headers: inform handler and abort parsing
+                        self->currentEvent_ = RequestParserEvent::Error;
+                        self->eventHandler_.onError(PipelineError(PipelineErrorCode::HeaderTooLarge));
                         return -1;
                     }
                     ++self->headerCount_;
@@ -169,6 +177,9 @@ namespace HttpServerAdvanced
                 // Buffer the header field chunk
                 if (!self->appendToBuffer(at, length, HttpServerAdvanced::MAX_REQUEST_HEADER_NAME_LENGTH, self->headerFieldPos_, self->headerFieldLen_))
                 {
+                    // Header name too long: notify handler and stop parsing
+                    self->currentEvent_ = RequestParserEvent::Error;
+                    self->eventHandler_.onError(PipelineError(PipelineErrorCode::HeaderTooLarge));
                     return -1;
                 }
             }
@@ -184,6 +195,9 @@ namespace HttpServerAdvanced
                 // Buffer the header value chunk
                 if (!self->appendToBuffer(at, length, HttpServerAdvanced::MAX_REQUEST_HEADER_VALUE_LENGTH, self->headerValuePos_, self->headerValueLen_))
                 {
+                    // Header value too long: notify handler and abort parsing
+                    self->currentEvent_ = RequestParserEvent::Error;
+                    self->eventHandler_.onError(PipelineError(PipelineErrorCode::HeaderTooLarge));
                     return -1;
                 }
             }
@@ -263,8 +277,14 @@ namespace HttpServerAdvanced
             int result = http_parser_execute(&parser_, &settings_, reinterpret_cast<const char *>(data), length);
             if (parser_.http_errno != HPE_OK)
             {
-                currentEvent_ = RequestParserEvent::Error;
-                eventHandler_.onError(PipelineParserError(static_cast<enum http_errno>(parser_.http_errno)));
+                // If we already flagged an error (e.g., buffer overflow) the handler has been notified.
+                if (currentEvent_ != RequestParserEvent::Error)
+                {
+                    currentEvent_ = RequestParserEvent::Error;
+                    // Map http_parser internal errno to library-level PipelineErrorCode.
+                    // Do not expose http_errno in the public API; report a generic parse error for now.
+                    eventHandler_.onError(PipelineError(PipelineErrorCode::ParseError));
+                }
             }
             // Reset header counter for the next request on reused parser
             if (currentEvent_ == RequestParserEvent::MessageComplete || currentEvent_ == RequestParserEvent::Error)

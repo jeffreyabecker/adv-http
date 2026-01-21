@@ -233,7 +233,7 @@ namespace HttpServerAdvanced
          */
         std::size_t write(const uint8_t *buf, std::size_t size) override
         {
-            return connection_->write(buf, size);
+            return connection_.write(buf, size);
         }
 
         /**
@@ -358,7 +358,7 @@ namespace HttpServerAdvanced
         }
         virtual uint32_t getTimeout() const override
         {
-            return connection_.getTimeout();
+            return const_cast<T&>(connection_).getTimeout();
         }
 
     private:

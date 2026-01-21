@@ -7,14 +7,16 @@
 #include "./HttpResponse.h"
 #include "./HttpHeader.h"
 #include "./Buffer.h"
+#include "./Defines.h"
 
 namespace HttpServerAdvanced
 {
     enum class MultipartStatus
     {
-        FirstChunk,
-        SubsequentChunk,
-        Completed
+        FirstChunk,       // First chunk of a multipart form field
+        SubsequentChunk,  // Middle chunks of a multipart form field
+        FinalChunk,       // Last chunk of a multipart form field (boundary found)
+        Completed         // All multipart data processed
     };
 
     class MultipartFormDataBuffer : public Buffer
@@ -46,9 +48,10 @@ namespace HttpServerAdvanced
         String filename_;
         String contentType_;
         String partName_;
-        uint8_t buffer_[1436];
+        uint8_t buffer_[MULTIPART_FORM_DATA_BUFFER_SIZE];
         size_t bufferLength_ = 0;
         bool parsingHeaders_ = true;
+        bool partStarted_ = false;  // Track if we've emitted first chunk of current part
         MultipartStatus status_ = MultipartStatus::FirstChunk;
         std::vector<uint8_t> partData_;
 
@@ -204,23 +207,24 @@ namespace HttpServerAdvanced
                 const uint8_t *boundaryPos = findBoundary(buffer_, bufferLength_);
                 if (boundaryPos)
                 {
-                    // Extract part data before boundary
+                    // Extract part data before boundary (final chunk)
                     size_t dataLen = boundaryPos - buffer_;
                     if (dataLen > 0)
                     {
                         partData_.insert(partData_.end(), buffer_, buffer_ + dataLen);
                     }
                     
-                    // Invoke handler with accumulated part data
+                    // Invoke handler with accumulated part data marked as final
                     if (partName_.length() > 0)
                     {
+                        MultipartStatus finalStatus = partStarted_ ? MultipartStatus::FinalChunk : MultipartStatus::FirstChunk;
                         response_ = handler_(context, params_, 
                             MultipartFormDataBuffer(partData_.data(), partData_.size(), 
-                                                   filename_, contentType_, partName_, status_));
+                                                   filename_, contentType_, partName_, finalStatus));
                     }
                     
                     // Reset for next part
-                    status_ = MultipartStatus::SubsequentChunk;
+                    partStarted_ = false;
                     partData_.clear();
                     filename_ = "";
                     contentType_ = "";
@@ -241,9 +245,27 @@ namespace HttpServerAdvanced
                 }
                 else if (bufferLength_ > boundary_.length() + 4)
                 {
-                    // Keep boundary-sized tail; flush rest as part data
+                    // Keep boundary-sized tail; flush excess as part data via handler
+                    // This enables streaming of large files
                     size_t flushLen = bufferLength_ - (boundary_.length() + 4);
-                    partData_.insert(partData_.end(), buffer_, buffer_ + flushLen);
+                    
+                    if (partName_.length() > 0 && flushLen > 0)
+                    {
+                        partData_.insert(partData_.end(), buffer_, buffer_ + flushLen);
+                        
+                        // Invoke handler with accumulated data to stream it
+                        MultipartStatus chunkStatus = partStarted_ ? MultipartStatus::SubsequentChunk : MultipartStatus::FirstChunk;
+                        response_ = handler_(context, params_, 
+                            MultipartFormDataBuffer(partData_.data(), partData_.size(), 
+                                                   filename_, contentType_, partName_, chunkStatus));
+                        
+                        if (!response_)
+                        {
+                            partStarted_ = true;  // Mark that we've emitted at least one chunk
+                            partData_.clear();
+                        }
+                    }
+                    
                     memmove(buffer_, buffer_ + flushLen, boundary_.length() + 4);
                     bufferLength_ = boundary_.length() + 4;
                 }

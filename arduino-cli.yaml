@@ -1,6 +1,8 @@
 build:
   cache:
     enable: true
+    compilations: true
+  cachePath: ./arduino/cache
 
 directories:
   user: ./.arduino/user
