@@ -60,5 +60,9 @@ namespace HttpServerAdvanced
     constexpr uint32_t PIPELINE_READ_TIMEOUT = HTTPSERVER_PIPELINE_READ_TIMEOUT;
 #endif
     
-
+#ifndef HTTPSERVER_REQUEST_MATCHER_PATH_WILDCARD_CHAR
+    constexpr char REQUEST_MATCHER_PATH_WILDCARD_CHAR = '?';
+#else
+    constexpr char REQUEST_MATCHER_PATH_WILDCARD_CHAR = HTTPSERVER_REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+#endif
 } // namespace HttpServerAdvanced

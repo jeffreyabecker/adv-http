@@ -2,7 +2,7 @@
 #include "./HttpRequest.h"
 
 #include "./HttpServerBase.h"
-#include "./HttpHandlerFactory.h"
+
 #include "./HttpResponse.h"
 #include "./HttpContextPhase.h"
 #include "./IHttpHandler.h"
@@ -11,7 +11,9 @@ namespace HttpServerAdvanced
 {
     class HttpContext : private HttpServerAdvanced::IPipelineHandler
     {
-
+    public:
+    static constexpr const char *HandlerFactoryServiceName = "HttpContextHandlerFactory";
+    using HandlerFactoryFunction = std::function<std::unique_ptr<IHttpHandler>(HttpContext &)>;
     private:
         std::shared_ptr<IHttpHandler> handler_;
         HttpRequest request_;
@@ -26,12 +28,12 @@ namespace HttpServerAdvanced
         {
             if (!handler_)
             {
-                HttpHandlerFactory *factory = server_.getService<HttpHandlerFactory>(HttpHandlerFactory::ServiceName);
-                if (!factory)
+                auto factoryPtr = server_.getService<HttpContext::HandlerFactoryFunction>(HttpContext::HandlerFactoryServiceName);
+                if (!factoryPtr)
                 {
                     return nullptr;
                 }
-                handler_ = factory->createContextHandler(*this);
+                handler_ = (*factoryPtr)(*this);
             }
             return handler_.get();
         }

@@ -4,55 +4,15 @@
 #include "./HttpStatus.h"
 #include "./HttpHeader.h"
 #include "./Streams.h"
+#include "./Iterators.h"
+#include "./HttpResponseBodyStream.h"
+#include "./ChunkedHttpResponseBodyStream.h"
+#include "./HttpResponseIterators.h"
+#include "./IHttpResponse.h"
 #include <Arduino.h>
 #include <memory>
 namespace HttpServerAdvanced
 {
-
-  class HttpResponseBodyStream : public ReadStream
-  {
-  protected:
-    std::unique_ptr<Stream> innerStream_;
-
-  public:
-    HttpResponseBodyStream(std::unique_ptr<Stream> innerStream);
-    HttpResponseBodyStream(const String &str) : HttpResponseBodyStream(std::make_unique<HttpServerAdvanced::StringStream>(str)) {}
-    HttpResponseBodyStream(String &&str) : HttpResponseBodyStream(std::make_unique<HttpServerAdvanced::StringStream>(std::move(str))) {}
-    HttpResponseBodyStream(const char *cstr) : HttpResponseBodyStream(std::make_unique<HttpServerAdvanced::OctetsStream>(cstr)) {}
-    HttpResponseBodyStream(const uint8_t *data, size_t length, bool ownsData = false) : HttpResponseBodyStream(std::make_unique<HttpServerAdvanced::OctetsStream>(data, length, ownsData)) {}
-
-    virtual int available() override;
-    virtual int read() override;
-    virtual int peek() override;
-    virtual size_t write(uint8_t b) override;
-
-    static std::unique_ptr<HttpResponseBodyStream> create(std::unique_ptr<Stream> innerStream) {
-      return std::make_unique<HttpResponseBodyStream>(std::move(innerStream));
-    }
-    static std::unique_ptr<HttpResponseBodyStream> create(const String &str) {
-      return std::make_unique<HttpResponseBodyStream>(str);
-    }
-    static std::unique_ptr<HttpResponseBodyStream> create(String &&str) {
-      return std::make_unique<HttpResponseBodyStream>(std::move(str));
-    }
-    static std::unique_ptr<HttpResponseBodyStream> create(const char *cstr) {
-      return std::make_unique<HttpResponseBodyStream>(cstr);
-    }
-    static std::unique_ptr<HttpResponseBodyStream> create(const uint8_t *data, size_t length, bool ownsData = false) {
-      return std::make_unique<HttpResponseBodyStream>(data, length, ownsData);
-    }
-
-  };
-
-  class IHttpResponse
-  {
-  public:
-    using ResponseFilter = std::function<std::unique_ptr<IHttpResponse>(std::unique_ptr<IHttpResponse>)>;
-    virtual ~IHttpResponse() = default;
-    virtual HttpStatus status() const = 0;
-    virtual HttpHeadersCollection &headers() = 0;
-    virtual std::unique_ptr<HttpResponseBodyStream> getBody() = 0;
-  };
 
   class HttpResponse : public IHttpResponse
   {
@@ -62,14 +22,45 @@ namespace HttpServerAdvanced
     std::unique_ptr<HttpResponseBodyStream> body_;
 
     static constexpr const char *defaultContentType = "text/plain";
-    void init(size_t contentLength);
+    
+    void init(size_t contentLength) {
+      if (contentLength >= 0) {
+        headers_.set(HttpHeader::ContentLength, String(contentLength));
+        if (!headers_.exists(HttpHeader::ContentType)) {
+          headers_.set(HttpHeader::ContentType, defaultContentType);
+        }
+      }
+      if (contentLength < 0) {
+        headers_.remove(HttpHeader::ContentLength);
+        headers_.set(HttpHeader::TransferEncoding, "chunked");
+      }
+    }
 
   public:
-    HttpResponse(HttpStatus status, String &&body, HttpHeadersCollection headers);
-    HttpResponse(HttpStatus status, const String &body, HttpHeadersCollection headers);
-    HttpResponse(HttpStatus status, const char *body, HttpHeadersCollection headers);
-    HttpResponse(HttpStatus status, const uint8_t *body, size_t length, HttpHeadersCollection headers);
-    HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeadersCollection headers);
+    HttpResponse(HttpStatus status, String &&body, HttpHeadersCollection headers)
+        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(std::move(body))) {
+      init(body_->available());
+    }
+    
+    HttpResponse(HttpStatus status, const String &body, HttpHeadersCollection headers)
+        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(body)) {
+      init(body_->available());
+    }
+    
+    HttpResponse(HttpStatus status, const char *body, HttpHeadersCollection headers)
+        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(body)) {
+      init(body_->available());
+    }
+    
+    HttpResponse(HttpStatus status, const uint8_t *body, size_t length, HttpHeadersCollection headers)
+        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(body, length)) {
+      init(body_->available());
+    }
+    
+    HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeadersCollection headers)
+        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(std::move(body))) {
+      init(body_->available());
+    }
 
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &body, HttpHeadersCollection headers = HttpHeadersCollection()){
       return std::make_unique<HttpResponse>(status, body, headers);
@@ -89,39 +80,19 @@ namespace HttpServerAdvanced
 
     ~HttpResponse() override = default;
 
-    // void setStatus(HttpStatus status);
-    // void setBody(const String &body, const String &contentType = defaultContentType);
-
-    HttpStatus status() const override;
-    HttpHeadersCollection &headers() override;
-    std::unique_ptr<HttpResponseBodyStream> getBody() override;
+    HttpStatus status() const override {
+      return status_;
+    }
+    
+    HttpHeadersCollection &headers() override {
+      return headers_;
+    }
+    
+    std::unique_ptr<HttpResponseBodyStream> getBody() override {
+      return std::move(body_);
+    }
   };
 
-  class ChunkedHttpResponseBodyStream : public HttpResponseBodyStream
-  {
-  private:
-    std::unique_ptr<Stream> innerStream_;
-    std::array<uint8_t, HttpServerAdvanced::CHUNKED_RESPONSE_BUFFER_SIZE> buffer_;
-    size_t head_ = 0;
-    size_t length_ = 0;
-    bool done_ = false;
-    bool haveBufferedTerminalChunk_ = false;
-    static constexpr size_t finalChunkLength = 6;
-    static constexpr const char finalChunk[finalChunkLength] = "0\r\n\r\n";
-
-    void consume();
-    constexpr std::size_t hex_length(std::uint64_t n);
-    void bufferNextChunk();
-
-  public:
-    ChunkedHttpResponseBodyStream(std::unique_ptr<Stream> innerStream);
-    static std::unique_ptr<HttpResponseBodyStream> create(std::unique_ptr<Stream> innerStream);
-    virtual int available() override;
-    virtual int read() override;
-    virtual int peek() override;
-    virtual size_t write(uint8_t b) override;
-  };
-
-  std::unique_ptr<ReadStream> CreateResponseStream(std::unique_ptr<IHttpResponse> response);
+  std::unique_ptr<Stream> CreateResponseStream(std::unique_ptr<IHttpResponse> response);
 
 } // namespace HttpServerAdvanced

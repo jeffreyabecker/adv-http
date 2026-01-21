@@ -32,16 +32,16 @@ namespace HttpServerAdvanced
         HandlersBuilder(HttpHandlerFactory &factory) : factory_(factory) {}
         ~HandlersBuilder() = default;
 
-        void add(HttpHandlerFactory::Predicate predicate, HttpHandlerFactory::Factory handler, AddPosition position = AddAt::End)
+        void add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, AddPosition position = AddAt::End)
         {
            factory_.add(predicate, handler, position);
         }
-        void add(HttpHandlerFactory::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End)
+        void add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End)
         {
             factory_.add(predicate, invocation, position);
         }
 
-        void on(HandlerMatcher &request, HttpHandlerFactory::Factory handler);
+        void on(HandlerMatcher &request, IHttpHandler::Factory handler);
 
         // Template methods for handler registration
         template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>

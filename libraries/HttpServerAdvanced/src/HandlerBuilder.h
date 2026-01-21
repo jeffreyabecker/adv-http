@@ -9,12 +9,12 @@ namespace HttpServerAdvanced
     {
     private:
         HandlersBuilder *builder_ = nullptr;
-        HttpHandlerFactory::Predicate predicate_;
+        IHttpHandler::Predicate predicate_;
         typename THandler::Invocation invocationCallback_;
         ParameterExtractor extractor_;
         IHttpResponse::ResponseFilter responseFilter_ = nullptr;
 
-        HttpHandlerFactory::Factory getFactory()
+        IHttpHandler::Factory getFactory()
         {
             auto invocation = invocationCallback_;
             if (responseFilter_)
@@ -29,7 +29,7 @@ namespace HttpServerAdvanced
         }
 
     public:
-        HandlerBuilder(HandlersBuilder *builder, HttpHandlerFactory::Predicate predicate,
+        HandlerBuilder(HandlersBuilder *builder, IHttpHandler::Predicate predicate,
                        typename THandler::InvocationWithoutParams invocationCallback)
             : builder_(builder),
               predicate_(predicate),
@@ -38,7 +38,7 @@ namespace HttpServerAdvanced
         {
         }
 
-        HandlerBuilder(HandlersBuilder *builder, HttpHandlerFactory::Predicate predicate,
+        HandlerBuilder(HandlersBuilder *builder, IHttpHandler::Predicate predicate,
                        typename THandler::Invocation invocationCallback,
                        ParameterExtractor extractor)
             : builder_(builder),
@@ -87,7 +87,7 @@ namespace HttpServerAdvanced
             return *this;
         }
 
-        HandlerBuilder &filter(HttpHandlerFactory::Predicate predicate)
+        HandlerBuilder &filter(IHttpHandler::Predicate predicate)
         {
             auto originalPredicate = predicate_;
             predicate_ = [originalPredicate, predicate](HttpContext &context)

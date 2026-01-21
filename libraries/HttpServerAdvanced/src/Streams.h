@@ -4,6 +4,8 @@
 #include <memory>
 #include <iterator>
 #include <type_traits>
+#include <algorithm>
+#include <array>
 #include "./Defines.h"
 
 namespace HttpServerAdvanced
@@ -50,9 +52,26 @@ namespace HttpServerAdvanced
                 delete[] data_;
             }
         }
-        virtual int available() override;
-        virtual int read() override;
-        virtual int peek() override;
+        virtual int available() override
+        {
+            return length_ - position_;
+        }
+        virtual int read() override
+        {
+            if (position_ >= length_)
+            {
+                return -1;
+            }
+            return data_[position_++];
+        }
+        virtual int peek() override
+        {
+            if (position_ >= length_)
+            {
+                return -1;
+            }
+            return data_[position_];
+        }
     };
 
 
@@ -65,8 +84,8 @@ namespace HttpServerAdvanced
     private:
         String str_;
     public:
-        StringStream(String &&str);
-        StringStream(const String &str);
+        StringStream(String &&str) : OctetsStream(str), str_(std::move(str)) {}
+        StringStream(const String &str) : OctetsStream(str), str_(/* intentionally empty so we dont copy the stream */) {}
     };
 
     class LazyStreamAdapter : public ReadStream
@@ -80,33 +99,26 @@ namespace HttpServerAdvanced
         LazyStreamAdapter(std::function<ReadStream *()> factory) : streamFactory_([factory]()
                                                                                   { return std::unique_ptr<ReadStream>(factory()); }) {}
         virtual ~LazyStreamAdapter() = default;
-        virtual int available() override;
-        virtual int read() override;
-        virtual int peek() override;
+        virtual int available() override
+        {
+            if (!stream_)
+                stream_ = streamFactory_();
+            return stream_->available();
+        }
+        virtual int read() override
+        {
+            if (!stream_)
+                stream_ = streamFactory_();
+            return stream_->read();
+        }
+        virtual int peek() override
+        {
+            if (!stream_)
+                stream_ = streamFactory_();
+            return stream_->peek();
+        }
     };
 
-    namespace Constraints
-    {
-        // Type trait to check if a type has a size() member function
-        template <typename T>
-        struct has_size
-        {
-            template <typename U>
-            static auto test(U *u) -> decltype(u->size(), std::true_type{}) { return {}; }
-            static std::false_type test(...) { return {}; }
-            static constexpr bool value = decltype(test(static_cast<T *>(nullptr)))::value;
-        };
-
-        // Type trait to check if a type has an at() member function
-        template <typename T>
-        struct has_at
-        {
-            template <typename U>
-            static auto test(U *u) -> decltype(static_cast<std::unique_ptr<ReadStream>&>(u->at(0)), std::true_type{}) { return {}; }
-            static std::false_type test(...) { return {}; }
-            static constexpr bool value = decltype(test(static_cast<T *>(nullptr)))::value;
-        };
-    } // namespace Constraints
 
     /**
      * @brief A stream that concatenates multiple ReadStreams into one continuous stream.
@@ -120,7 +132,7 @@ namespace HttpServerAdvanced
 
     public:
         template<typename FIt = ForwardIt, typename S = Sentinel,
-                 typename = std::enable_if_t<std::is_same<typename std::iterator_traits<FIt>::value_type, std::unique_ptr<ReadStream>>::value &&
+                 typename = std::enable_if_t<std::is_same<typename std::iterator_traits<FIt>::value_type, std::unique_ptr<Stream>>::value &&
                                              std::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<FIt>::iterator_category>::value>>
         IndefiniteConcatStream(FIt first, S last) : current_(first), end_(last) {}
 
@@ -168,14 +180,15 @@ namespace HttpServerAdvanced
     /**
      * @brief A convenience class for concatenating streams from a vector of ReadStreams.
      */
-    class ConcatStream : public IndefiniteConcatStream<std::vector<std::unique_ptr<ReadStream>>::iterator>
+    template<size_t N>
+    class ConcatStream : public IndefiniteConcatStream<std::array<std::unique_ptr<Stream>, N>::iterator>
     {
     private:
-        std::vector<std::unique_ptr<ReadStream>> streams_;
+        std::array<std::unique_ptr<Stream>> streams_;
 
     public:
-        ConcatStream(std::vector<std::unique_ptr<ReadStream>> streams)
-            : IndefiniteConcatStream<std::vector<std::unique_ptr<ReadStream>>::iterator>(streams.begin(), streams.end()),
+        ConcatStream(std::array<std::unique_ptr<Stream>> streams)
+            : IndefiniteConcatStream<std::array<std::unique_ptr<Stream>>::iterator>(streams.begin(), streams.end()),
               streams_(std::move(streams)) {}
     };
 
@@ -191,17 +204,66 @@ namespace HttpServerAdvanced
         size_t writePos_ = 0;
         size_t count_ = 0;
 
-        void compactBuffer();
+        void compactBuffer()
+        {
+            if (readPos_ > 0)
+            {
+                std::copy(buffer_ + readPos_, buffer_ + readPos_ + count_, buffer_);
+                readPos_ = 0;
+                writePos_ = count_;
+            }
+        }
 
     public:
-        NonOwningMemoryStream(uint8_t *buffer, size_t size);
+        NonOwningMemoryStream(uint8_t *buffer, size_t size)
+            : buffer_(buffer), size_(size) {}
         virtual ~NonOwningMemoryStream() = default;
-        virtual int available() override;
-        virtual int read() override;
-        virtual int peek() override;
-        virtual size_t write(uint8_t b) override;
-        virtual void flush() override;
-        virtual int availableForWrite() override;
+        virtual int available() override
+        {
+            return count_;
+        }
+        virtual int read() override
+        {
+            if (count_ == 0)
+            {
+                return -1;
+            }
+            uint8_t b = buffer_[readPos_];
+            readPos_++;
+            count_--;
+            return b;
+        }
+        virtual int peek() override
+        {
+            if (count_ == 0)
+            {
+                return -1;
+            }
+            return buffer_[readPos_];
+        }
+        virtual size_t write(uint8_t b) override
+        {
+            if (count_ >= size_)
+            {
+                return 0;
+            }
+            if (writePos_ >= size_)
+            {
+                compactBuffer();
+            }
+            buffer_[writePos_] = b;
+            writePos_++;
+            count_++;
+            return 1;
+        }
+        virtual void flush() override
+        {
+            // No-op for buffered stream
+        }
+        virtual int availableForWrite() override
+        {
+            return size_ - count_;
+        }
     };
 
     class MemoryStream : public NonOwningMemoryStream
@@ -240,15 +302,69 @@ namespace HttpServerAdvanced
         size_t count_ = 0;
         std::unique_ptr<ReadStream> innerStream_;
 
-        void consume();
-        bool fillBuffer();
+        void consume()
+        {
+            if (count_ > 0)
+            {
+                readPos_ = (readPos_ + 1) % size_;
+                count_--;
+            }
+        }
+        bool fillBuffer()
+        {
+            if (readPos_ != 0)
+            {
+                // Compact the buffer
+                size_t unreadBytes = count_;
+                for (size_t i = 0; i < unreadBytes; ++i)
+                {
+                    buffer_[i] = buffer_[(readPos_ + i) % size_];
+                }
+                readPos_ = 0;
+                writePos_ = unreadBytes;
+                count_ = unreadBytes;
+            }
+            while (count_ < size_)
+            {
+                int val = innerStream_->read();
+                if (val == -1)
+                {
+                    break;
+                }
+                buffer_[writePos_] = static_cast<uint8_t>(val);
+                writePos_ = (writePos_ + 1) % size_;
+                count_++;
+            }
+            return count_ > 0;
+        }
 
     public:
         RefBufferedReadStreamWrapper(std::unique_ptr<ReadStream> innerStream, uint8_t *buffer, size_t size)
             : innerStream_(std::move(innerStream)), buffer_(buffer), size_(size) {}
-        virtual int available() override;
-        virtual int read() override;
-        virtual int peek() override;
+        virtual int available() override
+        {
+            return count_;
+        }
+        virtual int read() override
+        {
+            int val = peek();
+            if (val != -1)
+            {
+                consume();
+            }
+            return val;
+        }
+        virtual int peek() override
+        {
+            if (count_ == 0)
+            {
+                if (!fillBuffer())
+                {
+                    return -1;
+                }
+            }
+            return buffer_[readPos_];
+        }
     };
 
     template <size_t N>

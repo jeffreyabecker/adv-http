@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <functional>
 #include "./Defines.h"
-#include "./HttpHandler.h"
+#include "./IHttpHandler.h"
 #include "./HandlerMatcher.h"
 namespace HttpServerAdvanced
 {

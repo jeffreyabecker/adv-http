@@ -35,6 +35,11 @@ namespace HttpServerAdvanced
             server.addService<CoreServicesBuilder *>(server, ServiceName, this);
 
             server.addService<HttpHandlerFactory *>(server, HttpHandlerFactory::ServiceName, &handlerFactory_);
+            server.addService<HttpContext::HandlerFactoryFunction>(server, HttpContext::HandlerFactoryServiceName,
+                                      [this](HttpContext &context)
+                                      {
+                                          return handlerFactory_.createContextHandler(context);
+                                      });
             server.addService<HttpContentTypes *>(server, HttpContentTypes::ServiceName, &contentTypes_);
 
             if (setupFunc_)

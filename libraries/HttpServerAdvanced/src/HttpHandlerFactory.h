@@ -7,17 +7,19 @@
 #include "./HttpResponse.h"
 #include "./HttpStatus.h"
 #include "./HttpHeader.h"
-
+#include "./HttpHandler.h"
+#include "./IHttpResponse.h"
 namespace HttpServerAdvanced
 {
-    // Forward declaration
+    // Forward declarations
     class HttpContext;
+    
+
+    
     class HttpHandlerFactory
     {
     public:
         static constexpr const char *ServiceName = "HttpHandlerFactory";
-        using Predicate = std::function<bool(HttpContext &)>;
-        using Factory = std::function<std::unique_ptr<IHttpHandler>(HttpContext &)>;
 
         class IHttpHandlerFactoryItem
         {
@@ -37,11 +39,11 @@ namespace HttpServerAdvanced
         class ClosureFactoryItem : public HttpHandlerFactory::IHttpHandlerFactoryItem
         {
         private:
-            HttpHandlerFactory::Factory factory_;
-            HttpHandlerFactory::Predicate request_;
+            IHttpHandler::Factory factory_;
+            IHttpHandler::Predicate request_;
 
         public:
-            ClosureFactoryItem(HttpHandlerFactory::Factory factory, HttpHandlerFactory::Predicate request)
+            ClosureFactoryItem(IHttpHandler::Factory factory, IHttpHandler::Predicate request)
                 : factory_(factory), request_(request) {}
             virtual bool canHandle(HttpContext &context) override
             {
@@ -63,8 +65,8 @@ namespace HttpServerAdvanced
         }
         std::vector<std::reference_wrapper<IHttpHandlerFactoryItem>> factories_;
         std::vector<std::unique_ptr<IHttpHandlerFactoryItem>> ownedFactoryItems_;
-        Factory defaultFactory_ = nullptr;
-        Predicate globalRequestFilter_ = nullptr;
+        IHttpHandler::Factory defaultFactory_ = nullptr;
+        IHttpHandler::Predicate globalRequestFilter_ = nullptr;
         IHttpResponse::ResponseFilter globalResponseFilter_ = nullptr;
 
         class ResponseFilterApplicator : public IHttpHandler
@@ -113,7 +115,7 @@ namespace HttpServerAdvanced
             }
             return inner;
         }
-        void setDefaultHandlerFactory(Factory creator)
+        void setDefaultHandlerFactory(IHttpHandler::Factory creator)
         {
             defaultFactory_ = creator;
         }
@@ -155,24 +157,24 @@ namespace HttpServerAdvanced
             add(ref, position);
         }
 
-        void add(HttpHandlerFactory::Predicate predicate, HttpHandlerFactory::Factory handler, AddPosition position = AddAt::End)
+        void add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, AddPosition position = AddAt::End)
         {
             auto item = std::make_unique<ClosureFactoryItem>(handler, predicate);
             auto &ref = *item;
             ownedFactoryItems_.push_back(std::move(item));
             add(ref, position);
         }
-        void add(HttpHandlerFactory::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End)
+        void add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End)
         {
             add(predicate, [invocation](HttpContext &context)
                 { return std::make_unique<HttpHandler>(invocation, [](const HttpContext &)
                                                        { return true; }); }, position);
         }
-        void setGlobalRequestFilter(Predicate predicate)
+        void setGlobalRequestFilter(IHttpHandler::Predicate predicate)
         {
             globalRequestFilter_ = predicate;
         }
-        void getGlobalRequestFilter(Predicate &predicate)
+        void getGlobalRequestFilter(IHttpHandler::Predicate &predicate)
         {
             predicate = globalRequestFilter_;
         }
@@ -193,3 +195,5 @@ namespace HttpServerAdvanced
         }
     };
 }
+
+

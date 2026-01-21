@@ -12,6 +12,8 @@ namespace HttpServerAdvanced
         using HandlerResult = std::unique_ptr<IHttpResponse>;
         using InvocationCallback = std::function<IHttpHandler::HandlerResult(HttpContext &context)>;
         using InterceptorCallback = std::function<IHttpHandler::HandlerResult(HttpContext &context, InvocationCallback next)>;
+        using Predicate = std::function<bool(HttpContext &)>;
+        using Factory = std::function<std::unique_ptr<IHttpHandler>(HttpContext &)>;        
         virtual ~IHttpHandler() = default;
         /**
          * @brief Handles the given HttpContext.
@@ -34,4 +36,5 @@ namespace HttpServerAdvanced
          */
         virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length) = 0;
     };
+
 }
