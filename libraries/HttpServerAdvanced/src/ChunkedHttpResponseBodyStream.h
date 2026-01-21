@@ -33,7 +33,7 @@ namespace HttpServerAdvanced
     size_t trailerPos_ = 0;
     size_t finalPos_ = 0;
 
-    static constexpr size_t chunkDataSize_ = HttpServerAdvanced::CHUNKED_RESPONSE_BUFFER_SIZE;
+    static constexpr size_t chunkDataSize_ = HttpServerAdvanced::ETHERNET_FRAME_BUFFER_SIZE;
     static constexpr const char trailer_[3] = "\r\n";
     static constexpr const char finalChunk_[6] = "0\r\n\r\n";
 

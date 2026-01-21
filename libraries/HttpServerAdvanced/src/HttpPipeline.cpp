@@ -37,12 +37,13 @@ namespace HttpServerAdvanced
             return;
         }
         startActivity();
+        uint8_t buffer[HttpServerAdvanced::PIPELINE_STACK_BUFFER_SIZE];
         int available = 0;
         while ((available = client_->available()) >= 0)
         {
-            std::size_t bytesRead = client_->read(_requestBuffer, sizeof(_requestBuffer));
+            std::size_t bytesRead = client_->read(buffer, sizeof(buffer));
 
-            size_t bytesParsed = requestParser_.execute(_requestBuffer, bytesRead);
+            size_t bytesParsed = requestParser_.execute(buffer, bytesRead);
             if (bytesParsed < bytesRead)
             {
                 setErroredUnrecoverably();
@@ -68,23 +69,23 @@ namespace HttpServerAdvanced
         startActivity();
         // ClientContext.h uses a 256 byte buffer for copying streams so we will do the same here
         // see: Wifi/src/include/ClientContext.h:379
-        uint8_t buff[256];
+    uint8_t buffer[HttpServerAdvanced::PIPELINE_STACK_BUFFER_SIZE];
         int available = 0;
         while ((available = responseStream_->available()) > 0)
         {
             size_t bytesRead = 0;
-            for (bytesRead = 0; bytesRead < sizeof(buff) && responseStream_->available(); bytesRead++)
+            for (bytesRead = 0; bytesRead < sizeof(buffer) && responseStream_->available(); bytesRead++)
             {
                 int byte = responseStream_->read();
                 if (byte == -1)
                 {
                     break;
                 }
-                buff[bytesRead] = static_cast<uint8_t>(byte);
+                buffer[bytesRead] = static_cast<uint8_t>(byte);
             }
             if (bytesRead > 0)
             {
-                auto written = client_->write(buff, bytesRead);
+                auto written = client_->write(buffer, bytesRead);
                 if (written < bytesRead)
                 {
                     setErroredUnrecoverably();

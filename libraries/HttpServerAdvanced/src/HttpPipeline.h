@@ -38,8 +38,6 @@ namespace HttpServerAdvanced
         uint32_t lastActivityMillis_;
         uint32_t startMillis_;
         uint32_t loopCount_;
-
-        uint8_t _requestBuffer[HttpServerAdvanced::REQUEST_BUFFER_SIZE];
         HttpTimeouts timeouts_;
 
         enum class PipelineState
