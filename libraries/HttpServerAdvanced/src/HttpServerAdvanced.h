@@ -10,6 +10,9 @@
 #include "./KeyValuePairView.h"
 #include "./HttpUtility.h"
 #include "./UriView.h"
+#include "./BasicAuthentication.h"
+#include "./CrossOriginRequestSharing.h"
+#include "./StaticFilesBuilder.h"
 
 using HttpServerAdvanced::CoreServices;
 using HttpServerAdvanced::HttpServer;
@@ -33,7 +36,7 @@ using HttpServerAdvanced::BasicAuth;
 using HttpServerAdvanced::CrossOriginRequestSharing;
 using HttpServerAdvanced::HandlerMatcher;
 using HttpServerAdvanced::HttpUtility;
-using HttpServerAdvanced::StaticFiles;
+using HttpServerAdvanced::StaticFiles;;
 using HttpServerAdvanced::StaticFilesBuilder;
 using Response = HttpServerAdvanced::IHttpHandler::HandlerResult;
 using Uri = HttpServerAdvanced::HandlerMatcher;

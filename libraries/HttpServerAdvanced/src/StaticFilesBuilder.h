@@ -9,7 +9,7 @@
 #include "./DefaultFileLocator.h"
 #include "./FileLocator.h"
 
-namespace HttpServerAdvanced::StaticFiles
+namespace HttpServerAdvanced
 {
 
     class StaticFilesBuilder

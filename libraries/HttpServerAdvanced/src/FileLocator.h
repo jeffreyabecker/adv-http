@@ -4,7 +4,7 @@
 #include "./HttpContext.h"
 
 
-namespace HttpServerAdvanced::StaticFiles
+namespace HttpServerAdvanced
 {
     using namespace HttpServerAdvanced;
 
@@ -69,4 +69,4 @@ namespace HttpServerAdvanced::StaticFiles
         }
     };
 
-} // namespace HttpServerAdvanced::StaticFiles
+} // namespace HttpServerAdvanced
