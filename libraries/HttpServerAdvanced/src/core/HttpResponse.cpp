@@ -9,17 +9,17 @@ namespace HttpServerAdvanced::Core
   {
     if (contentLength >= 0)
     {
-      headers_.set(HttpHeaders::ContentLength(contentLength));
-      if (!headers_.exists(HttpHeaders::CONTENT_TYPE))
+      headers_.set(HttpHeader::ContentLength, String(contentLength));
+      if (!headers_.exists(HttpHeader::ContentType))
       {
-        headers_.set(HttpHeaders::ContentType(defaultContentType));
+        headers_.set(HttpHeader::ContentType, defaultContentType);
       }
     }
 
     if (contentLength < 0)
     {
-      headers_.remove(HttpHeaders::CONTENT_LENGTH);
-      headers_.set(HttpHeaders::TRANSFER_ENCODING, "chunked");
+      headers_.remove(HttpHeader::ContentLength);
+      headers_.set(HttpHeader::TransferEncoding, "chunked");
     }
   }
 
@@ -233,32 +233,32 @@ namespace HttpServerAdvanced::Core
   void EnsureRequiredHeaders(HttpHeadersCollection &headers, ssize_t body_size)
   {
     // Date header (RFC 7231 section 7.1.1.2 - MUST be sent by origin servers)
-    if (!headers.exists(HttpHeaders::DATE))
+    if (!headers.exists(HttpHeader::Date))
     {
-      headers.set(HttpHeaders::DATE, getHeaderDateValue());
+      headers.set(HttpHeader::Date, getHeaderDateValue());
     }
-    if (!headers.exists(HttpHeaders::SERVER))
+    if (!headers.exists(HttpHeader::Server))
     {
-      headers.set(HttpHeaders::SERVER, "Arduino-Pico");
+      headers.set(HttpHeader::Server, "Arduino-Pico");
     }
-    if (!headers.exists(HttpHeaders::CONTENT_TYPE))
+    if (!headers.exists(HttpHeader::ContentType))
     {
-      headers.set(HttpHeaders::CONTENT_TYPE, "text/plain");
+      headers.set(HttpHeader::ContentType, "text/plain");
     }
-    if (!headers.exists(HttpHeaders::CONNECTION))
+    if (!headers.exists(HttpHeader::Connection))
     {
-      headers.set(HttpHeaders::CONNECTION, "close");
+      headers.set(HttpHeader::Connection, "close");
     }
-    if(!headers.exists(HttpHeaders::CONTENT_LENGTH) && 
-       !headers.exists(HttpHeaders::TRANSFER_ENCODING))
+    if(!headers.exists(HttpHeader::ContentLength) && 
+       !headers.exists(HttpHeader::TransferEncoding))
     {
       if (body_size >= 0)
       {
-        headers.set(HttpHeaders::CONTENT_LENGTH, String(static_cast<uint16_t>(body_size)));
+        headers.set(HttpHeader::ContentLength, String(static_cast<uint16_t>(body_size)));
       }
       else
       {
-        headers.set(HttpHeaders::TRANSFER_ENCODING, "chunked");
+        headers.set(HttpHeader::TransferEncoding, "chunked");
       }
     }
 

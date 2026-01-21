@@ -1,3 +1,3 @@
 #include "./HttpPipeline.h"
-#include "./HttpPipelineTimeouts.h"
+#include "./HttpTimeouts.h"
 #include "./HttpServerBase.h"

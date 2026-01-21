@@ -75,10 +75,7 @@ namespace HttpServerAdvanced::StaticFiles
 
         bool canHandle(HttpContext &context)
         {
-            bool isValidMethodAndPath = (HttpMethod::GET == context.request().method() ||
-                                         HttpMethod::HEAD == context.request().method()) &&
-                                        fileLocator_.canHandle(context.request().url());
-            if (!isValidMethodAndPath)
+            if (!fileLocator_.canHandle(context.request().url()))
             {
                 return false;
             }
@@ -93,12 +90,24 @@ namespace HttpServerAdvanced::StaticFiles
 
         std::unique_ptr<IHttpHandler> create(HttpContext &context) override
         {
+            bool isGet = (HttpMethod::Get == context.request().method());
+            bool isHead = (HttpMethod::Head == context.request().method());
+
+            if (!isGet && !isHead)
+            {
+                return HttpHandler::create(
+                    HttpResponse::create(HttpStatus::MethodNotAllowed(),
+                                         "Method Not Allowed",
+                                         HttpHeaders::Allow("GET, HEAD")),
+                    HttpContextPhase::CompletedStartingLine);
+            }
+
             File file = fileLocator_.getFile(context);
 
             String contentType = contentTypes_.getContentTypeFromPath(file.fullName());
             String path = getUrlPath(context.request().url());
-            bool isHeadRequest = (HttpMethod::HEAD == context.request().method());
-            return std::make_unique<HttpHandler>(
+            bool isHeadRequest = (HttpMethod::Head == context.request().method());
+            return HttpHandler::create(
                 HttpResponse::create(HttpStatus::Ok(),
                                      std::make_unique<FileStreamWrapper>(std::move(file)),
                                      HttpHeaders::ContentType(contentType),

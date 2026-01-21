@@ -2,22 +2,23 @@
 #include <Arduino.h>
 #include "../pipeline/Pipeline.h"
 #include "./HttpContext.h"
-#include "./HttpResponseFilters.h"  
+#include "./HttpResponseFilters.h"
 #include "./handlers/HandlerBuilder.h"
 #include "./HttpContentTypes.h"
+#include <any>
 namespace HttpServerAdvanced::Core
 {
     class CoreServicesBuilder;
 
     using CoreServicesSetupFunc = std::function<void(CoreServicesBuilder &)>;
 
-    class CoreServicesBuilder : ServiceManagerService<HttpServerAdvanced::Pipeline::HttpServerBase, CoreServicesBuilder>
+    class CoreServicesBuilder //: ServiceManagerService<HttpServerAdvanced::Pipeline::HttpServerBase, CoreServicesBuilder>
     {
     private:
         // static CoreServicesBuilder instance;
-        ContextHttpPipelineHandlerFactory pipelineHandlerFactory_;
+
         HttpHandlerFactory handlerFactory_;
-        HttpResponseFilters responseFilters_;
+
         CoreServicesSetupFunc setupFunc_;
         HandlersBuilder handlersBuilder_;
         HttpContentTypes contentTypes_;
@@ -26,18 +27,34 @@ namespace HttpServerAdvanced::Core
         friend std::function<void(HttpServerAdvanced::Pipeline::HttpServerBase &)> CoreServices(std::function<void(CoreServicesBuilder &)> setupFunc);
 
     protected:
-        void init(HttpServerAdvanced::Pipeline::HttpServerBase &server) ;
+        void init(HttpServerAdvanced::Pipeline::HttpServerBase &server)
+        {
+            server.setPipelineHandlerFactory(HttpContext::createPipelineHandler);
+            server.addService<CoreServicesBuilder *>(server, ServiceName, this);
+
+            server.addService<HttpHandlerFactory *>(server, HttpHandlerFactory::ServiceName, &handlerFactory_);
+            server.addService<HttpContentTypes *>(server, HttpContentTypes::ServiceName, &contentTypes_);
+
+            if (setupFunc_)
+            {
+                setupFunc_(*this);
+            }
+        }
         static constexpr const char *ServiceName = "CoreServices";
 
     public:
-        CoreServicesBuilder(CoreServicesSetupFunc setupFunc);
+        CoreServicesBuilder(CoreServicesSetupFunc setupFunc)
+            : setupFunc_(setupFunc), handlersBuilder_(handlerFactory_)
+        {
+        }
         ~CoreServicesBuilder();
 
-        CoreServicesBuilder &use(std::function<void(CoreServicesBuilder &)> component);
-        HttpResponseFilters &responseFilters()
+        CoreServicesBuilder &use(std::function<void(CoreServicesBuilder &)> component)
         {
-            return responseFilters_;
+            component(*this);
+            return *this;
         }
+
         HttpHandlerFactory &handlerFactory()
         {
             return handlerFactory_;
@@ -51,10 +68,22 @@ namespace HttpServerAdvanced::Core
         {
             return contentTypes_;
         }
- 
     };
-    std::function<void(HttpServerAdvanced::Pipeline::HttpServerBase &)> CoreServices(std::function<void(CoreServicesBuilder &)> setupFunc);
-
-    
+    std::function<void(HttpServerAdvanced::Pipeline::HttpServerBase &)> CoreServices(std::function<void(CoreServicesBuilder &)> setupFunc)
+    {
+        static CoreServicesBuilder *instance = nullptr;
+        if (instance == nullptr)
+        {
+            instance = new CoreServicesBuilder(setupFunc);
+        }
+        return [](HttpServerAdvanced::Pipeline::HttpServerBase &server)
+        {
+            instance->server_ = &server;
+            if (!server.hasService(CoreServicesBuilder::ServiceName))
+            {
+                instance->init(server);
+            }
+        };
+    }
 
 } // namespace HttpServerAdvanced::Core

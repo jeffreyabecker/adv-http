@@ -56,7 +56,8 @@ namespace HttpServerAdvanced::Core
             else
             {
                 return HttpResponse::create(HttpStatus::Unauthorized(),
-                                            "text/plain", "Unauthorized", HttpHeaders::WwwAuthenticate("Basic realm=\"" + realm + "\""));
+                                            "text/plain", "Unauthorized", 
+                                            HttpHeader(HttpHeader::WwwAuthenticate, "Basic realm=\"" + realm + "\""));
             }
         };
     }

@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <algorithm>
 
-
 namespace HttpServerAdvanced
 {
     class HttpUtility
@@ -92,16 +91,19 @@ namespace HttpServerAdvanced
         {
             String result;
             std::vector<std::pair<StringView, StringView>> param_list;
-            for (const auto &kv : params) {
+            for (const auto &kv : params)
+            {
                 param_list.emplace_back(StringView(kv.first), StringView(kv.second));
             }
             size_t total_size = 0;
-            for (const auto &kv : param_list) {
+            for (const auto &kv : param_list)
+            {
                 String encoded_key = encodeURIComponent(kv.first);
                 String encoded_value = encodeURIComponent(kv.second);
                 total_size += encoded_key.length() + encoded_value.length() + 1; // +1 for '='
             }
-            if (param_list.size() > 1) {
+            if (param_list.size() > 1)
+            {
                 total_size += param_list.size() - 1; // for '&'
             }
             result.reserve(total_size);
@@ -156,7 +158,6 @@ namespace HttpServerAdvanced
         {
             return encodeURIComponent(StringView(str, length));
         }
-
 
         static String htmlEncode(const char *str, std::size_t length)
         {
@@ -259,9 +260,6 @@ namespace HttpServerAdvanced
 
         // Overload for String
 
-
-
-
         static String javascriptStringEncode(StringView input, bool includeQuotes = true)
         {
             if (input.isEmpty())
@@ -320,25 +318,34 @@ namespace HttpServerAdvanced
 
         static String base64Encode(StringView input, bool urlCompatible = false)
         {
-            if (urlCompatible) {
+            if (urlCompatible)
+            {
                 return Util::Base64Url.encode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
-            } else {
+            }
+            else
+            {
                 return Util::Base64.encode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
             }
         }
         static String base64Encode(const uint8_t *data, std::size_t length, bool urlCompatible = false)
         {
-            if (urlCompatible) {
+            if (urlCompatible)
+            {
                 return Util::Base64Url.encode(data, length);
-            } else {
+            }
+            else
+            {
                 return Util::Base64.encode(data, length);
             }
         }
         static std::vector<uint8_t> base64Decode(StringView input, bool urlCompatible = false)
         {
-            if (urlCompatible) {
+            if (urlCompatible)
+            {
                 return Util::Base64Url.decode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
-            } else {
+            }
+            else
+            {
                 return Util::Base64.decode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
             }
         }
@@ -350,6 +357,50 @@ namespace HttpServerAdvanced
         {
             auto decodedBytes = base64Decode(StringView(data, length), urlCompatible);
             return String(reinterpret_cast<const char *>(decodedBytes.data()), decodedBytes.size());
+        }
+
+        static std::vector<std::pair<String, std::optional<String>>> parseDirectives(const String &val)
+        {
+            std::vector<std::pair<String, std::optional<String>>> directives;
+            if (val.isEmpty())
+            {
+                return directives;
+            }
+
+            auto parseSingleDirective = [&](const String &directive)
+            {
+                int eqPos = directive.indexOf('=');
+                if (eqPos == -1)
+                {
+                    directives.emplace_back(directive, std::nullopt);
+                }
+                else
+                {
+                    String key = directive.substring(0, eqPos);
+                    String value = directive.substring(eqPos + 1);
+                    key.trim();
+                    value.trim();
+                    directives.emplace_back(key, value);
+                }
+            };
+
+            // Split by comma
+            int start = 0;
+            int end = val.indexOf(',');
+            while (end != -1)
+            {
+                String directive = val.substring(start, end);
+                directive.trim();
+                parseSingleDirective(directive);
+                start = end + 1;
+                end = val.indexOf(',', start);
+            }
+            // Last one
+            String directive = val.substring(start);
+            directive.trim();
+            parseSingleDirective(directive);
+
+            return directives;
         }
     };
 

@@ -4,7 +4,5 @@
 #include "./NetClient.h"
 #include "./Streams.h"
 #include "./StringView.h"
-#include "./ServiceManager.h"
 #include "./Base64Encoder.h"
-
 #include "./UriView.h"

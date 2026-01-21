@@ -1,7 +1,7 @@
 #pragma once
 #include "HttpRequest.h"
 
-#include "../pipeline/Pipeline.h"
+#include "../pipeline/HttpServerBase.h"
 
 #include "./HttpResponse.h"
 #include "./HttpHandler.h"
@@ -19,107 +19,192 @@ namespace HttpServerAdvanced::Core
         constexpr uint8_t CompletedWritingResponse = 1 << 5;
     }
 
-    class HttpContext
+    class HttpContext : private HttpServerAdvanced::Pipeline::IPipelineHandler
     {
-        friend class HttpContextPipelineHandler;
 
     private:
-        std::shared_ptr<IHttpHandler> contextHandler_;
+        std::shared_ptr<IHttpHandler> handler_;
         HttpRequest request_;
         std::unique_ptr<IHttpResponse> response_;
         bool haveSentResponse_ = false;
-        HttpServerAdvanced::Pipeline::HttpPipeline &pipeline_;
+        HttpServerAdvanced::Pipeline::HttpServerBase &server_;
         size_t bodyBytesReceived_ = 0;
-
         HttpContextPhaseFlags completedPhases_ = 0;
+        std::function<void(std::unique_ptr<Stream>)> onStreamReady_;
 
-        IHttpHandler *tryGetHandler();
-        void appendBodyContents(const uint8_t *at, std::size_t length);
-        void completedWritingResponse();
-        void startedWritingResponse();
-        void completedReadingMessage();
-        void completedReadingHeaders();
-        void completedStartingLine();
+        IHttpHandler *tryGetHandler()
+        {
+            if (!handler_)
+            {
+                HttpHandlerFactory *factory = server_.getService<HttpHandlerFactory>(HttpHandlerFactory::ServiceName);
+                if (!factory)
+                {
+                    return nullptr;
+                }
+                handler_ = factory->createContextHandler(*this);
+            }
+            return handler_.get();
+        }
+        void appendBodyContents(const uint8_t *at, std::size_t length)
+        {
 
+            auto handler = tryGetHandler();
+            if (bodyBytesReceived_ == 0)
+            {
+                completedPhases_ |= HttpContextPhase::BeginReadingBody;
+                handleStep();
+            }
+            if (handler)
+            {
+                handler->handleBodyChunk(*this, at, length);
+            }
 
-        void handleStep(){
+            bodyBytesReceived_ += length;
+            handleStep();
+        }
+        void completedWritingResponse()
+        {
+            completedPhases_ |= HttpContextPhase::CompletedWritingResponse;
+            handleStep();
+        }
+
+        void startedWritingResponse()
+        {
+            completedPhases_ |= HttpContextPhase::WritingResponseStarted;
+            handleStep();
+        }
+
+        void completedReadingMessage()
+        {
+            completedPhases_ |= HttpContextPhase::CompletedReadingMessage;
+            handleStep();
+        }
+        void completedReadingHeaders()
+        {
+            completedPhases_ |= HttpContextPhase::CompletedReadingHeaders;
+            handleStep();
+        }
+        void completedStartingLine()
+        {
+            request_.uriView_ = UriView(request_.url());
+            completedPhases_ |= HttpContextPhase::CompletedStartingLine;
+            handleStep();
+        }
+
+        void handleStep()
+        {
             auto handler = tryGetHandler();
             if (handler)
             {
                 auto newResponse = handler->handleStep(*this);
-                if(newResponse && !haveSentResponse_){
+                if (newResponse && !haveSentResponse_)
+                {
                     response_ = std::move(newResponse);
                     sendResponse();
                 }
             }
         }
 
-        void sendResponse();
+        void sendResponse()
+        {
+            haveSentResponse_ = true;
+            bool hasResponse = (response_ != nullptr);
+
+            if (!response_)
+            {
+                response_ = HttpResponse::create(HttpStatus::InternalServerError(), String("Internal Server Error: No response generated"));
+            }
+            completedPhases_ += HttpContextPhase::WritingResponseStarted;
+            onStreamReady_(CreateResponseStream(std::move(response_)));
+        }
+        virtual int onMessageBegin(const char *method, uint16_t versionMajor, uint16_t versionMinor, String &&url) override
+        {
+            request_.method_ = method;
+            request_.version_ = String(versionMajor) + "." + String(versionMinor);
+            request_.url_ = std::move(url);
+            completedStartingLine();
+            return 0;
+        }
+        virtual void setIPAddress(IPAddress remoteIP, uint16_t remotePort, IPAddress localIP, uint16_t localPort) override
+        {
+            request_.remoteIP_ = remoteIP;
+            request_.remotePort_ = remotePort;
+            request_.localIP_ = localIP;
+            request_.localPort_ = localPort;
+        }
+
+        // virtual int onRequestHeaderField(const uint8_t *at, std::size_t length) override;
+        // virtual int onRequestHeaderValue(const uint8_t *at, std::size_t length) override;
+        virtual int onHeader(String &&field, String &&value) override
+        {
+            request_.headers_.set(HttpHeader(std::move(field), std::move(value)));
+
+            return 0;
+        }
+        virtual int onHeadersComplete() override
+        {
+            completedReadingHeaders();
+            return 0;
+        }
+        virtual int onBody(const uint8_t *at, std::size_t length) override
+        {
+            appendBodyContents(at, length);
+            return 0;
+        }
+        virtual int onMessageComplete() override
+        {
+            completedReadingMessage();
+            return 0;
+        }
+        virtual void onError(HttpServerAdvanced::Pipeline::HttpParserError error) override
+        {
+            if (!haveSentResponse_)
+            {
+                response_ = HttpResponse::create(HttpStatus::BadRequest(), String("Bad Request: ") + String(error.message()));
+                sendResponse();
+            }
+        }
+        virtual void onClientDisconnected() override
+        {
+        }
+        virtual void onResponseStarted() override
+        {
+            startedWritingResponse();
+        }
+        virtual void onResponseCompleted() override
+        {
+            completedWritingResponse();
+        }
+        void setResponseStreamCallback(std::function<void(std::unique_ptr<Stream>)> onStreamReady) override
+        {
+            onStreamReady_ = onStreamReady;
+        }
+        HttpContext(HttpServerAdvanced::Pipeline::HttpServerBase &server) : server_(server), request_(*this), handler_(nullptr), completedPhases_(0) {}
 
     public:
-        HttpContext(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline) : pipeline_(pipeline), request_(*this), contextHandler_(nullptr), completedPhases_(0) {}
         ~HttpContext() = default;
 
-        HttpServerAdvanced::Pipeline::HttpServerBase &server();
-        HttpServerAdvanced::Pipeline::HttpPipeline &pipeline();
-        HttpRequest &request();
+        HttpServerAdvanced::Pipeline::HttpServerBase &server() { return server_; }
+        HttpRequest &request() { return request_; }
         HttpContextPhaseFlags completedPhases() const { return completedPhases_; }
 
         // void sendResponse(std::unique_ptr<IHttpResponse> response);
 
-        // template <typename T = HttpResponse, typename... Args>
-        // void sendResponse(Args &&...args)
-        // {
-        //     static_assert(std::is_convertible<T, IHttpResponse>::value, "T must be derived from IHttpResponse");
-        //     sendResponse(std::make_unique<T>(std::forward<Args>(args)...));
-        // }
-    };
-
-    class HttpContextPipelineHandler : public HttpServerAdvanced::Pipeline::IHttpPipelineHandler
-    {
-    private:
-        enum class PipelineState
-        {
-            Begin,
-            Url,
-            HeaderField,
-            HeaderValue,
-            HeadersComplete,
-            Body,
-            MessageComplete
-        };
-        HttpServerAdvanced::Pipeline::HttpPipeline &pipeline_;
-
-        String currentHeaderField_;
-        String currentHeaderValue_;
-        PipelineState requestState_ = PipelineState::Begin;
-        HttpContext context_;
-
     public:
-        HttpContextPipelineHandler(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline)
-            : pipeline_(pipeline), context_(pipeline)
+        // Factory that can create an IPipelineHandler owning a HttpContext instance.
+        // Uses a custom deleter so it's safe even when IPipelineHandler doesn't have a virtual dtor.
+        static std::unique_ptr<
+            HttpServerAdvanced::Pipeline::IPipelineHandler,
+            std::function<void(HttpServerAdvanced::Pipeline::IPipelineHandler *)>>
+        createPipelineHandler(HttpServerAdvanced::Pipeline::HttpServerBase &server)
         {
+            return std::unique_ptr<
+                HttpServerAdvanced::Pipeline::IPipelineHandler,
+                std::function<void(HttpServerAdvanced::Pipeline::IPipelineHandler *)>>(
+                new HttpContext(server),
+                [](HttpServerAdvanced::Pipeline::IPipelineHandler *p)
+                { delete static_cast<HttpContext *>(p); });
         }
-        ~HttpContextPipelineHandler()
-        {
-        }
+    };
 
-        virtual void onInitialized(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline) override;
-        virtual void onRequestMessageBegin(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline) override;
-        virtual int onRequestUrl(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline, const uint8_t *at, std::size_t length) override;
-        virtual int onRequestHeaderField(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline, const uint8_t *at, std::size_t length) override;
-        virtual int onRequestHeaderValue(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline, const uint8_t *at, std::size_t length) override;
-        virtual int onRequestHeadersComplete(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline) override;
-        virtual int onRequestBody(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline, const uint8_t *at, std::size_t length) override;
-        virtual int onRequestMessageComplete(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline) override;
-        virtual void onRequestParserError(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline, HttpServerAdvanced::Pipeline::HttpParserError error) override;
-        virtual void onClientDisconnected(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline) override;
-        virtual void onResponseStarted(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline) override;
-        virtual void onResponseCompleted(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline) override;
-    };
-    class ContextHttpPipelineHandlerFactory : public HttpServerAdvanced::Pipeline::IHttpPipelineHandlerFactory
-    {
-    public:
-        virtual std::unique_ptr<HttpServerAdvanced::Pipeline::IHttpPipelineHandler> createHandler(HttpServerAdvanced::Pipeline::HttpPipeline &pipeline);
-    };
 }

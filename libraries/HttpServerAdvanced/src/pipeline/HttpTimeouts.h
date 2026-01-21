@@ -18,7 +18,7 @@ namespace HttpServerAdvanced::Pipeline
     ///    when the socket buffer is empty
     ///
     /// All timeout values are specified in milliseconds.
-    class HttpPipelineTimeouts
+    class HttpTimeouts
     {
     private:
         /// @brief Maximum total time (ms) allowed for complete request processing
@@ -31,7 +31,7 @@ namespace HttpServerAdvanced::Pipeline
 
         /// @brief Maximum time (ms) to wait for incoming data
         /// @details Default: CONTEXT_READ_TIMEOUT
-        uint32_t _readTimeout = CONTEXT_READ_TIMEOUT;
+        uint32_t _readTimeout = PIPELINE_READ_TIMEOUT;
 
     public:
         // Getters

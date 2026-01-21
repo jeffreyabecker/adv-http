@@ -13,7 +13,7 @@ namespace HttpServerAdvanced::StaticFiles
     public:
         using RequestPathPredicate = std::function<bool(const String &)>;
         using RequestPathMapper = std::function<String(const String &)>;
-        static constexpr char *DefaultFSRoot = "/wwwroot";
+        static constexpr char *DefaultFSRoot = "/www";
         static constexpr char *DefaultIncludePrefix = "/";
         static constexpr char *DefaultExcludePrefix = "/api/";
 

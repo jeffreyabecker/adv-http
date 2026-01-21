@@ -64,7 +64,7 @@ void setup()
     WebServer.use(CoreServices([](WebServerBuilder &b)
                                {
         // Set up static file serving from LittleFS at root. The default configuration
-        // serves files from /wwwroot in LittleFS. Requests to "/" will serve "/wwwroot/index.html".
+        // serves files from /www in LittleFS. Requests to "/" will serve "/www/index.html".
         // By default apis are exposed under /api/. A builder callback can be supplied to further configure
         // the static file serving behavior.
         b.use(StaticFiles(LittleFS));

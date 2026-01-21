@@ -1,33 +1,34 @@
 #pragma once
 #include "../util/Util.h"
+#include <http_parser.h>
 namespace HttpServerAdvanced::Core
 {
     using HttpServerAdvanced::StringView;
     class HttpMethod
     {
-        //HTTP Methods are implemented as StringViews because the HTTP RFC explicity allows for
-        //non-standard methods, so we can't use an enum here.
+        // HTTP Methods are implemented as StringViews because the HTTP RFC explicity allows for
+        // non-standard methods, so we can't use an enum here.
         //
     public:
-        static const HttpServerAdvanced::StringView DELETE;
-        static const HttpServerAdvanced::StringView GET;
-        static const HttpServerAdvanced::StringView HEAD;
-        static const HttpServerAdvanced::StringView POST;
-        static const HttpServerAdvanced::StringView PUT;
-        static const HttpServerAdvanced::StringView CONNECT;
-        static const HttpServerAdvanced::StringView OPTIONS;
-        static const HttpServerAdvanced::StringView TRACE;
-        static const HttpServerAdvanced::StringView PATCH;
-        static const HttpServerAdvanced::StringView PURGE;
-        static const HttpServerAdvanced::StringView LINK;
-        static const HttpServerAdvanced::StringView UNLINK;
+        static constexpr const char *Get = "GET";
+        static constexpr const char *Head = "HEAD";
+        static constexpr const char *Post = "POST";
+        static constexpr const char *Put = "PUT";
+        static constexpr const char *Connect = "CONNECT";
+        static constexpr const char *Options = "OPTIONS";
+        static constexpr const char *Trace = "TRACE";
+        static constexpr const char *Patch = "PATCH";
+        static constexpr const char *Purge = "PURGE";
+        static constexpr const char *Link = "LINK";
+        static constexpr const char *Unlink = "UNLINK";
+        static constexpr const char *Delete = "DELETE";
 
         static bool isRequestBodyAllowed(const StringView &method)
         {
-            return method.equals(HttpMethod::POST) ||
-                   method.equals(HttpMethod::PUT) ||
-                   method.equals(HttpMethod::PATCH) ||
-                   method.equals(HttpMethod::DELETE);
+            return method.equals(HttpMethod::Post) ||
+                   method.equals(HttpMethod::Put) ||
+                   method.equals(HttpMethod::Patch) ||
+                   method.equals(HttpMethod::Delete);
         }
 
         template <typename... Args>
@@ -40,7 +41,7 @@ namespace HttpServerAdvanced::Core
                 total_length += methods[i].length();
             }
             String result;
-            result.resverve(total_length + (sizeof...(args) - 1)); // for '|' separators
+            result.reserve(total_length + (sizeof...(args) - 1)); // for '|' separators
             for (size_t i = 0; i < sizeof...(args); ++i)
             {
                 if (i > 0)

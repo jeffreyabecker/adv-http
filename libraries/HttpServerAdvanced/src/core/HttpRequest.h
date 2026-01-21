@@ -10,7 +10,7 @@ namespace HttpServerAdvanced::Core
     {
     private:
         friend class HttpContext;
-        friend class HttpContextPipelineHandler;
+        friend class HttpParserHandler;
 
         HttpContext &context_;
         const char *method_;

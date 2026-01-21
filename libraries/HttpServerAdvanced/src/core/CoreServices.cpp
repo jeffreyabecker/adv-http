@@ -6,10 +6,11 @@ namespace HttpServerAdvanced::Core
 
     void CoreServicesBuilder::init(HttpServerAdvanced::Pipeline::HttpServerBase &server)
     {
-        add<CoreServicesBuilder *>(server, ServiceName, this);
         server.setPipelineHandlerFactory(&pipelineHandlerFactory_);
-        add<HttpHandlerFactory *>(server, HttpHandlerFactory::ServiceName, &handlerFactory_);
-        add<HttpContentTypes *>(server, HttpContentTypes::ServiceName, &contentTypes_);
+        server.addService<CoreServicesBuilder *>(server, ServiceName, this);
+
+        server.addService<HttpHandlerFactory *>(server, HttpHandlerFactory::ServiceName, &handlerFactory_);
+        server.addService<HttpContentTypes *>(server, HttpContentTypes::ServiceName, &contentTypes_);
 
         if (setupFunc_)
         {

@@ -2,7 +2,11 @@
 #include <memory>
 #include <functional>
 #include "../util/Util.h"
-#include "./HttpPipelineTimeouts.h"
+#include "./HttpTimeouts.h"
+#include "./IPipelineHandler.h"
+#include "./RequestParser.h"
+#include "./PipelineHandleClientResult.h"
+
 #include <http_parser.h>
 #include <cstddef>
 #include <cstdint>
@@ -11,148 +15,297 @@
 
 namespace HttpServerAdvanced::Pipeline
 {
-    // HttpRequestParser types and classes consolidated from HttpParser.h
-    class HttpParserError
-    {
-    public:
-        HttpParserError(enum http_errno err) : error_(err) {}
-        enum http_errno error() const { return error_; }
-        int32_t code() const { return static_cast<int32_t>(error_); }
-        const char *message() const { return http_errno_description(error_); }
-        const char *name() const { return http_errno_name(error_); }
 
-    private:
-        enum http_errno error_;
-    };
 
-    enum class HttpRequestParserEvent
-    {
-        None,
-        MessageBegin,
-        Url,
-        HeaderField,
-        HeaderValue,
-        HeadersComplete,
-        Body,
-        MessageComplete,
-        Error
-    };
-
-    class HttpPipeline; // Forward declaration
-
-    class IHttpPipelineHandler
-    {
-    public:
-        virtual ~IHttpPipelineHandler() = default;
-        virtual void onInitialized(HttpPipeline &pipeline) = 0;
-        virtual void onRequestMessageBegin(HttpPipeline &pipeline) = 0;
-        virtual int onRequestUrl(HttpPipeline &pipeline, const uint8_t *at, std::size_t length) = 0;
-        virtual int onRequestHeaderField(HttpPipeline &pipeline, const uint8_t *at, std::size_t length) = 0;
-        virtual int onRequestHeaderValue(HttpPipeline &pipeline, const uint8_t *at, std::size_t length) = 0;
-        virtual int onRequestHeadersComplete(HttpPipeline &pipeline) = 0;
-        virtual int onRequestBody(HttpPipeline &pipeline, const uint8_t *at, std::size_t length) = 0;
-        virtual int onRequestMessageComplete(HttpPipeline &pipeline) = 0;
-        virtual void onRequestParserError(HttpPipeline &pipeline, HttpParserError error) = 0;
-        virtual void onResponseStarted(HttpPipeline &pipeline) = 0;
-        virtual void onResponseCompleted(HttpPipeline &pipeline) = 0;
-        virtual void onClientDisconnected(HttpPipeline &pipeline) = 0;
-    };
-
-    enum class HttpPipelineHandleClientResult
-    {
-        Idle,
-        Processing,
-        Completed,
-        ClientDisconnected,
-        NoPipelineHandlerPresent,
-        ErroredUnrecoverably,
-        TimedOutUnrecoverably,
-        Aborted
-    };
-
-    bool isHttpPipelineHandleClientResultFinal(HttpPipelineHandleClientResult result);
 
     class HttpPipeline
     {
     private:
         // HTTP parsing members
-        http_parser parser_;
-        http_parser_settings settings_;
-        HttpRequestParserEvent currentEvent_ = HttpRequestParserEvent::None;
+        RequestParser requestParser_;
 
         // Pipeline members
         std::unique_ptr<HttpServerAdvanced::IClient> client_;
         HttpServerBase &server_;
         std::unique_ptr<Stream> responseStream_;
+        PipelineHandlerPtr handler_;
         bool completedRequestRead_ = false;
         bool completedResponseWrite_ = false;
         bool haveStartedWritingResponse_ = false;
         bool aborted_ = false;
         bool erroredUnrecoverably_ = false;
         bool timedOutUnrecoverably_ = false;
-        std::unique_ptr<IHttpPipelineHandler> handler_;
+
         uint32_t lastActivityMillis_;
         uint32_t startMillis_;
         uint32_t loopCount_;
 
         uint8_t _requestBuffer[HttpServerAdvanced::REQUEST_BUFFER_SIZE];
-        HttpPipelineTimeouts timeouts_;
+        HttpTimeouts timeouts_;
 
-        void readFromClientIntoParser();
-        void writeResponseToClientFromStream();
-        void setupPipeline();
-        HttpPipelineHandleClientResult _checkStateInHandleClient();
-        bool isFirstLoop() const;
-        void startActivity();
-        bool checkActivityTimeout();
-        void setErroredUnrecoverably();
-        void markRequestReadCompleted();
-        void markResponseWriteCompleted();
+        enum class PipelineState
+        {
+            Begin,
+            Url,
+            HeaderField,
+            HeaderValue,
+            HeadersComplete,
+            Body,
+            MessageComplete
+        };
 
-        // HTTP parsing event handlers
-        int onMessageBegin();
-        int onUrl(const uint8_t *at, std::size_t length);
-        int onHeaderField(const uint8_t *at, std::size_t length);
-        int onHeaderValue(const uint8_t *at, std::size_t length);
-        int onHeadersComplete();
-        int onBody(const uint8_t *at, std::size_t length);
-        int onMessageComplete();
-        void onError(HttpParserError error);
+        
 
-        // Static trampoline functions for http_parser_settings
-        static int on_message_begin_cb(http_parser *parser);
-        static int on_url_cb(http_parser *parser, const char *at, std::size_t length);
-        static int on_header_field_cb(http_parser *parser, const char *at, std::size_t length);
-        static int on_header_value_cb(http_parser *parser, const char *at, std::size_t length);
-        static int on_headers_complete_cb(http_parser *parser);
-        static int on_body_cb(http_parser *parser, const char *at, std::size_t length);
-        static int on_message_complete_cb(http_parser *parser);
+        // Internal event handler for HttpRequestParser
+
+        void readFromClientIntoParser()
+        {
+            if (completedRequestRead_)
+            {
+                return;
+            }
+            startActivity();
+            int available = 0;
+            while ((available = client_->available()) >= 0)
+            {
+
+                std::size_t bytesRead = client_->read(_requestBuffer, sizeof(_requestBuffer));
+
+                size_t bytesParsed = requestParser_.execute(_requestBuffer, bytesRead);
+                if (bytesParsed < bytesRead)
+                {
+                    setErroredUnrecoverably();
+                    return;
+                }
+                if (!checkActivityTimeout())
+                {
+                    return;
+                }
+            }
+            if (available == 0)
+            {
+                markRequestReadCompleted();
+            }
+        }
+
+        void writeResponseToClientFromStream()
+        {
+            if (responseStream_ == nullptr || completedResponseWrite_)
+            {
+                return;
+            }
+            startActivity();
+            // ClientContext.h uses a 256 byte buffer for copying streams so we will do the same here
+            // see: Wifi/src/include/ClientContext.h:379
+            uint8_t buff[256];
+            int available = 0;
+            while ((available = responseStream_->available()) > 0)
+            {
+                size_t bytesRead = 0;
+                for (bytesRead = 0; bytesRead < sizeof(buff) && responseStream_->available(); bytesRead++)
+                {
+                    int byte = responseStream_->read();
+                    if (byte == -1)
+                    {
+                        break;
+                    }
+                    buff[bytesRead] = static_cast<uint8_t>(byte);
+                }
+                if (bytesRead > 0)
+                {
+                    auto written = client_->write(buff, bytesRead);
+                    if (written < bytesRead)
+                    {
+
+                        setErroredUnrecoverably();
+                        return;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+                if (!checkActivityTimeout())
+                {
+                    return;
+                }
+            }
+            if (available <= 0)
+            {
+                markResponseWriteCompleted();
+            }
+        }
+
+        void setupPipeline()
+        {
+            startMillis_ = millis();
+            client_->setTimeout(timeouts_.getActivityTimeout());
+        }
+
+        PipelineHandleClientResult _checkStateInHandleClient()
+        {
+            uint32_t currentMillis = millis();
+            if (!client_->connected())
+            {
+                if (handler_)
+                {
+                    handler_->onClientDisconnected();
+                }
+                return PipelineHandleClientResult::ClientDisconnected;
+            }
+
+            if (currentMillis - startMillis_ > timeouts_.getTotalRequestLengthMs())
+            {
+                timedOutUnrecoverably_ = true;
+                return PipelineHandleClientResult::TimedOutUnrecoverably;
+            }
+            if (aborted_)
+            {
+                return PipelineHandleClientResult::Aborted;
+            }
+            if (erroredUnrecoverably_)
+            {
+                return PipelineHandleClientResult::ErroredUnrecoverably;
+            }
+            if (completedRequestRead_ && completedResponseWrite_)
+            {
+                return PipelineHandleClientResult::Completed;
+            }
+            return PipelineHandleClientResult::Processing; // Default case
+        }
+
+        bool isFirstLoop() const
+        {
+            return loopCount_ == 0;
+        }
+
+        void startActivity()
+        {
+            lastActivityMillis_ = millis();
+        }
+
+        bool checkActivityTimeout()
+        {
+            uint32_t currentMillis = millis();
+            if (currentMillis - lastActivityMillis_ > timeouts_.getActivityTimeout())
+            {
+                return false;
+            }
+            return true;
+        }
+
+        void setErroredUnrecoverably()
+        {
+            erroredUnrecoverably_ = true;
+            markRequestReadCompleted();
+            markResponseWriteCompleted();
+        }
+
+        void markRequestReadCompleted()
+        {
+            requestParser_.execute(nullptr, 0); // Signal end of input to parser
+            completedRequestRead_ = true;
+        }
+
+        void markResponseWriteCompleted()
+        {
+            completedResponseWrite_ = true;
+            responseStream_ = nullptr;
+        }
 
     public:
-        HttpPipeline(std::unique_ptr<HttpServerAdvanced::IClient> client, HttpServerBase &server);
-        ~HttpPipeline();
+        HttpPipeline(std::unique_ptr<HttpServerAdvanced::IClient> client, HttpServerBase &server, 
+            const HttpTimeouts &timeouts, PipelineHandlerPtr parserEventHandler)
+            : client_(std::move(client)),
+              server_(server),
+              timeouts_(timeouts),
+              responseStream_(nullptr),
+              completedRequestRead_(false),
+              completedResponseWrite_(false),
+              lastActivityMillis_(0),
+              loopCount_(0),
+              requestParser_(*handler_),
+              handler_(std::move(parserEventHandler))
+        {
+            handler_->setIPAddress(
+                client_->remoteIP(),
+                client_->remotePort(),
+                client_->localIP(),
+                client_->localPort());
+            handler_->setResponseStreamCallback([this](std::unique_ptr<Stream> stream) {
+                this->setResponseStream(std::move(stream));
+            });
+        }
 
-        // HTTP parsing methods
-        std::size_t execute(const uint8_t *data, std::size_t length);
-        const char *method() const { return http_method_str(static_cast<http_method>(parser_.method)); }
-        const short versionMajor() const { return parser_.http_major; }
-        const short versionMinor() const { return parser_.http_minor; }
-        bool isFinished() const;
-        bool shouldKeepAlive() const;
-        HttpRequestParserEvent currentEvent() const { return currentEvent_; }
+        ~HttpPipeline() = default;
 
-        // Pipeline methods
-        void setHandler(std::unique_ptr<IHttpPipelineHandler> handler);
-        void setResponseStream(std::unique_ptr<ReadStream> responseStream);
-        HttpPipelineHandleClientResult handleClient();
-        void abort();
-        void abortReadingRequest();
-        void abortWritingResponse();
-        uint32_t startedAt() const;
-        HttpServerAdvanced::IClient &client();
-        HttpPipelineTimeouts &timeouts();
-        void setTimeouts(const HttpPipelineTimeouts &timeouts);
-        HttpServerBase &server();
+
+        bool isFinished() const
+        {
+            return requestParser_.isFinished();
+        }
+
+        bool shouldKeepAlive() const
+        {
+            return requestParser_.shouldKeepAlive();
+        }
+
+
+        void setResponseStream(std::unique_ptr<Stream> responseStream)
+        {
+            if (haveStartedWritingResponse_)
+            {
+                assert(false && "Response writing already started");
+            }
+            responseStream_ = std::move(responseStream);
+        }
+
+        PipelineHandleClientResult handleClient()
+        {
+            loopCount_++;
+
+            if (isFirstLoop())
+            {
+                setupPipeline();
+            }
+            auto validationResult = _checkStateInHandleClient();
+            if (isPipelineHandleClientResultFinal(validationResult))
+            {
+                return validationResult;
+            }
+            readFromClientIntoParser();
+            writeResponseToClientFromStream();
+            return PipelineHandleClientResult::Processing;
+        }
+
+        void abort()
+        {
+            aborted_ = true;
+            abortReadingRequest();
+            abortWritingResponse();
+        }
+
+        void abortReadingRequest()
+        {
+            markRequestReadCompleted();
+        }
+
+        void abortWritingResponse()
+        {
+            markResponseWriteCompleted();
+        }
+
+        uint32_t startedAt() const
+        {
+            return startMillis_;
+        }
+
+        HttpServerAdvanced::IClient &client()
+        {
+            return *client_;
+        }
+
+
     };
 
 } // namespace HttpServerAdvanced
