@@ -5,6 +5,7 @@
 #include <optional>
 #include "./HttpUtility.h"
 #include "./KeyValuePairView.h"
+#include "./StringView.h"
 namespace HttpServerAdvanced
 {
 
@@ -12,52 +13,55 @@ namespace HttpServerAdvanced
     {
     public:
         UriView(const String &uri = "")
+            : uri_(uri)
         {
-            parse(uri);
+            parse();
         }
         UriView(const UriView &that)
-            : scheme_(that.scheme_), userinfo_(that.userinfo_), host_(that.host_), port_(that.port_), path_(that.path_), _query(that._query), queryView_(that.queryView_), fragment_(that.fragment_) {}
+            : uri_(that.uri_), scheme_(that.scheme_), userinfo_(that.userinfo_), host_(that.host_), port_(that.port_), path_(that.path_), _query(that._query), queryView_(that.queryView_), fragment_(that.fragment_) {}
 
-        const String &scheme() const { return scheme_; }
-        const String &userinfo() const { return userinfo_; }
-        const String &host() const { return host_; }
-        const String &port() const { return port_; }
-        const String &path() const { return path_; }
-        const String &query() const { return _query; }
+        const StringView &scheme() const { return scheme_; }
+        const StringView &userinfo() const { return userinfo_; }
+        const StringView &host() const { return host_; }
+        const StringView &port() const { return port_; }
+        const StringView &path() const { return path_; }
+        const StringView &query() const { return _query; }
         const KeyValuePairView<String, String> &queryView() const { return queryView_; }
-        const String &fragment() const { return fragment_; }
+        const StringView &fragment() const { return fragment_; }
 
     private:
-        String scheme_;
-        String userinfo_;
-        String host_;
-        String port_;
-        String path_;
-        String _query;
+        String uri_;  // Store original URI for StringView lifetime
+        StringView scheme_;
+        StringView userinfo_;
+        StringView host_;
+        StringView port_;
+        StringView path_;
+        StringView _query;
         KeyValuePairView<String, String> queryView_;
-        String fragment_;
+        StringView fragment_;
 
-        void parse(const String &uri)
+        void parse()
         {
+            const char* data = uri_.c_str();
             std::size_t pos = 0;
-            std::size_t len = uri.length();
+            std::size_t len = uri_.length();
 
             // Parse scheme
-            std::size_t scheme_end = uri.indexOf(':');
-            std::size_t slashslash = uri.indexOf("//");
+            std::size_t scheme_end = uri_.indexOf(':');
+            std::size_t slashslash = uri_.indexOf("//");
             if (scheme_end != -1 && (slashslash == -1 || scheme_end < slashslash))
             {
-                scheme_ = uri.substring(0, scheme_end);
+                scheme_ = StringView(data, scheme_end);
                 pos = scheme_end + 1;
             }
 
             // Parse authority (userinfo@host[:port])
-            if (uri.substring(pos, pos + 2) == "//")
+            if (pos + 2 <= len && uri_[pos] == '/' && uri_[pos + 1] == '/')
             {
                 pos += 2;
-                std::size_t authority_end = uri.indexOf('/', pos);
-                std::size_t query_start = uri.indexOf('?', pos);
-                std::size_t fragment_start = uri.indexOf('#', pos);
+                std::size_t authority_end = uri_.indexOf('/', pos);
+                std::size_t query_start = uri_.indexOf('?', pos);
+                std::size_t fragment_start = uri_.indexOf('#', pos);
 
                 std::size_t end = len;
                 if (authority_end != -1 && authority_end < end)
@@ -67,64 +71,64 @@ namespace HttpServerAdvanced
                 if (fragment_start != -1 && fragment_start < end)
                     end = fragment_start;
 
-                std::size_t at_pos = uri.indexOf('@', pos);
+                std::size_t at_pos = uri_.indexOf('@', pos);
                 std::size_t hostport_start = pos;
                 if (at_pos != -1 && at_pos < end)
                 {
-                    userinfo_ = uri.substring(pos, at_pos);
+                    userinfo_ = StringView(data + pos, at_pos - pos);
                     hostport_start = at_pos + 1;
                 }
 
                 std::size_t hostport_end = end;
-                std::size_t port_sep = uri.indexOf(':', hostport_start);
+                std::size_t port_sep = uri_.indexOf(':', hostport_start);
                 if (port_sep != -1 && port_sep < hostport_end)
                 {
-                    host_ = uri.substring(hostport_start, port_sep);
-                    port_ = uri.substring(port_sep + 1, hostport_end);
+                    host_ = StringView(data + hostport_start, port_sep - hostport_start);
+                    port_ = StringView(data + port_sep + 1, hostport_end - port_sep - 1);
                 }
                 else
                 {
-                    host_ = uri.substring(hostport_start, hostport_end);
+                    host_ = StringView(data + hostport_start, hostport_end - hostport_start);
                 }
                 pos = end;
             }
 
             // Parse path
-            if (pos < len && uri[pos] == '/')
+            if (pos < len && uri_[pos] == '/')
             {
-                std::size_t path_end = uri.indexOf('?', pos);
-                std::size_t fragment_start = uri.indexOf('#', pos);
+                std::size_t path_end = uri_.indexOf('?', pos);
+                std::size_t fragment_start = uri_.indexOf('#', pos);
                 std::size_t end = len;
                 if (path_end != -1 && path_end < end)
                     end = path_end;
                 if (fragment_start != -1 && fragment_start < end)
                     end = fragment_start;
-                path_ = uri.substring(pos, end);
+                path_ = StringView(data + pos, end - pos);
                 pos = end;
             }
 
             // Parse query
-            if (pos < len && uri[pos] == '?')
+            if (pos < len && uri_[pos] == '?')
             {
-                std::size_t query_end = uri.indexOf('#', pos + 1);
+                std::size_t query_end = uri_.indexOf('#', pos + 1);
                 if (query_end != -1)
                 {
-                    _query = uri.substring(pos + 1, query_end);
-                    queryView_ = KeyValuePairView<String, String>(HttpUtility::ParseQueryString(_query));
+                    _query = StringView(data + pos + 1, query_end - pos - 1);
+                    queryView_ = KeyValuePairView<String, String>(HttpUtility::ParseQueryString(_query.begin(), _query.length()));
                     pos = query_end;
                 }
                 else
                 {
-                    _query = uri.substring(pos + 1);
-                    queryView_ = KeyValuePairView<String, String>(HttpUtility::ParseQueryString(_query));
+                    _query = StringView(data + pos + 1, len - pos - 1);
+                    queryView_ = KeyValuePairView<String, String>(HttpUtility::ParseQueryString(_query.begin(), _query.length()));
                     pos = len;
                 }
             }
 
             // Parse fragment
-            if (pos < len && uri[pos] == '#')
+            if (pos < len && uri_[pos] == '#')
             {
-                fragment_ = uri.substring(pos + 1);
+                fragment_ = StringView(data + pos + 1, len - pos - 1);
             }
         }
     };

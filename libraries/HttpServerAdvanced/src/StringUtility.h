@@ -11,6 +11,8 @@ namespace HttpServerAdvanced
 
         int compareTo(const char* a, size_t aLength, const char* b, size_t bLength, bool ignoreCase)
         {
+            if (!a || !b)
+                return (!a && !b) ? 0 : (!a ? -1 : 1);
             if (aLength == 0 && bLength == 0)
                 return 0;
             if (aLength == 0)
@@ -43,6 +45,8 @@ namespace HttpServerAdvanced
 
         bool startsWith(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, bool ignoreCase)
         {
+            if (!haystack || !needle)
+                return false;
             if (needleLength > haystackLength)
                 return false;
             if (haystackLength == 0 || needleLength == 0)
@@ -52,6 +56,8 @@ namespace HttpServerAdvanced
 
         bool endsWith(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, bool ignoreCase)
         {
+            if (!haystack || !needle)
+                return false;
             if (needleLength > haystackLength)
                 return false;
             if (haystackLength == 0 || needleLength == 0)
@@ -61,6 +67,8 @@ namespace HttpServerAdvanced
 
         std::ptrdiff_t indexOf(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, size_t fromIndex = 0, bool ignoreCase = false)
         {
+            if (!haystack || !needle)
+                return -1;
             if (fromIndex >= haystackLength || needleLength == 0)
                 return -1;
             if (haystackLength == 0 || needleLength == 0)
@@ -95,6 +103,8 @@ namespace HttpServerAdvanced
 
         std::ptrdiff_t lastIndexOf(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, size_t fromIndex = 0, bool ignoreCase = false)
         {
+            if (!haystack || !needle)
+                return -1;
             if (fromIndex >= haystackLength || needleLength == 0)
                 return -1;
             if (haystackLength == 0 || needleLength == 0)

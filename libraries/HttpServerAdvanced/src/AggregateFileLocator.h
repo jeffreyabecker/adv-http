@@ -18,7 +18,7 @@ namespace HttpServerAdvanced
         void add(FileLocator *locator, bool takeOwnership = true);
         void add(FileLocator &locator);
         void add(std::shared_ptr<FileLocator> locator);
-        File getFile(HttpContext &context) override;
+        File getFile(HttpRequest &context) override;
         bool canHandle(const String &path) override;
     };
 

@@ -1,5 +1,5 @@
 #include "AggregateFileLocator.h"
-#include "HttpContext.h"
+#include "HttpRequest.h"
 
 namespace HttpServerAdvanced
 {
@@ -25,7 +25,7 @@ namespace HttpServerAdvanced
         locators_.push_back(std::move(locator));
     }
 
-    File AggregateFileLocator::getFile(HttpContext &context)
+    File AggregateFileLocator::getFile(HttpRequest &context)
     {
         for (auto &locator : locators_)
         {

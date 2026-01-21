@@ -1,5 +1,5 @@
 #include "StaticFilesBuilder.h"
-
+#include <FS.h>
 namespace HttpServerAdvanced
 {
     StaticFilesBuilder::StaticFilesBuilder(FS &fs, HttpServerAdvanced::HttpContentTypes &contentTypes, std::function<void(StaticFilesBuilder &)> setupFunc)
@@ -20,7 +20,7 @@ namespace HttpServerAdvanced
             setupFunc_(*this);
         }
         auto &handlerFactory = coreBuilder.handlerFactory();
-        handlerFactory.add(fileHandlerFactory_, HttpHandlerFactory::AddAt::Beginning);
+        handlerFactory.add(fileHandlerFactory_, HandlerProviderRegistry::AddAt::Beginning);
     }
 
     StaticFilesBuilder &StaticFilesBuilder::setPathPredicate(std::function<bool(const String &)> predicate)
@@ -52,7 +52,7 @@ namespace HttpServerAdvanced
         static std::function<void(CoreServicesBuilder &)> *instance = nullptr;
         if (instance == nullptr)
         {
-            instance = new std::function<void(CoreServicesBuilder &)>([&fs, setupFunc](CoreServicesBuilder &coreBuilder)
+            instance = new std::function<void(CoreServicesBuilder &)>([setupFunc, &fs](CoreServicesBuilder &coreBuilder)
                                                                       {
                 auto &contentTypes = coreBuilder.contentTypes();
                 StaticFilesBuilder staticFilesBuilder(fs, contentTypes, setupFunc);

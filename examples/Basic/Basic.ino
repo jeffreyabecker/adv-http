@@ -4,12 +4,12 @@
 
 HttpServer WebServer;
 
-Response onHello(HttpContext &context)
+Response onHello(HttpRequest &context)
 {
     return HttpResponse::create(HttpStatus::Ok(), "text/plain", "Hello World\n");
 }
 
-Response onPinRequest(HttpContext &context, std::vector<String> &&pathParams)
+Response onPinRequest(HttpRequest &context, std::vector<String> &&pathParams)
 {
     if (pathParams.size() > 0)
     {
@@ -23,14 +23,14 @@ Response onPinRequest(HttpContext &context, std::vector<String> &&pathParams)
         return HttpResponse::create(HttpStatus::BadRequest(), "text/plain", "Pin not specified\n");
     }
 }
-Response onGreeting(HttpContext &context, PostBodyData &&pathParams)
+Response onGreeting(HttpRequest &context, PostBodyData &&pathParams)
 {
     String name = pathParams.get("name").value_or("Guest");
     String response = "Hello, " + name + "!\n";
     return HttpResponse::create(HttpStatus::Ok(), "text/plain", response);
 }
 
-Response onEcho(HttpContext &, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength){
+Response onEcho(HttpRequest &, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength){
     std::vector<uint8_t> buffer;
     if(recievedLength ==0){
         buffer.reserve(contentLength);
@@ -41,7 +41,7 @@ Response onEcho(HttpContext &, size_t recievedLength, size_t contentLength, cons
     response += String(reinterpret_cast<const char *>(chunk), chunkLength) + "\n";
     return HttpResponse::create(HttpStatus::Ok(), "text/plain", response);
 }
-// Response onFileUpload(HttpContext &context, PostBodyData &&postData)
+// Response onFileUpload(HttpRequest &context, PostBodyData &&postData)
 // {
 //     auto fileOpt = postData.files().get("uploadFile");
 //     if (fileOpt.has_value())

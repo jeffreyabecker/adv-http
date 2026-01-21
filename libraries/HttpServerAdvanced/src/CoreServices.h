@@ -2,8 +2,8 @@
 #include <Arduino.h>
 #include <functional>
 #include "./Defines.h"
-#include "./HttpHandlerFactory.h"
-#include "./HttpContext.h"
+#include "./HandlerProviderRegistry.h"
+#include "./HttpRequest.h"
 #include "./HandlersBuilder.h"
 #include "./HttpContentTypes.h"
 #include <any>
@@ -18,7 +18,7 @@ namespace HttpServerAdvanced
     private:
         // static CoreServicesBuilder instance;
 
-        HttpHandlerFactory handlerFactory_;
+        HandlerProviderRegistry handlerFactory_;
 
         CoreServicesSetupFunc setupFunc_;
         HandlersBuilder handlersBuilder_;
@@ -37,7 +37,7 @@ namespace HttpServerAdvanced
 
         CoreServicesBuilder &use(std::function<void(CoreServicesBuilder &)> component);
 
-        HttpHandlerFactory &handlerFactory();
+        HandlerProviderRegistry &handlerFactory();
 
         HandlersBuilder &handlers();
         HttpContentTypes &contentTypes();

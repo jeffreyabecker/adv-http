@@ -2,22 +2,21 @@
 #include <Arduino.h>
 #include "./Defines.h"
 #include "./StringUtility.h"
-#include "./HttpRequest.h"
 #include "./UriView.h"
 #include <initializer_list>
 #include <functional>
 namespace HttpServerAdvanced
 {
     // Forward declaration
-    class HttpContext;
+    class HttpRequest;
     constexpr char REQUEST_MATCHER_PATH_DELIMITER = '/';
     class HandlerMatcher
     {
     public:
         using MethodChecker = std::function<bool(const String &method, const String &allowedMethods)>;
         using UriPatternChecker = std::function<bool(const String &uri, const String &uriPattern)>;
-        using ContentTypeChecker = std::function<bool(HttpRequest &request, const std::vector<String> &allowedContentTypes)>;
-        using ParameterExtractor = std::function<std::vector<String>(HttpContext &context, const String &uriPattern)>;
+        using ContentTypeChecker = std::function<bool(HttpRequest &context, const std::vector<String> &allowedContentTypes)>;
+        using ParameterExtractor = std::function<std::vector<String>(HttpRequest &context, const String &uriPattern)>;
 
     protected:
         String uriPattern_;
@@ -61,13 +60,13 @@ namespace HttpServerAdvanced
 
         ~HandlerMatcher() = default;
 
-        bool operator()(HttpContext &context) const
+        bool operator()(HttpRequest &context) const
         {
             return canHandle(context);
         }
 
-        bool canHandle(HttpContext &context) const;
-        std::vector<String> extractParameters(HttpContext &context) const;
+        bool canHandle(HttpRequest &context) const;
+        std::vector<String> extractParameters(HttpRequest &context) const;
     };
     class ParameterizedUri : public HandlerMatcher
     {
@@ -87,9 +86,9 @@ namespace HttpServerAdvanced
         return false;
     }
 
-    bool defaultCheckContentType(HttpRequest &request, const std::vector<String> &allowedContentTypes)
+    bool defaultCheckContentType(HttpRequest &context, const std::vector<String> &allowedContentTypes)
     {
-        std::optional<HttpHeader> contentType = request.headers().find("Content-Type");
+        std::optional<HttpHeader> contentType = context.headers().find("Content-Type");
         if (!contentType.has_value())
         {
             return false;
@@ -148,10 +147,10 @@ namespace HttpServerAdvanced
         return !*p;
     }
 
-    std::vector<String> defaultExtractParameters(HttpContext &context, const String &uriPattern)
+    std::vector<String> defaultExtractParameters(HttpRequest &context, const String &uriPattern)
     {
         std::vector<String> params;
-        auto v = UriView(context.request().url());
+        auto v = UriView(context.url());
         auto path = v.path();
         if (StringUtil::indexOf(uriPattern, "*") == -1)
         {
@@ -347,15 +346,14 @@ namespace HttpServerAdvanced
     }
 
     // Public methods
-    bool HandlerMatcher::canHandle(HttpContext &context) const
+    bool HandlerMatcher::canHandle(HttpRequest &context) const
     {
-        auto &request = context.request();
-        if (!allowedMethods_.isEmpty() && !methodChecker_(request.method(), allowedMethods_))
+        if (!allowedMethods_.isEmpty() && !methodChecker_(context.method(), allowedMethods_))
         {
             return false;
         }
 
-        auto requestUri = request.url();
+        auto requestUri = context.url();
         if (!uriPatternChecker_(requestUri, uriPattern_))
         {
             return false;
@@ -363,7 +361,7 @@ namespace HttpServerAdvanced
 
         if (!allowedContentTypes_.empty())
         {
-            if (!contentTypeChecker_(request, allowedContentTypes_))
+            if (!contentTypeChecker_(context, allowedContentTypes_))
             {
                 return false;
             }
@@ -371,7 +369,7 @@ namespace HttpServerAdvanced
         return true;
     }
 
-    std::vector<String> HandlerMatcher::extractParameters(HttpContext &context) const
+    std::vector<String> HandlerMatcher::extractParameters(HttpRequest &context) const
     {
         return parameterExtractor_(context, uriPattern_);
     }
@@ -384,5 +382,5 @@ namespace HttpServerAdvanced
 
 } // namespace HttpServerAdvanced
 
-// Include HttpContext after class definition to resolve forward declaration
-#include "./HttpContext.h"
+// Include HttpRequest after class definition to resolve forward declaration
+#include "./HttpRequest.h"

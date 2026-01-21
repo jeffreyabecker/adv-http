@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 #include "./Defines.h"
-#include "./HttpContext.h"
+#include "./HttpRequest.h"
 #include "./HttpResponse.h"
 #include "./HttpStatus.h"
 #include "./HttpUtility.h"
@@ -14,9 +14,9 @@ namespace HttpServerAdvanced
     namespace BasicAuthImpl
     {
 
-        bool CheckBasicAuthCredentials(HttpContext &context, const String &expectedUsername, const String &expectedPassword, const String &realm, std::function<void(const String &, const String &)> onSuccess)
+        bool CheckBasicAuthCredentials(HttpRequest &context, const String &expectedUsername, const String &expectedPassword, const String &realm, std::function<void(const String &, const String &)> onSuccess)
         {
-            auto authHeaderOpt = context.request().headers().find("Authorization");
+            auto authHeaderOpt = context.headers().find("Authorization");
             if (!authHeaderOpt.has_value())
             {
                 return false;
@@ -47,7 +47,7 @@ namespace HttpServerAdvanced
 
     IHttpHandler::InterceptorCallback BasicAuth(const String &expectedUsername, const String &expectedPassword, const String &realm = "Restricted Area", std::function<void(const String &, const String &)> onSuccess = nullptr)
     {
-        return [&expectedUsername, &expectedPassword, &realm, &onSuccess](HttpContext &context, IHttpHandler::InvocationCallback next)
+        return [&expectedUsername, &expectedPassword, &realm, &onSuccess](HttpRequest &context, IHttpHandler::InvocationCallback next)
         {
             bool authorized = BasicAuthImpl::CheckBasicAuthCredentials(context, expectedUsername, expectedPassword, realm, onSuccess);
             if (authorized)

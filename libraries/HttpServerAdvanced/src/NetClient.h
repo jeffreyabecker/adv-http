@@ -3,108 +3,12 @@
 #include <Arduino.h>
 #include "./Defines.h"
 #include <memory>
-
-
+#include <type_traits>
+#include <utility>
 
 namespace HttpServerAdvanced
 {
 
-    /**
-     * @brief Type trait to check if a type behaves like a client.
-     *
-     * This template struct uses SFINAE to determine if a given type T has the required
-     * methods and operators to be considered a client-like type. It checks for the presence
-     * of methods like write, available, read, flush, stop, status, connected, remoteIP,
-     * remotePort, localIP, localPort, and an explicit bool conversion operator.
-     *
-     * @tparam T The type to check.
-     */
-    template <typename T>
-    struct IsClientLikeType
-    {
-    private:
-        template <typename U>
-        auto test(int) -> decltype(
-            // Write(buf, size) -> std::size_t
-            std::is_convertible<decltype(std::declval<U>().write(std::declval<const uint8_t *>(), std::declval<std::size_t>())), std::size_t>{},
-            // Available() -> int
-            std::is_convertible<decltype(std::declval<U>().available()), int>{},
-            // Read(rbuf, size) -> int
-            std::is_convertible<decltype(std::declval<U>().read(std::declval<uint8_t *>(), std::declval<std::size_t>())), int>{},
-            // Flush() -> void
-            std::is_same<decltype(std::declval<U>().flush()), void>{},
-            // Stop() -> void
-            std::is_same<decltype(std::declval<U>().stop()), void>{},
-            // status() -> uint8_t
-            std::is_same<decltype(std::declval<U>().status()), uint8_t>{},
-            // Connected() -> uint8_t
-            std::is_convertible<decltype(std::declval<U>().connected()), uint8_t>{},
-            // RemoteIP() -> IPAddress
-            std::is_same<decltype(std::declval<U>().remoteIP()), IPAddress>{},
-            // RemotePort() -> uint16_t
-            std::is_convertible<decltype(std::declval<U>().remotePort()), uint16_t>{},
-            // LocalIP() -> IPAddress
-            std::is_same<decltype(std::declval<U>().localIP()), IPAddress>{},
-            // LocalPort() -> uint16_t
-            std::is_convertible<decltype(std::declval<U>().localPort()), uint16_t>{},
-            // explicit operator bool() const -> bool
-            std::is_same<decltype(static_cast<bool>(std::declval<const T &>())), bool>{},
-            // setTimeout(timeoutMs) -> void
-            std::is_same<decltype(std::declval<U>().setTimeout(std::declval<uint32_t>())), void>{},
-            // getTimeout() const -> uint32_t
-            std::is_same<decltype(std::declval<const U>().getTimeout()), uint32_t>{},
-            std::true_type{});
-
-        template <typename>
-        std::false_type test(...);
-
-    public:
-        /**
-         * @brief The value indicating whether T is client-like.
-         */
-        static constexpr bool value = decltype(test<T>(0))::value;
-    };
-
-    /**
-     * @brief Type trait to check if a type behaves like a server.
-     *
-     * This template struct uses SFINAE to determine if a given type T has the required
-     * constructor and methods to be considered a server-like type. It checks for the
-     * presence of a constructor taking IPAddress and uint16_t, and methods like accept,
-     * begin, status, port, and end.
-     *
-     * @tparam T The type to check.
-     */
-    template <typename T>
-    struct IsServerLikeType
-    {
-        template <typename TServer>
-        auto test(int) -> decltype(
-            // Constructor: ServerLike(const IPAddress&, uint16_t)
-            TServer(std::declval<const IPAddress &>(), std::declval<uint16_t>()),
-            // accept() exists -- TODO: maybe check that the return type is ClientLike?
-            decltype(std::declval<TServer>().accept()),
-            // begin() -> void
-            std::is_same<decltype(std::declval<TServer>().begin()), void>{},
-
-            // status() -> uint8_t
-            std::is_same<decltype(std::declval<TServer>().status()), uint8_t>{},
-            // port() const -> uint16_t
-            std::is_same<decltype(std::declval<const TServer>().port()), uint16_t>{},
-            // end() -> void
-            std::is_same<decltype(std::declval<TServer>().end()), void>{},
-
-            std::true_type{});
-
-        template <typename>
-        std::false_type test(...);
-
-    public:
-        /**
-         * @brief The value indicating whether T is server-like.
-         */
-        static constexpr bool value = decltype(test<T>(0))::value;
-    };
     /**
      * @brief Enumeration representing the status of a network connection.
      *
@@ -233,7 +137,7 @@ namespace HttpServerAdvanced
          * @brief Gets the current timeout for client operations.
          *
          * @return The timeout duration in milliseconds.
-         */ 
+         */
         virtual uint32_t getTimeout() const = 0;
     };
 
@@ -252,6 +156,8 @@ namespace HttpServerAdvanced
          * @brief Virtual destructor.
          */
         virtual ~IServer() = default;
+
+        IServer() = default;
 
         /**
          * @brief Constructor for IServer.
@@ -292,14 +198,14 @@ namespace HttpServerAdvanced
          */
         virtual void end() = 0;
     };
-/**
+    /**
      * @brief Implementation of ClientWrapper for a specific Client type T.
      *
      * T is required to implement the client interface through SFINAE.
      *
      * @tparam T The client type to wrap.
      */
-    template <typename T, typename = std::enable_if_t<IsClientLikeType<T>::value>>
+    template <typename T>
     class ClientImpl : public IClient
     {
 
@@ -459,7 +365,7 @@ namespace HttpServerAdvanced
      *
      * @tparam T The server type to wrap.
      */
-    template <typename T, typename = std::enable_if_t<IsServerLikeType<T>::value>>
+    template <typename T>
     class ServerImpl : public IServer
     {
 
@@ -494,8 +400,8 @@ namespace HttpServerAdvanced
             auto client = connection_.accept();
             if (client)
             {
-                // Transfer ownership of the accepted client to ClientImpl
-                return std::make_unique<ClientImpl<std::remove_reference_t<decltype(*client)>>>(std::move(client));
+                using ClientType = std::remove_reference_t<decltype(client)>;
+                return std::make_unique<ClientImpl<ClientType>>(std::make_unique<ClientType>(std::move(client)));
             }
             return nullptr;
         }
@@ -554,7 +460,5 @@ namespace HttpServerAdvanced
     private:
         T connection_;
     };
-
-
 
 } // namespace HttpServerAdvanced

@@ -1,16 +1,16 @@
 #include "./CoreServices.h"
 #include "./HttpServerBase.h"
-#include "./HttpContext.h"
+#include "./HttpRequest.h"
 
 namespace HttpServerAdvanced {
 
 void CoreServicesBuilder::init(HttpServerAdvanced::HttpServerBase &server) {
-    server.setPipelineHandlerFactory(HttpContext::createPipelineHandler);
+    server.setPipelineHandlerFactory(HttpRequest::createPipelineHandler);
     server.addService<CoreServicesBuilder *>(server, ServiceName, this);
 
-    server.addService<HttpHandlerFactory *>(server, HttpHandlerFactory::ServiceName, &handlerFactory_);
-    server.addService<HttpContext::HandlerFactoryFunction>(server, HttpContext::HandlerFactoryServiceName,
-                                [this](HttpContext &context) {
+    server.addService<HandlerProviderRegistry *>(server, HandlerProviderRegistry::ServiceName, &handlerFactory_);
+    server.addService<HttpRequest::HandlerFactoryFunction>(server, HttpRequest::HandlerFactoryServiceName,
+                                [this](HttpRequest &context) {
                                     return handlerFactory_.createContextHandler(context);
                                 });
     server.addService<HttpContentTypes *>(server, HttpContentTypes::ServiceName, &contentTypes_);
@@ -30,7 +30,7 @@ CoreServicesBuilder &CoreServicesBuilder::use(std::function<void(CoreServicesBui
     return *this;
 }
 
-HttpHandlerFactory &CoreServicesBuilder::handlerFactory() { return handlerFactory_; }
+HandlerProviderRegistry &CoreServicesBuilder::handlerFactory() { return handlerFactory_; }
 HandlersBuilder &CoreServicesBuilder::handlers() { return handlersBuilder_; }
 HttpContentTypes &CoreServicesBuilder::contentTypes() { return contentTypes_; }
 

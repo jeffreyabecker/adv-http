@@ -82,9 +82,9 @@ namespace HttpServerAdvanced
     {
     }
 
-    bool StaticFileHandlerFactory::canHandle(HttpContext &context)
+    bool StaticFileHandlerFactory::canHandle(HttpRequest &context)
     {
-        if (!fileLocator_.canHandle(context.request().url()))
+        if (!fileLocator_.canHandle(context.url()))
         {
             return false;
         }
@@ -97,10 +97,10 @@ namespace HttpServerAdvanced
         return true;
     }
 
-    std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::create(HttpContext &context)
+    std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::create(HttpRequest &context)
     {
-        bool isGet = (HttpMethod::Get == context.request().method());
-        bool isHead = (HttpMethod::Head == context.request().method());
+        bool isGet = (HttpMethod::Get == context.method());
+        bool isHead = (HttpMethod::Head == context.method());
 
         if (!isGet && !isHead)
         {
@@ -108,22 +108,47 @@ namespace HttpServerAdvanced
                 HttpResponse::create(HttpStatus::MethodNotAllowed(),
                                      "Method Not Allowed",
                                      HttpHeadersCollection{HttpHeader(HttpHeader::Allow, "GET, HEAD")}),
-                HttpContextPhase::CompletedStartingLine);
+                HttpRequestPhase::CompletedStartingLine);
         }
 
         File file = fileLocator_.getFile(context);
 
-        String contentType = contentTypes_.getContentTypeFromPath(file.fullName());
-        String path = getUrlPath(context.request().url());
-        bool isHeadRequest = (HttpMethod::Head == context.request().method());
+        // Check if the file is gzipped (ends with .gz)
+        String fullName = file.fullName();
+        bool isGzipped = fullName.endsWith(".gz");
+        
+        // Get content type from filename without .gz extension if gzipped
+        String contentType;
+        if (isGzipped)
+        {
+            String nameWithoutGz = fullName.substring(0, fullName.length() - 3);
+            contentType = contentTypes_.getContentTypeFromPath(nameWithoutGz.c_str());
+        }
+        else
+        {
+            contentType = contentTypes_.getContentTypeFromPath(fullName.c_str());
+        }
+
+        // Build headers
+        HttpHeadersCollection headers;
+        headers.push_back(HttpHeader(HttpHeader::ContentType, contentType));
+        headers.push_back(HttpHeader(HttpHeader::ContentLength, String(file.size())));
+        headers.push_back(HttpHeader(HttpHeader::ETag, getEtag(file)));
+        headers.push_back(HttpHeader(HttpHeader::LastModified, getLastWriteValue(file)));
+        
+        // Add Content-Encoding header if gzipped
+        if (isGzipped)
+        {
+            headers.push_back(HttpHeader(HttpHeader::ContentEncoding, "gzip"));
+        }
+
+        String path = getUrlPath(context.url());
+        bool isHeadRequest = (HttpMethod::Head == context.method());
         return HttpHandler::create(
             HttpResponse::create(HttpStatus::Ok(),
                                  std::make_unique<FileStreamWrapper>(std::move(file)),
-                                 HttpHeadersCollection{HttpHeader(HttpHeader::ContentType, contentType),
-                                                       HttpHeader(HttpHeader::ContentLength, String(file.size())),
-                                                       HttpHeader(HttpHeader::ETag, getEtag(file)),
-                                                       HttpHeader(HttpHeader::LastModified, getLastWriteValue(file))}),
-            HttpContextPhase::CompletedStartingLine);
+                                 std::move(headers)),
+            HttpRequestPhase::CompletedStartingLine);
     }
 
     void StaticFileHandlerFactory::setFileLocator(FileLocator &fileLocator)

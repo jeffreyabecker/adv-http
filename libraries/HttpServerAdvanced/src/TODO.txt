@@ -1,6 +1,0 @@
-* Setup the system to check for compressed files in the filesystem and serve them out with the appropriate 
-  Content-Encoding headers. see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Encoding
-  This is done in place of offering compression as a response filter due to the resource constraints on
-  microcontrollers. Compression as a response filter would require reading the entire response body for the
-  compression step. While thats possible, precompressing files saves filesystem space and CPU time. At the same
-  time, most client devices are likely to be on a local network where the size of the response is less critical.

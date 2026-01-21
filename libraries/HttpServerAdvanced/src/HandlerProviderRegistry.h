@@ -9,56 +9,28 @@
 #include "./HttpHeader.h"
 #include "./HttpHandler.h"
 #include "./IHttpResponse.h"
+#include "./IHandlerProvider.h"
 namespace HttpServerAdvanced
 {
     // Forward declarations
-    class HttpContext;
-    
+    class HttpRequest;
 
-    
-    class HttpHandlerFactory
+    class HandlerProviderRegistry
     {
     public:
-        static constexpr const char *ServiceName = "HttpHandlerFactory";
+        static constexpr const char *ServiceName = "HandlerProviderRegistry";
 
-        class IHttpHandlerFactoryItem
-        {
-            friend class HttpHandlerFactory;
-
-        public:
-            virtual ~IHttpHandlerFactoryItem() = default;
-            virtual bool canHandle(HttpContext &context) = 0;
-            virtual std::unique_ptr<IHttpHandler> create(HttpContext &context) = 0;
-        };
         using AddPosition = int;
         struct AddAt
         {
             static const AddPosition Beginning = 0;
             static const AddPosition End = -1;
         };
-        class ClosureFactoryItem : public HttpHandlerFactory::IHttpHandlerFactoryItem
-        {
-        private:
-            IHttpHandler::Factory factory_;
-            IHttpHandler::Predicate request_;
-
-        public:
-            ClosureFactoryItem(IHttpHandler::Factory factory, IHttpHandler::Predicate request)
-                : factory_(factory), request_(request) {}
-            virtual bool canHandle(HttpContext &context) override
-            {
-                return request_(context);
-            }
-            virtual std::unique_ptr<IHttpHandler> create(HttpContext &context) override
-            {
-                return factory_(context);
-            }
-        };
 
     private:
-        static std::unique_ptr<IHttpHandler> createDefaultHandler(HttpContext &context);
-        std::vector<std::reference_wrapper<IHttpHandlerFactoryItem>> factories_;
-        std::vector<std::unique_ptr<IHttpHandlerFactoryItem>> ownedFactoryItems_;
+        static std::unique_ptr<IHttpHandler> createDefaultHandler(HttpRequest &context);
+        std::vector<std::reference_wrapper<IHandlerProvider>> factories_;
+        std::vector<std::unique_ptr<IHandlerProvider>> ownedFactoryItems_;
         IHttpHandler::Factory defaultFactory_ = nullptr;
         IHttpHandler::Predicate globalRequestFilter_ = nullptr;
         IHttpResponse::ResponseFilter globalResponseFilter_ = nullptr;
@@ -72,7 +44,7 @@ namespace HttpServerAdvanced
         public:
             ResponseFilterApplicator(std::unique_ptr<IHttpHandler> innerHandler, IHttpResponse::ResponseFilter filter)
                 : innerHandler_(std::move(innerHandler)), filter_(filter) {}
-            virtual IHttpHandler::HandlerResult handleStep(HttpContext &context) override
+            virtual IHttpHandler::HandlerResult handleStep(HttpRequest &context) override
             {
                 auto response = innerHandler_->handleStep(context);
                 if (response && filter_)
@@ -81,18 +53,18 @@ namespace HttpServerAdvanced
                 }
                 return response;
             }
-            virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length) override
+            virtual void handleBodyChunk(HttpRequest &context, const uint8_t *at, std::size_t length) override
             {
                 innerHandler_->handleBodyChunk(context, at, length);
             }
         };
 
     public:
-        HttpHandlerFactory() {}
-        std::unique_ptr<IHttpHandler> createContextHandler(HttpContext &context);
+        HandlerProviderRegistry() {}
+        std::unique_ptr<IHttpHandler> createContextHandler(HttpRequest &context);
         void setDefaultHandlerFactory(IHttpHandler::Factory creator);
 
-        void add(IHttpHandlerFactoryItem &handlerFactory, AddPosition position = AddAt::End);
+        void add(IHandlerProvider &handlerFactory, AddPosition position = AddAt::End);
         template <typename THandler, typename... Args>
         void add(Args &&...args)
         {
@@ -117,5 +89,3 @@ namespace HttpServerAdvanced
         void addResponseFilter(IHttpResponse::ResponseFilter filter);
     };
 }
-
-

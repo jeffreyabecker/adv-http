@@ -16,12 +16,12 @@ namespace HttpServerAdvanced
 
     public:
         NoBodyHandler(Request::Invocation handler, ParameterExtractor extractor)
-            : HttpHandler([handler, extractor](HttpContext &context) -> IHttpHandler::HandlerResult
+            : HttpHandler([handler, extractor](HttpRequest &context) -> IHttpHandler::HandlerResult
                           {
                                     auto params = extractor(context);
                                     return handler(context, std::move(params)); }) {}
         NoBodyHandler(Request::InvocationWithoutParams handler, ParameterExtractor extractor)
-            : HttpHandler([handler](HttpContext &context) -> IHttpHandler::HandlerResult
+            : HttpHandler([handler](HttpRequest &context) -> IHttpHandler::HandlerResult
                           { return handler(context); }) {}
     };
 
@@ -37,7 +37,7 @@ namespace HttpServerAdvanced
         FormBodyHandler(Form::InvocationWithoutParams handler, ParameterExtractor extractor)
             : handler_(Form::curryWithoutParams(handler)), extractor_(extractor) {}
 
-        virtual IHttpHandler::HandlerResult handleBody(HttpContext &context, std::vector<uint8_t> &&body) override
+        virtual IHttpHandler::HandlerResult handleBody(HttpRequest &context, std::vector<uint8_t> &&body) override
         {
             auto params = extractor_(context);
 
@@ -62,9 +62,9 @@ namespace HttpServerAdvanced
         RawBodyHandler(RawBody::InvocationWithoutParams handler, ParameterExtractor extractor)
             : handler_(RawBody::curryWithoutParams(handler)), extractor_(extractor) {}
 
-        virtual HandlerResult handleStep(HttpContext &context)
+        virtual HandlerResult handleStep(HttpRequest &context)
         {
-            if (!response_ && context.completedPhases() >= HttpContextPhase::CompletedReadingMessage)
+            if (!response_ && context.completedPhases() >= HttpRequestPhase::CompletedReadingMessage)
             {
                 handleBodyChunk(context, nullptr, 0);
             }
@@ -74,7 +74,7 @@ namespace HttpServerAdvanced
             }
             return nullptr;
         }
-        virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length)
+        virtual void handleBodyChunk(HttpRequest &context, const uint8_t *at, std::size_t length)
         {
             if (response_)
             {

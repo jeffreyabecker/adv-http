@@ -5,13 +5,13 @@
 #include "./FileLocator.h"
 #include "./HttpContentTypes.h"
 #include "./HttpResponse.h"
-#include "./HttpContext.h"
-
+#include "./HttpRequest.h"
+#include "./IHandlerProvider.h"
 namespace HttpServerAdvanced
 {
     using namespace HttpServerAdvanced;
 
-    class StaticFileHandlerFactory : public HttpHandlerFactory::IHttpHandlerFactoryItem
+    class StaticFileHandlerFactory : public IHandlerProvider
     {
     private:
         HttpServerAdvanced::HttpContentTypes &contentTypes_;
@@ -37,8 +37,8 @@ namespace HttpServerAdvanced
 
     public:
         StaticFileHandlerFactory(FileLocator &fileLocator, HttpServerAdvanced::HttpContentTypes &contentTypes);
-        bool canHandle(HttpContext &context);
-        std::unique_ptr<IHttpHandler> create(HttpContext &context) override;
+        bool canHandle(HttpRequest &context);
+        std::unique_ptr<IHttpHandler> create(HttpRequest &context) override;
         void setFileLocator(FileLocator &fileLocator);
     };
 

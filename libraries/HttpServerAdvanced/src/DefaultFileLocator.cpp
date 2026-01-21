@@ -28,8 +28,8 @@ DefaultFileLocator::RequestPathMapper DefaultFileLocator::createPathMapper(const
     };
 }
 
-String DefaultFileLocator::getLocalPath(const HttpRequest &request) {
-    String path = request.url();
+String DefaultFileLocator::getLocalPath(const HttpRequest &context) {
+    String path = context.url();
 
     int queryIndex = path.indexOf('?');
     if (queryIndex != -1) {
@@ -60,14 +60,20 @@ void DefaultFileLocator::setRequestPathPrefixes(const String &includePrefix, con
 
 void DefaultFileLocator::setFilesystemContentRoot(const String &root) { setPathMapper(createPathMapper(root)); }
 
-File DefaultFileLocator::getFile(HttpContext &context) {
-    String path = this->getLocalPath(context.request());
+File DefaultFileLocator::getFile(HttpRequest &context) {
+    String path = this->getLocalPath(context);
     if (pathMapper_) {
         path = pathMapper_(path);
     }
 
     File file = filesystem_.open(path, "r");
     if (!file) {
+        // Try .gz version if original file not found
+        String gzPath = path + ".gz";
+        file = filesystem_.open(gzPath, "r");
+        if (file) {
+            return file;
+        }
         return file;
     }
     if (file.isDirectory()) {
@@ -78,6 +84,11 @@ File DefaultFileLocator::getFile(HttpContext &context) {
         indexPath += "/index.html";
         file.close();
         file = filesystem_.open(indexPath, "r");
+        if (!file) {
+            // Try .gz version of index.html if not found
+            String gzIndexPath = indexPath + ".gz";
+            file = filesystem_.open(gzIndexPath, "r");
+        }
     }
     return file;
 }

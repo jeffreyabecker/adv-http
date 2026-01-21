@@ -6,7 +6,7 @@
 
 #include "./HandlerMatcher.h"
 #include "./HandlerRestrictions.h"
-#include "./HttpHandlerFactory.h"
+#include "./HandlerProviderRegistry.h"
 
 namespace HttpServerAdvanced
 {
@@ -25,11 +25,11 @@ namespace HttpServerAdvanced
         };
 
     private:
-        HttpHandlerFactory &factory_;
-        std::vector<std::unique_ptr<HttpHandlerFactory::IHttpHandlerFactoryItem>> handlerItems_;
+        HandlerProviderRegistry &factory_;
+        std::vector<std::unique_ptr<IHandlerProvider>> handlerItems_;
 
     public:
-        HandlersBuilder(HttpHandlerFactory &factory) : factory_(factory) {}
+        HandlersBuilder(HandlerProviderRegistry &factory) : factory_(factory) {}
         ~HandlersBuilder() = default;
 
         void add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, AddPosition position = AddAt::End)
@@ -75,8 +75,8 @@ namespace HttpServerAdvanced
 
         void onNotFound(IHttpHandler::InvocationCallback invocation)
         {
-            factory_.setDefaultHandlerFactory([invocation](HttpContext &context)
-                                              { return std::make_unique<HttpHandler>(invocation, [](const HttpContext &)
+            factory_.setDefaultHandlerFactory([invocation](HttpRequest &context)
+                                              { return std::make_unique<HttpHandler>(invocation, [](const HttpRequest &)
                                                                                      { return true; }); });
         }
     };

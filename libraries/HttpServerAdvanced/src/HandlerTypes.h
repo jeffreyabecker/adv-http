@@ -24,31 +24,31 @@ namespace HttpServerAdvanced
         // ParameterExtractor extractor_;
 
     public:
-        NoBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, std::vector<String> &&)> handler, ParameterExtractor extractor)
-            : HttpHandler([handler, extractor](HttpContext &context) -> IHttpHandler::HandlerResult
+        NoBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&)> handler, ParameterExtractor extractor)
+            : HttpHandler([handler, extractor](HttpRequest &context) -> IHttpHandler::HandlerResult
                           {
                                     auto params = extractor(context);
                                     return handler(context, std::move(params)); }) {}
-        NoBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &)> handler, ParameterExtractor extractor)
-            : HttpHandler([handler](HttpContext &context) -> IHttpHandler::HandlerResult
+        NoBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &)> handler, ParameterExtractor extractor)
+            : HttpHandler([handler](HttpRequest &context) -> IHttpHandler::HandlerResult
                           { return handler(context); }) {}
     };
 
     class FormBodyHandler : public BufferingHttpHandlerBase
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpContext &, std::vector<String> &&, KeyValuePairView<String, String> &&)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, KeyValuePairView<String, String> &&)> handler_;
         ParameterExtractor extractor_;
 
     public:
-        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, std::vector<String> &&, KeyValuePairView<String, String> &&)> handler, ParameterExtractor extractor)
+        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, KeyValuePairView<String, String> &&)> handler, ParameterExtractor extractor)
             : handler_(handler), extractor_(extractor) {}
-        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, KeyValuePairView<String, String> &&)> handler, ParameterExtractor extractor)
-            : handler_([handler](HttpContext &context, std::vector<String> &&, KeyValuePairView<String, String> &&postData)
+        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, KeyValuePairView<String, String> &&)> handler, ParameterExtractor extractor)
+            : handler_([handler](HttpRequest &context, std::vector<String> &&, KeyValuePairView<String, String> &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
 
-        virtual IHttpHandler::HandlerResult handleBody(HttpContext &context, std::vector<uint8_t> &&body) override
+        virtual IHttpHandler::HandlerResult handleBody(HttpRequest &context, std::vector<uint8_t> &&body) override
         {
             auto params = extractor_(context);
 
@@ -60,7 +60,7 @@ namespace HttpServerAdvanced
     class RawBodyHandler : public IHttpHandler
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpContext &, std::vector<String> &, size_t, size_t, const uint8_t *, size_t)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, size_t, size_t, const uint8_t *, size_t)> handler_;
         ParameterExtractor extractor_;
         HandlerResult response_;
         std::vector<String> params_;
@@ -68,16 +68,16 @@ namespace HttpServerAdvanced
         size_t contentLength_{0};
 
     public:
-        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, std::vector<String> &, size_t, size_t, const uint8_t *, size_t)> handler, ParameterExtractor extractor)
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, size_t, size_t, const uint8_t *, size_t)> handler, ParameterExtractor extractor)
             : handler_(handler), extractor_(extractor) {}
-        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, size_t, size_t, const uint8_t *, size_t)> handler, ParameterExtractor extractor)
-            : handler_([handler](HttpContext &context, std::vector<String> &, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, size_t, size_t, const uint8_t *, size_t)> handler, ParameterExtractor extractor)
+            : handler_([handler](HttpRequest &context, std::vector<String> &, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)
                        { return handler(context, recievedLength, contentLength, chunk, chunkLength); }),
               extractor_(extractor) {}
 
-        virtual HandlerResult handleStep(HttpContext &context)
+        virtual HandlerResult handleStep(HttpRequest &context)
         {
-            if (!response_ && context.completedPhases() >= HttpContextPhase::CompletedReadingMessage)
+            if (!response_ && context.completedPhases() >= HttpRequestPhase::CompletedReadingMessage)
             {
                 handleBodyChunk(context, nullptr, 0);
             }
@@ -87,7 +87,7 @@ namespace HttpServerAdvanced
             }
             return nullptr;
         }
-        virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length)
+        virtual void handleBodyChunk(HttpRequest &context, const uint8_t *at, std::size_t length)
         {
             if (response_)
             {
@@ -96,7 +96,7 @@ namespace HttpServerAdvanced
             if (receivedLength_ == 0)
             {
                 params_ = extractor_(context);
-                std::optional<HttpHeader> contentLengthHeader = context.request().headers().find(HttpHeader::ContentLength);
+                std::optional<HttpHeader> contentLengthHeader = context.headers().find(HttpHeader::ContentLength);
                 contentLength_ = contentLengthHeader.has_value() ? contentLengthHeader->value().toInt() : 0;
             }
             response_ = handler_(context, params_, receivedLength_, contentLength_, at, length);
@@ -108,12 +108,12 @@ namespace HttpServerAdvanced
     class Request
     {
     public:
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpContext &)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpContext &, std::vector<String> &&)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler)
         {
-            return [handler](HttpContext &context, std::vector<String> &&)
+            return [handler](HttpRequest &context, std::vector<String> &&)
             {
                 return handler(context);
             };
@@ -121,35 +121,35 @@ namespace HttpServerAdvanced
 
         static IHttpHandler::Factory makeFactory(Invocation handler, ParameterExtractor extractor)
         {
-            return [handler, extractor](HttpContext &context) -> std::unique_ptr<IHttpHandler>
+            return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
             {
                 auto params = extractor(context);
-                return std::make_unique<NoBodyHandler>(handler, [params](HttpContext &c)
+                return std::make_unique<NoBodyHandler>(handler, [params](HttpRequest &c)
                                                        { return params; });
             };
         }
 
         static Invocation curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpContext &context, std::vector<String> &&params)
+            return [interceptor, handler](HttpRequest &context, std::vector<String> &&params)
             {
-                return interceptor(context, [handler, &params](HttpContext &context)
+                return interceptor(context, [handler, params = std::move(params)](HttpRequest &context) mutable
                                    { return handler(context, std::move(params)); });
             };
         }
 
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpContext &context, std::vector<String> &&params)
+            return [interceptor, handler](HttpRequest &context, std::vector<String> &&params)
             {
-                return interceptor(context, [handler, &params](HttpContext &context)
+                return interceptor(context, [handler, params = std::move(params)](HttpRequest &context) mutable
                                    { return handler(context, std::move(params)); });
             };
         }
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
         {
-            return [filter, handler](HttpContext &context, std::vector<String> &&params)
+            return [filter, handler](HttpRequest &context, std::vector<String> &&params)
             {
                 auto response = handler(context, std::move(params));
                 return filter(std::move(response));
@@ -163,12 +163,12 @@ namespace HttpServerAdvanced
     {
     public:
         using PostBodyData = KeyValuePairView<String, String>;
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpContext &, PostBodyData &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpContext &, std::vector<String> &&, PostBodyData &&)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, PostBodyData &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, PostBodyData &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler)
         {
-            return [handler](HttpContext &context, std::vector<String> &&, PostBodyData &&postData)
+            return [handler](HttpRequest &context, std::vector<String> &&, PostBodyData &&postData)
             {
                 return handler(context, std::move(postData));
             };
@@ -176,35 +176,35 @@ namespace HttpServerAdvanced
 
         static IHttpHandler::Factory makeFactory(Invocation handler, ParameterExtractor extractor)
         {
-            return [handler, extractor](HttpContext &context) -> std::unique_ptr<IHttpHandler>
+            return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
             {
                 auto params = extractor(context);
-                return std::make_unique<FormBodyHandler>(handler, [params](HttpContext &c)
+                return std::make_unique<FormBodyHandler>(handler, [params](HttpRequest &c)
                                                          { return params; });
             };
         }
 
         static Invocation curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpContext &context, std::vector<String> &&params, PostBodyData &&postData)
+            return [interceptor, handler](HttpRequest &context, std::vector<String> &&params, PostBodyData &&postData)
             {
-                return interceptor(context, [handler, &params, &postData](HttpContext &context)
+                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpRequest &context) mutable
                                    { return handler(context, std::move(params), std::move(postData)); });
             };
         }
 
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpContext &context, std::vector<String> &&params, PostBodyData &&postData)
+            return [interceptor, handler](HttpRequest &context, std::vector<String> &&params, PostBodyData &&postData)
             {
-                return interceptor(context, [handler, &params, &postData](HttpContext &context)
+                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpRequest &context) mutable
                                    { return handler(context, std::move(params), std::move(postData)); });
             };
         }
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
         {
-            return [filter, handler](HttpContext &context, std::vector<String> &&params, PostBodyData &&postData)
+            return [filter, handler](HttpRequest &context, std::vector<String> &&params, PostBodyData &&postData)
             {
                 auto response = handler(context, std::move(params), std::move(postData));
                 return filter(std::move(response));
@@ -217,12 +217,12 @@ namespace HttpServerAdvanced
     class RawBody
     {
     public:
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpContext &, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpContext &, std::vector<String> &, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler)
         {
-            return [handler](HttpContext &context, std::vector<String> &, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)
+            return [handler](HttpRequest &context, std::vector<String> &, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)
             {
                 return handler(context, recievedLength, contentLength, chunk, chunkLength);
             };
@@ -230,35 +230,35 @@ namespace HttpServerAdvanced
 
         static IHttpHandler::Factory makeFactory(Invocation handler, ParameterExtractor extractor)
         {
-            return [handler, extractor](HttpContext &context) -> std::unique_ptr<IHttpHandler>
+            return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
             {
                 auto params = extractor(context);
-                return std::make_unique<RawBodyHandler>(handler, [params](HttpContext &c)
+                return std::make_unique<RawBodyHandler>(handler, [params](HttpRequest &c)
                                                         { return params; });
             };
         }
 
         static Invocation curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpContext &context, std::vector<String> &params, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)
+            return [interceptor, handler](HttpRequest &context, std::vector<String> &params, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)
             {
-                return interceptor(context, [handler, &params, &recievedLength, &contentLength, &chunk, &chunkLength](HttpContext &context)
+                return interceptor(context, [handler, &params, recievedLength, contentLength, chunk, chunkLength](HttpRequest &context)
                                    { return handler(context, params, recievedLength, contentLength, chunk, chunkLength); });
             };
         }
 
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpContext &context, std::vector<String> &params, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)
+            return [interceptor, handler](HttpRequest &context, std::vector<String> &params, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)
             {
-                return interceptor(context, [handler, &params, &recievedLength, &contentLength, &chunk, &chunkLength](HttpContext &context)
+                return interceptor(context, [handler, &params, &recievedLength, &contentLength, &chunk, &chunkLength](HttpRequest &context)
                                    { return handler(context, params, recievedLength, contentLength, chunk, chunkLength); });
             };
         }
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
         {
-            return [filter, handler](HttpContext &context, std::vector<String> &params, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)
+            return [filter, handler](HttpRequest &context, std::vector<String> &params, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength)
             {
                 auto response = handler(context, params, recievedLength, contentLength, chunk, chunkLength);
                 return filter(std::move(response));

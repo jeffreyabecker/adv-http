@@ -4,7 +4,7 @@
 #include "./CoreServices.h"
 #include <FS.h>
 #include "./HttpContentTypes.h"
-#include "./HttpHandlerFactory.h"
+#include "./HandlerProviderRegistry.h"
 #include "./StaticFileHandler.h"
 #include "./DefaultFileLocator.h"
 #include "./FileLocator.h"

@@ -5,7 +5,6 @@
 #include "./FileLocator.h"
 #include <functional>
 #include "./HttpRequest.h"
-#include "./HttpContext.h"
 
 namespace HttpServerAdvanced
 {
@@ -29,7 +28,7 @@ namespace HttpServerAdvanced
 
         static RequestPathMapper createPathMapper(const String &root);
 
-        virtual String getLocalPath(const HttpRequest &request);
+        virtual String getLocalPath(const HttpRequest &context);
 
     public:
         DefaultFileLocator(FS &fs);
@@ -43,7 +42,7 @@ namespace HttpServerAdvanced
 
         virtual void setFilesystemContentRoot(const String &root);
 
-        virtual File getFile(HttpContext &context) override;
+        virtual File getFile(HttpRequest &context) override;
 
         virtual bool canHandle(const String& path) override;
     };

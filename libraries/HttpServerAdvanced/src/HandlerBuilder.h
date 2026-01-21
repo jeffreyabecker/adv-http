@@ -23,7 +23,7 @@ namespace HttpServerAdvanced
             }
             return THandler::makeFactory(invocation, extractor_);
         }
-        static std::function<std::vector<String>> EmptyParameters(HttpContext &context)
+        static std::function<std::vector<String>> EmptyParameters(HttpRequest &context)
         {
             return {};
         }
@@ -90,7 +90,7 @@ namespace HttpServerAdvanced
         HandlerBuilder &filter(IHttpHandler::Predicate predicate)
         {
             auto originalPredicate = predicate_;
-            predicate_ = [originalPredicate, predicate](HttpContext &context)
+            predicate_ = [originalPredicate, predicate](HttpRequest &context)
             {
                 return predicate(context) && originalPredicate(context);
             };

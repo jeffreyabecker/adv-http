@@ -9,11 +9,10 @@
 namespace HttpServerAdvanced
 {
 
-
-    class SecureHttpServer : public HttpServer<BearSSL::WiFiServerSecure, BearSSL::WiFiClientSecure, 443>
+    class SecureHttpServer : public HttpServer<BearSSL::WiFiServerSecure, 443>
     {
     public:
-        SecureHttpServer(uint16_t port = 443, const IPAddress &ip = IPAddress(IPADDR_ANY)) : HttpServer<BearSSL::WiFiServerSecure, BearSSL::WiFiClientSecure, 443>(port, ip)
+        SecureHttpServer(uint16_t port = 443, const IPAddress &ip = IPAddress(IPADDR_ANY)) : HttpServer<BearSSL::WiFiServerSecure, 443>(port, ip)
         {
         }
         ~SecureHttpServer() override;
@@ -48,7 +47,7 @@ namespace HttpServerAdvanced
                 assert(false && "SecureHttpServer: Unsupported key type");
             } });
 
-            HttpServer<BearSSL::WiFiServerSecure, BearSSL::WiFiClientSecure, 443>::begin();
+            HttpServer<BearSSL::WiFiServerSecure, 443>::begin();
         }
     };
 }

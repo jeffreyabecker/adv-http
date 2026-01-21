@@ -6,11 +6,11 @@
 #include "./HandlerMatcher.h"
 namespace HttpServerAdvanced
 {
-    class HttpHandlerFactory;
+    class HandlerProviderRegistry;
     class IHttpResponse;
     
     // Forward declare for trait checking
-    using ParameterExtractor = std::function<std::vector<String>(class HttpContext &context)>;
+    using ParameterExtractor = std::function<std::vector<String>(class HttpRequest &context)>;
 
     namespace HandlerRestrictions
     {

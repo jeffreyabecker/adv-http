@@ -86,6 +86,8 @@ namespace HttpServerAdvanced
 
     std::unique_ptr<HttpResponseBodyStream> HttpResponse::getBody() 
     {
+        // Extract the body stream for use in response writing.
+        // The body is moved only once to the HttpPipelineResponseStream.
         return std::move(body_);
     }
 

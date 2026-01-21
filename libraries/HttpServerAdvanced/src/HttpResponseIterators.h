@@ -49,7 +49,7 @@ namespace HttpServerAdvanced
     {
       if (body_size >= 0)
       {
-        headers.set(HttpHeader::ContentLength, String(static_cast<uint16_t>(body_size)));
+        headers.set(HttpHeader::ContentLength, String(static_cast<size_t>(body_size)));
       }
       else
       {

@@ -5,7 +5,7 @@
 namespace HttpServerAdvanced
 {
     // Forward declaration
-    class HttpContext;
+    class HttpRequest;
 
     class BufferingHttpHandlerBase : public IHttpHandler
     {
@@ -16,9 +16,9 @@ namespace HttpServerAdvanced
     public:
         virtual ~BufferingHttpHandlerBase() = default;
 
-        virtual HandlerResult handleBody(HttpContext &context, std::vector<uint8_t> &&body) = 0;
-        HandlerResult handleStep(HttpContext &context) override;
-        void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length) override;
+        virtual HandlerResult handleBody(HttpRequest &context, std::vector<uint8_t> &&body) = 0;
+        HandlerResult handleStep(HttpRequest &context) override;
+        void handleBodyChunk(HttpRequest &context, const uint8_t *at, std::size_t length) override;
     };
 
 }

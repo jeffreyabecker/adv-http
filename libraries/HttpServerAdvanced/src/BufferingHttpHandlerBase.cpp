@@ -1,13 +1,13 @@
 #include "./BufferingHttpHandlerBase.h"
-#include "./HttpContext.h"
+#include "./HttpRequest.h"
 #include "./HttpHeader.h"
-#include "./HttpContextPhase.h"
+#include "./HttpRequestPhase.h"
 #include <optional>
 
 namespace HttpServerAdvanced {
 
-IHttpHandler::HandlerResult BufferingHttpHandlerBase::handleStep(HttpContext &context) {
-    if (context.completedPhases() < HttpContextPhase::CompletedReadingMessage) {
+IHttpHandler::HandlerResult BufferingHttpHandlerBase::handleStep(HttpRequest &context) {
+    if (context.completedPhases() < HttpRequestPhase::CompletedReadingMessage) {
         return nullptr;
     }
 
@@ -18,7 +18,7 @@ IHttpHandler::HandlerResult BufferingHttpHandlerBase::handleStep(HttpContext &co
     return handleBody(context, std::move(bodyBuffer_));
 }
 
-void BufferingHttpHandlerBase::handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length) {
+void BufferingHttpHandlerBase::handleBodyChunk(HttpRequest &context, const uint8_t *at, std::size_t length) {
     if (contentLength_ == 0) {
         std::optional<HttpHeader> contentLengthHeader = context.request().headers().find("Content-Length");
         if (contentLengthHeader.has_value()) {
