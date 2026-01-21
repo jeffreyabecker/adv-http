@@ -4,13 +4,14 @@
 #include <vector>
 
 #include "./IHttpHandler.h"
-#include "./HttpContext.h"
 #include "./HttpResponse.h"
 #include "./HttpStatus.h"
 #include "./HttpHeader.h"
 
 namespace HttpServerAdvanced
 {
+    // Forward declaration
+    class HttpContext;
     class HttpHandlerFactory
     {
     public:

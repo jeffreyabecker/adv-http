@@ -16,6 +16,7 @@
 
 namespace HttpServerAdvanced
 {
+    class HttpServerBase;
     class HttpPipeline
     {
     private:
@@ -51,8 +52,6 @@ namespace HttpServerAdvanced
             Body,
             MessageComplete
         };
-
-        
 
         // Internal event handler for HttpRequestParser
 
@@ -212,8 +211,8 @@ namespace HttpServerAdvanced
         }
 
     public:
-        HttpPipeline(std::unique_ptr<HttpServerAdvanced::IClient> client, HttpServerBase &server, 
-            const HttpTimeouts &timeouts, PipelineHandlerPtr parserEventHandler)
+        HttpPipeline(std::unique_ptr<HttpServerAdvanced::IClient> client, HttpServerBase &server,
+                     const HttpTimeouts &timeouts, PipelineHandlerPtr parserEventHandler)
             : client_(std::move(client)),
               server_(server),
               timeouts_(timeouts),
@@ -230,13 +229,11 @@ namespace HttpServerAdvanced
                 client_->remotePort(),
                 client_->localIP(),
                 client_->localPort());
-            handler_->setResponseStreamCallback([this](std::unique_ptr<Stream> stream) {
-                this->setResponseStream(std::move(stream));
-            });
+            handler_->setResponseStreamCallback([this](std::unique_ptr<Stream> stream)
+                                                { this->setResponseStream(std::move(stream)); });
         }
 
         ~HttpPipeline() = default;
-
 
         bool isFinished() const
         {
@@ -247,7 +244,6 @@ namespace HttpServerAdvanced
         {
             return requestParser_.shouldKeepAlive();
         }
-
 
         void setResponseStream(std::unique_ptr<Stream> responseStream)
         {
@@ -302,8 +298,6 @@ namespace HttpServerAdvanced
         {
             return *client_;
         }
-
-
     };
 
 } // namespace HttpServerAdvanced

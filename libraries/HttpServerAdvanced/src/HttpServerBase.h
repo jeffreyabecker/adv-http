@@ -18,8 +18,8 @@ namespace HttpServerAdvanced
     class HttpServerBase
     {
     public:
-        HttpServerBase(std::function<PipelineHandlerPtr(HttpServerBase &)> pipelineHandlerFactory)
-            : pipelineHandlerFactory_(pipelineHandlerFactory),
+        HttpServerBase()
+            : pipelineHandlerFactory_(nullptr),
               currentPipeline_(nullptr)
         {
         }
@@ -34,12 +34,12 @@ namespace HttpServerAdvanced
             {
                 if (!currentPipeline_)
                 {
-                    std::unique_ptr<Stream> accepted = accept();
+                    std::unique_ptr<IClient> accepted = accept();
                     if (accepted)
                     {
                         PipelineHandlerPtr handler = pipelineHandlerFactory_(*this);
                         currentPipeline_ = std::make_unique<HttpPipeline>(
-                            std::make_unique<IClient>(std::move(accepted)),
+                            std::move(accepted),
                             *this,
                             timeouts_,
                             std::move(handler));
@@ -133,7 +133,7 @@ namespace HttpServerAdvanced
         HttpTimeouts timeouts_;
         mutable std::map<String, std::any> items_;
 
-        virtual std::unique_ptr<Stream> accept() = 0;
+        virtual std::unique_ptr<IClient> accept() = 0;
     };
 
 } // namespace HttpServerAdvanced

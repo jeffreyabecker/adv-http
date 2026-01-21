@@ -4,21 +4,11 @@
 #include "./HttpServerBase.h"
 #include "./HttpHandlerFactory.h"
 #include "./HttpResponse.h"
-#include "./HttpHandler.h"
+#include "./HttpContextPhase.h"
+#include "./IHttpHandler.h"
 
 namespace HttpServerAdvanced
 {
-    using HttpContextPhaseFlags = uint8_t;
-    namespace HttpContextPhase
-    {
-        constexpr uint8_t CompletedStartingLine = 1 << 0;
-        constexpr uint8_t CompletedReadingHeaders = 1 << 1;
-        constexpr uint8_t BeginReadingBody = 1 << 2;
-        constexpr uint8_t CompletedReadingMessage = 1 << 3;
-        constexpr uint8_t WritingResponseStarted = 1 << 4;
-        constexpr uint8_t CompletedWritingResponse = 1 << 5;
-    }
-
     class HttpContext : private HttpServerAdvanced::IPipelineHandler
     {
 

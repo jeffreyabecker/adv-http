@@ -4,6 +4,7 @@
 #include "./HandlerTypes.h"
 #include "./HttpHandler.h"
 #include "./KeyValuePairView.h"
+
 namespace HttpServerAdvanced
 {
 
@@ -16,12 +17,12 @@ namespace HttpServerAdvanced
     public:
         NoBodyHandler(Request::Invocation handler, ParameterExtractor extractor)
             : HttpHandler([handler, extractor](HttpContext &context) -> IHttpHandler::HandlerResult
-                                {
+                          {
                                     auto params = extractor(context);
                                     return handler(context, std::move(params)); }) {}
         NoBodyHandler(Request::InvocationWithoutParams handler, ParameterExtractor extractor)
             : HttpHandler([handler](HttpContext &context) -> IHttpHandler::HandlerResult
-                                { return handler(context); }) {}
+                          { return handler(context); }) {}
     };
 
     class FormBodyHandler : public BufferingHttpHandlerBase
@@ -29,6 +30,7 @@ namespace HttpServerAdvanced
     private:
         Form::Invocation handler_;
         ParameterExtractor extractor_;
+
     public:
         FormBodyHandler(Form::Invocation handler, ParameterExtractor extractor)
             : handler_(handler), extractor_(extractor) {}
@@ -50,29 +52,36 @@ namespace HttpServerAdvanced
         RawBody::Invocation handler_;
         ParameterExtractor extractor_;
         HandlerResult response_;
-        InvocationParams params_;
+        std::vector<String> params_;
         size_t receivedLength_{0};
         size_t contentLength_{0};
+
     public:
         RawBodyHandler(RawBody::Invocation handler, ParameterExtractor extractor)
             : handler_(handler), extractor_(extractor) {}
         RawBodyHandler(RawBody::InvocationWithoutParams handler, ParameterExtractor extractor)
             : handler_(RawBody::curryWithoutParams(handler)), extractor_(extractor) {}
 
-        virtual HandlerResult handleStep(HttpContext &context){
-            if(!response_ && context.completedPhases() >= HttpContextPhase::CompletedReadingMessage){
+        virtual HandlerResult handleStep(HttpContext &context)
+        {
+            if (!response_ && context.completedPhases() >= HttpContextPhase::CompletedReadingMessage)
+            {
                 handleBodyChunk(context, nullptr, 0);
             }
-            if(response_){
+            if (response_)
+            {
                 return std::move(response_);
             }
             return nullptr;
         }
-        virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length){
-            if(response_){
+        virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length)
+        {
+            if (response_)
+            {
                 return;
             }
-            if(receivedLength_ == 0){
+            if (receivedLength_ == 0)
+            {
                 params_ = extractor_(context);
                 std::optional<HttpHeader> contentLengthHeader = context.request().headers().find(HttpHeader::ContentLength);
                 contentLength_ = contentLengthHeader.has_value() ? contentLengthHeader->value().toInt() : 0;
@@ -80,7 +89,6 @@ namespace HttpServerAdvanced
             response_ = handler_(context, params_, receivedLength_, contentLength_, at, length);
             receivedLength_ += length;
         }
-
     };
 
 } // namespace HttpServerAdvanced

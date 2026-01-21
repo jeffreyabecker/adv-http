@@ -5,11 +5,14 @@
 
 
 #include "./HttpMethod.h"
-#include "./HttpContext.h"
+#include "./HttpContextPhase.h"
 #include "./IHttpHandler.h"
+#include "./HttpContext.h"
 
 namespace HttpServerAdvanced
 {
+    // Forward declaration
+    class HttpContext;
 
     class HttpHandler : public IHttpHandler
     {

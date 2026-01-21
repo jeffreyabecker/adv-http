@@ -1,5 +1,5 @@
 #pragma once
-
+#include "./Defines.h"
 #include <cstdint>
 namespace HttpServerAdvanced
 {
