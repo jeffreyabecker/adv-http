@@ -35,12 +35,6 @@ namespace HttpServerAdvanced
         std::unique_ptr<IClient> accept() override
         {
             return server_.accept();
-            // TClient client = server_.accept();
-            // if (client)
-            // {
-            //     return std::make_unique<ClientWrapper>(std::make_unique<TClient>(std::move(client)));
-            // }
-            // return nullptr;
         }
         ServerImpl<TServer> server_;
     };

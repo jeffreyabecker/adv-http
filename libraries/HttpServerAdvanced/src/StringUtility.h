@@ -159,6 +159,31 @@ namespace HttpServerAdvanced
         std::ptrdiff_t lastIndexOf(const String& haystack, const String& needle, size_t fromIndex = 0, bool ignoreCase = false){
             return lastIndexOf(haystack.c_str(), haystack.length(), needle.c_str(), needle.length(), fromIndex, ignoreCase);
         }
+
+        String replace(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, const char* replacement, size_t replacementLength, bool ignoreCase){
+
+            if (!haystack || !needle || !replacement)
+                return String();
+            if (haystackLength == 0 || needleLength == 0)
+                return String(haystack, haystackLength);
+
+            String result;
+            size_t pos = 0;
+            while (pos < haystackLength)
+            {
+                std::ptrdiff_t index = indexOf(haystack, haystackLength, needle, needleLength, pos, ignoreCase);
+                if (index == -1)
+                {
+                    result += String(haystack + pos, haystackLength - pos);
+                    break;
+                }
+                result += String(haystack + pos, index - pos);
+                result += String(replacement, replacementLength);
+                pos = index + needleLength;
+            }
+            return result;
+
+        }
     }
 
 }

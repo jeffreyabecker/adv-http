@@ -1,5 +1,6 @@
 #include "./ChunkedHttpResponseBodyStream.h"
 #include <cstdio>
+#include <cstdint>
 
 namespace HttpServerAdvanced {
 
@@ -67,9 +68,21 @@ ChunkedHttpResponseBodyStream::ChunkedHttpResponseBodyStream(std::unique_ptr<Str
 
 int ChunkedHttpResponseBodyStream::available() {
     if (done_) {
-        return 0;
+        return 0;  // ✅ End of stream
     }
-    return -1;
+    if (length_ > 0) {
+        return static_cast<int>(length_);  // ✅ Data available in buffer
+    }
+    // Buffer empty, try to fill it
+    bufferNextChunk();
+    if (length_ > 0) {
+        return static_cast<int>(length_);  // ✅ Data available after buffering
+    }
+    if (haveBufferedTerminalChunk_) {
+        done_ = true;
+        return 0;  // ✅ Terminal chunk buffered, end of stream
+    }
+    return -1;  // ✅ Buffer empty, more data expected from innerStream_
 }
 
 int ChunkedHttpResponseBodyStream::read() {

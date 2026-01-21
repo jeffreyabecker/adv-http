@@ -215,8 +215,15 @@ namespace HttpServerAdvanced
          *
          * @param client A unique pointer to the client instance to wrap.
          */
-        explicit ClientImpl(std::unique_ptr<T> client) : connection_(std::move(client)) {}
+        explicit ClientImpl(T client) : connection_(client) {}
 
+        ~ClientImpl() override
+        {
+            if (connection_ && connection_.connected())
+            {
+                connection_.stop();
+            }
+        }
         /**
          * @brief Writes data to the client.
          *
@@ -236,7 +243,7 @@ namespace HttpServerAdvanced
          */
         int available() override
         {
-            return connection_->available();
+            return connection_.available();
         }
 
         /**
@@ -248,7 +255,7 @@ namespace HttpServerAdvanced
          */
         int read(uint8_t *rbuf, std::size_t size) override
         {
-            return connection_->read(rbuf, size);
+            return connection_.read(rbuf, size);
         }
 
         /**
@@ -258,7 +265,7 @@ namespace HttpServerAdvanced
          */
         void flush() override
         {
-            connection_->flush();
+            connection_.flush();
         }
 
         /**
@@ -268,7 +275,7 @@ namespace HttpServerAdvanced
          */
         void stop() override
         {
-            connection_->stop();
+            connection_.stop();
         }
 
         /**
@@ -278,7 +285,7 @@ namespace HttpServerAdvanced
          */
         ConnectionStatus status() override
         {
-            return static_cast<ConnectionStatus>(connection_->status());
+            return static_cast<ConnectionStatus>(connection_.status());
         }
 
         /**
@@ -288,7 +295,7 @@ namespace HttpServerAdvanced
          */
         uint8_t connected() override
         {
-            return connection_->connected();
+            return connection_.connected();
         }
 
         /**
@@ -298,7 +305,7 @@ namespace HttpServerAdvanced
          */
         IPAddress remoteIP() override
         {
-            return connection_->remoteIP();
+            return connection_.remoteIP();
         }
 
         /**
@@ -308,7 +315,7 @@ namespace HttpServerAdvanced
          */
         uint16_t remotePort() override
         {
-            return connection_->remotePort();
+            return connection_.remotePort();
         }
 
         /**
@@ -318,7 +325,7 @@ namespace HttpServerAdvanced
          */
         IPAddress localIP() override
         {
-            return connection_->localIP();
+            return connection_.localIP();
         }
 
         /**
@@ -328,7 +335,7 @@ namespace HttpServerAdvanced
          */
         uint16_t localPort() override
         {
-            return connection_->localPort();
+            return connection_.localPort();
         }
 
         /**
@@ -342,20 +349,20 @@ namespace HttpServerAdvanced
         {
             if (callback)
             {
-                callback(connection_.get());
+                callback(&connection_);
             }
         }
         virtual void setTimeout(uint32_t timeoutMs) override
         {
-            connection_->setTimeout(timeoutMs);
+            connection_.setTimeout(timeoutMs);
         }
         virtual uint32_t getTimeout() const override
         {
-            return connection_->getTimeout();
+            return connection_.getTimeout();
         }
 
     private:
-        std::unique_ptr<T> connection_;
+        T connection_;
     };
 
     /**
@@ -401,7 +408,7 @@ namespace HttpServerAdvanced
             if (client)
             {
                 using ClientType = std::remove_reference_t<decltype(client)>;
-                return std::make_unique<ClientImpl<ClientType>>(std::make_unique<ClientType>(std::move(client)));
+                return std::make_unique<ClientImpl<ClientType>>(client);
             }
             return nullptr;
         }
