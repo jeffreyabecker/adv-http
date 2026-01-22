@@ -8,15 +8,15 @@
 #include "./HttpHeader.h"
 #include "./Buffer.h"
 #include "./Defines.h"
-
+#include "./HandlerRestrictions.h"
 namespace HttpServerAdvanced
 {
     enum class MultipartStatus
     {
-        FirstChunk,       // First chunk of a multipart form field
-        SubsequentChunk,  // Middle chunks of a multipart form field
-        FinalChunk,       // Last chunk of a multipart form field (boundary found)
-        Completed         // All multipart data processed
+        FirstChunk,      // First chunk of a multipart form field
+        SubsequentChunk, // Middle chunks of a multipart form field
+        FinalChunk,      // Last chunk of a multipart form field (boundary found)
+        Completed        // All multipart data processed
     };
 
     class MultipartFormDataBuffer : public Buffer
@@ -51,7 +51,7 @@ namespace HttpServerAdvanced
         uint8_t buffer_[MULTIPART_FORM_DATA_BUFFER_SIZE];
         size_t bufferLength_ = 0;
         bool parsingHeaders_ = true;
-        bool partStarted_ = false;  // Track if we've emitted first chunk of current part
+        bool partStarted_ = false; // Track if we've emitted first chunk of current part
         MultipartStatus status_ = MultipartStatus::FirstChunk;
         std::vector<uint8_t> partData_;
 
@@ -77,9 +77,9 @@ namespace HttpServerAdvanced
             const char *headerEnd = strstr((const char *)buffer_, "\r\n\r\n");
             if (!headerEnd)
                 return; // Not enough data yet
-            
+
             String headerStr((const char *)buffer_, headerEnd - (const char *)buffer_);
-            
+
             // Parse Content-Disposition header
             int dispPos = headerStr.indexOf("Content-Disposition:");
             if (dispPos >= 0)
@@ -94,7 +94,7 @@ namespace HttpServerAdvanced
                         partName_ = headerStr.substring(nameStart, nameEnd);
                     }
                 }
-                
+
                 int filenameStart = headerStr.indexOf("filename=\"", dispPos);
                 if (filenameStart >= 0)
                 {
@@ -106,7 +106,7 @@ namespace HttpServerAdvanced
                     }
                 }
             }
-            
+
             // Parse Content-Type header
             int typePos = headerStr.indexOf("Content-Type:");
             if (typePos >= 0)
@@ -123,7 +123,7 @@ namespace HttpServerAdvanced
             {
                 contentType_ = ""; // Empty if not specified
             }
-            
+
             parsingHeaders_ = false;
             size_t headerSize = (headerEnd - (const char *)buffer_) + 4; // +4 for \r\n\r\n
             memmove(buffer_, buffer_ + headerSize, bufferLength_ - headerSize);
@@ -137,7 +137,7 @@ namespace HttpServerAdvanced
             size_t boundaryLen = boundary_.length();
             for (size_t i = 0; i + boundaryLen + 2 <= len; ++i)
             {
-                if (start[i] == '\r' && start[i+1] == '\n' && 
+                if (start[i] == '\r' && start[i + 1] == '\n' &&
                     memcmp(start + i + 2, boundaryStr, boundaryLen) == 0)
                 {
                     return start + i;
@@ -167,7 +167,7 @@ namespace HttpServerAdvanced
             {
                 return;
             }
-            
+
             // Extract boundary on first chunk
             if (boundary_.length() == 0)
             {
@@ -183,7 +183,7 @@ namespace HttpServerAdvanced
                     return;
                 }
             }
-            
+
             // Append data to buffer
             if (at && length > 0)
             {
@@ -194,13 +194,13 @@ namespace HttpServerAdvanced
                 memcpy(buffer_ + bufferLength_, at, length);
                 bufferLength_ += length;
             }
-            
+
             // Parse part headers if needed
             if (parsingHeaders_ && bufferLength_ > 4)
             {
                 parsePartHeaders();
             }
-            
+
             // Look for boundary
             if (!parsingHeaders_)
             {
@@ -213,16 +213,16 @@ namespace HttpServerAdvanced
                     {
                         partData_.insert(partData_.end(), buffer_, buffer_ + dataLen);
                     }
-                    
+
                     // Invoke handler with accumulated part data marked as final
                     if (partName_.length() > 0)
                     {
                         MultipartStatus finalStatus = partStarted_ ? MultipartStatus::FinalChunk : MultipartStatus::FirstChunk;
-                        response_ = handler_(context, params_, 
-                            MultipartFormDataBuffer(partData_.data(), partData_.size(), 
-                                                   filename_, contentType_, partName_, finalStatus));
+                        response_ = handler_(context, params_,
+                                             MultipartFormDataBuffer(partData_.data(), partData_.size(),
+                                                                     filename_, contentType_, partName_, finalStatus));
                     }
-                    
+
                     // Reset for next part
                     partStarted_ = false;
                     partData_.clear();
@@ -230,7 +230,7 @@ namespace HttpServerAdvanced
                     contentType_ = "";
                     partName_ = "";
                     parsingHeaders_ = true;
-                    
+
                     // Move to next part
                     size_t boundaryLen = boundary_.length() + 4; // +4 for \r\n and initial \r\n
                     if (boundaryPos - buffer_ + boundaryLen < bufferLength_)
@@ -248,27 +248,58 @@ namespace HttpServerAdvanced
                     // Keep boundary-sized tail; flush excess as part data via handler
                     // This enables streaming of large files
                     size_t flushLen = bufferLength_ - (boundary_.length() + 4);
-                    
+
                     if (partName_.length() > 0 && flushLen > 0)
                     {
                         partData_.insert(partData_.end(), buffer_, buffer_ + flushLen);
-                        
+
                         // Invoke handler with accumulated data to stream it
                         MultipartStatus chunkStatus = partStarted_ ? MultipartStatus::SubsequentChunk : MultipartStatus::FirstChunk;
-                        response_ = handler_(context, params_, 
-                            MultipartFormDataBuffer(partData_.data(), partData_.size(), 
-                                                   filename_, contentType_, partName_, chunkStatus));
-                        
+                        response_ = handler_(context, params_,
+                                             MultipartFormDataBuffer(partData_.data(), partData_.size(),
+                                                                     filename_, contentType_, partName_, chunkStatus));
+
                         if (!response_)
                         {
-                            partStarted_ = true;  // Mark that we've emitted at least one chunk
+                            partStarted_ = true; // Mark that we've emitted at least one chunk
                             partData_.clear();
                         }
                     }
-                    
+
                     memmove(buffer_, buffer_ + flushLen, boundary_.length() + 4);
                     bufferLength_ = boundary_.length() + 4;
                 }
+            }
+
+            // If this is end-of-stream (no more data), flush any pending part and send Completed event
+            if ((!at || length == 0))
+            {
+                // If there's a pending part with data, send it as final chunk first
+                if (partName_.length() > 0 && !partData_.empty() && !response_)
+                {
+                    MultipartStatus finalStatus = partStarted_ ? MultipartStatus::FinalChunk : MultipartStatus::FirstChunk;
+                    response_ = handler_(context, params_,
+                                         MultipartFormDataBuffer(partData_.data(), partData_.size(),
+                                                                 filename_, contentType_, partName_, finalStatus));
+                    if (response_)
+                    {
+                        return;
+                    }
+                }
+
+                // Send Completed event with everything empty
+                if (!response_)
+                {
+                    filename_ = "";
+                    contentType_ = "";
+                    partName_ = "";
+                    partData_.clear();
+                    bufferLength_ = 0;
+                    parsingHeaders_ = true;
+                    partStarted_ = false;
+                    response_ = handler_(context, params_, MultipartFormDataBuffer(nullptr, 0, filename_, contentType_, partName_, MultipartStatus::Completed));
+                }
+                return;
             }
         }
     };

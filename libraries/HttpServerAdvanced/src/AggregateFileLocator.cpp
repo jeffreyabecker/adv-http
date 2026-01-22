@@ -29,7 +29,7 @@ namespace HttpServerAdvanced
     {
         for (auto &locator : locators_)
         {
-            if (locator->canHandle(context.request().url()))
+            if (locator->canHandle(context.url()))
             {
                 File file = locator->getFile(context);
                 if (file)

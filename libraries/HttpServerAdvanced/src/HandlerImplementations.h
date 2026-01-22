@@ -64,7 +64,7 @@ namespace HttpServerAdvanced
             if (receivedLength_ == 0)
             {
                 params_ = extractor_(context);
-                std::optional<HttpHeader> contentLengthHeader = context.request().headers().find(HttpHeader::ContentLength);
+                std::optional<HttpHeader> contentLengthHeader = context.headers().find(HttpHeader::ContentLength);
                 contentLength_ = contentLengthHeader.has_value() ? contentLengthHeader->value().toInt() : 0;
             }
             response_ = handler_(context, params_, receivedLength_, contentLength_, at, length);

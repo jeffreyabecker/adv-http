@@ -44,25 +44,25 @@ namespace HttpServerAdvanced
   // ========== Implementations ==========
 
   // HttpResponseBodyStream constructor
-  HttpResponseBodyStream::HttpResponseBodyStream(std::unique_ptr<Stream> innerStream)
+  inline HttpResponseBodyStream::HttpResponseBodyStream(std::unique_ptr<Stream> innerStream)
       : innerStream_(std::move(innerStream)) {}
 
-  int HttpResponseBodyStream::available()
+  inline int HttpResponseBodyStream::available()
   {
     return innerStream_->available();
   }
 
-  int HttpResponseBodyStream::read()
+  inline int HttpResponseBodyStream::read()
   {
     return innerStream_->read();
   }
 
-  int HttpResponseBodyStream::peek()
+  inline int HttpResponseBodyStream::peek()
   {
     return innerStream_->peek();
   }
 
-  size_t HttpResponseBodyStream::write(uint8_t b)
+  inline size_t HttpResponseBodyStream::write(uint8_t b)
   {
     return 0;
   }

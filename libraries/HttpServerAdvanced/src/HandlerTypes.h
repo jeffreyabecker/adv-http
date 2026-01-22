@@ -255,7 +255,7 @@ namespace HttpServerAdvanced
                 baseUri.setAllowedContentTypes({"multipart/form-data"});
             }
         };
-#if __has_include(<ArduinoJson.h>)
+
     class Json
     {
     public:
@@ -314,21 +314,5 @@ namespace HttpServerAdvanced
             baseUri.setAllowedContentTypes({"application/json"});
         }
     };
-#else
-    // ArduinoJson not available: provide a minimal stub to keep the API surface stable.
-    class Json
-    {
-    public:
-        using JsonDocument = std::any;
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, JsonDocument &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, JsonDocument &&)>;
 
-        static Invocation curryWithoutParams(InvocationWithoutParams) { return {}; }
-        static IHttpHandler::Factory makeFactory(Invocation, ParameterExtractor) { return [](HttpRequest &) { return std::unique_ptr<IHttpHandler>(nullptr); }; }
-        static Invocation curryInterceptor(IHttpHandler::InterceptorCallback, Invocation) { return {}; }
-        static Invocation applyFilter(IHttpHandler::InterceptorCallback, Invocation) { return {}; }
-        static Invocation applyResponseFilter(IHttpResponse::ResponseFilter, Invocation) { return {}; }
-        static void restrict(HandlerMatcher &) {}
-    };
-#endif
 } // namespace HttpServerAdvanced

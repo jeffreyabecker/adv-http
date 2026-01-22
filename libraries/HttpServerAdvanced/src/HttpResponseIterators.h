@@ -11,7 +11,7 @@ namespace HttpServerAdvanced
 {
 
   // Helper functions
-  String getHeaderDateValue()
+  inline String getHeaderDateValue()
   {
     // This assumes the system time is correctly set using the NTP system
     struct tm tm_time;
@@ -25,7 +25,7 @@ namespace HttpServerAdvanced
     return String(buf);
   }
 
-  void EnsureRequiredHeaders(HttpHeadersCollection &headers, ssize_t body_size)
+  inline void EnsureRequiredHeaders(HttpHeadersCollection &headers, ssize_t body_size)
   {
     // Date header (RFC 7231 section 7.1.1.2 - MUST be sent by origin servers)
     if (!headers.exists(HttpHeader::Date))
@@ -203,7 +203,7 @@ namespace HttpServerAdvanced
     }
   };
 
-  std::unique_ptr<Stream> CreateResponseStream(std::unique_ptr<IHttpResponse> response)
+  inline std::unique_ptr<Stream> CreateResponseStream(std::unique_ptr<IHttpResponse> response)
   {
     return std::make_unique<HttpPipelineResponseStream>(std::move(response));
   }

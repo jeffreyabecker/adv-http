@@ -45,3 +45,6 @@ using HttpServerAdvanced::StaticFiles;;
 using HttpServerAdvanced::StaticFilesBuilder;
 using Response = HttpServerAdvanced::IHttpHandler::HandlerResult;
 using Uri = HttpServerAdvanced::HandlerMatcher;
+using HttpServerAdvanced::RawBodyBuffer;
+using HttpServerAdvanced::MultipartFormDataBuffer;
+using HttpServerAdvanced::MultipartStatus;

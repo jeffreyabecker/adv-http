@@ -47,7 +47,7 @@ namespace HttpServerAdvanced
     {
         if (position == AddAt::Beginning)
         {
-            factories_.insert(factories_.begin(), handlerFactory);
+            factories_.insert(factories_.begin(), std::ref(handlerFactory));
             return;
         }
         else if (position != AddAt::End)
@@ -57,16 +57,16 @@ namespace HttpServerAdvanced
             {
                 pos = factories_.size();
             }
-            factories_.insert(factories_.begin() + pos, handlerFactory);
+            factories_.insert(factories_.begin() + pos, std::ref(handlerFactory));
             return;
         }
         else
-            factories_.emplace_back(handlerFactory);
+            factories_.emplace_back(std::ref(handlerFactory));
     }
 
     void HandlerProviderRegistry::add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, AddPosition position)
     {
-        auto item = std::make_unique<ClosuerHandlerProvider>(handler, predicate);
+        auto item = std::make_unique<HandlerProvider>(handler, predicate);
         auto &ref = *item;
         ownedFactoryItems_.push_back(std::move(item));
         add(ref, position);

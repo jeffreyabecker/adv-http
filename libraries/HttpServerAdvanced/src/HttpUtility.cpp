@@ -369,7 +369,7 @@ namespace HttpServerAdvanced
             int eqPos = directive.indexOf('=');
             if (eqPos == -1)
             {
-                directives.emplace_back(directive, std::nullopt);
+                directives.emplace_back(directive.trim().toString(), std::optional<String>());
             }
             else
             {

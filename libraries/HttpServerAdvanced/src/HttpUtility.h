@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include "./Base64Encoder.h"
+#include <optional>
 
 namespace HttpServerAdvanced
 {
