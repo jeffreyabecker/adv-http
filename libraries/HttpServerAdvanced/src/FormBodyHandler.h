@@ -6,7 +6,7 @@
 
 namespace HttpServerAdvanced
 {
-    class FormBodyHandler : public BufferingHttpHandlerBase
+    class FormBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_FORM_BODY_LENGTH>
     {
     private:
         std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, KeyValuePairView<String, String> &&)> handler_;
@@ -28,5 +28,7 @@ namespace HttpServerAdvanced
             return handler_(context, std::move(params), std::move(postData));
         }
     };
+
+
 
 } // namespace HttpServerAdvanced

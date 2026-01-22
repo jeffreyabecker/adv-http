@@ -25,26 +25,7 @@ namespace HttpServerAdvanced
                           { return handler(context); }) {}
     };
 
-    class FormBodyHandler : public BufferingHttpHandlerBase
-    {
-    private:
-        Form::Invocation handler_;
-        ParameterExtractor extractor_;
-
-    public:
-        FormBodyHandler(Form::Invocation handler, ParameterExtractor extractor)
-            : handler_(handler), extractor_(extractor) {}
-        FormBodyHandler(Form::InvocationWithoutParams handler, ParameterExtractor extractor)
-            : handler_(Form::curryWithoutParams(handler)), extractor_(extractor) {}
-
-        virtual IHttpHandler::HandlerResult handleBody(HttpRequest &context, std::vector<uint8_t> &&body) override
-        {
-            auto params = extractor_(context);
-
-            KeyValuePairView<String, String> postData = HttpUtility::ParseQueryString(reinterpret_cast<const char *>(body.data()), body.size());
-            return handler_(context, std::move(params), std::move(postData));
-        }
-    };
+    // FormBodyHandler is defined in `FormBodyHandler.h` (extracted to separate header)
 
     class RawBodyHandler : public IHttpHandler
     {

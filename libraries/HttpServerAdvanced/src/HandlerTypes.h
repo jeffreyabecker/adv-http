@@ -12,6 +12,7 @@
 #include "./MultipartFormDataHandler.h"
 #include "./RawBodyHandler.h"
 #include "./FormBodyHandler.h"
+#include "./JsonBodyHandler.h"
 namespace HttpServerAdvanced
 {
 
@@ -254,5 +255,62 @@ namespace HttpServerAdvanced
                 baseUri.setAllowedContentTypes({"multipart/form-data"});
             }
         };
+    class Json
+    {
+    public:
+        using PostBodyData = KeyValuePairView<String, String>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, PostBodyData &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, PostBodyData &&)>;
+
+        static Invocation curryWithoutParams(InvocationWithoutParams handler)
+        {
+            return [handler](HttpRequest &context, std::vector<String> &&, PostBodyData &&postData)
+            {
+                return handler(context, std::move(postData));
+            };
+        }
+
+        static IHttpHandler::Factory makeFactory(Invocation handler, ParameterExtractor extractor)
+        {
+            return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
+            {
+                auto params = extractor(context);
+                return std::make_unique<JsonBodyHandler>(handler, [params](HttpRequest &c)
+                                                         { return params; });
+            };
+        }
+
+        static Invocation curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
+        {
+            return [interceptor, handler](HttpRequest &context, std::vector<String> &&params, PostBodyData &&postData)
+            {
+                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpRequest &context) mutable
+                                   { return handler(context, std::move(params), std::move(postData)); });
+            };
+        }
+
+        static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
+        {
+            return [interceptor, handler](HttpRequest &context, std::vector<String> &&params, PostBodyData &&postData)
+            {
+                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpRequest &context) mutable
+                                   { return handler(context, std::move(params), std::move(postData)); });
+            };
+        }
+
+        static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
+        {
+            return [filter, handler](HttpRequest &context, std::vector<String> &&params, PostBodyData &&postData)
+            {
+                auto response = handler(context, std::move(params), std::move(postData));
+                return filter(std::move(response));
+            };
+        }
+
+        static void restrict(HandlerMatcher &baseUri)
+        {
+            baseUri.setAllowedContentTypes({"application/json"});
+        }
+    };
 
 } // namespace HttpServerAdvanced

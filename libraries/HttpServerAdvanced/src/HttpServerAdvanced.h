@@ -20,6 +20,12 @@ using HttpServerAdvanced::SecureHttpServer;
 using HttpServerAdvanced::SecureHttpServerConfig;
 using WebServerBuilder = HttpServerAdvanced::CoreServicesBuilder;
 using HttpServerAdvanced::Form;
+using HttpServerAdvanced::RawBody;
+using HttpServerAdvanced::Request;
+using HttpServerAdvanced::Json;
+using HttpServerAdvanced::Multipart;
+using Upload = HttpServerAdvanced::Multipart;
+
 using HttpServerAdvanced::HttpContentTypes;
 using HttpServerAdvanced::HttpRequest;
 using HttpServerAdvanced::HttpHandler;
@@ -28,8 +34,7 @@ using HttpServerAdvanced::HttpMethod;
 using HttpServerAdvanced::HttpResponse;
 using HttpServerAdvanced::HttpStatus;
 using HttpServerAdvanced::IHttpResponse;
-using HttpServerAdvanced::RawBody;
-using HttpServerAdvanced::Request;
+
 using PostBodyData = HttpServerAdvanced::KeyValuePairView<String, String>;
 using HttpServerAdvanced::BasicAuth;
 using HttpServerAdvanced::CrossOriginRequestSharing;
