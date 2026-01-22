@@ -190,6 +190,15 @@ namespace HttpServerAdvanced
       }
     }
 
+    // Accept initializer lists of C-style string pairs to avoid ambiguity when using braced pairs
+    HttpHeadersCollection(std::initializer_list<std::pair<const char *, const char *>> headers)
+    {
+      for (const auto &h : headers)
+      {
+        set(h.first, h.second);
+      }
+    }
+
     std::optional<HttpHeader> find(const String &name) const
     {
       auto it = std::find_if(begin(), end(), [&name](const HttpHeader &header)

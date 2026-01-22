@@ -1,9 +1,12 @@
 #pragma once
 #include <Arduino.h>
 #include "./Defines.h"
-#include "./HandlersBuilder.h"
+
 namespace HttpServerAdvanced
 {
+    // Forward declaration
+    class HandlersBuilder;
+
     template <typename THandler>
     class HandlerBuilder
     {
@@ -11,7 +14,7 @@ namespace HttpServerAdvanced
         HandlersBuilder *builder_ = nullptr;
         IHttpHandler::Predicate predicate_;
         typename THandler::Invocation invocationCallback_;
-        ParameterExtractor extractor_;
+        ExtractArgsFromRequest extractor_;
         IHttpResponse::ResponseFilter responseFilter_ = nullptr;
 
         IHttpHandler::Factory getFactory()
@@ -23,7 +26,7 @@ namespace HttpServerAdvanced
             }
             return THandler::makeFactory(invocation, extractor_);
         }
-        static std::function<std::vector<String>> EmptyParameters(HttpRequest &context)
+        static std::vector<String> EmptyParameters(HttpRequest &context)
         {
             return {};
         }
@@ -40,7 +43,7 @@ namespace HttpServerAdvanced
 
         HandlerBuilder(HandlersBuilder *builder, IHttpHandler::Predicate predicate,
                        typename THandler::Invocation invocationCallback,
-                       ParameterExtractor extractor)
+                       ExtractArgsFromRequest extractor)
             : builder_(builder),
               predicate_(predicate),
               invocationCallback_(invocationCallback),
@@ -116,5 +119,38 @@ namespace HttpServerAdvanced
             return *this;
         }
     };
+
+    // // Define HandlersBuilder template methods that return HandlerBuilder<THandler>
+    // // These are defined here to ensure HandlerBuilder is a complete type at the point of instantiation.
+
+    // template <typename THandler, typename>
+    // HandlerBuilder<THandler> HandlersBuilder::on(HandlerMatcher request, typename THandler::Invocation handler)
+    // {
+    //     THandler::restrict(request);
+    //     return HandlerBuilder<THandler>(this, request, handler);
+    // }
+
+    // template <typename THandler, typename>
+    // HandlerBuilder<THandler> HandlersBuilder::on(HandlerMatcher request, typename THandler::InvocationWithoutParams handler)
+    // {
+    //     THandler::restrict(request);
+    //     return HandlerBuilder<THandler>(this, request, handler);
+    // }
+
+    // template <typename THandler, typename>
+    // HandlerBuilder<THandler> HandlersBuilder::on(const char *path, typename THandler::Invocation handler)
+    // {
+    //     HandlerMatcher request(path);
+    //     THandler::restrict(request);
+    //     return HandlerBuilder<THandler>(this, request, handler);
+    // }
+
+    // template <typename THandler, typename>
+    // HandlerBuilder<THandler> HandlersBuilder::on(const char *path, typename THandler::InvocationWithoutParams handler)
+    // {
+    //     HandlerMatcher request(path);
+    //     THandler::restrict(request);
+    //     return HandlerBuilder<THandler>(this, request, THandler::curryWithoutParams(handler));
+    // }
 
 } // namespace HttpServerAdvanced

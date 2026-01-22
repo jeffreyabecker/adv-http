@@ -10,7 +10,7 @@ namespace HttpServerAdvanced
     class IHttpResponse;
     
     // Forward declare for trait checking
-    using ParameterExtractor = std::function<std::vector<String>(class HttpRequest &context)>;
+    using ExtractArgsFromRequest = std::function<std::vector<String>(class HttpRequest &context)>;
 
     namespace HandlerRestrictions
     {
@@ -55,7 +55,7 @@ namespace HttpServerAdvanced
         };
 
         template <typename T>
-        struct has_make_factory<T, std::void_t<decltype(T::makeFactory(std::declval<typename T::Invocation>(), std::declval<ParameterExtractor>()))>> : std::true_type
+        struct has_make_factory<T, std::void_t<decltype(T::makeFactory(std::declval<typename T::Invocation>(), std::declval<ExtractArgsFromRequest>()))>> : std::true_type
         {
         };
 

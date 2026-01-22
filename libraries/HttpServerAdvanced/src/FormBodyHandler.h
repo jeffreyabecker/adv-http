@@ -10,12 +10,12 @@ namespace HttpServerAdvanced
     {
     private:
         std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, KeyValuePairView<String, String> &&)> handler_;
-        ParameterExtractor extractor_;
+        ExtractArgsFromRequest extractor_;
 
     public:
-        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, KeyValuePairView<String, String> &&)> handler, ParameterExtractor extractor)
+        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, KeyValuePairView<String, String> &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, KeyValuePairView<String, String> &&)> handler, ParameterExtractor extractor)
+        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, KeyValuePairView<String, String> &&)> handler, ExtractArgsFromRequest extractor)
             : handler_([handler](HttpRequest &context, std::vector<String> &&, KeyValuePairView<String, String> &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}

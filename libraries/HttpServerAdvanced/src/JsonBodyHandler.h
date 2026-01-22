@@ -14,13 +14,13 @@ namespace HttpServerAdvanced
     {
     private:
         std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&,JsonDocument &&)> handler_;
-        ParameterExtractor extractor_;
+        ExtractArgsFromRequest extractor_;
 
         std::vector<uint8_t> bodyBuffer_;
     public:
-        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&,JsonDocument &&)> handler, ParameterExtractor extractor)
+        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&,JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &,JsonDocument &&)> handler, ParameterExtractor extractor)
+        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &,JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
             : handler_([handler](HttpRequest &context, std::vector<String> &&,JsonDocument &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}

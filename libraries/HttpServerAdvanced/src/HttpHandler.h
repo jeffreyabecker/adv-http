@@ -72,12 +72,12 @@ namespace HttpServerAdvanced
 #include "./HttpRequest.h"
 
 namespace HttpServerAdvanced {
-    bool HttpHandler::defaultFilter(const HttpRequest &context) {
+    inline bool HttpHandler::defaultFilter(const HttpRequest &context) {
         return context.completedPhases() == HttpRequestPhase::CompletedReadingHeaders + HttpRequestPhase::CompletedStartingLine;
     }
 
     // Helper for setting filter when using phase-based constructor: call after construction
-    void HttpHandler::setPhaseFilter(HttpRequestPhaseFlags callAt) {
+    inline void HttpHandler::setPhaseFilter(HttpRequestPhaseFlags callAt) {
         filter_ = [callAt](const HttpRequest &ctx) { return ctx.completedPhases() == callAt; };
     }
 }

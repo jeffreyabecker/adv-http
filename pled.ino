@@ -56,7 +56,7 @@ void setupWebServer(WebServerBuilder &builder)
   // customize as needed
   builder.use(StaticFiles(LittleFS));
   builder.handlers().on<Request>("/api/pins/?", onGetPin);
-  builder.handlers().on<Request>("/api/secure/pins/?", onGetPin).filter(BasicAuth("admin", "password"));
+  builder.handlers().on<Request>("/api/secure/pins/?", onGetPin).apply(BasicAuth("admin", "password"));
   builder.handlers().on<Form>("/api/formSubmit", onFormSubmit);
   builder.handlers().on<RawBody>("/api/rawData", onRawBody);
   builder.handlers().on<Json>("/api/jsonData", onJsonBody);

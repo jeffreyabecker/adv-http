@@ -54,6 +54,12 @@ namespace HttpServerAdvanced
         return std::make_unique<HttpResponse>(status, body, headers);
     }
 
+    std::unique_ptr<IHttpResponse> HttpResponse::create(HttpStatus status, const String &body, std::initializer_list<std::pair<const char *, const char *>> headers)
+    {
+        HttpHeadersCollection c(headers);
+        return create(status, body, std::move(c));
+    }
+
     std::unique_ptr<IHttpResponse> HttpResponse::create(HttpStatus status, String &&body, HttpHeadersCollection headers)
     {
         return std::make_unique<HttpResponse>(status, std::move(body), headers);

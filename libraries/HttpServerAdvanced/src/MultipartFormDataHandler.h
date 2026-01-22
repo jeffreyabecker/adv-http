@@ -41,7 +41,7 @@ namespace HttpServerAdvanced
 
     private:
         std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, MultipartFormDataBuffer)> handler_;
-        ParameterExtractor extractor_;
+        ExtractArgsFromRequest extractor_;
         HandlerResult response_;
         std::vector<String> params_;
         String boundary_;
@@ -147,7 +147,7 @@ namespace HttpServerAdvanced
         }
 
     public:
-        MultipartFormDataHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, MultipartFormDataBuffer)> handler, ParameterExtractor extractor)
+        MultipartFormDataHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, MultipartFormDataBuffer)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
         virtual HandlerResult handleStep(HttpRequest &context)
         {

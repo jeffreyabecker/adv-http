@@ -32,6 +32,9 @@ namespace HttpServerAdvanced
     HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeadersCollection headers);
 
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &body, HttpHeadersCollection headers = HttpHeadersCollection());
+
+    // Convenience overloads to allow direct brace-initializer usage in sketches: create(..., {{"Name","Value"}})
+    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &body, std::initializer_list<std::pair<const char *, const char *>> headers);
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, String &&body, HttpHeadersCollection headers = HttpHeadersCollection());
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, const char *body, HttpHeadersCollection headers = HttpHeadersCollection());
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, const uint8_t *body, size_t length, HttpHeadersCollection headers = HttpHeadersCollection());

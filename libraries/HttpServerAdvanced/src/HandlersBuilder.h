@@ -7,12 +7,12 @@
 #include "./HandlerMatcher.h"
 #include "./HandlerRestrictions.h"
 #include "./HandlerProviderRegistry.h"
+#include "./HandlerBuilder.h"
 
 namespace HttpServerAdvanced
 {
     // Forward declaration
-    template <typename THandler>
-    class HandlerBuilder;
+    template <typename THandler> class HandlerBuilder;
 
     class HandlersBuilder
     {
@@ -45,32 +45,38 @@ namespace HttpServerAdvanced
 
         // Template methods for handler registration
         template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
-        HandlerBuilder<THandler> on(HandlerMatcher request, typename THandler::Invocation handler)
+        HandlerBuilder<THandler> on(const HandlerMatcher &request, const typename THandler::Invocation &handler)
         {
-            THandler::restrict(request);
-            return HandlerBuilder<THandler>(this, request, handler);
+            HandlerMatcher req = request;
+            THandler::restrict(req);
+            // Adapt HandlerMatcher's ArgsExtractor (takes 2 params) to ExtractArgsFromRequest (takes 1 param)
+            ExtractArgsFromRequest adapterExtractor = [req](HttpRequest &context) { return req.extractParameters(context); };
+            return HandlerBuilder<THandler>(this, IHttpHandler::Predicate([req](HttpRequest &context) { return req(context); }), handler, adapterExtractor);
         }
 
         template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
-        HandlerBuilder<THandler> on(HandlerMatcher request, typename THandler::InvocationWithoutParams handler)
+        HandlerBuilder<THandler> on(const HandlerMatcher &request, const typename THandler::InvocationWithoutParams &handler)
         {
-            THandler::restrict(request);
-            return HandlerBuilder<THandler>(this, request, handler);
+            HandlerMatcher req = request;
+            THandler::restrict(req);
+            return HandlerBuilder<THandler>(this, IHttpHandler::Predicate([req](HttpRequest &context) { return req(context); }), handler);
         }
         template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
-        HandlerBuilder<THandler> on(const char *path, typename THandler::Invocation handler)
+        HandlerBuilder<THandler> on(const char *path, const typename THandler::Invocation &handler)
         {
             HandlerMatcher request(path);
             THandler::restrict(request);
-            return HandlerBuilder<THandler>(this, request, handler);
+            // Adapt HandlerMatcher's ArgsExtractor (takes 2 params) to ExtractArgsFromRequest (takes 1 param)
+            ExtractArgsFromRequest adapterExtractor = [request](HttpRequest &context) { return request.extractParameters(context); };
+            return HandlerBuilder<THandler>(this, IHttpHandler::Predicate([request](HttpRequest &context) { return request(context); }), handler, adapterExtractor);
         }
 
         template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
-        HandlerBuilder<THandler> on(const char *path, typename THandler::InvocationWithoutParams handler)
+        HandlerBuilder<THandler> on(const char *path, const typename THandler::InvocationWithoutParams &handler)
         {
             HandlerMatcher request(path);
             THandler::restrict(request);
-            return HandlerBuilder<THandler>(this, request, THandler::curryWithoutParams(handler));
+            return HandlerBuilder<THandler>(this, IHttpHandler::Predicate([request](HttpRequest &context) { return request(context); }), handler);
         }
 
         void onNotFound(IHttpHandler::InvocationCallback invocation)

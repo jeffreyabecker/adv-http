@@ -17,7 +17,7 @@ namespace HttpServerAdvanced
         Aborted
     };
 
-    bool isPipelineHandleClientResultFinal(PipelineHandleClientResult result)
+    bool inline isPipelineHandleClientResultFinal(PipelineHandleClientResult result)
     {
         switch (result)
         {

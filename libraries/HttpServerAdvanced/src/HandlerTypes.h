@@ -31,7 +31,7 @@ namespace HttpServerAdvanced
             };
         }
 
-        static IHttpHandler::Factory makeFactory(Invocation handler, ParameterExtractor extractor)
+        static IHttpHandler::Factory makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
         {
             return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
             {
@@ -88,7 +88,7 @@ namespace HttpServerAdvanced
             };
         }
 
-        static IHttpHandler::Factory makeFactory(Invocation handler, ParameterExtractor extractor)
+        static IHttpHandler::Factory makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
         {
             return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
             {
@@ -143,7 +143,7 @@ namespace HttpServerAdvanced
             };
         }
 
-        static IHttpHandler::Factory makeFactory(Invocation handler, ParameterExtractor extractor)
+        static IHttpHandler::Factory makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
         {
             return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
             {
@@ -154,8 +154,8 @@ namespace HttpServerAdvanced
                     {
                         return handler(ctx, params, buffer);
                     };
-                return std::make_unique<RawBodyHandler>(bufferHandler, [params](HttpRequest &c)
-                                                        { return params; });
+                return std::make_unique<RawBodyHandler>(bufferHandler, ExtractArgsFromRequest([params](HttpRequest &c)
+                                                        { return params; }));
             };
         }
 
@@ -205,7 +205,7 @@ namespace HttpServerAdvanced
                 };
             }
 
-            static IHttpHandler::Factory makeFactory(Invocation handler, ParameterExtractor extractor)
+            static IHttpHandler::Factory makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
             {
                 return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
                 {
@@ -219,8 +219,8 @@ namespace HttpServerAdvanced
                         KeyValuePairView<String, String> postData;
                         return handler(ctx, std::move(params), std::move(postData));
                     };
-                    return std::make_unique<MultipartFormDataHandler>(wrappedHandler, [params](HttpRequest &c)
-                                                                       { return params; });
+                    return std::make_unique<MultipartFormDataHandler>(wrappedHandler, ExtractArgsFromRequest([params](HttpRequest &c)
+                                                                       { return params; }));
                 };
             }
 
@@ -271,13 +271,13 @@ namespace HttpServerAdvanced
             };
         }
 
-        static IHttpHandler::Factory makeFactory(Invocation handler, ParameterExtractor extractor)
+        static IHttpHandler::Factory makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
         {
             return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
             {
                 auto params = extractor(context);
-                return std::make_unique<JsonBodyHandler>(handler, [params](HttpRequest &c)
-                                                         { return params; });
+                return std::make_unique<JsonBodyHandler>(handler, ExtractArgsFromRequest([params](HttpRequest &c)
+                                                         { return params; }));
             };
         }
 

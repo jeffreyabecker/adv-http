@@ -24,16 +24,16 @@ namespace HttpServerAdvanced
     {
     private:
         std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, RawBodyBuffer)> handler_;
-        ParameterExtractor extractor_;
+        ExtractArgsFromRequest extractor_;
         HandlerResult response_;
         std::vector<String> params_;
         size_t receivedLength_{0};
         size_t contentLength_{0};
 
     public:
-        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, RawBodyBuffer)> handler, ParameterExtractor extractor)
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RawBodyBuffer)> handler, ParameterExtractor extractor)
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
             : handler_([handler](HttpRequest &context, std::vector<String> &, RawBodyBuffer buffer)
                        { return handler(context, buffer); }),
               extractor_(extractor) {}
