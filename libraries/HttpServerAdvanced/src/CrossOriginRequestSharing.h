@@ -15,37 +15,37 @@ namespace HttpServerAdvanced
             {
                 return resp;
             }
-            if (!resp->headers().exists(HttpHeader::AccessControlAllowOrigin) && !allowedOrigins.isEmpty())
+            if (!resp->headers().exists(HttpHeaderNames::AccessControlAllowOrigin) && !allowedOrigins.isEmpty())
             {
-                resp->headers().set(HttpHeader::AccessControlAllowOrigin, allowedOrigins);
+                resp->headers().set(HttpHeaderNames::AccessControlAllowOrigin, allowedOrigins);
             }
-            if (!resp->headers().exists(HttpHeader::AccessControlAllowMethods) && !allowedMethods.isEmpty())
+            if (!resp->headers().exists(HttpHeaderNames::AccessControlAllowMethods) && !allowedMethods.isEmpty())
             {
-                resp->headers().set(HttpHeader::AccessControlAllowMethods, allowedMethods);
+                resp->headers().set(HttpHeaderNames::AccessControlAllowMethods, allowedMethods);
             }
-            if (!resp->headers().exists(HttpHeader::AccessControlAllowHeaders) && !allowedHeaders.isEmpty())
+            if (!resp->headers().exists(HttpHeaderNames::AccessControlAllowHeaders) && !allowedHeaders.isEmpty())
             {
-                resp->headers().set(HttpHeader::AccessControlAllowHeaders, allowedHeaders);
+                resp->headers().set(HttpHeaderNames::AccessControlAllowHeaders, allowedHeaders);
             }
-            if (!resp->headers().exists(HttpHeader::AccessControlAllowCredentials) && !allowedCredentials.isEmpty())
+            if (!resp->headers().exists(HttpHeaderNames::AccessControlAllowCredentials) && !allowedCredentials.isEmpty())
             {
-                resp->headers().set(HttpHeader::AccessControlAllowCredentials, allowedCredentials);
+                resp->headers().set(HttpHeaderNames::AccessControlAllowCredentials, allowedCredentials);
             }
-            if (!resp->headers().exists(HttpHeader::AccessControlExposeHeaders) && !exposeHeaders.isEmpty())
+            if (!resp->headers().exists(HttpHeaderNames::AccessControlExposeHeaders) && !exposeHeaders.isEmpty())
             {
-                resp->headers().set(HttpHeader::AccessControlExposeHeaders, exposeHeaders);
+                resp->headers().set(HttpHeaderNames::AccessControlExposeHeaders, exposeHeaders);
             }
-            if (!resp->headers().exists(HttpHeader::AccessControlMaxAge) && maxAge >= 0)
+            if (!resp->headers().exists(HttpHeaderNames::AccessControlMaxAge) && maxAge >= 0)
             {
-                resp->headers().set(HttpHeader::AccessControlMaxAge, String(maxAge));
+                resp->headers().set(HttpHeaderNames::AccessControlMaxAge, String(maxAge));
             }
-            if (!resp->headers().exists(HttpHeader::AccessControlRequestHeaders) && !requestHeaders.isEmpty())
+            if (!resp->headers().exists(HttpHeaderNames::AccessControlRequestHeaders) && !requestHeaders.isEmpty())
             {
-                resp->headers().set(HttpHeader::AccessControlRequestHeaders, requestHeaders);
+                resp->headers().set(HttpHeaderNames::AccessControlRequestHeaders, requestHeaders);
             }
-            if (!resp->headers().exists(HttpHeader::AccessControlRequestMethod) && !requestMethods.isEmpty())
+            if (!resp->headers().exists(HttpHeaderNames::AccessControlRequestMethod) && !requestMethods.isEmpty())
             {
-                resp->headers().set(HttpHeader::AccessControlRequestMethod, requestMethods);
+                resp->headers().set(HttpHeaderNames::AccessControlRequestMethod, requestMethods);
             }
             return resp;
         };

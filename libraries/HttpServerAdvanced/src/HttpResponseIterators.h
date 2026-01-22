@@ -28,32 +28,32 @@ namespace HttpServerAdvanced
   inline void EnsureRequiredHeaders(HttpHeadersCollection &headers, ssize_t body_size)
   {
     // Date header (RFC 7231 section 7.1.1.2 - MUST be sent by origin servers)
-    if (!headers.exists(HttpHeader::Date))
+    if (!headers.exists(HttpHeaderNames::Date))
     {
-      headers.set(HttpHeader::Date, getHeaderDateValue());
+      headers.set(HttpHeaderNames::Date, getHeaderDateValue());
     }
-    if (!headers.exists(HttpHeader::Server))
+    if (!headers.exists(HttpHeaderNames::Server))
     {
-      headers.set(HttpHeader::Server, "Arduino-Pico");
+      headers.set(HttpHeaderNames::Server, "Arduino-Pico");
     }
-    if (!headers.exists(HttpHeader::ContentType))
+    if (!headers.exists(HttpHeaderNames::ContentType))
     {
-      headers.set(HttpHeader::ContentType, "text/plain");
+      headers.set(HttpHeaderNames::ContentType, "text/plain");
     }
-    if (!headers.exists(HttpHeader::Connection))
+    if (!headers.exists(HttpHeaderNames::Connection))
     {
-      headers.set(HttpHeader::Connection, "close");
+      headers.set(HttpHeaderNames::Connection, "close");
     }
-    if(!headers.exists(HttpHeader::ContentLength) && 
-       !headers.exists(HttpHeader::TransferEncoding))
+    if(!headers.exists(HttpHeaderNames::ContentLength) && 
+       !headers.exists(HttpHeaderNames::TransferEncoding))
     {
       if (body_size >= 0)
       {
-        headers.set(HttpHeader::ContentLength, String(static_cast<size_t>(body_size)));
+        headers.set(HttpHeaderNames::ContentLength, String(static_cast<size_t>(body_size)));
       }
       else
       {
-        headers.set(HttpHeader::TransferEncoding, "chunked");
+        headers.set(HttpHeaderNames::TransferEncoding, "chunked");
       }
     }
   }

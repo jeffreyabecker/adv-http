@@ -12,51 +12,7 @@
 namespace HttpServerAdvanced
 {
 
-  class HttpHeader
-  {
-  private:
-    String name_;
-    String value_;
-
-  public:
-    HttpHeader();
-    explicit HttpHeader(const String &name, const String &value) : name_(name), value_(value) {}
-    explicit HttpHeader(const char *name, const char *value) : name_(name), value_(value) {}
-    explicit HttpHeader(const char *name, const String &value) : name_(name), value_(value) {}
-    explicit HttpHeader(const String &name, const char *value) : name_(name), value_(value) {}
-
-    ~HttpHeader();
-    HttpHeader(const HttpHeader &) = default;
-    HttpHeader(HttpHeader &&) noexcept = default;
-    HttpHeader &operator=(const HttpHeader &) = default;
-    HttpHeader &operator=(HttpHeader &&) noexcept = default;
-
-    const String &name() const
-    {
-      return name_;
-    }
-    void setName(const String &name)
-    {
-      name_ = name;
-    }
-    const String &value() const
-    {
-      return value_;
-    }
-    void setValue(const String &value)
-    {
-      value_ = value;
-    }
-
-#if __cpp_structured_bindings
-    // Enable structured bindings (C++17 and later)
-    friend auto tie(const HttpHeader &header)
-    {
-      return std::tie(header.name_, header.value_);
-    }
-#endif
-
-    static std::vector<std::pair<String, std::optional<String>>> parseDirectives(const String &val = "");
+  struct HttpHeaderNames{
     static constexpr const char *WwwAuthenticate = "WWW-Authenticate";
     static constexpr const char *Authorization = "Authorization";
     static constexpr const char *ProxyAuthenticate = "Proxy-Authenticate";
@@ -166,6 +122,161 @@ namespace HttpServerAdvanced
     static constexpr const char *Pragma = "Pragma";
     static constexpr const char *XForwardedFor = "X-Forwarded-For";
   };
+  class HttpHeader
+  {
+  private:
+    String name_;
+    String value_;
+
+  public:
+    HttpHeader();
+    explicit HttpHeader(const String &name, const String &value) : name_(name), value_(value) {}
+    explicit HttpHeader(const char *name, const char *value) : name_(name), value_(value) {}
+    explicit HttpHeader(const char *name, String &&value) : name_(name), value_(std::move(value)) {}
+    explicit HttpHeader(const String &name, const char *value) : name_(name), value_(value) {}
+
+    ~HttpHeader();
+    HttpHeader(const HttpHeader &) = default;
+    HttpHeader(HttpHeader &&) noexcept = default;
+    HttpHeader &operator=(const HttpHeader &) = default;
+    HttpHeader &operator=(HttpHeader &&) noexcept = default;
+
+    const String &name() const
+    {
+      return name_;
+    }
+    void setName(const String &name)
+    {
+      name_ = name;
+    }
+    const String &value() const
+    {
+      return value_;
+    }
+    void setValue(const String &value)
+    {
+      value_ = value;
+    }
+
+#if __cpp_structured_bindings
+    // Enable structured bindings (C++17 and later)
+    friend auto tie(const HttpHeader &header)
+    {
+      return std::tie(header.name_, header.value_);
+    }
+#endif
+
+    static std::vector<std::pair<String, std::optional<String>>> parseDirectives(const String &val = "");
+    static HttpHeader&& WwwAuthenticate(const String& value) { return HttpHeader(HttpHeaderNames::WwwAuthenticate, value); }
+    static HttpHeader&& Authorization(const String& value) { return HttpHeader(HttpHeaderNames::Authorization, value); }
+    static HttpHeader&& ProxyAuthenticate(const String& value) { return HttpHeader(HttpHeaderNames::ProxyAuthenticate, value); }
+    static HttpHeader&& ProxyAuthorization(const String& value) { return HttpHeader(HttpHeaderNames::ProxyAuthorization, value); }
+    static HttpHeader&& Age(const String& value) { return HttpHeader(HttpHeaderNames::Age, value); }
+    static HttpHeader&& CacheControl(const String& value) { return HttpHeader(HttpHeaderNames::CacheControl, value); }
+    static HttpHeader&& ClearSiteData(const String& value) { return HttpHeader(HttpHeaderNames::ClearSiteData, value); }
+    static HttpHeader&& Expires(const String& value) { return HttpHeader(HttpHeaderNames::Expires, value); }
+    static HttpHeader&& LastModified(const String& value) { return HttpHeader(HttpHeaderNames::LastModified, value); }
+    static HttpHeader&& ETag(const String& value) { return HttpHeader(HttpHeaderNames::ETag, value); }
+    static HttpHeader&& IfMatch(const String& value) { return HttpHeader(HttpHeaderNames::IfMatch, value); }
+    static HttpHeader&& IfNoneMatch(const String& value) { return HttpHeader(HttpHeaderNames::IfNoneMatch, value); }
+    static HttpHeader&& IfModifiedSince(const String& value) { return HttpHeader(HttpHeaderNames::IfModifiedSince, value); }
+    static HttpHeader&& IfUnmodifiedSince(const String& value) { return HttpHeader(HttpHeaderNames::IfUnmodifiedSince, value); }
+    static HttpHeader&& Vary(const String& value) { return HttpHeader(HttpHeaderNames::Vary, value); }
+    static HttpHeader&& Connection(const String& value) { return HttpHeader(HttpHeaderNames::Connection, value); }
+    static HttpHeader&& KeepAlive(const String& value) { return HttpHeader(HttpHeaderNames::KeepAlive, value); }
+    static HttpHeader&& Accept(const String& value) { return HttpHeader(HttpHeaderNames::Accept, value); }
+    static HttpHeader&& AcceptEncoding(const String& value) { return HttpHeader(HttpHeaderNames::AcceptEncoding, value); }
+    static HttpHeader&& AcceptLanguage(const String& value) { return HttpHeader(HttpHeaderNames::AcceptLanguage, value); }
+    static HttpHeader&& AcceptPatch(const String& value) { return HttpHeader(HttpHeaderNames::AcceptPatch, value); }
+    static HttpHeader&& AcceptPost(const String& value) { return HttpHeader(HttpHeaderNames::AcceptPost, value); }
+    static HttpHeader&& Expect(const String& value) { return HttpHeader(HttpHeaderNames::Expect, value); }
+    static HttpHeader&& MaxForwards(const String& value) { return HttpHeader(HttpHeaderNames::MaxForwards, value); }
+    static HttpHeader&& Cookie(const String& value) { return HttpHeader(HttpHeaderNames::Cookie, value); }
+    static HttpHeader&& SetCookie(const String& value) { return HttpHeader(HttpHeaderNames::SetCookie, value); }
+    static HttpHeader&& AccessControlAllowCredentials(const String& value) { return HttpHeader(HttpHeaderNames::AccessControlAllowCredentials, value); }
+    static HttpHeader&& AccessControlAllowHeaders(const String& value) { return HttpHeader(HttpHeaderNames::AccessControlAllowHeaders, value); }
+    static HttpHeader&& AccessControlAllowMethods(const String& value) { return HttpHeader(HttpHeaderNames::AccessControlAllowMethods, value); }
+    static HttpHeader&& AccessControlAllowOrigin(const String& value) { return HttpHeader(HttpHeaderNames::AccessControlAllowOrigin, value); }
+    static HttpHeader&& AccessControlExposeHeaders(const String& value) { return HttpHeader(HttpHeaderNames::AccessControlExposeHeaders, value); }
+    static HttpHeader&& AccessControlMaxAge(const String& value) { return HttpHeader(HttpHeaderNames::AccessControlMaxAge, value); }
+    static HttpHeader&& AccessControlRequestHeaders(const String& value) { return HttpHeader(HttpHeaderNames::AccessControlRequestHeaders, value); }
+    static HttpHeader&& AccessControlRequestMethod(const String& value) { return HttpHeader(HttpHeaderNames::AccessControlRequestMethod, value); }
+    static HttpHeader&& Origin(const String& value) { return HttpHeader(HttpHeaderNames::Origin, value); }
+    static HttpHeader&& TimingAllowOrigin(const String& value) { return HttpHeader(HttpHeaderNames::TimingAllowOrigin, value); }
+    static HttpHeader&& ContentDisposition(const String& value) { return HttpHeader(HttpHeaderNames::ContentDisposition, value); }
+    static HttpHeader&& IntegrityPolicy(const String& value) { return HttpHeader(HttpHeaderNames::IntegrityPolicy, value); }
+    static HttpHeader&& IntegrityPolicyReportOnly(const String& value) { return HttpHeader(HttpHeaderNames::IntegrityPolicyReportOnly, value); }
+    static HttpHeader&& ContentLength(const String& value) { return HttpHeader(HttpHeaderNames::ContentLength, value); }
+    static HttpHeader&& ContentType(const String& value) { return HttpHeader(HttpHeaderNames::ContentType, value); }
+    static HttpHeader&& ContentEncoding(const String& value) { return HttpHeader(HttpHeaderNames::ContentEncoding, value); }
+    static HttpHeader&& ContentLanguage(const String& value) { return HttpHeader(HttpHeaderNames::ContentLanguage, value); }
+    static HttpHeader&& ContentLocation(const String& value) { return HttpHeader(HttpHeaderNames::ContentLocation, value); }
+    static HttpHeader&& Prefer(const String& value) { return HttpHeader(HttpHeaderNames::Prefer, value); }
+    static HttpHeader&& PreferenceApplied(const String& value) { return HttpHeader(HttpHeaderNames::PreferenceApplied, value); }
+    static HttpHeader&& Forwarded(const String& value) { return HttpHeader(HttpHeaderNames::Forwarded, value); }
+    static HttpHeader&& Via(const String& value) { return HttpHeader(HttpHeaderNames::Via, value); }
+    static HttpHeader&& AcceptRanges(const String& value) { return HttpHeader(HttpHeaderNames::AcceptRanges, value); }
+    static HttpHeader&& Range(const String& value) { return HttpHeader(HttpHeaderNames::Range, value); }
+    static HttpHeader&& IfRange(const String& value) { return HttpHeader(HttpHeaderNames::IfRange, value); }
+    static HttpHeader&& ContentRange(const String& value) { return HttpHeader(HttpHeaderNames::ContentRange, value); }
+    static HttpHeader&& Location(const String& value) { return HttpHeader(HttpHeaderNames::Location, value); }
+    static HttpHeader&& Refresh(const String& value) { return HttpHeader(HttpHeaderNames::Refresh, value); }
+    static HttpHeader&& From(const String& value) { return HttpHeader(HttpHeaderNames::From, value); }
+    static HttpHeader&& Host(const String& value) { return HttpHeader(HttpHeaderNames::Host, value); }
+    static HttpHeader&& Referer(const String& value) { return HttpHeader(HttpHeaderNames::Referer, value); }
+    static HttpHeader&& ReferrerPolicy(const String& value) { return HttpHeader(HttpHeaderNames::ReferrerPolicy, value); }
+    static HttpHeader&& UserAgent(const String& value) { return HttpHeader(HttpHeaderNames::UserAgent, value); }
+    static HttpHeader&& Allow(const String& value) { return HttpHeader(HttpHeaderNames::Allow, value); }
+    static HttpHeader&& Server(const String& value) { return HttpHeader(HttpHeaderNames::Server, value); }
+    static HttpHeader&& CrossOriginEmbedderPolicy(const String& value) { return HttpHeader(HttpHeaderNames::CrossOriginEmbedderPolicy, value); }
+    static HttpHeader&& CrossOriginOpenerPolicy(const String& value) { return HttpHeader(HttpHeaderNames::CROSS_ORIGIN_OPENER_POLICY, value); }
+    static HttpHeader&& CrossOriginResourcePolicy(const String& value) { return HttpHeader(HttpHeaderNames::CROSS_ORIGIN_RESOURCE_POLICY, value); }
+    static HttpHeader&& ContentSecurityPolicy(const String& value) { return HttpHeader(HttpHeaderNames::CONTENT_SECURITY_POLICY, value); }
+    static HttpHeader&& ContentSecurityPolicyReportOnly(const String& value) { return HttpHeader(HttpHeaderNames::ContentSecurityPolicyReportOnly, value); }
+    static HttpHeader&& PermissionsPolicy(const String& value) { return HttpHeader(HttpHeaderNames::PermissionsPolicy, value); }
+    static HttpHeader&& StrictTransportSecurity(const String& value) { return HttpHeader(HttpHeaderNames::StrictTransportSecurity, value); }
+    static HttpHeader&& UpgradeInsecureRequests(const String& value) { return HttpHeader(HttpHeaderNames::UpgradeInsecureRequests, value); }
+    static HttpHeader&& XContentTypeOptions(const String& value) { return HttpHeader(HttpHeaderNames::XContentTypeOptions, value); }
+    static HttpHeader&& XFrameOptions(const String& value) { return HttpHeader(HttpHeaderNames::XFrameOptions, value); }
+    static HttpHeader&& XPermittedCrossDomainPolicies(const String& value) { return HttpHeader(HttpHeaderNames::XPermittedCrossDomainPolicies, value); }
+    static HttpHeader&& XPoweredBy(const String& value) { return HttpHeader(HttpHeaderNames::XPoweredBy, value); }
+    static HttpHeader&& XXssProtection(const String& value) { return HttpHeader(HttpHeaderNames::XXssProtection, value); }
+    static HttpHeader&& SecFetchSite(const String& value) { return HttpHeader(HttpHeaderNames::SecFetchSite, value); }
+    static HttpHeader&& SecFetchMode(const String& value) { return HttpHeader(HttpHeaderNames::SecFetchMode, value); }
+    static HttpHeader&& SecFetchUser(const String& value) { return HttpHeader(HttpHeaderNames::SecFetchUser, value); }
+    static HttpHeader&& SecFetchDest(const String& value) { return HttpHeader(HttpHeaderNames::SecFetchDest, value); }
+    static HttpHeader&& SecPurpose(const String& value) { return HttpHeader(HttpHeaderNames::SecPurpose, value); }
+    static HttpHeader&& ServiceWorkerNavigationPreload(const String& value) { return HttpHeader(HttpHeaderNames::ServiceWorkerNavigationPreload, value); }
+    static HttpHeader&& ReportingEndpoints(const String& value) { return HttpHeader(HttpHeaderNames::ReportingEndpoints, value); }
+    static HttpHeader&& TransferEncoding(const String& value) { return HttpHeader(HttpHeaderNames::TransferEncoding, value); }
+    static HttpHeader&& Te(const String& value) { return HttpHeader(HttpHeaderNames::Te, value); }
+    static HttpHeader&& Trailer(const String& value) { return HttpHeader(HttpHeaderNames::Trailer, value); }
+    static HttpHeader&& SecWebSocketAccept(const String& value) { return HttpHeader(HttpHeaderNames::SecWebSocketAccept, value); }
+    static HttpHeader&& SecWebSocketExtensions(const String& value) { return HttpHeader(HttpHeaderNames::SecWebSocketExtensions, value); }
+    static HttpHeader&& SecWebSocketKey(const String& value) { return HttpHeader(HttpHeaderNames::SecWebSocketKey, value); }
+    static HttpHeader&& SecWebSocketProtocol(const String& value) { return HttpHeader(HttpHeaderNames::SecWebSocketProtocol, value); }
+    static HttpHeader&& SecWebSocketVersion(const String& value) { return HttpHeader(HttpHeaderNames::SecWebSocketVersion, value); }
+    static HttpHeader&& AltSvc(const String& value) { return HttpHeader(HttpHeaderNames::AltSvc, value); }
+    static HttpHeader&& AltUsed(const String& value) { return HttpHeader(HttpHeaderNames::AltUsed, value); }
+    static HttpHeader&& Date(const String& value) { return HttpHeader(HttpHeaderNames::Date, value); }
+    static HttpHeader&& Link(const String& value) { return HttpHeader(HttpHeaderNames::Link, value); }
+    static HttpHeader&& RetryAfter(const String& value) { return HttpHeader(HttpHeaderNames::RetryAfter, value); }
+    static HttpHeader&& ServerTiming(const String& value) { return HttpHeader(HttpHeaderNames::ServerTiming, value); }
+    static HttpHeader&& ServiceWorker(const String& value) { return HttpHeader(HttpHeaderNames::ServiceWorker, value); }
+    static HttpHeader&& ServiceWorkerAllowed(const String& value) { return HttpHeader(HttpHeaderNames::ServiceWorkerAllowed, value); }
+    static HttpHeader&& SourceMap(const String& value) { return HttpHeader(HttpHeaderNames::SourceMap, value); }
+    static HttpHeader&& Upgrade(const String& value) { return HttpHeader(HttpHeaderNames::Upgrade, value); }
+    static HttpHeader&& Priority(const String& value) { return HttpHeader(HttpHeaderNames::Priority, value); }
+    static HttpHeader&& AttributionReportingEligible(const String& value) { return HttpHeader(HttpHeaderNames::AttributionReportingEligible, value); }
+    static HttpHeader&& AttributionReportingRegisterSource(const String& value) { return HttpHeader(HttpHeaderNames::AttributionReportingRegisterSource, value); }
+    static HttpHeader&& AttributionReportingRegisterTrigger(const String& value) { return HttpHeader(HttpHeaderNames::AttributionReportingRegisterTrigger, value); }
+    static HttpHeader&& AcceptCh(const String& value) { return HttpHeader(HttpHeaderNames::AcceptCh, value); }
+    static HttpHeader&& DeviceMemory(const String& value) { return HttpHeader(HttpHeaderNames::DeviceMemory, value); }
+    static HttpHeader&& AcceptCharset(const String& value) { return HttpHeader(HttpHeaderNames::AcceptCharset, value); }
+    static HttpHeader&& Pragma(const String& value) { return HttpHeader(HttpHeaderNames::Pragma, value); }
+    static HttpHeader&& XForwardedFor(const String& value) { return HttpHeader(HttpHeaderNames::XForwardedFor, value); }
+
+  };
 
   class HttpHeadersCollection : public std::vector<HttpHeader>
   {
@@ -231,21 +342,21 @@ namespace HttpServerAdvanced
     void set(HttpHeader &&header, bool forceOverwrite = false)
     {
       static const char *const duplicable[] = {
-          HttpHeader::SetCookie,
-          HttpHeader::WwwAuthenticate};
+          HttpHeaderNames::SetCookie,
+          HttpHeaderNames::WwwAuthenticate};
       static const char *const consolidatable[] = {
-          HttpHeader::Accept,
-          HttpHeader::AcceptCharset,
-          HttpHeader::AcceptEncoding,
-          HttpHeader::AcceptLanguage,
-          HttpHeader::CacheControl,
-          HttpHeader::Connection,
-          HttpHeader::ContentDisposition,
-          HttpHeader::ContentEncoding,
-          HttpHeader::ContentLanguage,
-          HttpHeader::Vary,
-          HttpHeader::Pragma,
-          HttpHeader::XForwardedFor};
+          HttpHeaderNames::Accept,
+          HttpHeaderNames::AcceptCharset,
+          HttpHeaderNames::AcceptEncoding,
+          HttpHeaderNames::AcceptLanguage,
+          HttpHeaderNames::CacheControl,
+          HttpHeaderNames::Connection,
+          HttpHeaderNames::ContentDisposition,
+          HttpHeaderNames::ContentEncoding,
+          HttpHeaderNames::ContentLanguage,
+          HttpHeaderNames::Vary,
+          HttpHeaderNames::Pragma,
+          HttpHeaderNames::XForwardedFor};
       auto is_in = [](const String &name, const char *const *list, std::size_t count)
       {
         for (std::size_t i = 0; i < count; ++i)
@@ -330,6 +441,8 @@ namespace HttpServerAdvanced
                            { return h.name().equalsIgnoreCase(name) && h.value().equals(value); }),
             end());
     }
+
+    
   };
 
 }

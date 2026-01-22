@@ -172,14 +172,14 @@ namespace HttpServerAdvanced
             if (boundary_.length() == 0)
             {
                 params_ = extractor_(context);
-                std::optional<HttpHeader> contentTypeHeader = context.headers().find(HttpHeader::ContentType);
+                std::optional<HttpHeader> contentTypeHeader = context.headers().find(HttpHeaderNames::ContentType);
                 if (contentTypeHeader.has_value())
                 {
                     extractBoundary(contentTypeHeader->value());
                 }
                 if (boundary_.length() == 0)
                 {
-                    response_ = HttpResponse::create(HttpStatus::BadRequest(), "Missing or invalid boundary");
+                    response_ = HttpResponse::create(HttpStatus::BadRequest(), "Missing or invalid boundary", {});
                     return;
                 }
             }
@@ -365,7 +365,7 @@ namespace HttpServerAdvanced
         }
         static void restrict(HandlerMatcher &baseUri)
         {
-            baseUri.setAllowedContentTypes({"multipart/form-data"});
+            baseUri.setAllowedContentTypes({HttpContentTypes::MultipartFormData});
         }
     };
 } // namespace HttpServerAdvanced

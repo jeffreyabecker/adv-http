@@ -5,7 +5,7 @@
 #include "./KeyValuePairView.h"
 #include "./HttpUtility.h"
 
-#if __has_include(<ArduinoJson.h>)
+
 #include <ArduinoJson.h>
 
 namespace HttpServerAdvanced
@@ -93,6 +93,3 @@ namespace HttpServerAdvanced
     };
 
 } // namespace HttpServerAdvanced
-#else
-// ArduinoJson not available: JsonBodyHandler is disabled. Install ArduinoJson library to enable JSON body parsing handlers.
-#endif

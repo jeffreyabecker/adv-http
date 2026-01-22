@@ -9,12 +9,13 @@
 #include "./MultipartFormDataHandler.h"
 #include "./RawBodyHandler.h"
 #include "./FormBodyHandler.h"
-#include "./JsonBodyHandler.h"
+//#include "./JsonBodyHandler.h" // JsonBodyHandler is excluded until I can figure out how to efficently serialize a response without needing to preallocate a buffer
+#include "./BufferedStringBodyHandler.h"
 namespace HttpServerAdvanced
 {
 
     // Type definitions
-    class Request
+    class GetRequest
     {
     public:
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &)>;

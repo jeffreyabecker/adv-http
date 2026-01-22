@@ -63,7 +63,7 @@ namespace HttpServerAdvanced
             else
             {
                 auto response = HttpResponse::create(HttpStatus::Unauthorized(), "Unauthorized");
-                response->headers().set(HttpHeader::WwwAuthenticate, String("Basic realm=\"") + realm + "\"");
+                response->headers().set(HttpHeaderNames::WwwAuthenticate, String("Basic realm=\"") + realm + "\"");
                 return response;
             }
         };

@@ -23,8 +23,9 @@ using HttpServerAdvanced::SecureHttpServerConfig;
 using HttpServerAdvanced::CoreServicesBuilder;
 using HttpServerAdvanced::Form;
 using HttpServerAdvanced::RawBody;
-using HttpServerAdvanced::Request;
-using HttpServerAdvanced::Json;
+using HttpServerAdvanced::GetRequest;
+//using HttpServerAdvanced::Json;
+using HttpServerAdvanced::Buffered;
 using HttpServerAdvanced::Multipart;
 using Upload = HttpServerAdvanced::Multipart;
 

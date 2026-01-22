@@ -5,34 +5,34 @@
 namespace HttpServerAdvanced
 {
     // FileStreamWrapper implementation
-    StaticFileHandlerFactory::FileStreamWrapper::FileStreamWrapper(File file) 
-        : file_(std::move(file)) 
+    StaticFileHandlerFactory::FileStreamWrapper::FileStreamWrapper(File file)
+        : file_(std::move(file))
     {
     }
 
-    int StaticFileHandlerFactory::FileStreamWrapper::available() 
-    { 
-        return file_.available(); 
+    int StaticFileHandlerFactory::FileStreamWrapper::available()
+    {
+        return file_.available();
     }
 
-    int StaticFileHandlerFactory::FileStreamWrapper::read() 
-    { 
-        return file_.read(); 
+    int StaticFileHandlerFactory::FileStreamWrapper::read()
+    {
+        return file_.read();
     }
 
-    int StaticFileHandlerFactory::FileStreamWrapper::peek() 
-    { 
-        return file_.peek(); 
+    int StaticFileHandlerFactory::FileStreamWrapper::peek()
+    {
+        return file_.peek();
     }
 
-    size_t StaticFileHandlerFactory::FileStreamWrapper::write(uint8_t b) 
-    { 
-        return 0; 
+    size_t StaticFileHandlerFactory::FileStreamWrapper::write(uint8_t b)
+    {
+        return 0;
     }
 
-    File &StaticFileHandlerFactory::FileStreamWrapper::getFile() 
-    { 
-        return file_; 
+    File &StaticFileHandlerFactory::FileStreamWrapper::getFile()
+    {
+        return file_;
     }
 
     // Static helper methods
@@ -77,7 +77,7 @@ namespace HttpServerAdvanced
     }
 
     // Public methods
-    StaticFileHandlerFactory::StaticFileHandlerFactory(FileLocator &fileLocator, HttpServerAdvanced::HttpContentTypes &contentTypes) 
+    StaticFileHandlerFactory::StaticFileHandlerFactory(FileLocator &fileLocator, HttpServerAdvanced::HttpContentTypes &contentTypes)
         : fileLocator_(fileLocator), contentTypes_(contentTypes)
     {
     }
@@ -107,7 +107,7 @@ namespace HttpServerAdvanced
             return HttpHandler::create(
                 HttpResponse::create(HttpStatus::MethodNotAllowed(),
                                      "Method Not Allowed",
-                                     HttpHeadersCollection{HttpHeader(HttpHeader::Allow, "GET, HEAD")}),
+                                     {std::move(HttpHeader::Allow("GET, HEAD"))}),
                 HttpRequestPhase::CompletedStartingLine);
         }
 
@@ -116,7 +116,7 @@ namespace HttpServerAdvanced
         // Check if the file is gzipped (ends with .gz)
         String fullName = file.fullName();
         bool isGzipped = fullName.endsWith(".gz");
-        
+
         // Get content type from filename without .gz extension if gzipped
         String contentType;
         if (isGzipped)
@@ -131,23 +131,25 @@ namespace HttpServerAdvanced
 
         // Build headers
         HttpHeadersCollection headers;
-        headers.push_back(HttpHeader(HttpHeader::ContentType, contentType));
-        headers.push_back(HttpHeader(HttpHeader::ContentLength, String(file.size())));
-        headers.push_back(HttpHeader(HttpHeader::ETag, getEtag(file)));
-        headers.push_back(HttpHeader(HttpHeader::LastModified, getLastWriteValue(file)));
-        
+        headers.push_back(HttpHeader::ContentType(contentType));
+        headers.push_back(HttpHeader::ContentLength(String(file.size())));
+        headers.push_back(HttpHeader::ETag(getEtag(file)));
+        headers.push_back(HttpHeader::LastModified(getLastWriteValue(file)));
+
         // Add Content-Encoding header if gzipped
         if (isGzipped)
         {
-            headers.push_back(HttpHeader(HttpHeader::ContentEncoding, "gzip"));
+            headers.push_back(HttpHeader::ContentEncoding("gzip"));
         }
 
         String path = getUrlPath(context.url());
         bool isHeadRequest = (HttpMethod::Head == context.method());
+
         return HttpHandler::create(
-            HttpResponse::create(HttpStatus::Ok(),
-                                 std::make_unique<FileStreamWrapper>(std::move(file)),
-                                 std::move(headers)),
+            std::make_unique<HttpResponse>(
+                HttpStatus::Ok(),
+                std::make_unique<FileStreamWrapper>(file),
+                std::move(headers)),
             HttpRequestPhase::CompletedStartingLine);
     }
 

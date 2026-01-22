@@ -189,7 +189,7 @@ namespace HttpServerAdvanced
                     break;
                 }
 
-                response_ = handlerFactory_.createResponse(status, message + String(error.message()));
+                response_ = handlerFactory_.createResponse(status, std::move(message + String(error.message())));
                 sendResponse();
             }
         }
