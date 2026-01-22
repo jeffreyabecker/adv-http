@@ -258,15 +258,15 @@ namespace HttpServerAdvanced
     class Json
     {
     public:
-        using PostBodyData = KeyValuePairView<String, String>;
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, PostBodyData &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, PostBodyData &&)>;
+
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, JsonDocument &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, JsonDocument &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler)
         {
-            return [handler](HttpRequest &context, std::vector<String> &&, PostBodyData &&postData)
+            return [handler](HttpRequest &context, std::vector<String> &&, JsonDocument &&jsonData)
             {
-                return handler(context, std::move(postData));
+                return handler(context, std::move(jsonData));
             };
         }
 
@@ -282,27 +282,28 @@ namespace HttpServerAdvanced
 
         static Invocation curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpRequest &context, std::vector<String> &&params, PostBodyData &&postData)
+            return [interceptor, handler](HttpRequest &context, std::vector<String> &&params, JsonDocument &&jsonData)
             {
-                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpRequest &context) mutable
-                                   { return handler(context, std::move(params), std::move(postData)); });
+                return interceptor(context, [handler, params = std::move(params), jsonData = std::move(jsonData)](HttpRequest &context) mutable
+                                   { return handler(context, std::move(params), std::move(jsonData)); });
             };
+
         }
 
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpRequest &context, std::vector<String> &&params, PostBodyData &&postData)
+            return [interceptor, handler](HttpRequest &context, std::vector<String> &&params, JsonDocument &&jsonData)
             {
-                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpRequest &context) mutable
-                                   { return handler(context, std::move(params), std::move(postData)); });
+                return interceptor(context, [handler, params = std::move(params), jsonData = std::move(jsonData)](HttpRequest &context) mutable
+                                   { return handler(context, std::move(params), std::move(jsonData)); });
             };
         }
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
         {
-            return [filter, handler](HttpRequest &context, std::vector<String> &&params, PostBodyData &&postData)
+            return [filter, handler](HttpRequest &context, std::vector<String> &&params, JsonDocument &&jsonData)
             {
-                auto response = handler(context, std::move(params), std::move(postData));
+                auto response = handler(context, std::move(params), std::move(jsonData));
                 return filter(std::move(response));
             };
         }

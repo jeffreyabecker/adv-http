@@ -6,6 +6,7 @@
 #include "./HttpRequestPhase.h"
 #include "./IHttpHandler.h"
 #include "./PipelineError.h"
+#include "./UriView.h"
 
 namespace HttpServerAdvanced
 {
@@ -215,6 +216,7 @@ namespace HttpServerAdvanced
             : server_(server), handler_(nullptr), completedPhases_(0),
               method_(nullptr), version_(), url_(), headers_(),
               remoteIP_(), remotePort_(0), localIP_(), localPort_(0) {}
+        mutable std::unique_ptr<UriView> cachedUriView_;
 
     public:
         ~HttpRequest() = default;
@@ -232,6 +234,15 @@ namespace HttpServerAdvanced
         IPAddress localIP() { return localIP_; }
         uint16_t localPort() { return localPort_; }
         std::map<String, std::any> &items() const;
+
+        UriView &uriView() const
+        {
+            if (!cachedUriView_)
+            {
+                cachedUriView_ = std::make_unique<UriView>(url_);
+            }
+            return *cachedUriView_;
+        }
         // void sendResponse(std::unique_ptr<IHttpResponse> response);
 
     public:

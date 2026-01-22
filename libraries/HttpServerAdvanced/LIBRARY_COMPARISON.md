@@ -281,16 +281,50 @@ Limited configurability:
 - ✅ Compatibility with existing ESP8266WebServer code
 
 ---
+## HelloWebServer sample (what the examples demonstrate)
 
+The `examples/HelloWebServer.ino` sketch in `HttpServerAdvanced` demonstrates several architectural and API patterns that shape the library's capabilities and how it's used in production sketches:
+
+- **Service registration and composition** — Uses `server.use(CoreServices(...))` and a builder pattern (via `CoreServicesBuilder` / `WebServerBuilder`) to register modular components before `server.begin()`.
+- **Pluggable components** — Shows `builder.use(StaticFiles(...))` to attach static file serving backed by a filesystem (`LittleFS` via `FSConfig.h`), demonstrating dependency injection for services and content-type registration.
+- **Factory-based handlers** — Uses `Form::makeFactory` and other `*::makeFactory` helpers to create handlers that integrate with the server's service registry (no global state required).
+- **Control flow** — Uses `server.handleClient()` in `loop()` for polling (rather than blocking), exposing explicit lifecycle control to the sketch.
+
+Example pattern from the sketch:
+
+```cpp
+server.use(CoreServices([](WebServerBuilder &builder) {
+  builder.use(StaticFiles(LittleFS, [](StaticFilesBuilder &b) {
+    b.setFilesystemContentRoot("/wwwroot");
+  }));
+}));
+
+server.on(HttpMethod::POST, "/api/postForm", [](HttpRequest& request, Form::PostBodyData data){
+  String response = "Received form data:\n";
+  for (const auto &pair : bodyData.pairs())
+  {
+    response += pair.first + ": " + pair.second + "\n";
+  }
+  return HttpResponse::create(HttpStatus::Ok(), response, {{"Content-Type", "text/plain"}});
+});
+
+void loop() { server.handleClient(); }
+```
+
+**Impact on comparison**
+
+- The sample highlights the library's **modularity**: services and features (static files, content types, handler registries) are registered declaratively and composed using builders — a level of structure not present in the simpler `WebServer` examples.
+- Because components are pluggable services, the server can be configured to include only the functionality a sketch needs (reducing footprint and enabling cleaner separation of concerns).
+- The example reinforces that `HttpServerAdvanced` is intended for **production-like usage** with clear initialization, service injection, and lifecycle control.
+
+---
 ## 9. Code Examples: Memory-Safe Patterns
 
 ### HttpServerAdvanced — Large File Upload (Streaming)
 
 ```cpp
-server.on(HttpMethod::POST, "/upload",
-    Multipart::makeFactory(
-        [](HttpRequest &req, std::vector<String> &params, MultipartFormDataBuffer buffer) {
-            static File uploadFile;
+server.on(HttpMethod::POST, "/upload",[](HttpRequest& request, MultipartFormDataBuffer buffer){
+     static File uploadFile;
             
             if (buffer.status() == MultipartStatus::FirstChunk) {
                 uploadFile = LittleFS.open("/upload.bin", "w");
@@ -303,8 +337,7 @@ server.on(HttpMethod::POST, "/upload",
                 return HttpResponse::create(HttpStatus::OK(), "Upload complete");
             }
             return nullptr;  // Continue streaming
-        },
-        Matchers::none()));
+});
 ```
 
 **Memory usage**: ~3 KB constant regardless of file size.

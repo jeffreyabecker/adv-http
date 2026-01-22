@@ -14,7 +14,7 @@ namespace HttpServerAdvanced
     namespace BasicAuthImpl
     {
 
-        bool CheckBasicAuthCredentials(HttpRequest &context, const String &expectedUsername, const String &expectedPassword, const String &realm, std::function<void(const String &, const String &)> onSuccess)
+        bool CheckBasicAuthCredentials(HttpRequest &context, std::function<bool(const String &, const String &)> validator, const String &realm, std::function<void(const String &, const String &)> onSuccess)
         {
             auto authHeaderOpt = context.headers().find("Authorization");
             if (!authHeaderOpt.has_value())
@@ -36,31 +36,43 @@ namespace HttpServerAdvanced
             }
             String username = decodedCredentials.substring(0, separatorIndex);
             String password = decodedCredentials.substring(separatorIndex + 1);
-            if (username != expectedUsername || password != expectedPassword)
+            if (!validator(username, password))
             {
                 return false;
             }
-            onSuccess(username, password);
+            if (onSuccess)
+            {
+                onSuccess(username, password);
+            }
+            else{
+                context.items().emplace("BasicAuth::Username", username);
+                context.items().emplace("BasicAuth::Password", password);
+            }
             return true;
         }
     }
 
     IHttpHandler::InterceptorCallback BasicAuth(const String &expectedUsername, const String &expectedPassword, const String &realm = "Restricted Area", std::function<void(const String &, const String &)> onSuccess = nullptr)
     {
-        return [&expectedUsername, &expectedPassword, &realm, &onSuccess](HttpRequest &context, IHttpHandler::InvocationCallback next)
+        return BasicAuth([expectedUsername, expectedPassword](const String & foundUsername, const String & foundPassword)
+                               {
+                                   return foundUsername == expectedUsername && foundPassword == expectedPassword;
+                               }, realm, onSuccess);
+    }
+
+    IHttpHandler::InterceptorCallback BasicAuth(std::function<bool(const String &, const String &)> validator, const String &realm = "Restricted Area", std::function<void(const String &, const String &)> onSuccess = nullptr)
+    {
+        return [validator, &realm, onSuccess](HttpRequest &context, IHttpHandler::InvocationCallback next)
         {
-            bool authorized = BasicAuthImpl::CheckBasicAuthCredentials(context, expectedUsername, expectedPassword, realm, onSuccess);
-            if (authorized)
+            if (BasicAuthImpl::CheckBasicAuthCredentials(context, validator, realm, onSuccess))
             {
                 return next(context);
             }
             else
             {
-                return HttpResponse::create(HttpStatus::Unauthorized(),
-                                             "Unauthorized", 
-                                            HttpHeadersCollection{
-                                                HttpHeader(HttpHeader::WwwAuthenticate, "Basic realm=\"" + realm + "\""),
-                                                HttpHeader(HttpHeader::ContentType, "text/plain")});
+                auto response = HttpResponse::create(HttpStatus::Unauthorized(), "Unauthorized");
+                response->headers().set(HttpHeader::WwwAuthenticate, String("Basic realm=\"") + realm + "\"");
+                return response;
             }
         };
     }
