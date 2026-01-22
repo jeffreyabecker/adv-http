@@ -49,5 +49,6 @@ using Uri = HttpServerAdvanced::HandlerMatcher;
 using HttpServerAdvanced::RawBodyBuffer;
 using HttpServerAdvanced::MultipartFormDataBuffer;
 using HttpServerAdvanced::MultipartStatus;
-using HttpServerAdvanced::WebServer;
+using WebServer = HttpServerAdvanced::FriendlyWebServer<StandardHttpServer<>>;
+using SecureWebServer = HttpServerAdvanced::FriendlyWebServer<SecureHttpServer>;
 using HttpServerAdvanced::WebServerConfig;

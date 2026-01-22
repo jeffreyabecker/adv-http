@@ -6,6 +6,7 @@
 #include "./HttpRequest.h"
 #include "./HandlersBuilder.h"
 #include "./HttpContentTypes.h"
+#include "./HttpRequestHandlerFactory.h"
 #include <any>
 namespace HttpServerAdvanced
 {
@@ -18,12 +19,14 @@ namespace HttpServerAdvanced
     private:
         // static CoreServicesBuilder instance;
 
-        HandlerProviderRegistry handlerFactory_;
+        HandlerProviderRegistry providerRegistry_;
 
         CoreServicesSetupFunc setupFunc_;
         ProviderRegistryBuilder handlersBuilder_;
         HttpContentTypes contentTypes_;
         HttpServerAdvanced::HttpServerBase *server_ = nullptr;
+        HttpRequestHandlerFactory handlerFactory_;
+        
 
         friend std::function<void(HttpServerAdvanced::HttpServerBase &)> CoreServices(std::function<void(CoreServicesBuilder &)> setupFunc);
 

@@ -26,7 +26,7 @@ namespace HttpServerAdvanced
         MethodChecker methodChecker_;
         UriPatternChecker uriPatternChecker_;
         ContentTypeChecker contentTypeChecker_;
-        ArgsExtractor ArgsExtractor_;
+        ArgsExtractor argsExtractor_;
 
         void fixStringCases();
 
@@ -37,7 +37,7 @@ namespace HttpServerAdvanced
 
         // Constructor with custom functions
         HandlerMatcher(const String &uriPattern, MethodChecker methodChecker, UriPatternChecker uriPatternChecker,
-                       ContentTypeChecker contentTypeChecker, ArgsExtractor ArgsExtractor,
+                       ContentTypeChecker contentTypeChecker, ArgsExtractor argsExtractor,
                        const String &allowedMethods = "", const std::initializer_list<String> &allowedContentTypes = {});
 
         // Setters for function objects
@@ -232,7 +232,7 @@ namespace HttpServerAdvanced
     inline HandlerMatcher::HandlerMatcher(const String &uriPattern, const String &allowedMethods, const std::initializer_list<String> &allowedContentTypes)
         : uriPattern_(uriPattern), allowedMethods_(allowedMethods), allowedContentTypes_(allowedContentTypes),
           methodChecker_(defaultCheckMethod), uriPatternChecker_(defaultCheckUriPattern),
-          contentTypeChecker_(defaultCheckContentType), ArgsExtractor_(defaultExtractParameters)
+          contentTypeChecker_(defaultCheckContentType), argsExtractor_(defaultExtractParameters)
     {
         allowedMethods_.toUpperCase();
         for (auto &ct : allowedContentTypes_)
@@ -253,11 +253,11 @@ namespace HttpServerAdvanced
     inline HandlerMatcher::HandlerMatcher(const char *uriPattern) : HandlerMatcher(String(uriPattern)) {}
 
     inline HandlerMatcher::HandlerMatcher(const String &uriPattern, MethodChecker methodChecker, UriPatternChecker uriPatternChecker,
-                                          ContentTypeChecker contentTypeChecker, ArgsExtractor ArgsExtractor,
+                                          ContentTypeChecker contentTypeChecker, ArgsExtractor argsExtractor,
                                           const String &allowedMethods, const std::initializer_list<String> &allowedContentTypes)
         : uriPattern_(uriPattern), allowedMethods_(allowedMethods), allowedContentTypes_(allowedContentTypes),
           methodChecker_(methodChecker), uriPatternChecker_(uriPatternChecker),
-          contentTypeChecker_(contentTypeChecker), ArgsExtractor_(ArgsExtractor)
+          contentTypeChecker_(contentTypeChecker), argsExtractor_(argsExtractor)
     {
         allowedMethods_.toUpperCase();
         for (auto &ct : allowedContentTypes_)
@@ -284,7 +284,7 @@ namespace HttpServerAdvanced
 
     inline void HandlerMatcher::setArgsExtractor(ArgsExtractor extractor)
     {
-        ArgsExtractor_ = extractor;
+        argsExtractor_ = extractor;
     }
 
     inline void HandlerMatcher::setUriPattern(const String &uriPattern)
@@ -342,7 +342,7 @@ namespace HttpServerAdvanced
 
     inline const HandlerMatcher::ArgsExtractor &HandlerMatcher::getArgsExtractor() const
     {
-        return ArgsExtractor_;
+        return argsExtractor_;
     }
 
     // Public methods
@@ -371,7 +371,7 @@ namespace HttpServerAdvanced
 
     inline std::vector<String> HandlerMatcher::extractParameters(HttpRequest &context) const
     {
-        return ArgsExtractor_(context, uriPattern_);
+        return argsExtractor_(context, uriPattern_);
     }
 
     // ParameterizedUri implementation

@@ -9,12 +9,12 @@
 #include "./UriView.h"
 
 namespace HttpServerAdvanced
-{
+{   
+
     class HttpRequest : private HttpServerAdvanced::IPipelineHandler
     {
     public:
-        static constexpr const char *HandlerFactoryServiceName = "HttpRequestHandlerFactory";
-        using HandlerFactoryFunction = std::function<std::unique_ptr<IHttpHandler>(HttpRequest &)>;
+
 
     private:
         std::unique_ptr<IHttpHandler> handler_;
@@ -35,17 +35,13 @@ namespace HttpServerAdvanced
         uint16_t remotePort_;
         IPAddress localIP_;
         uint16_t localPort_;
+        IHttpRequestHandlerFactory& handlerFactory_;
 
         IHttpHandler *tryGetHandler()
         {
             if (!handler_)
             {
-                HandlerFactoryFunction *factoryPtr = server_.getService<HttpRequest::HandlerFactoryFunction>(HttpRequest::HandlerFactoryServiceName);
-                if (!factoryPtr)
-                {
-                    return nullptr;
-                }
-                handler_ = (*factoryPtr)(*this);
+                handler_ = handlerFactory_.create(*this);
             }
             return handler_.get();
         }
@@ -116,7 +112,7 @@ namespace HttpServerAdvanced
 
             if (!response_)
             {
-                response_ = HttpResponse::create(HttpStatus::InternalServerError(), String("Internal Server Error: No response generated"));
+                response_ = handlerFactory_.createResponse(HttpStatus::InternalServerError(), String("Internal Server Error: No response generated"));
             }
             completedPhases_ |= HttpRequestPhase::WritingResponseStarted;
             onStreamReady_(CreateResponseStream(std::move(response_)));
@@ -193,7 +189,7 @@ namespace HttpServerAdvanced
                     break;
                 }
 
-                response_ = HttpResponse::create(status, message + String(error.message()));
+                response_ = handlerFactory_.createResponse(status, message + String(error.message()));
                 sendResponse();
             }
         }
@@ -212,8 +208,8 @@ namespace HttpServerAdvanced
         {
             onStreamReady_ = onStreamReady;
         }
-        HttpRequest(HttpServerAdvanced::HttpServerBase &server)
-            : server_(server), handler_(nullptr), completedPhases_(0),
+        HttpRequest(HttpServerAdvanced::HttpServerBase &server, IHttpRequestHandlerFactory& handlerFactory)
+            : server_(server), handlerFactory_(handlerFactory), handler_(nullptr), completedPhases_(0),
               method_(nullptr), version_(), url_(), headers_(),
               remoteIP_(), remotePort_(0), localIP_(), localPort_(0) {}
         mutable std::unique_ptr<UriView> cachedUriView_;
@@ -253,10 +249,11 @@ namespace HttpServerAdvanced
             std::function<void(HttpServerAdvanced::IPipelineHandler *)>>
         createPipelineHandler(HttpServerAdvanced::HttpServerBase &server)
         {
+            IHttpRequestHandlerFactory& handlerFactory = *server.getService<IHttpRequestHandlerFactory>(IHttpRequestHandlerFactory::ServiceName);
             return std::unique_ptr<
                 HttpServerAdvanced::IPipelineHandler,
                 std::function<void(HttpServerAdvanced::IPipelineHandler *)>>(
-                new HttpRequest(server),
+                new HttpRequest(server, handlerFactory),
                 [](HttpServerAdvanced::IPipelineHandler *p)
                 { delete static_cast<HttpRequest *>(p); });
             ;

@@ -75,7 +75,7 @@ void setupWebServer(WebServer &server)
   handlers.apply(CrossOriginRequestSharing());
   
   handlers.on<Request>("/api/pins/?", onGetPin);
-  handlers.on<Form>("/api/pins/?", onSetPin);
+  handlers.on<Form>("/api/pins/", onSetPin);
   handlers.on<RawBody>("/api/rawData", onRawBody);
   handlers.on<Json>("/api/jsonData", onJsonBody);
 }
