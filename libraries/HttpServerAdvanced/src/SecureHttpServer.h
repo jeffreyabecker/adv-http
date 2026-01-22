@@ -9,21 +9,27 @@
 namespace HttpServerAdvanced
 {
 
-    class SecureHttpServer : public HttpServer<BearSSL::WiFiServerSecure, 443>
+    class SecureHttpServer : public StandardHttpServer<BearSSL::WiFiServerSecure, 443>
     {
+    private:
+        ISecureHttpServerConfig *config_;
+
     public:
-        SecureHttpServer(uint16_t port = 443, const IPAddress &ip = IPAddress(IPADDR_ANY)) : HttpServer<BearSSL::WiFiServerSecure, 443>(port, ip)
+        SecureHttpServer(uint16_t port = 443, const IPAddress &ip = IPAddress(IPADDR_ANY)) : StandardHttpServer<BearSSL::WiFiServerSecure, 443>(port, ip), config_(nullptr)
+        {
+        }
+        SecureHttpServer(ISecureHttpServerConfig &config, uint16_t port = 443, const IPAddress &ip = IPAddress(IPADDR_ANY))
+            : StandardHttpServer<BearSSL::WiFiServerSecure, 443>(port, ip), config_(&config)
         {
         }
         ~SecureHttpServer() override;
 
         void begin() override
         {
-            assert(false && "SecureHttpServer::begin() must be called passing an ISecureHttpServerConfig instance");
+            return begin(*config_);
         }
-        template <typename T,
-                  typename = Restrictions::enable_if_secure_http_server_config_t<T>>
-        void begin(T &config)
+
+        void begin(ISecureHttpServerConfig &config)
         {
             // configure the server before beginning
             configureConnection([&config](BearSSL::WiFiServerSecure *server)
@@ -47,7 +53,7 @@ namespace HttpServerAdvanced
                 assert(false && "SecureHttpServer: Unsupported key type");
             } });
 
-            HttpServer<BearSSL::WiFiServerSecure, 443>::begin();
+            StandardHttpServer<BearSSL::WiFiServerSecure, 443>::begin();
         }
     };
 }

@@ -21,7 +21,7 @@ namespace HttpServerAdvanced
         HandlerProviderRegistry handlerFactory_;
 
         CoreServicesSetupFunc setupFunc_;
-        HandlersBuilder handlersBuilder_;
+        ProviderRegistryBuilder handlersBuilder_;
         HttpContentTypes contentTypes_;
         HttpServerAdvanced::HttpServerBase *server_ = nullptr;
 
@@ -37,9 +37,9 @@ namespace HttpServerAdvanced
 
         CoreServicesBuilder &use(std::function<void(CoreServicesBuilder &)> component);
 
-        HandlerProviderRegistry &handlerFactory();
+        HandlerProviderRegistry &handlerProviders();
 
-        HandlersBuilder &handlers();
+        ProviderRegistryBuilder &handlers();
         HttpContentTypes &contentTypes();
     };
     std::function<void(HttpServerAdvanced::HttpServerBase &)> CoreServices(std::function<void(CoreServicesBuilder &)> setupFunc);

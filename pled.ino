@@ -5,26 +5,41 @@
 #include "./WifiSetup.h"
 #include "./FSSetup.h"
 
-HttpServer server;
-
+WebServer server;
+std::vector<std::pair<String, String>> getPinStates()
+{
+  std::vector<std::pair<String, String>> pinStates;
+  for (int i = 0; i <= 20; i++)
+  {
+    pinStates.push_back({String(i), String(digitalRead(i))});
+  }
+  return pinStates;
+}
 Response onGetPin(HttpRequest &request, std::vector<String> &&params)
 {
   String pin = params.size() > 0 ? params[0] : "unknown";
   float value = request.uriView().queryView().get("mode").value_or("digital") == "analog" ? analogRead(pin.toInt()) : digitalRead(pin.toInt());
   String response = String("Pin ") + pin + " value: " + value + "\n";
-  if (request.items().find("BasicAuth::Username") != request.items().end())
-  {
-    response += "Authenticated user: " + std::any_cast<String>(request.items().at("BasicAuth::Username")) + "\n";
-  }
+
   return HttpResponse::create(HttpStatus::Ok(), response, {{"Content-Type", "text/plain"}});
 }
-Response onFormSubmit(HttpRequest &request, Form::PostBodyData &&bodyData)
+Response onSetPin(HttpRequest &request, std::vector<String> &&params, Form::PostBodyData &&bodyData)
 {
   String response = "Received form data:\n";
-  for (const auto &pair : bodyData.pairs())
+  std::vector<std::pair<int, bool>> pinStates;
+  for (int i = 10; i < 20; i++)
   {
-    response += pair.first + ": " + pair.second + "\n";
+    String pinKey = String(i);
+    auto pinValueOpt = bodyData.get(pinKey);
+    if (pinValueOpt)
+    {
+      bool state = (*pinValueOpt) == "1";
+      pinStates.push_back({i, state});
+      response += "Pin " + pinKey + ": " + (*pinValueOpt) + "\n";
+      digitalWrite(i, state ? HIGH : LOW);
+    }
   }
+
   return HttpResponse::create(HttpStatus::Ok(), response, {{"Content-Type", "text/plain"}});
 }
 Response onRawBody(HttpRequest &request, RawBodyBuffer &&bodyData)
@@ -49,27 +64,43 @@ Response onFileUpload(HttpRequest &request, MultipartFormDataBuffer &&bodyData)
   }
   return HttpResponse::create(HttpStatus::Ok(), response, {{"Content-Type", "text/plain"}});
 }
-void setupWebServer(WebServerBuilder &builder)
+void setupWebServer(WebServer &server)
 {
-  // by default the static files are served at root "/" from "/www" in LittleFS
-  // the path /api/* is excluded from static file serving by default
-  // customize as needed
-  builder.use(StaticFiles(LittleFS));
-  builder.handlers().on<Request>("/api/pins/?", onGetPin);
-  builder.handlers().on<Request>("/api/secure/pins/?", onGetPin).apply(BasicAuth("admin", "password"));
-  builder.handlers().on<Form>("/api/formSubmit", onFormSubmit);
-  builder.handlers().on<RawBody>("/api/rawData", onRawBody);
-  builder.handlers().on<Json>("/api/jsonData", onJsonBody);
-}
+  auto handlers = server.cfg();
+  auto basicAuthFilter = BasicAuth("admin", "password");
+  // Serve static files from LittleFS /www at root. by default all request paths not starting with /api/ will be
+  // mapped to files in /www
+  handlers.use(StaticFiles(LittleFS));
 
+  handlers.apply(CrossOriginRequestSharing());
+  
+  handlers.on<Request>("/api/pins/?", onGetPin);
+  handlers.on<Form>("/api/pins/?", onSetPin);
+  handlers.on<RawBody>("/api/rawData", onRawBody);
+  handlers.on<Json>("/api/jsonData", onJsonBody);
+}
+void setupPins()
+{
+  pinMode(LED_BUILTIN, OUTPUT);
+  for (int i = 0; i < 10; i++)
+  {
+    pinMode(i, INPUT);
+  }
+  for (int i = 10; i < 20; i++)
+  {
+    pinMode(i, OUTPUT);
+  }
+}
 void setup()
 {
   Serial.begin(115200);
   Serial.println("Raspberry Pi Pico initialized!");
   setupFilesystem();
   setupWiFi();
+  setupPins();
 
-  pinMode(LED_BUILTIN, OUTPUT);
+  setupWebServer(server);
+  server.begin();
 }
 
 void loop()

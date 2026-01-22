@@ -5,13 +5,13 @@
 namespace HttpServerAdvanced
 {
     // Forward declaration
-    class HandlersBuilder;
+    class ProviderRegistryBuilder;
 
     template <typename THandler>
     class HandlerBuilder
     {
     private:
-        HandlersBuilder *builder_ = nullptr;
+        ProviderRegistryBuilder *builder_ = nullptr;
         IHttpHandler::Predicate predicate_;
         typename THandler::Invocation invocationCallback_;
         ExtractArgsFromRequest extractor_;
@@ -32,7 +32,7 @@ namespace HttpServerAdvanced
         }
 
     public:
-        HandlerBuilder(HandlersBuilder *builder, IHttpHandler::Predicate predicate,
+        HandlerBuilder(ProviderRegistryBuilder *builder, IHttpHandler::Predicate predicate,
                        typename THandler::InvocationWithoutParams invocationCallback)
             : builder_(builder),
               predicate_(predicate),
@@ -41,7 +41,7 @@ namespace HttpServerAdvanced
         {
         }
 
-        HandlerBuilder(HandlersBuilder *builder, IHttpHandler::Predicate predicate,
+        HandlerBuilder(ProviderRegistryBuilder *builder, IHttpHandler::Predicate predicate,
                        typename THandler::Invocation invocationCallback,
                        ExtractArgsFromRequest extractor)
             : builder_(builder),
@@ -84,13 +84,13 @@ namespace HttpServerAdvanced
             return *this;
         }
 
-        HandlerBuilder &apply(IHttpHandler::InterceptorCallback wrapper)
+        HandlerBuilder &interceptRequest(IHttpHandler::InterceptorCallback wrapper)
         {
             invocationCallback_ = THandler::curryInterceptor(wrapper, invocationCallback_);
             return *this;
         }
 
-        HandlerBuilder &filter(IHttpHandler::Predicate predicate)
+        HandlerBuilder &filterRequest(IHttpHandler::Predicate predicate)
         {
             auto originalPredicate = predicate_;
             predicate_ = [originalPredicate, predicate](HttpRequest &context)
@@ -100,7 +100,7 @@ namespace HttpServerAdvanced
             return *this;
         }
 
-        HandlerBuilder &filterResponse(IHttpResponse::ResponseFilter filter)
+        HandlerBuilder &apply(IHttpResponse::ResponseFilter filter)
         {
             if (!filter)
             {
@@ -120,37 +120,5 @@ namespace HttpServerAdvanced
         }
     };
 
-    // // Define HandlersBuilder template methods that return HandlerBuilder<THandler>
-    // // These are defined here to ensure HandlerBuilder is a complete type at the point of instantiation.
-
-    // template <typename THandler, typename>
-    // HandlerBuilder<THandler> HandlersBuilder::on(HandlerMatcher request, typename THandler::Invocation handler)
-    // {
-    //     THandler::restrict(request);
-    //     return HandlerBuilder<THandler>(this, request, handler);
-    // }
-
-    // template <typename THandler, typename>
-    // HandlerBuilder<THandler> HandlersBuilder::on(HandlerMatcher request, typename THandler::InvocationWithoutParams handler)
-    // {
-    //     THandler::restrict(request);
-    //     return HandlerBuilder<THandler>(this, request, handler);
-    // }
-
-    // template <typename THandler, typename>
-    // HandlerBuilder<THandler> HandlersBuilder::on(const char *path, typename THandler::Invocation handler)
-    // {
-    //     HandlerMatcher request(path);
-    //     THandler::restrict(request);
-    //     return HandlerBuilder<THandler>(this, request, handler);
-    // }
-
-    // template <typename THandler, typename>
-    // HandlerBuilder<THandler> HandlersBuilder::on(const char *path, typename THandler::InvocationWithoutParams handler)
-    // {
-    //     HandlerMatcher request(path);
-    //     THandler::restrict(request);
-    //     return HandlerBuilder<THandler>(this, request, THandler::curryWithoutParams(handler));
-    // }
 
 } // namespace HttpServerAdvanced

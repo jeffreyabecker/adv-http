@@ -19,7 +19,7 @@ namespace HttpServerAdvanced
         {
             setupFunc_(*this);
         }
-        auto &handlerFactory = coreBuilder.handlerFactory();
+        auto &handlerFactory = coreBuilder.handlerProviders();
         handlerFactory.add(fileHandlerFactory_, HandlerProviderRegistry::AddAt::Beginning);
     }
 

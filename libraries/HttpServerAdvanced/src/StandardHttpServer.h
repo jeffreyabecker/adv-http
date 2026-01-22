@@ -6,13 +6,14 @@
 
 namespace HttpServerAdvanced
 {
-    template <typename TServer = WiFiServer,  uint16_t DefaultPort = 80>
-    class HttpServer : public HttpServerAdvanced::HttpServerBase
+    template <typename TServer = WiFiServer,  uint16_t DEFAULT_PORT = 80>
+    class StandardHttpServer : public HttpServerAdvanced::HttpServerBase
     {
     protected:
 
     public:
-        HttpServer(uint16_t port = DefaultPort, const IPAddress &ip = IPAddress(IPADDR_ANY))
+        static constexpr uint16_t DefaultPort = DEFAULT_PORT;
+        StandardHttpServer(uint16_t port = DefaultPort, const IPAddress &ip = IPAddress(IPADDR_ANY))
             : server_(ip, port)
         {
         }

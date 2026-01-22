@@ -79,17 +79,21 @@ namespace HttpServerAdvanced
                                                    { return true; }); }, position);
     }
 
-    void HandlerProviderRegistry::setGlobalRequestFilter(IHttpHandler::Predicate predicate)
+    void HandlerProviderRegistry::filterRequest(IHttpHandler::Predicate predicate)
     {
-        globalRequestFilter_ = predicate;
+        if( globalRequestFilter_)
+        {
+            auto previousFilter = globalRequestFilter_;
+            globalRequestFilter_ = [previousFilter, predicate](HttpRequest &context) -> bool
+            {
+                return previousFilter(context) && predicate(context);
+            };
+        }
+        else{
+            globalRequestFilter_ = predicate;
+        }
     }
-
-    void HandlerProviderRegistry::getGlobalRequestFilter(IHttpHandler::Predicate &predicate)
-    {
-        predicate = globalRequestFilter_;
-    }
-
-    void HandlerProviderRegistry::addResponseFilter(IHttpResponse::ResponseFilter filter)
+    void HandlerProviderRegistry::apply(IHttpResponse::ResponseFilter filter)
     {
         if (globalResponseFilter_)
         {
@@ -102,6 +106,22 @@ namespace HttpServerAdvanced
         else
         {
             globalResponseFilter_ = filter;
+        }
+    }
+    void HandlerProviderRegistry::interceptRequest(IHttpHandler::InterceptorCallback interceptor)
+    {
+        if (globalRequestInterceptor_)
+        {
+            auto previousInterceptor = globalRequestInterceptor_;
+            globalRequestInterceptor_ = [previousInterceptor, interceptor](HttpRequest &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+            {
+                return interceptor(context, [previousInterceptor, next](HttpRequest &ctx) -> IHttpHandler::HandlerResult
+                                   { return previousInterceptor(ctx, next); });
+            };
+        }
+        else
+        {
+            globalRequestInterceptor_ = interceptor;
         }
     }
 

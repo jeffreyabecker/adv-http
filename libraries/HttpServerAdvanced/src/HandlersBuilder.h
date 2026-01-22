@@ -14,7 +14,7 @@ namespace HttpServerAdvanced
     // Forward declaration
     template <typename THandler> class HandlerBuilder;
 
-    class HandlersBuilder
+    class ProviderRegistryBuilder
     {
     public:
         using AddPosition = int;
@@ -25,20 +25,20 @@ namespace HttpServerAdvanced
         };
 
     private:
-        HandlerProviderRegistry &factory_;
+        HandlerProviderRegistry &providerRegistry_;
         std::vector<std::unique_ptr<IHandlerProvider>> handlerItems_;
 
     public:
-        HandlersBuilder(HandlerProviderRegistry &factory) : factory_(factory) {}
-        ~HandlersBuilder() = default;
+        ProviderRegistryBuilder(HandlerProviderRegistry &factory) : providerRegistry_(factory) {}
+        ~ProviderRegistryBuilder() = default;
 
         void add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, AddPosition position = AddAt::End)
         {
-           factory_.add(predicate, handler, position);
+           providerRegistry_.add(predicate, handler, position);
         }
         void add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End)
         {
-            factory_.add(predicate, invocation, position);
+            providerRegistry_.add(predicate, invocation, position);
         }
 
         void on(HandlerMatcher &request, IHttpHandler::Factory handler);
@@ -81,7 +81,7 @@ namespace HttpServerAdvanced
 
         void onNotFound(IHttpHandler::InvocationCallback invocation)
         {
-            factory_.setDefaultHandlerFactory([invocation](HttpRequest &context)
+            providerRegistry_.setDefaultHandlerFactory([invocation](HttpRequest &context)
                                               { return std::make_unique<HttpHandler>(invocation, [](const HttpRequest &)
                                                                                      { return true; }); });
         }

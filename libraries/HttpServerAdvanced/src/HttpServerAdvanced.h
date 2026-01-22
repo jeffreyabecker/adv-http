@@ -13,13 +13,14 @@
 #include "./BasicAuthentication.h"
 #include "./CrossOriginRequestSharing.h"
 #include "./StaticFilesBuilder.h"
+#include "./WebServer.h"
 
 using HttpServerAdvanced::CoreServices;
 
-using HttpServerAdvanced::HttpServer;
+using HttpServerAdvanced::StandardHttpServer;
 using HttpServerAdvanced::SecureHttpServer;
 using HttpServerAdvanced::SecureHttpServerConfig;
-using WebServerBuilder = HttpServerAdvanced::CoreServicesBuilder;
+using HttpServerAdvanced::CoreServicesBuilder;
 using HttpServerAdvanced::Form;
 using HttpServerAdvanced::RawBody;
 using HttpServerAdvanced::Request;
@@ -48,3 +49,5 @@ using Uri = HttpServerAdvanced::HandlerMatcher;
 using HttpServerAdvanced::RawBodyBuffer;
 using HttpServerAdvanced::MultipartFormDataBuffer;
 using HttpServerAdvanced::MultipartStatus;
+using HttpServerAdvanced::WebServer;
+using HttpServerAdvanced::WebServerConfig;

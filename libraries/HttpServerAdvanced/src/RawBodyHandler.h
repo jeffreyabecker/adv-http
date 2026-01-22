@@ -14,7 +14,7 @@ namespace HttpServerAdvanced
         size_t contentLength_{0};
 
     public:
-        RawBodyBuffer(size_t receivedLength, size_t contentLength, const uint8_t *data, size_t size) 
+        RawBodyBuffer(size_t receivedLength, size_t contentLength, const uint8_t *data, size_t size)
             : Buffer(data, size), receivedLength_(receivedLength), contentLength_(contentLength) {}
         size_t receivedLength() const { return receivedLength_; }
         size_t contentLength() const { return contentLength_; }
@@ -66,5 +66,64 @@ namespace HttpServerAdvanced
             receivedLength_ += length;
         }
     };
+    class RawBody
+    {
+    public:
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, RawBodyBuffer)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, RawBodyBuffer)>;
 
+        static Invocation curryWithoutParams(InvocationWithoutParams handler)
+        {
+            return [handler](HttpRequest &context, std::vector<String> &, RawBodyBuffer buffer)
+            {
+                return handler(context, buffer);
+            };
+        }
+
+        static IHttpHandler::Factory makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
+        {
+            return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
+            {
+                auto params = extractor(context);
+                // Create a handler that adapts RawBodyBuffer to raw parameters
+                std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, RawBodyBuffer)> bufferHandler =
+                    [handler](HttpRequest &ctx, std::vector<String> &params, RawBodyBuffer buffer)
+                {
+                    return handler(ctx, params, buffer);
+                };
+                return std::make_unique<RawBodyHandler>(bufferHandler, ExtractArgsFromRequest([params](HttpRequest &c)
+                                                                                              { return params; }));
+            };
+        }
+
+        static Invocation curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
+        {
+            return [interceptor, handler](HttpRequest &context, std::vector<String> &params, RawBodyBuffer buffer)
+            {
+                return interceptor(context, [handler, &params, buffer](HttpRequest &context)
+                                   { return handler(context, params, buffer); });
+            };
+        }
+
+        static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
+        {
+            return [interceptor, handler](HttpRequest &context, std::vector<String> &params, RawBodyBuffer buffer)
+            {
+                return interceptor(context, [handler, &params, &buffer](HttpRequest &context)
+                                   { return handler(context, params, buffer); });
+            };
+        }
+
+        static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
+        {
+            return [filter, handler](HttpRequest &context, std::vector<String> &params, RawBodyBuffer buffer)
+            {
+                auto response = handler(context, params, buffer);
+                return filter(std::move(response));
+            };
+        }
+        static void restrict(HandlerMatcher &baseUri)
+        {
+        }
+    };
 } // namespace HttpServerAdvanced
