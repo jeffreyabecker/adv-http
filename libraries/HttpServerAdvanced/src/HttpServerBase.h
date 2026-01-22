@@ -63,9 +63,14 @@ namespace HttpServerAdvanced
         }
         void setPipelineHandlerFactory(std::function<PipelineHandlerPtr(HttpServerBase &)> factory);
 
+        // Accessors for concurrent connection limits
+        size_t activeConnections() const { return pipelines_.size(); }
+        static constexpr size_t maxConcurrentConnections() { return MAX_CONCURRENT_CONNECTIONS; }
+
     protected:
         std::function<PipelineHandlerPtr(HttpServerBase &)> pipelineHandlerFactory_;
-        std::unique_ptr<HttpPipeline> currentPipeline_;
+        // Multiple concurrent pipelines (one per accepted client)
+        std::vector<std::unique_ptr<HttpPipeline>> pipelines_;
         HttpTimeouts timeouts_;
         mutable std::map<String, std::any> items_;
 

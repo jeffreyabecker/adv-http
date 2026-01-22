@@ -1,218 +1,114 @@
-# HttpServerAdvanced Memory Analysis
+# Memory Analysis: HttpServerAdvanced
 
-## Static (Compile-Time) Memory
+## Fixed Per-Request Buffer Allocations (Static)
 
-| Component | Size | Notes |
-|-----------|------|-------|
-| `RequestParser::buffer_` | **1,024 B** | `std::array<char, REQUEST_PARSER_BUFFER_LENGTH>` — fixed buffer for URI/headers during parsing |
-| `ChunkedHttpResponseBodyStream` | **~20 B** | State machine with 12-byte header buffer (no large chunk buffer) |
-| `http_parser` struct | ~80 B | Part of `RequestParser` |
-| `http_parser_settings` struct | ~64 B | Part of `RequestParser` |
-| **Total static per-pipeline** | **~1.2 KB** | |
+| Component | Size | Location |
+|-----------|------|----------|
+| `RequestParser::buffer_` | **1024 B** | `std::array<char, REQUEST_PARSER_BUFFER_LENGTH>` |
+| `http_parser` struct | ~144 B | Part of `RequestParser` |
+| `http_parser_settings` | ~80 B | Part of `RequestParser` |
+| Pipeline control state | ~64 B | Booleans, timestamps, pointers |
+| **Total fixed per-pipeline** | **~1.3 KB** | |
 
-## Multipart Form Data Handler Memory
-
-The `MultipartFormDataHandler` adds additional memory usage when processing `multipart/form-data` requests (file uploads):
-
-| Component | Size | Notes |
-|-----------|------|-------|
-| `buffer_` | **1,436 B** | `MULTIPART_FORM_DATA_BUFFER_SIZE` — fixed buffer for boundary detection |
-| `boundary_` | ~40–70 B typical | Parsed from Content-Type header |
-| `filename_`, `contentType_`, `partName_` | Variable | Heap strings for current part metadata |
-| `partData_` | Variable | `std::vector<uint8_t>` accumulates data between handler callbacks |
-| **Total static** | **~1.5 KB** | Plus heap for part metadata strings |
-
-### Streaming Design
-
-The multipart handler is designed for **memory-efficient large file uploads**:
-
-1. **Chunked delivery** — Parts are streamed to the handler in chunks, not buffered entirely
-2. **Status tracking** — `MultipartStatus` enum indicates `FirstChunk`, `SubsequentChunk`, or `FinalChunk`
-3. **Handler called multiple times** — For large files, the handler receives many callbacks with partial data
-4. **Boundary tail retention** — Only keeps `boundary_.length() + 4` bytes (~44 B) as tail buffer to detect split boundaries
-
-Example handler for streaming file upload:
-
-```cpp
-server.on(HttpMethod::POST, "/upload",
-    HttpServerAdvanced::Multipart::makeFactory(
-        [](HttpRequest &req, std::vector<String> &params, MultipartFormDataBuffer buffer) {
-            if (buffer.status() == MultipartStatus::FirstChunk) {
-                // Open file for writing
-            }
-            // Write buffer.data() / buffer.size() to file
-            if (buffer.status() == MultipartStatus::FinalChunk) {
-                // Close file
-            }
-            return nullptr; // Continue processing
-        },
-        HttpServerAdvanced::Matchers::none()));
-```
-
-## Stack Memory (During Request Processing)
-
-| Component | Size | Notes |
-|-----------|------|-------|
-| `readFromClientIntoParser()` buffer | **256 B** | `PIPELINE_STACK_BUFFER_SIZE` — stack-allocated during read loop |
-| `writeResponseToClientFromStream()` buffer | **256 B** | Stack-allocated during write loop |
-
-## Dynamic (Heap) Allocations Per-Request
-
-| Allocation | When | Max Size | Bounded? |
-|------------|------|----------|----------|
-| **URL String** | `onMessageBegin` | `MAX_REQUEST_URI_LENGTH` (1,024 B) | ✅ Yes |
-| **Header name Strings** (×N) | `onHeader` callback | `MAX_REQUEST_HEADER_NAME_LENGTH` (64 B) each | ✅ Yes |
-| **Header value Strings** (×N) | `onHeader` callback | `MAX_REQUEST_HEADER_VALUE_LENGTH` (256 B) each | ✅ Yes |
-| **Header count** | `onHeader` | `MAX_REQUEST_HEADER_COUNT` (32) | ✅ Yes |
-| `HttpHeadersCollection` (vector) | `HttpRequest` construction | 32 × (64 + 256 + ~16 overhead) ≈ **11 KB worst case** | ✅ Bounded |
-| `BufferingHttpHandlerBase::bodyBuffer_` | `handleBodyChunk` | `MAX_BUFFERED_BODY_LENGTH` (2,048 B or uncapped if negative) | ⚠️ Configurable |
-| Response body stream | Handler returns response | **Unbounded** (user-supplied) | ❌ Handler's responsibility |
-
-## Potential Unbounded Allocations
-
-1. **Response body** — The handler can create an `HttpResponse` with an arbitrarily large `String` or `Stream`. This is outside the library's control.
-
-2. **`BufferingHttpHandlerBase` body buffer** — Now bounded by `MAX_BUFFERED_BODY_LENGTH` (defaults to 2 KB). If set negative, it's uncapped.
-
-3. **Streaming request body** — Body chunks are passed directly to the handler via `onBody`; the library itself does **not** buffer them (unless `BufferingHttpHandlerBase` is used).
-
-## Memory Profile Summary
-
-| Scenario | Heap Usage (Parsing Phase) |
-|----------|---------------------------|
-| **Minimal request** (GET, no body, ~5 headers) | ~1.5 KB |
-| **Average request** (GET/POST, ~15 headers, small body buffered) | ~5–8 KB |
-| **Maximum request** (32 headers at max lengths, 2 KB body buffered) | ~13 KB |
-| **Multipart file upload** (streaming, per-chunk) | ~3 KB + handler's usage |
-
-## Key Observations
-
-1. **Parsing is bounded** — The `RequestParser` uses a single fixed buffer (`REQUEST_PARSER_BUFFER_LENGTH` = 1,024 B) and enforces length limits on URI, header names, and header values. Oversized data returns an error.
-
-2. **Header storage is the main heap cost** — `HttpHeadersCollection` is a `std::vector<HttpHeader>` where each `HttpHeader` holds two `String` objects. With 32 headers at max lengths, this can reach ~11 KB.
-
-3. **Body buffering is now bounded** — `BufferingHttpHandlerBase` respects `MAX_BUFFERED_BODY_LENGTH` (2 KB default). Setting it to 0 disables buffering entirely; negative means uncapped.
-
-4. **No allocations during chunk parsing** — The parser accumulates into its fixed buffer and only allocates `String` objects at handoff points (URL complete, header complete).
-
-5. **Response memory is handler-controlled** — The library streams responses efficiently but cannot prevent handlers from allocating large response bodies.
-
-6. **Chunked encoding is buffer-free** — `ChunkedHttpResponseBodyStream` uses a state machine to emit chunk headers/trailers on-the-fly, streaming body bytes directly from the inner stream without buffering entire chunks. This saves ~1.4 KB per response compared to the previous buffered implementation.
-
-7. **Multipart uploads stream efficiently** — Large file uploads are delivered to handlers in chunks (~1.4 KB each), with `MultipartStatus` indicating `FirstChunk`/`SubsequentChunk`/`FinalChunk`. Handlers can write directly to flash/SD without buffering entire files.
-
-## Configurable Limits (Defines.h)
-
-| Macro Override | Default | Description |
-|----------------|---------|-------------|
-| `HTTPSERVER_ADVANCED_PIPELINE_STACK_BUFFER_SIZE` | 256 B | Stack buffer for read/write loops |
-| `HTTPSERVER_ADVANCED_MULTIPART_FORM_DATABUFFER_SIZE` | 1,436 B | Multipart boundary detection buffer |
-| `HTTPSERVER_ADVANCED_MAX_REQUEST_URI_LENGTH` | 1,024 B | Maximum URL length |
-| `HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_COUNT` | 32 | Maximum number of headers |
-| `HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_NAME_LENGTH` | 64 B | Maximum header name length |
-| `HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_VALUE_LENGTH` | 256 B | Maximum header value length |
-| `HTTPSERVER_ADVANCED_REQUEST_PARSER_BUFFER_LENGTH` | max(URI, name+value) | Parser scratch buffer (1,024 B default) |
-| `HTTPSERVER_ADVANCED_MAX_BUFFERED_BODY_LENGTH` | 2,048 B | Body buffering limit (0=disabled, <0=uncapped) |
-| `ETHERNET_FRAME_BUFFER_SIZE` | 1,436 B | Max chunk data size for chunked encoding |
-
-## Recommendations for Memory-Constrained Devices
-
-The current defaults are already tuned for memory-constrained devices:
-- 32 headers max (reduced from 100)
-- 256 B header values (reduced from 512)
-- 256 B stack buffers (reduced from 1,436)
-- Worst-case ~13 KB (reduced from ~62 KB)
-
-For **extreme memory constraints** (e.g., ESP8266 with 80 KB):
-
-1. **Reduce header count further**: Set `HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_COUNT` to 16–20
-2. **Disable body buffering**: Set `HTTPSERVER_ADVANCED_MAX_BUFFERED_BODY_LENGTH` to 0 and handle body chunks directly
-3. **Reduce URI length**: If your endpoints have short paths, reduce `HTTPSERVER_ADVANCED_MAX_REQUEST_URI_LENGTH` to 256–512
-
-Example ultra-minimal configuration:
-
-```cpp
-#define HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_COUNT 16
-#define HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_NAME_LENGTH 48
-#define HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_VALUE_LENGTH 128
-#define HTTPSERVER_ADVANCED_MAX_REQUEST_URI_LENGTH 256
-#define HTTPSERVER_ADVANCED_MAX_BUFFERED_BODY_LENGTH 0
-```
-
-This reduces worst-case heap usage to ~4 KB per request.
+These are allocated once per active connection and reused for the lifetime of that connection.
 
 ---
 
-## Design Analysis: Static vs Dynamic Buffer for URL/Header Parsing
+## Dynamic Allocations During Parsing
 
-### Current Approach: Fixed Static Buffer (1,024 B)
+### Bounded Allocations (Safe)
+
+| Field | Max Size | Bounds Check |
+|-------|----------|--------------|
+| `url_` (String) | 1024 B | `MAX_REQUEST_URI_LENGTH` enforced in parser |
+| Header name | 64 B | `MAX_REQUEST_HEADER_NAME_LENGTH` |
+| Header value | 256 B | `MAX_REQUEST_HEADER_VALUE_LENGTH` |
+| Header count | 32 headers | `MAX_REQUEST_HEADER_COUNT` |
+
+**Maximum headers allocation**: 32 × (64 + 256 + ~48 String overhead) ≈ **11.8 KB**
+
+### ⚠️ Unbounded Allocations
+
+| Component | Risk | Mitigation |
+|-----------|------|------------|
+| `HttpHeadersCollection` | `std::vector` grows with headers | Bounded to 32 headers, safe |
+| `BufferingHttpHandlerBase::bodyBuffer_` | `std::vector<uint8_t>` | Bounded by `MaxBuffered` template param (default 2 KB) |
+| `std::map<String, std::any> items_` | User-extensible | **Application-dependent** - user must manage |
+
+**There are no truly unbounded allocations during HTTP parsing itself.** All parser-driven allocations have configurable limits.
+
+---
+
+## Per-Request Memory Summary
+
+### Minimum Request (GET, no body, 3 headers)
+| Component | Bytes |
+|-----------|-------|
+| Fixed parser buffer | 1,024 |
+| Parser structs | 224 |
+| URL String (~50 chars) | ~70 |
+| 3 headers | ~300 |
+| **Total** | **~1.6 KB** |
+
+### Maximum Request (POST, full body, 32 headers)
+| Component | Bytes |
+|-----------|-------|
+| Fixed parser buffer | 1,024 |
+| Parser structs | 224 |
+| URL String (1024 chars) | ~1,050 |
+| 32 headers (max sizes) | ~11,800 |
+| Body buffer (default max) | 2,048 |
+| **Total** | **~16 KB** |
+
+### Average Request (typical browser GET)
+Browsers send ~8-12 headers. Typical URL is 100-200 chars.
+| Component | Bytes |
+|-----------|-------|
+| Fixed parser buffer | 1,024 |
+| Parser structs | 224 |
+| URL String (~150 chars) | ~175 |
+| 10 headers (avg 30+80) | ~1,300 |
+| **Total** | **~2.7 KB** |
+
+---
+
+## Multi-Connection Scaling
+
+With `MAX_CONCURRENT_CONNECTIONS = N`:
+- **Fixed memory**: N × 1.3 KB = **1.3×N KB**
+- **Peak memory**: N × 16 KB = **16×N KB**
+- **Typical memory**: N × 2.7 KB ≈ **2.7×N KB**
+
+| Connections | Fixed | Typical | Peak |
+|-------------|-------|---------|------|
+| 1 (default) | 1.3 KB | 2.7 KB | 16 KB |
+| 2 | 2.6 KB | 5.4 KB | 32 KB |
+| 4 | 5.2 KB | 10.8 KB | 64 KB |
+
+---
+
+## Key Configurable Limits
+
+All can be overridden via preprocessor defines:
 
 ```cpp
-RequestParser::buffer_ = std::array<char, REQUEST_PARSER_BUFFER_LENGTH>
+#define HTTPSERVER_ADVANCED_REQUEST_PARSER_BUFFER_LENGTH  1024  // Fixed parse buffer
+#define HTTPSERVER_ADVANCED_MAX_REQUEST_URI_LENGTH        1024  // URL cap
+#define HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_COUNT      32    // Header count
+#define HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_NAME_LENGTH  64  // Header name
+#define HTTPSERVER_ADVANCED_MAX_REQUEST_HEADER_VALUE_LENGTH 256 // Header value
+#define HTTPSERVER_ADVANCED_MAX_BUFFERED_BODY_LENGTH      2048  // Body buffer
+#define HTTPSERVER_ADVANCED_MAX_CONCURRENT_CONNECTIONS    1     // Pipelines
 ```
 
-**Pros:**
-- Zero heap allocations during parsing phase
-- No fragmentation risk
-- Predictable memory footprint
-- Single memcpy per field vs. multiple String reallocations
-- Works well with streaming parsers (data arrives in chunks)
+---
 
-**Cons:**
-- Always consumes 1,024 B even for tiny requests
-- Wasted for typical requests (GET with ~200-byte URL, small headers)
+## Comparison: Dynamic vs Static Strategy
 
-### Alternative: Dynamic Allocation (e.g., `String` directly)
+The library uses a **hybrid approach**:
 
-```cpp
-String url_;  // grows as chunks arrive
-String headerName_, headerValue_;
-```
+1. **Static**: `RequestParser::buffer_` is a fixed `std::array` - no fragmentation risk during parsing
+2. **Dynamic but bounded**: Headers and URL use `String` but are size-checked before allocation
+3. **Streaming-first**: Body data is streamed to handlers by default, not buffered
 
-**Pros:**
-- Only allocates what's needed
-- A 50-byte URL uses ~50 bytes, not 1,024
-- Average request memory could drop by 500–800 B
-
-**Cons:**
-- **Fragmentation risk**: Multiple `String::concat()` calls can fragment the heap, especially on embedded systems without a compacting allocator
-- **Reallocation overhead**: Each append may trigger `realloc()`, copying data
-- **Unpredictable latency**: Memory allocation during parsing can stall
-- **Arduino String pitfalls**: On ESP8266/ESP32, `String` uses a doubling strategy that can temporarily use 3× the final size
-
-### Quantitative Comparison
-
-| Scenario | Static Buffer | Dynamic (String) | Notes |
-|----------|--------------|------------------|-------|
-| Minimal GET (50-byte URL, 5 small headers) | 1,024 B static | ~300 B heap | Dynamic wins |
-| Average request (200-byte URL, 15 headers) | 1,024 B static | ~800 B heap + fragmentation | Roughly equal |
-| Max request (1 KB URL, 100 headers) | 1,024 B static | 1 KB heap (URL alone) | Static wins (no fragmentation) |
-
-### Hybrid Approach (Potential Optimization)
-
-A **small inline buffer with overflow to heap** could be considered:
-
-```cpp
-// Small buffer for typical cases, heap fallback for large
-static constexpr size_t INLINE_SIZE = 256;
-char inlineBuffer_[INLINE_SIZE];
-String overflow_;  // only allocated if needed
-```
-
-This would:
-- Handle 90%+ of URLs without heap allocation
-- Only touch the heap for unusually long URLs/headers
-- Reduce static footprint from 1,024 B to 256 B
-
-### Verdict
-
-| Factor | Winner | Why |
-|--------|--------|-----|
-| Worst-case predictability | Static | No fragmentation, bounded |
-| Average-case efficiency | Dynamic | Typical requests use less |
-| Real-time/latency | Static | No malloc during parse |
-| Long-running stability | Static | Fragmentation accumulates over time |
-
-**Conclusion**: The current static buffer is the **safer choice** for an HTTP server that must run indefinitely without reboot. The ~800 B average savings from dynamic allocation isn't worth the fragmentation risk on embedded systems without virtual memory.
-
-The hybrid approach with a 256-byte inline buffer could be considered if profiling shows memory pressure in real workloads, but adds implementation complexity.
+This design prevents heap fragmentation on long-running embedded systems while allowing reasonable flexibility for varying request sizes.

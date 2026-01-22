@@ -52,14 +52,6 @@ namespace HttpServerAdvanced
         }
     }
 
-    IHttpHandler::InterceptorCallback BasicAuth(const String &expectedUsername, const String &expectedPassword, const String &realm = "Restricted Area", std::function<void(const String &, const String &)> onSuccess = nullptr)
-    {
-        return BasicAuth([expectedUsername, expectedPassword](const String & foundUsername, const String & foundPassword)
-                               {
-                                   return foundUsername == expectedUsername && foundPassword == expectedPassword;
-                               }, realm, onSuccess);
-    }
-
     IHttpHandler::InterceptorCallback BasicAuth(std::function<bool(const String &, const String &)> validator, const String &realm = "Restricted Area", std::function<void(const String &, const String &)> onSuccess = nullptr)
     {
         return [validator, &realm, onSuccess](HttpRequest &context, IHttpHandler::InvocationCallback next)
@@ -75,5 +67,15 @@ namespace HttpServerAdvanced
                 return response;
             }
         };
+    }
+
+    IHttpHandler::InterceptorCallback BasicAuth(const String &expectedUsername, const String &expectedPassword, const String &realm = "Restricted Area", std::function<void(const String &, const String &)> onSuccess = nullptr)
+    {
+        // Explicitly construct std::function to avoid overload ambiguity
+        std::function<bool(const String &, const String &)> validator = [expectedUsername, expectedPassword](const String & foundUsername, const String & foundPassword)
+        {
+            return foundUsername == expectedUsername && foundPassword == expectedPassword;
+        };
+        return BasicAuth(validator, realm, onSuccess);
     }
 } // namespace HttpServerAdvanced

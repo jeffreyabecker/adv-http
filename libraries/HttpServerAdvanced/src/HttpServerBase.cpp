@@ -2,37 +2,37 @@
 
 namespace HttpServerAdvanced {
 
-HttpServerBase::HttpServerBase()
-    : pipelineHandlerFactory_(nullptr),
-      currentPipeline_(nullptr) {
-}
+HttpServerBase::HttpServerBase() : pipelineHandlerFactory_(nullptr) {}
 
 HttpServerBase::~HttpServerBase() {
     end();
 }
 
 void HttpServerBase::handleClient() {
-    if (pipelineHandlerFactory_) {
-        if (!currentPipeline_) {
-            std::unique_ptr<IClient> accepted = accept();
-            if (accepted) {
-                PipelineHandlerPtr handler = pipelineHandlerFactory_(*this);
-                currentPipeline_ = std::make_unique<HttpPipeline>(
-                    std::move(accepted),
-                    *this,
-                    timeouts_,
-                    std::move(handler));
-            }
-        }
-        if (currentPipeline_) {
-            auto result = currentPipeline_->handleClient();
-            if (isPipelineHandleClientResultFinal(result)) {
-                currentPipeline_ = nullptr;
-            }
-        }
-    }
-    else {
+    if (!pipelineHandlerFactory_) {
         assert(false && "No Pipeline Handler Factory was setup");
+        return;
+    }
+
+    // Accept new connections up to the configured maximum
+    while (pipelines_.size() < HttpServerAdvanced::MAX_CONCURRENT_CONNECTIONS) {
+        std::unique_ptr<IClient> accepted = accept();
+        if (!accepted) {
+            break;
+        }
+        PipelineHandlerPtr handler = pipelineHandlerFactory_(*this);
+        pipelines_.emplace_back(std::make_unique<HttpPipeline>(std::move(accepted), *this, timeouts_, std::move(handler)));
+    }
+
+    // Service existing pipelines. Remove finished ones.
+    for (size_t i = 0; i < pipelines_.size();) {
+        auto result = pipelines_[i]->handleClient();
+        if (isPipelineHandleClientResultFinal(result)) {
+            // Erase finished pipeline
+            pipelines_.erase(pipelines_.begin() + i);
+        } else {
+            ++i;
+        }
     }
 }
 
@@ -40,7 +40,8 @@ void HttpServerBase::begin() {
 }
 
 void HttpServerBase::end() {
-    currentPipeline_ = nullptr;
+    // Close and drop all pipelines
+    pipelines_.clear();
 }
 
 HttpTimeouts &HttpServerBase::timeouts() {
