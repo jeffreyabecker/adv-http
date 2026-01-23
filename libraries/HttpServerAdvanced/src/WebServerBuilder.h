@@ -28,10 +28,12 @@ namespace HttpServerAdvanced
     public:
         void init()
         {
-            server_.setPipelineHandlerFactory(HttpRequest::createPipelineHandler);
-            server_.addService<HandlerProviderRegistry *>(server_, HandlerProviderRegistry::ServiceName, &providerRegistry_);
-            server_.addService<IHttpRequestHandlerFactory *>(server_, IHttpRequestHandlerFactory::ServiceName, &handlerFactory_);
-            server_.addService<HttpContentTypes *>(server_, HttpContentTypes::ServiceName, &contentTypes_);
+            server_.setPipelineHandlerFactory([this](HttpServerBase &server) {
+                return HttpRequest::createPipelineHandler(server, handlerFactory_);
+            });
+            // server_.addService<HandlerProviderRegistry *>(server_, HandlerProviderRegistry::ServiceName, &providerRegistry_);
+            // server_.addService<IHttpRequestHandlerFactory *>(server_, IHttpRequestHandlerFactory::ServiceName, &handlerFactory_);
+            // server_.addService<HttpContentTypes *>(server_, HttpContentTypes::ServiceName, &contentTypes_);
         }
 
 

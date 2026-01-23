@@ -251,9 +251,9 @@ namespace HttpServerAdvanced
         static std::unique_ptr<
             HttpServerAdvanced::IPipelineHandler,
             std::function<void(HttpServerAdvanced::IPipelineHandler *)>>
-        createPipelineHandler(HttpServerAdvanced::HttpServerBase &server)
+        createPipelineHandler(HttpServerAdvanced::HttpServerBase &server, IHttpRequestHandlerFactory& handlerFactory)
         {
-            IHttpRequestHandlerFactory& handlerFactory = *server.getService<IHttpRequestHandlerFactory>(IHttpRequestHandlerFactory::ServiceName);
+
             return std::unique_ptr<
                 HttpServerAdvanced::IPipelineHandler,
                 std::function<void(HttpServerAdvanced::IPipelineHandler *)>>(

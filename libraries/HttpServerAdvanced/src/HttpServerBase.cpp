@@ -52,22 +52,22 @@ void HttpServerBase::setTimeouts(const HttpTimeouts &timeouts) {
     timeouts_ = timeouts;
 }
 
-std::map<String, std::any> &HttpServerBase::items() const {
-    return items_;
-}
+// std::map<String, std::any> &HttpServerBase::items() const {
+//     return items_;
+// }
 
-bool HttpServerBase::hasService(const String &serviceName) const {
-    return items_.find(serviceName) != items_.end();
-}
+// bool HttpServerBase::hasService(const String &serviceName) const {
+//     return items_.find(serviceName) != items_.end();
+// }
 
-HttpServerBase &HttpServerBase::use(std::function<void(HttpServerBase &)> setupFunc) {
-    setupFunc(static_cast<HttpServerBase &>(*this));
-    return static_cast<HttpServerBase &>(*this);
-}
+// HttpServerBase &HttpServerBase::use(std::function<void(HttpServerBase &)> setupFunc) {
+//     setupFunc(static_cast<HttpServerBase &>(*this));
+//     return static_cast<HttpServerBase &>(*this);
+// }
 
-void HttpServerBase::addService(HttpServerBase &server, const String &serviceName, std::any serviceInstance) {
-    items_[serviceName] = serviceInstance;
-}
+// void HttpServerBase::addService(HttpServerBase &server, const String &serviceName, std::any serviceInstance) {
+//     items_[serviceName] = serviceInstance;
+// }
 
 void HttpServerBase::setPipelineHandlerFactory(std::function<PipelineHandlerPtr(HttpServerBase &)> factory) {
     pipelineHandlerFactory_ = factory;
