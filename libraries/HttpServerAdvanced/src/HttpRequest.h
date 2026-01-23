@@ -219,19 +219,21 @@ namespace HttpServerAdvanced
     public:
         ~HttpRequest() = default;
 
-        HttpServerAdvanced::HttpServerBase &server() { return server_; }
-        HttpRequestPhaseFlags completedPhases() const { return completedPhases_; }
+        inline HttpServerAdvanced::HttpServerBase &server() { return server_; }
+        inline HttpRequestPhaseFlags completedPhases() const { return completedPhases_; }
 
         // Merged accessor methods from HttpRequest
-        const String &version() const { return version_; }
-        const char *method() const { return method_; }
-        const String &url() const { return url_; }
-        const HttpHeaderCollection &headers() const { return headers_; }
-        IPAddress remoteIP() { return remoteIP_; }
-        uint16_t remotePort() { return remotePort_; }
-        IPAddress localIP() { return localIP_; }
-        uint16_t localPort() { return localPort_; }
-        std::map<String, std::any> &items() const;
+        inline const String &version() const { return version_; }
+        inline const char *method() const { return method_; }
+        inline const String &url() const { return url_; }
+        inline const HttpHeaderCollection &headers() const { return headers_; }
+        inline IPAddress remoteIP() { return remoteIP_; }
+        inline uint16_t remotePort() { return remotePort_; }
+        inline IPAddress localIP() { return localIP_; }
+        inline uint16_t localPort() { return localPort_; }
+        inline std::map<String, std::any> &items() const{
+            return items_;
+        }
 
         UriView &uriView() const
         {
