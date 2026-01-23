@@ -38,6 +38,22 @@ GET /api/heap  → JSON with free heap
 ```
 
 ---
+### 1.3 StaticFiles
+**File**: `examples/StaticFiles/StaticFiles.ino`  
+**Features**: Serving files from filesystem  
+**Concepts**:
+- `StaticFiles()` builder
+- LittleFS setup
+- Path prefixes and content root
+- MIME type auto-detection
+
+```
+GET /index.html   → Serve /wwwroot/index.html
+GET /css/app.css  → Serve /wwwroot/css/app.css
+GET /api/data     → API route (not static)
+```
+
+---
 
 ## 2. Request Data
 
@@ -104,28 +120,9 @@ POST /api/led     → {"state": true} to control LED
 
 ---
 
-## 3. File Handling
+## 3. Security
 
-### 3.1 StaticFiles
-**File**: `examples/StaticFiles/StaticFiles.ino`  
-**Features**: Serving files from filesystem  
-**Concepts**:
-- `StaticFiles()` builder
-- LittleFS setup
-- Path prefixes and content root
-- MIME type auto-detection
-
-```
-GET /index.html   → Serve /wwwroot/index.html
-GET /css/app.css  → Serve /wwwroot/css/app.css
-GET /api/data     → API route (not static)
-```
-
----
-
-## 4. Security
-
-### 4.1 BasicAuthentication
+### 3.1 BasicAuthentication
 **File**: `examples/BasicAuthentication/BasicAuthentication.ino`  
 **Features**: HTTP Basic Auth protection  
 **Concepts**:
@@ -142,7 +139,7 @@ GET /admin    → Different credentials
 
 ---
 
-### 4.2 CorsSupport
+### 3.2 CorsSupport
 **File**: `examples/CorsSupport/CorsSupport.ino`  
 **Features**: Cross-Origin Resource Sharing  
 **Concepts**:
@@ -158,7 +155,7 @@ POST    /api/data  → With CORS headers
 
 ---
 
-### 4.3 HttpsServer
+### 3.3 HttpsServer
 **File**: `examples/HttpsServer/HttpsServer.ino`  
 **Features**: TLS/HTTPS support  
 **Concepts**:
@@ -173,9 +170,9 @@ HTTPS on port 443 with self-signed cert
 
 ---
 
-## 5. Advanced Patterns
+## 4. Advanced Patterns
 
-### 5.1 InterceptorPipeline
+### 4.1 InterceptorPipeline
 **File**: `examples/InterceptorPipeline/InterceptorPipeline.ino`  
 **Features**: Custom middleware/interceptors  
 **Concepts**:
@@ -191,7 +188,7 @@ Logging → Auth → Handler → CORS → Response
 
 ---
 
-### 5.2 ResponseFilters
+### 4.2 ResponseFilters
 **File**: `examples/ResponseFilters/ResponseFilters.ino`  
 **Features**: Response modification  
 **Concepts**:
@@ -206,7 +203,7 @@ All responses get Server header, timing header
 
 ---
 
-### 5.3 RawBodyStreaming
+### 4.3 RawBodyStreaming
 **File**: `examples/RawBodyStreaming/RawBodyStreaming.ino`  
 **Features**: Streaming large request bodies  
 **Concepts**:
@@ -222,7 +219,7 @@ POST /bulk      → Large data ingestion
 
 ---
 
-### 5.4 CustomHandlerMatcher
+### 4.4 CustomHandlerMatcher
 **File**: `examples/CustomHandlerMatcher/CustomHandlerMatcher.ino`  
 **Features**: Advanced route matching  
 **Concepts**:
@@ -237,7 +234,7 @@ Match /api/v{1,2}/users with custom logic
 
 ---
 
-### 5.5 ErrorHandling
+### 4.5 ErrorHandling
 **File**: `examples/ErrorHandling/ErrorHandling.ino`  
 **Features**: Error responses and not-found handling  
 **Concepts**:
@@ -253,9 +250,9 @@ POST /invalid  → 400 Bad Request
 
 ---
 
-## 6. Real-World Applications
+## 5. Real-World Applications
 
-### 6.1 RestfulApi
+### 5.1 RestfulApi
 **File**: `examples/RestfulApi/RestfulApi.ino`  
 **Features**: Full REST API example  
 **Concepts**:
@@ -274,7 +271,7 @@ DELETE /api/items/?    → Delete item
 
 ---
 
-### 6.2 WebDashboard
+### 5.2 WebDashboard
 **File**: `examples/WebDashboard/WebDashboard.ino`  
 **Features**: Full web application  
 **Concepts**:
@@ -291,7 +288,7 @@ DELETE /api/items/?    → Delete item
 
 ---
 
-### 6.3 OtaUpdate
+### 5.3 OtaUpdate
 **File**: `examples/OtaUpdate/OtaUpdate.ino`  
 **Features**: Over-the-air firmware updates  
 **Concepts**:
