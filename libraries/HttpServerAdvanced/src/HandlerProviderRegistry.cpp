@@ -108,7 +108,7 @@ namespace HttpServerAdvanced
             globalResponseFilter_ = filter;
         }
     }
-    void HandlerProviderRegistry::interceptRequest(IHttpHandler::InterceptorCallback interceptor)
+    void HandlerProviderRegistry::with(IHttpHandler::InterceptorCallback interceptor)
     {
         if (globalRequestInterceptor_)
         {

@@ -24,7 +24,7 @@ namespace HttpServerAdvanced
         {
             auto params = extractor_(context);
 
-            KeyValuePairView<String, String> postData = HttpUtility::ParseQueryString(reinterpret_cast<const char *>(body.data()), body.size());
+            KeyValuePairView<String, String> postData = WebUtility::ParseQueryString(reinterpret_cast<const char *>(body.data()), body.size());
             return handler_(context, std::move(params), std::move(postData));
         }
     };

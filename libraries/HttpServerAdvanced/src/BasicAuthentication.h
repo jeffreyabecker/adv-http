@@ -28,7 +28,7 @@ namespace HttpServerAdvanced
                 return false;
             }
             String encodedCredentials = authHeader.value().substring(prefix.length());
-            String decodedCredentials = HttpServerAdvanced::HttpUtility::Base64DecodeToString(encodedCredentials);
+            String decodedCredentials = HttpServerAdvanced::WebUtility::Base64DecodeToString(encodedCredentials);
             auto separatorIndex = decodedCredentials.indexOf(':');
             if (separatorIndex == -1)
             {

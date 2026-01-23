@@ -47,14 +47,13 @@ namespace HttpServerAdvanced
     public:
         OctetsStream(const char *cstr);
         OctetsStream(const uint8_t *data, size_t length, bool ownsData = false);
+        OctetsStream(const char *data, size_t length, bool ownsData = false) : OctetsStream(reinterpret_cast<const uint8_t *>(data), length, ownsData) {}
         OctetsStream(const String &str);
         virtual ~OctetsStream();
         virtual int available() override;
         virtual int read() override;
         virtual int peek() override;
     };
-
-
 
     /**
      * @brief A stream that reads from a String.
@@ -63,6 +62,7 @@ namespace HttpServerAdvanced
     {
     private:
         String str_;
+
     public:
         StringStream(String &&str);
         StringStream(const String &str);
@@ -71,23 +71,21 @@ namespace HttpServerAdvanced
     class LazyStreamAdapter : public ReadStream
     {
     private:
-        std::function<std::unique_ptr<ReadStream>()> streamFactory_;
-        std::unique_ptr<ReadStream> stream_;
+        std::function<std::unique_ptr<Stream>()> streamFactory_;
+        std::unique_ptr<Stream> stream_;
 
     public:
-        LazyStreamAdapter(std::function<std::unique_ptr<ReadStream>()> factory);
-        LazyStreamAdapter(std::function<ReadStream *()> factory);
+        LazyStreamAdapter(std::function<std::unique_ptr<Stream>()> factory);
         virtual ~LazyStreamAdapter() = default;
         virtual int available() override;
         virtual int read() override;
         virtual int peek() override;
     };
 
-
     /**
      * @brief A stream that concatenates multiple ReadStreams into one continuous stream.
      */
-    template<typename ForwardIt, typename Sentinel = ForwardIt>
+    template <typename ForwardIt, typename Sentinel = ForwardIt>
     class IndefiniteConcatStream : public ReadStream
     {
     private:
@@ -95,7 +93,7 @@ namespace HttpServerAdvanced
         Sentinel end_;
 
     public:
-        template<typename FIt = ForwardIt, typename S = Sentinel>
+        template <typename FIt = ForwardIt, typename S = Sentinel>
         IndefiniteConcatStream(FIt first, S last) : current_(first), end_(last) {}
 
         virtual int available() override
@@ -142,7 +140,7 @@ namespace HttpServerAdvanced
     /**
      * @brief A convenience class for concatenating streams from a vector of ReadStreams.
      */
-    template<size_t N>
+    template <size_t N>
     class ConcatStream : public IndefiniteConcatStream<typename std::array<std::unique_ptr<Stream>, N>::iterator>
     {
     private:
@@ -152,6 +150,12 @@ namespace HttpServerAdvanced
         ConcatStream(std::array<std::unique_ptr<Stream>, N> streams)
             : IndefiniteConcatStream<typename std::array<std::unique_ptr<Stream>, N>::iterator>(streams.begin(), streams.end()),
               streams_(std::move(streams)) {}
+
+        ConcatStream(std::initializer_list<std::unique_ptr<Stream>> list)
+            : IndefiniteConcatStream<typename std::array<std::unique_ptr<Stream>, N>::iterator>(streams_.begin(), streams_.end())
+        {
+            std::copy(list.begin(), list.end(), streams_.begin());
+        }
     };
 
     /**
@@ -232,4 +236,8 @@ namespace HttpServerAdvanced
         StaticBufferedReadStreamWrapper(std::unique_ptr<ReadStream> innerStream)
             : RefBufferedReadStreamWrapper(std::move(innerStream), buffer_, N) {}
     };
+
+    String ReadAsString(Stream &stream, size_t maxLength = SIZE_MAX);
+
+    std::vector<uint8_t> ReadAsVector(Stream &stream, size_t maxLength = SIZE_MAX);
 }

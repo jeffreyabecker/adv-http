@@ -1,7 +1,6 @@
 #pragma once
 #include <cstddef>
-#include "./Streams.h"  
-
+#include "./Streams.h"
 
 namespace HttpServerAdvanced
 {
@@ -9,22 +8,24 @@ namespace HttpServerAdvanced
     class BoundedStreamIterable
     {
     public:
-        using value_type = std::unique_ptr<ReadStream>;
-        using reference = std::unique_ptr<ReadStream> &;
+        using value_type = std::unique_ptr<Stream>;
+        using reference = std::unique_ptr<Stream> &;
         using pointer = value_type *;
         using difference_type = std::ptrdiff_t;
         using iterator_category = std::forward_iterator_tag;
 
-    private:
+    protected:
         size_t index_ = 0;
         size_t maxIndex_;
 
-        mutable std::unique_ptr<ReadStream> current_ = nullptr;
-
-    protected:
+        mutable std::unique_ptr<Stream> current_ = nullptr;
         BoundedStreamIterable(size_t index, size_t maxIndex)
             : index_(index), maxIndex_(maxIndex) {}
         virtual value_type getAt(size_t index) const = 0;
+        virtual bool compareValue(const TSelf &other) const
+        {
+            return true;
+        }
 
     public:
         // Copyable to satisfy forward iterator requirements; reset transient current_
@@ -59,14 +60,13 @@ namespace HttpServerAdvanced
 
         bool operator==(const TSelf &other) const
         {
-            return index_ == other.index_;
+            return index_ == other.index_ && compareValue(other);
         }
 
         bool operator!=(const TSelf &other) const
         {
-            return index_ != other.index_;
+            return index_ != other.index_ || !compareValue(other);
         }
-
     };
 
     template <typename TSelf, size_t N>

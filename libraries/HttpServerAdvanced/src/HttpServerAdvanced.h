@@ -42,7 +42,7 @@ using PostBodyData = HttpServerAdvanced::KeyValuePairView<String, String>;
 using HttpServerAdvanced::BasicAuth;
 using HttpServerAdvanced::CrossOriginRequestSharing;
 using HttpServerAdvanced::HandlerMatcher;
-using HttpServerAdvanced::HttpUtility;
+using HttpServerAdvanced::WebUtility;
 using HttpServerAdvanced::StaticFiles;;
 using HttpServerAdvanced::StaticFilesBuilder;
 using Response = HttpServerAdvanced::IHttpHandler::HandlerResult;

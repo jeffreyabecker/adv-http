@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "./HttpHeader.h"
 #include "./HttpHeaderCollection.h"
+#include "./StringUtility.h"
 
 namespace HttpServerAdvanced
 {

@@ -114,13 +114,13 @@ namespace HttpServerAdvanced
                 if (query_end != -1)
                 {
                     _query = StringView(data + pos + 1, query_end - pos - 1);
-                    queryView_ = KeyValuePairView<String, String>(HttpUtility::ParseQueryString(_query.begin(), _query.length()));
+                    queryView_ = KeyValuePairView<String, String>(WebUtility::ParseQueryString(_query.begin(), _query.length()));
                     pos = query_end;
                 }
                 else
                 {
                     _query = StringView(data + pos + 1, len - pos - 1);
-                    queryView_ = KeyValuePairView<String, String>(HttpUtility::ParseQueryString(_query.begin(), _query.length()));
+                    queryView_ = KeyValuePairView<String, String>(WebUtility::ParseQueryString(_query.begin(), _query.length()));
                     pos = len;
                 }
             }

@@ -82,7 +82,7 @@ namespace HttpServerAdvanced
             return *this;
         }
 
-        HandlerBuilder &interceptRequest(IHttpHandler::InterceptorCallback wrapper)
+        HandlerBuilder &with(IHttpHandler::InterceptorCallback wrapper)
         {
             invocationCallback_ = THandler::curryInterceptor(wrapper, invocationCallback_);
             return *this;

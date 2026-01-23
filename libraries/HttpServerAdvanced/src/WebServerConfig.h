@@ -78,9 +78,9 @@ namespace HttpServerAdvanced
         {
             builder_.handlerProviders().filterRequest(predicate);
         }
-        void interceptRequest(IHttpHandler::InterceptorCallback wrapper)
+        void with(IHttpHandler::InterceptorCallback wrapper)
         {
-            builder_.handlerProviders().interceptRequest(wrapper);
+            builder_.handlerProviders().with(wrapper);
         }
         inline HttpServerBase &server()
         {

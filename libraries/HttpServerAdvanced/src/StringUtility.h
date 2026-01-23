@@ -11,6 +11,8 @@ namespace HttpServerAdvanced
 
         inline int compareTo(const char* a, size_t aLength, const char* b, size_t bLength, bool ignoreCase)
         {
+            if (a == b && aLength == bLength)
+                return 0;
             if (!a || !b)
                 return (!a && !b) ? 0 : (!a ? -1 : 1);
             if (aLength == 0 && bLength == 0)

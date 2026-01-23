@@ -1,10 +1,13 @@
 #include "./HttpUtility.h"
 #include <optional>
-
+#include "./HttpUtility.h"
+#include "./Base64Stream.h"
+#include "./Streams.h"
+#include "./UriStream.h"
 namespace HttpServerAdvanced
 {
 
-    std::vector<std::pair<String, String>> HttpUtility::ParseQueryString(const char *query, std::size_t length)
+    std::vector<std::pair<String, String>> WebUtility::ParseQueryString(const char *query, std::size_t length)
     {
         std::vector<std::pair<String, String>> params;
         size_t pos = 0;
@@ -41,90 +44,49 @@ namespace HttpServerAdvanced
         return params;
     }
 
-    std::vector<std::pair<String, String>> HttpUtility::ParseQueryString(const String &query)
+    std::vector<std::pair<String, String>> WebUtility::ParseQueryString(const String &query)
     {
         return ParseQueryString(query.c_str(), query.length());
     }
 
-    std::vector<std::pair<String, String>> HttpUtility::ParseQueryString(const StringView &query)
+    std::vector<std::pair<String, String>> WebUtility::ParseQueryString(const StringView &query)
     {
         return ParseQueryString(query.begin(), query.length());
     }
 
-    String HttpUtility::DecodeURIComponent(const String &str)
+    String WebUtility::DecodeURIComponent(const String &str)
     {
         return DecodeURIComponent(str.c_str(), str.length());
     }
 
-    String HttpUtility::DecodeURIComponent(const StringView &str)
+    String WebUtility::DecodeURIComponent(const StringView &str)
     {
         return DecodeURIComponent(str.begin(), str.length());
     }
 
-    String HttpUtility::DecodeURIComponent(const char *str, std::size_t length)
+    String WebUtility::DecodeURIComponent(const char *str, std::size_t length)
     {
-        String ret;
-        for (size_t i = 0; i < length; ++i)
-        {
-            if (str[i] == '+')
-            {
-                ret += ' ';
-            }
-            else if (str[i] == '%' && i + 2 < length)
-            {
-                char hex[3] = {str[i + 1], str[i + 2], '\0'};
-                char decoded = static_cast<char>(strtol(hex, nullptr, 16));
-                ret += decoded;
-                i += 2;
-            }
-            else
-            {
-                ret += str[i];
-            }
-        }
-        return ret;
+        UriDecodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
+        return ReadAsString(uriStream);
     }
 
-    String HttpUtility::EncodeURIComponent(const char *str, std::size_t length)
+    String WebUtility::EncodeURIComponent(const char *str, std::size_t length)
     {
-        String ret;
-        const char *hex = "0123456789ABCDEF";
-        for (size_t i = 0; i < length; ++i)
-        {
-            char c = str[i];
-            if ((c >= 'a' && c <= 'z') ||
-                (c >= 'A' && c <= 'Z') ||
-                (c >= '0' && c <= '9') ||
-                c == '-' || c == '_' || c == '.' || c == '~')
-            {
-                ret += c;
-            }
-            else if (c == ' ')
-            {
-                ret += '+';
-            }
-            else
-            {
-                unsigned char byte = static_cast<unsigned char>(c);
-                ret += '%';
-                ret += hex[(byte >> 4) & 0xF];
-                ret += hex[byte & 0xF];
-            }
-        }
-        return ret;
+        UriEncodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
+        return ReadAsString(uriStream);
     }
 
-    String HttpUtility::EncodeURIComponent(const String &str)
+    String WebUtility::EncodeURIComponent(const String &str)
     {
         return EncodeURIComponent(str.c_str(), str.length());
     }
 
-    String HttpUtility::EncodeURIComponent(const StringView &str)
+    String WebUtility::EncodeURIComponent(const StringView &str)
     {
         return EncodeURIComponent(str.begin(), str.length());
     }
 
-    String HttpUtility::HtmlEncode(const char *str, std::size_t length)
+    String WebUtility::HtmlEncode(const char *str, std::size_t length)
     {
         if (str == nullptr || length == 0)
             return String();
@@ -162,22 +124,22 @@ namespace HttpServerAdvanced
         return output;
     }
 
-    String HttpUtility::HtmlEncode(const String &str)
+    String WebUtility::HtmlEncode(const String &str)
     {
         return HtmlEncode(str.c_str(), str.length());
     }
 
-    String HttpUtility::HtmlEncode(const char *input)
+    String WebUtility::HtmlEncode(const char *input)
     {
         return HtmlEncode(String(input));
     }
 
-    String HttpUtility::HtmlEncode(const StringView &str)
+    String WebUtility::HtmlEncode(const StringView &str)
     {
         return HtmlEncode(str.begin(), str.length());
     }
 
-    String HttpUtility::HtmlAttributeEncode(const char *input, std::size_t length)
+    String WebUtility::HtmlAttributeEncode(const char *input, std::size_t length)
     {
         if (input == nullptr || length == 0)
             return String();
@@ -216,22 +178,22 @@ namespace HttpServerAdvanced
         return output;
     }
 
-    String HttpUtility::HtmlAttributeEncode(const String &input)
+    String WebUtility::HtmlAttributeEncode(const String &input)
     {
         return HtmlAttributeEncode(input.c_str(), input.length());
     }
 
-    String HttpUtility::HtmlAttributeEncode(const char *input)
+    String WebUtility::HtmlAttributeEncode(const char *input)
     {
         return HtmlAttributeEncode(String(input));
     }
 
-    String HttpUtility::HtmlAttributeEncode(const StringView &str)
+    String WebUtility::HtmlAttributeEncode(const StringView &str)
     {
         return HtmlAttributeEncode(str.begin(), str.length());
     }
 
-    String HttpUtility::JavaScriptStringEncode(const String &input, bool includeQuotes)
+    String WebUtility::JavaScriptStringEncode(const String &input, bool includeQuotes)
     {
         if (input.isEmpty())
             return includeQuotes ? String("\"\"") : String();
@@ -287,116 +249,51 @@ namespace HttpServerAdvanced
         return output;
     }
 
-    String HttpUtility::Base64Encode(const String &input, bool urlCompatible)
+    String WebUtility::Base64Encode(const String &input, bool urlCompatible)
     {
-        if (urlCompatible)
-        {
-            return Base64Url.encode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
-        }
-        else
-        {
-            return Base64.encode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
-        }
+        Base64EncoderStream base64Stream = Base64EncoderStream::create(input, urlCompatible);
+        return ReadAsString(base64Stream);
     }
 
-    String HttpUtility::Base64Encode(const uint8_t *data, std::size_t length, bool urlCompatible)
+    String WebUtility::Base64Encode(const uint8_t *data, std::size_t length, bool urlCompatible)
     {
-        if (urlCompatible)
-        {
-            return Base64Url.encode(data, length);
-        }
-        else
-        {
-            return Base64.encode(data, length);
-        }
+        Base64EncoderStream base64Stream = Base64EncoderStream::create(data, length, urlCompatible);
+        return ReadAsString(base64Stream);
     }
 
-    std::vector<uint8_t> HttpUtility::Base64Decode(const String &input, bool urlCompatible)
+    std::vector<uint8_t> WebUtility::Base64Decode(const String &input, bool urlCompatible)
     {
-        if (urlCompatible)
-        {
-            return Base64Url.decode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
-        }
-        else
-        {
-            return Base64.decode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
-        }
+        Base64DecoderStream base64Stream = Base64DecoderStream::create(input, urlCompatible);
+        return ReadAsVector(base64Stream);
     }
 
-    std::vector<uint8_t> HttpUtility::Base64Decode(const StringView &input, bool urlCompatible)
+    std::vector<uint8_t> WebUtility::Base64Decode(const StringView &input, bool urlCompatible)
     {
-        if (urlCompatible)
-        {
-            return Base64Url.decode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
-        }
-        else
-        {
-            return Base64.decode(reinterpret_cast<const uint8_t *>(input.begin()), input.length());
-        }
+        Base64DecoderStream base64Stream = Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(input.c_str()), input.length(), urlCompatible);
+        return ReadAsVector(base64Stream);
     }
 
-    String HttpUtility::Base64Encode(const StringView &input, bool urlCompatible)
+    String WebUtility::Base64Encode(const StringView &input, bool urlCompatible)
     {
         return Base64Encode(reinterpret_cast<const uint8_t *>(input.begin()), input.length(), urlCompatible);
     }
 
-    String HttpUtility::Base64DecodeToString(const String &input, bool urlCompatible)
+    String WebUtility::Base64DecodeToString(const String &input, bool urlCompatible)
+    {
+        Base64DecoderStream base64Stream = Base64DecoderStream::create(input, urlCompatible);
+        return ReadAsString(base64Stream);
+    }
+
+    String WebUtility::Base64DecodeToString(const char *data, std::size_t length, bool urlCompatible)
+    {
+        Base64DecoderStream base64Stream = Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(data), length, urlCompatible);
+        return ReadAsString(base64Stream);
+    }
+
+    String WebUtility::Base64DecodeToString(const StringView &input, bool urlCompatible)
     {
         return Base64DecodeToString(input.begin(), input.length(), urlCompatible);
     }
 
-    String HttpUtility::Base64DecodeToString(const char *data, std::size_t length, bool urlCompatible)
-    {
-        auto decodedBytes = Base64Decode(String(data, length), urlCompatible);
-        return String(reinterpret_cast<const char *>(decodedBytes.data()), static_cast<size_t>(decodedBytes.size()));
-    }
-
-    String HttpUtility::Base64DecodeToString(const StringView &input, bool urlCompatible)
-    {
-        return Base64DecodeToString(input.begin(), input.length(), urlCompatible);
-    }
-
-    std::vector<std::pair<String, std::optional<String>>> HttpUtility::ParseHeaderDirectives(const StringView &val)
-    {
-        std::vector<std::pair<String, std::optional<String>>> directives;
-        if (val.isEmpty())
-        {
-            return directives;
-        }
-
-        auto parseSingleDirective = [&](const StringView &directive)
-        {
-            int eqPos = directive.indexOf('=');
-            if (eqPos == -1)
-            {
-                directives.emplace_back(directive.trim().toString(), std::optional<String>());
-            }
-            else
-            {
-                StringView key = directive.substring(0, eqPos);
-                StringView value = directive.substring(eqPos + 1);
-
-                directives.emplace_back(key.trim().toString(), value.trim().toString());
-            }
-        };
-
-        // Split by comma
-        int start = 0;
-        int end = val.indexOf(',');
-        while (end != -1)
-        {
-            StringView directive = val.substring(start, end);
-            directive.trim();
-            parseSingleDirective(directive);
-            start = end + 1;
-            end = val.indexOf(',', start);
-        }
-        // Last one
-        StringView directive = val.substring(start);
-
-        parseSingleDirective(directive);
-
-        return directives;
-    }
 
 } // namespace HttpServerAdvanced

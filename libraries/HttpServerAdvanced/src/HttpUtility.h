@@ -7,12 +7,11 @@
 #include <initializer_list>
 #include <unordered_map>
 #include <algorithm>
-#include "./Base64Encoder.h"
 #include <optional>
 
 namespace HttpServerAdvanced
 {
-    class HttpUtility
+    class WebUtility
     {
 
     public:
@@ -23,40 +22,6 @@ namespace HttpServerAdvanced
         static String DecodeURIComponent(const char *str, std::size_t length);
         static String DecodeURIComponent(const StringView &str);
 
-        // // Serializes any container of key-value pairs into a URL-encoded string
-        // template <typename Container>
-        // static String SerializeQueryString(const Container &params)
-        // {
-        //     String result;
-        //     std::vector<std::pair<String, String>> param_list;
-        //     for (const auto &kv : params)
-        //     {
-        //         param_list.emplace_back(String(kv.first), String(kv.second));
-        //     }
-        //     size_t total_size = 0;
-        //     for (const auto &kv : param_list)
-        //     {
-        //         String encoded_key = EncodeURIComponent(kv.first);
-        //         String encoded_value = EncodeURIComponent(kv.second);
-        //         total_size += encoded_key.length() + encoded_value.length() + 1; // +1 for '='
-        //     }
-        //     if (param_list.size() > 1)
-        //     {
-        //         total_size += param_list.size() - 1; // for '&'
-        //     }
-        //     result.reserve(total_size);
-        //     bool first = true;
-        //     for (const auto &kv : param_list)
-        //     {
-        //         if (!first)
-        //             result += '&';
-        //         result += EncodeURIComponent(kv.first) + '=' + EncodeURIComponent(kv.second);
-        //         first = false;
-        //     }
-        //     return result;
-        // }
-        // Overload for initializer_list
-        static String SerializeQueryString(std::initializer_list<std::pair<String, String>> params);
 
         static String EncodeURIComponent(const char *str, std::size_t length);
         static String EncodeURIComponent(const String &str);
@@ -83,7 +48,7 @@ namespace HttpServerAdvanced
         static String Base64DecodeToString(const char *data, std::size_t length, bool urlCompatible = false);
         static String Base64DecodeToString(const StringView &input, bool urlCompatible = false);
 
-        static std::vector<std::pair<String, std::optional<String>>> ParseHeaderDirectives(const StringView &val);
+
     };
 
 } // namespace HttpServerAdvanced

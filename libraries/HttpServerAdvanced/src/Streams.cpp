@@ -84,15 +84,12 @@ namespace HttpServerAdvanced
     }
 
     // LazyStreamAdapter
-    LazyStreamAdapter::LazyStreamAdapter(std::function<std::unique_ptr<ReadStream>()> factory)
+    LazyStreamAdapter::LazyStreamAdapter(std::function<std::unique_ptr<Stream>()> factory)
         : streamFactory_(std::move(factory))
     {
     }
 
-    LazyStreamAdapter::LazyStreamAdapter(std::function<ReadStream *()> factory)
-        : streamFactory_([factory]() { return std::unique_ptr<ReadStream>(factory()); })
-    {
-    }
+
 
     int LazyStreamAdapter::available()
     {
@@ -269,4 +266,59 @@ namespace HttpServerAdvanced
         return buffer_[readPos_];
     }
 
+
+    String ReadAsString(Stream &stream, size_t maxLength)
+    {
+        String result;
+        int availableBytes = stream.available();
+        if (availableBytes == 0)
+        {
+            return result;
+        }
+        else if (availableBytes > 0 && static_cast<size_t>(availableBytes) < maxLength)
+        {
+            result.reserve(availableBytes);
+            maxLength = availableBytes;
+        }
+
+        size_t bytesRead = 0;
+        while (bytesRead < maxLength)
+        {
+            int byte = stream.read();
+            if (byte == -1)
+            {
+                break; // End of stream
+            }
+            result += static_cast<char>(byte);
+            bytesRead++;
+        }
+        return result;
+    }
+
+    std::vector<uint8_t> ReadAsVector(Stream &stream, size_t maxLength){
+        std::vector<uint8_t> result;
+        int availableBytes = stream.available();
+        if (availableBytes == 0)
+        {
+            return result;
+        }
+        else if (availableBytes > 0 && static_cast<size_t>(availableBytes) < maxLength)
+        {
+            result.reserve(availableBytes);
+            maxLength = availableBytes;
+        }
+
+        size_t bytesRead = 0;
+        while (bytesRead < maxLength)
+        {
+            int byte = stream.read();
+            if (byte == -1)
+            {
+                break; // End of stream
+            }
+            result.push_back(static_cast<uint8_t>(byte));
+            bytesRead++;
+        }
+        return result;
+    }    
 } // namespace HttpServerAdvanced

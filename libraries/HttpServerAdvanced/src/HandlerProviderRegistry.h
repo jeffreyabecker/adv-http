@@ -90,7 +90,7 @@ namespace HttpServerAdvanced
 
         void add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, AddPosition position = AddAt::End);
         void add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End);
-        void interceptRequest(IHttpHandler::InterceptorCallback interceptor);
+        void with(IHttpHandler::InterceptorCallback interceptor);
         void filterRequest(IHttpHandler::Predicate predicate);
         void apply(IHttpResponse::ResponseFilter filter);
         // void setGlobalRequestFilter(IHttpHandler::Predicate predicate);

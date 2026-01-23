@@ -15,38 +15,23 @@ namespace HttpServerAdvanced
             {
                 return resp;
             }
-            if (!resp->headers().exists(HttpHeaderNames::AccessControlAllowOrigin) && !allowedOrigins.isEmpty())
-            {
-                resp->headers().set(HttpHeaderNames::AccessControlAllowOrigin, allowedOrigins);
-            }
-            if (!resp->headers().exists(HttpHeaderNames::AccessControlAllowMethods) && !allowedMethods.isEmpty())
-            {
-                resp->headers().set(HttpHeaderNames::AccessControlAllowMethods, allowedMethods);
-            }
-            if (!resp->headers().exists(HttpHeaderNames::AccessControlAllowHeaders) && !allowedHeaders.isEmpty())
-            {
-                resp->headers().set(HttpHeaderNames::AccessControlAllowHeaders, allowedHeaders);
-            }
-            if (!resp->headers().exists(HttpHeaderNames::AccessControlAllowCredentials) && !allowedCredentials.isEmpty())
-            {
-                resp->headers().set(HttpHeaderNames::AccessControlAllowCredentials, allowedCredentials);
-            }
-            if (!resp->headers().exists(HttpHeaderNames::AccessControlExposeHeaders) && !exposeHeaders.isEmpty())
-            {
-                resp->headers().set(HttpHeaderNames::AccessControlExposeHeaders, exposeHeaders);
-            }
-            if (!resp->headers().exists(HttpHeaderNames::AccessControlMaxAge) && maxAge >= 0)
-            {
-                resp->headers().set(HttpHeaderNames::AccessControlMaxAge, String(maxAge));
-            }
-            if (!resp->headers().exists(HttpHeaderNames::AccessControlRequestHeaders) && !requestHeaders.isEmpty())
-            {
-                resp->headers().set(HttpHeaderNames::AccessControlRequestHeaders, requestHeaders);
-            }
-            if (!resp->headers().exists(HttpHeaderNames::AccessControlRequestMethod) && !requestMethods.isEmpty())
-            {
-                resp->headers().set(HttpHeaderNames::AccessControlRequestMethod, requestMethods);
-            }
+            auto& headers = resp->headers();
+            if (!headers.exists(HttpHeaderNames::AccessControlAllowOrigin) && !allowedOrigins.isEmpty())
+                headers.set(HttpHeaderNames::AccessControlAllowOrigin, allowedOrigins);
+            if (!headers.exists(HttpHeaderNames::AccessControlAllowMethods) && !allowedMethods.isEmpty())
+                headers.set(HttpHeaderNames::AccessControlAllowMethods, allowedMethods);
+            if (!headers.exists(HttpHeaderNames::AccessControlAllowHeaders) && !allowedHeaders.isEmpty())
+                headers.set(HttpHeaderNames::AccessControlAllowHeaders, allowedHeaders);
+            if (!headers.exists(HttpHeaderNames::AccessControlAllowCredentials) && !allowedCredentials.isEmpty())
+                headers.set(HttpHeaderNames::AccessControlAllowCredentials, allowedCredentials);
+            if (!headers.exists(HttpHeaderNames::AccessControlExposeHeaders) && !exposeHeaders.isEmpty())
+                headers.set(HttpHeaderNames::AccessControlExposeHeaders, exposeHeaders);
+            if (!headers.exists(HttpHeaderNames::AccessControlMaxAge) && maxAge >= 0)
+                headers.set(HttpHeaderNames::AccessControlMaxAge, String(maxAge));
+            if (!headers.exists(HttpHeaderNames::AccessControlRequestHeaders) && !requestHeaders.isEmpty())
+                headers.set(HttpHeaderNames::AccessControlRequestHeaders, requestHeaders);
+            if (!headers.exists(HttpHeaderNames::AccessControlRequestMethod) && !requestMethods.isEmpty())
+                headers.set(HttpHeaderNames::AccessControlRequestMethod, requestMethods);
             return resp;
         };
     }
