@@ -1,17 +1,15 @@
 #pragma once
 #include <Arduino.h>
+#include <functional>
 #include "./Defines.h"
 
 namespace HttpServerAdvanced
 {
-    // Forward declaration
-    class ProviderRegistryBuilder;
-
     template <typename THandler>
     class HandlerBuilder
     {
     private:
-        ProviderRegistryBuilder *builder_ = nullptr;
+        std::function<void(IHttpHandler::Predicate, IHttpHandler::Factory)> addHandler_;
         IHttpHandler::Predicate predicate_;
         typename THandler::Invocation invocationCallback_;
         ExtractArgsFromRequest extractor_;
@@ -32,19 +30,19 @@ namespace HttpServerAdvanced
         }
 
     public:
-        HandlerBuilder(ProviderRegistryBuilder *builder, IHttpHandler::Predicate predicate,
-                       typename THandler::InvocationWithoutParams invocationCallback)
-            : builder_(builder),
+                HandlerBuilder(std::function<void(IHttpHandler::Predicate, IHttpHandler::Factory)> addHandler, IHttpHandler::Predicate predicate,
+                                             typename THandler::InvocationWithoutParams invocationCallback)
+                        : addHandler_(std::move(addHandler)),
               predicate_(predicate),
               invocationCallback_(THandler::curryWithoutParams(invocationCallback)),
               extractor_(EmptyParameters)
         {
         }
 
-        HandlerBuilder(ProviderRegistryBuilder *builder, IHttpHandler::Predicate predicate,
-                       typename THandler::Invocation invocationCallback,
-                       ExtractArgsFromRequest extractor)
-            : builder_(builder),
+                HandlerBuilder(std::function<void(IHttpHandler::Predicate, IHttpHandler::Factory)> addHandler, IHttpHandler::Predicate predicate,
+                                             typename THandler::Invocation invocationCallback,
+                                             ExtractArgsFromRequest extractor)
+                        : addHandler_(std::move(addHandler)),
               predicate_(predicate),
               invocationCallback_(invocationCallback),
               extractor_(extractor)
@@ -53,9 +51,9 @@ namespace HttpServerAdvanced
 
         ~HandlerBuilder()
         {
-            if (builder_)
+            if (addHandler_)
             {
-                builder_->add(predicate_, getFactory());
+                addHandler_(predicate_, getFactory());
             }
         }
 
@@ -63,23 +61,23 @@ namespace HttpServerAdvanced
         HandlerBuilder &operator=(const HandlerBuilder &) = delete;
 
         HandlerBuilder(HandlerBuilder &&other) noexcept
-            : builder_(other.builder_),
+            : addHandler_(std::move(other.addHandler_)),
               predicate_(std::move(other.predicate_)),
               invocationCallback_(std::move(other.invocationCallback_)),
               extractor_(std::move(other.extractor_))
         {
-            other.builder_ = nullptr;
+            other.addHandler_ = nullptr;
         }
 
         HandlerBuilder &operator=(HandlerBuilder &&other) noexcept
         {
             if (this != &other)
             {
-                builder_ = other.builder_;
+                addHandler_ = std::move(other.addHandler_);
                 predicate_ = std::move(other.predicate_);
                 invocationCallback_ = std::move(other.invocationCallback_);
                 extractor_ = std::move(other.extractor_);
-                other.builder_ = nullptr;
+                other.addHandler_ = nullptr;
             }
             return *this;
         }

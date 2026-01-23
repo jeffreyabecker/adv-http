@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include <utility>
 #include "./Defines.h"
 #include "./HttpHandler.h"
 #include "./HandlerTypes.h"
@@ -51,7 +52,11 @@ namespace HttpServerAdvanced
             THandler::restrict(req);
             // Adapt HandlerMatcher's ArgsExtractor (takes 2 params) to ExtractArgsFromRequest (takes 1 param)
             ExtractArgsFromRequest adapterExtractor = [req](HttpRequest &context) { return req.extractParameters(context); };
-            return HandlerBuilder<THandler>(this, IHttpHandler::Predicate([req](HttpRequest &context) { return req(context); }), handler, adapterExtractor);
+            auto addHandler = [this](IHttpHandler::Predicate predicate, IHttpHandler::Factory factory)
+            {
+                providerRegistry_.add(std::move(predicate), std::move(factory));
+            };
+            return HandlerBuilder<THandler>(std::move(addHandler), IHttpHandler::Predicate([req](HttpRequest &context) { return req(context); }), handler, adapterExtractor);
         }
 
         template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
@@ -59,7 +64,11 @@ namespace HttpServerAdvanced
         {
             HandlerMatcher req = request;
             THandler::restrict(req);
-            return HandlerBuilder<THandler>(this, IHttpHandler::Predicate([req](HttpRequest &context) { return req(context); }), handler);
+            auto addHandler = [this](IHttpHandler::Predicate predicate, IHttpHandler::Factory factory)
+            {
+                providerRegistry_.add(std::move(predicate), std::move(factory));
+            };
+            return HandlerBuilder<THandler>(std::move(addHandler), IHttpHandler::Predicate([req](HttpRequest &context) { return req(context); }), handler);
         }
         template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const char *path, const typename THandler::Invocation &handler)
@@ -68,7 +77,11 @@ namespace HttpServerAdvanced
             THandler::restrict(request);
             // Adapt HandlerMatcher's ArgsExtractor (takes 2 params) to ExtractArgsFromRequest (takes 1 param)
             ExtractArgsFromRequest adapterExtractor = [request](HttpRequest &context) { return request.extractParameters(context); };
-            return HandlerBuilder<THandler>(this, IHttpHandler::Predicate([request](HttpRequest &context) { return request(context); }), handler, adapterExtractor);
+            auto addHandler = [this](IHttpHandler::Predicate predicate, IHttpHandler::Factory factory)
+            {
+                providerRegistry_.add(std::move(predicate), std::move(factory));
+            };
+            return HandlerBuilder<THandler>(std::move(addHandler), IHttpHandler::Predicate([request](HttpRequest &context) { return request(context); }), handler, adapterExtractor);
         }
 
         template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
@@ -76,7 +89,11 @@ namespace HttpServerAdvanced
         {
             HandlerMatcher request(path);
             THandler::restrict(request);
-            return HandlerBuilder<THandler>(this, IHttpHandler::Predicate([request](HttpRequest &context) { return request(context); }), handler);
+            auto addHandler = [this](IHttpHandler::Predicate predicate, IHttpHandler::Factory factory)
+            {
+                providerRegistry_.add(std::move(predicate), std::move(factory));
+            };
+            return HandlerBuilder<THandler>(std::move(addHandler), IHttpHandler::Predicate([request](HttpRequest &context) { return request(context); }), handler);
         }
 
         void onNotFound(IHttpHandler::InvocationCallback invocation)
