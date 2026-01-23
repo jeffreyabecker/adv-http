@@ -31,7 +31,7 @@ These are allocated once per active connection and reused for the lifetime of th
 
 | Component | Risk | Mitigation |
 |-----------|------|------------|
-| `HttpHeadersCollection` | `std::vector` grows with headers | Bounded to 32 headers, safe |
+| `HttpHeaderCollection` | `std::vector` grows with headers | Bounded to 32 headers, safe |
 | `BufferingHttpHandlerBase::bodyBuffer_` | `std::vector<uint8_t>` | Bounded by `MaxBuffered` template param (default 2 KB) |
 | `std::map<String, std::any> items_` | User-extensible | **Application-dependent** - user must manage |
 

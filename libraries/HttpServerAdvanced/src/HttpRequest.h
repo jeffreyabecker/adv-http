@@ -1,6 +1,7 @@
 #pragma once
 
 #include "./HttpHeader.h"
+#include "./HttpHeaderCollection.h"
 #include "./HttpServerBase.h"
 #include "./HttpResponse.h"
 #include "./HttpRequestPhase.h"
@@ -31,7 +32,7 @@ namespace HttpServerAdvanced
         const char *method_;
         String version_;
         String url_;
-        HttpHeadersCollection headers_;
+        HttpHeaderCollection headers_;
         IPAddress remoteIP_;
         uint16_t remotePort_;
         IPAddress localIP_;
@@ -225,7 +226,7 @@ namespace HttpServerAdvanced
         const String &version() const { return version_; }
         const char *method() const { return method_; }
         const String &url() const { return url_; }
-        const HttpHeadersCollection &headers() const { return headers_; }
+        const HttpHeaderCollection &headers() const { return headers_; }
         IPAddress remoteIP() { return remoteIP_; }
         uint16_t remotePort() { return remotePort_; }
         IPAddress localIP() { return localIP_; }

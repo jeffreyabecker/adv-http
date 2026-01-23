@@ -145,17 +145,10 @@ namespace HttpServerAdvanced
     {
       return name_;
     }
-    void setName(const String &name)
-    {
-      name_ = name;
-    }
+
     const String &value() const
     {
       return value_;
-    }
-    void setValue(const String &value)
-    {
-      value_ = value;
     }
 
 #if __cpp_structured_bindings
@@ -275,7 +268,7 @@ namespace HttpServerAdvanced
     static HttpHeader &&AcceptCharset(String &&value) { return HttpHeader(HttpHeaderNames::AcceptCharset, std::move(value)); }
     static HttpHeader &&Pragma(String &&value) { return HttpHeader(HttpHeaderNames::Pragma, std::move(value)); }
     static HttpHeader &&XForwardedFor(String &&value) { return HttpHeader(HttpHeaderNames::XForwardedFor, std::move(value)); }
-    
+
     // Overloads for const String& (copy semantics)
     static HttpHeader WwwAuthenticate(const String &value) { return HttpHeader(HttpHeaderNames::WwwAuthenticate, value); }
     static HttpHeader Authorization(const String &value) { return HttpHeader(HttpHeaderNames::Authorization, value); }
@@ -385,171 +378,6 @@ namespace HttpServerAdvanced
     static HttpHeader AcceptCharset(const String &value) { return HttpHeader(HttpHeaderNames::AcceptCharset, value); }
     static HttpHeader Pragma(const String &value) { return HttpHeader(HttpHeaderNames::Pragma, value); }
     static HttpHeader XForwardedFor(const String &value) { return HttpHeader(HttpHeaderNames::XForwardedFor, value); }
-  };
-
-  class HttpHeadersCollection : public std::vector<HttpHeader>
-  {
-
-  public:
-    HttpHeadersCollection() = default;
-
-    HttpHeadersCollection(std::initializer_list<HttpHeader> headers)
-        : HttpHeadersCollection()
-    {
-      for (const auto &h : headers)
-      {
-        set(h);
-      }
-    }
-
-    HttpHeadersCollection(std::initializer_list<std::pair<const String &, const String &>> headers)
-    {
-      for (const auto &h : headers)
-      {
-        set(h.first, h.second);
-      }
-    }
-
-    // Accept initializer lists of C-style string pairs to avoid ambiguity when using braced pairs
-    HttpHeadersCollection(std::initializer_list<std::pair<const char *, const char *>> headers)
-    {
-      for (const auto &h : headers)
-      {
-        set(h.first, h.second);
-      }
-    }
-
-    std::optional<HttpHeader> find(const String &name) const
-    {
-      auto it = std::find_if(begin(), end(), [&name](const HttpHeader &header)
-                             { return header.name().equalsIgnoreCase(name); });
-      if (it != end())
-      {
-        return *it;
-      }
-      return std::nullopt;
-    }
-
-    bool exists(const String &name) const
-    {
-      auto it = find(name);
-      return it.has_value();
-    }
-
-    bool exists(const String &name, const String &value) const
-    {
-      auto it = std::find_if(begin(), end(), [&name, &value](const HttpHeader &header)
-                             { return header.name().equalsIgnoreCase(name) && header.value().equals(value); });
-      return it != end();
-    }
-
-    void set(const HttpHeader &header, bool forceOverwrite = false)
-    {
-      set(header.name(), header.value(), forceOverwrite);
-    }
-
-    void set(HttpHeader &&header, bool forceOverwrite = false)
-    {
-      static const char *const duplicable[] = {
-          HttpHeaderNames::SetCookie,
-          HttpHeaderNames::WwwAuthenticate};
-      static const char *const consolidatable[] = {
-          HttpHeaderNames::Accept,
-          HttpHeaderNames::AcceptCharset,
-          HttpHeaderNames::AcceptEncoding,
-          HttpHeaderNames::AcceptLanguage,
-          HttpHeaderNames::CacheControl,
-          HttpHeaderNames::Connection,
-          HttpHeaderNames::ContentDisposition,
-          HttpHeaderNames::ContentEncoding,
-          HttpHeaderNames::ContentLanguage,
-          HttpHeaderNames::Vary,
-          HttpHeaderNames::Pragma,
-          HttpHeaderNames::XForwardedFor};
-      auto is_in = [](const String &name, const char *const *list, std::size_t count)
-      {
-        for (std::size_t i = 0; i < count; ++i)
-        {
-          if (name.equalsIgnoreCase(list[i]))
-            return true;
-        }
-        return false;
-      };
-
-      const String &name = header.name();
-      const String &value = header.value();
-
-      if (is_in(name, duplicable, sizeof(duplicable) / sizeof(duplicable[0])))
-      {
-        if (forceOverwrite)
-        {
-          erase(std::remove_if(begin(), end(), [&](const HttpHeader &h)
-                               { return h.name().equalsIgnoreCase(name); }),
-                end());
-        }
-        emplace_back(std::move(header));
-        return;
-      }
-
-      auto it = std::find_if(begin(), end(), [&](const HttpHeader &h)
-                             { return h.name().equalsIgnoreCase(name); });
-
-      if (is_in(name, consolidatable, sizeof(consolidatable) / sizeof(consolidatable[0])))
-      {
-        if (it != end())
-        {
-          if (forceOverwrite)
-          {
-            *it = std::move(header);
-          }
-          else
-          {
-            it->setValue(it->value() + "," + value);
-          }
-        }
-        else
-        {
-          emplace_back(std::move(header));
-        }
-        return;
-      }
-
-      if (it != end())
-      {
-        if (forceOverwrite)
-        {
-          *it = std::move(header);
-        }
-        else
-        {
-          it->setValue(value);
-        }
-      }
-      else
-      {
-        emplace_back(std::move(header));
-      }
-    }
-
-    void set(const String &name, const String &value, bool forceOverwrite = false)
-    {
-      HttpHeader header(name, value);
-      set(std::move(header), forceOverwrite);
-    }
-
-    void remove(const String &name)
-    {
-      erase(std::remove_if(begin(), end(), [&](const HttpHeader &h)
-                           { return h.name().equalsIgnoreCase(name); }),
-            end());
-    }
-
-    void remove(const String &name, const String &value)
-    {
-      erase(std::remove_if(begin(), end(), [&](const HttpHeader &h)
-                           { return h.name().equalsIgnoreCase(name) && h.value().equals(value); }),
-            end());
-    }
   };
 
 }

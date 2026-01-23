@@ -10,7 +10,7 @@ namespace HttpServerAdvanced
     {
         return std::make_unique<HttpHandler>(
             HttpResponse::create(HttpStatus::NotFound(), "404 Not Found",
-                                 HttpHeadersCollection{HttpHeader(HttpHeaderNames::ContentType, "text/plain")}),
+                                 HttpHeaderCollection{HttpHeader(HttpHeaderNames::ContentType, "text/plain")}),
             [](const HttpRequest &)
             { return true; });
     }

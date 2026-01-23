@@ -7,6 +7,7 @@
 #include "./HttpResponse.h"
 #include "./HttpStatus.h"
 #include "./HttpHeader.h"
+#include "./HttpHeaderCollection.h"
 #include "./HttpHandler.h"
 #include "./IHttpResponse.h"
 #include "./IHandlerProvider.h"

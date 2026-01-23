@@ -3,6 +3,7 @@
 #include <optional>
 #include "./IHttpHandler.h"
 #include "./HttpHeader.h"
+#include "./HttpHeaderCollection.h"
 #include "./Buffer.h"
 
 namespace HttpServerAdvanced

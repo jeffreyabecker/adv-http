@@ -19,31 +19,31 @@ namespace HttpServerAdvanced
         }
     }
 
-    HttpResponse::HttpResponse(HttpStatus status, String &&body, HttpHeadersCollection &&headers)
+    HttpResponse::HttpResponse(HttpStatus status, String &&body, HttpHeaderCollection &&headers)
         : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(std::move(body)))
     {
         init(body_->available());
     }
 
-    HttpResponse::HttpResponse(HttpStatus status, const String &body, HttpHeadersCollection &&headers)
+    HttpResponse::HttpResponse(HttpStatus status, const String &body, HttpHeaderCollection &&headers)
         : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(body))
     {
         init(body_->available());
     }
 
-    HttpResponse::HttpResponse(HttpStatus status, const char *body, HttpHeadersCollection &&headers)
+    HttpResponse::HttpResponse(HttpStatus status, const char *body, HttpHeaderCollection &&headers)
         : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(body))
     {
         init(body_->available());
     }
 
-    HttpResponse::HttpResponse(HttpStatus status, const uint8_t *body, size_t length, HttpHeadersCollection &&headers)
+    HttpResponse::HttpResponse(HttpStatus status, const uint8_t *body, size_t length, HttpHeaderCollection &&headers)
         : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(body, length))
     {
         init(body_->available());
     }
 
-    HttpResponse::HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeadersCollection &&headers)
+    HttpResponse::HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeaderCollection &&headers)
         : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(std::move(body)))
     {
         init(body_->available());
@@ -51,7 +51,7 @@ namespace HttpServerAdvanced
 
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &body, std::initializer_list<HttpHeader> headers)
     {
-        HttpHeadersCollection headersCollection;
+        HttpHeaderCollection headersCollection;
         for (const auto &header : headers)
         {
             headersCollection.set(header);
@@ -61,7 +61,7 @@ namespace HttpServerAdvanced
 
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, String &&body, std::initializer_list<HttpHeader> headers)
     {
-        HttpHeadersCollection headersCollection;
+        HttpHeaderCollection headersCollection;
         for (const auto &header : headers)
         {
             headersCollection.set(header);
@@ -71,7 +71,7 @@ namespace HttpServerAdvanced
 
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, const char *body, std::initializer_list<HttpHeader> headers)
     {
-        HttpHeadersCollection headersCollection;
+        HttpHeaderCollection headersCollection;
         for (const auto &header : headers)
         {
             headersCollection.set(header);
@@ -81,7 +81,7 @@ namespace HttpServerAdvanced
 
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, const uint8_t *body, size_t length, std::initializer_list<HttpHeader> headers)
     {
-        HttpHeadersCollection headersCollection;
+        HttpHeaderCollection headersCollection;
         for (const auto &header : headers)
         {
             headersCollection.set(header);
@@ -91,7 +91,7 @@ namespace HttpServerAdvanced
 
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, std::unique_ptr<Stream> body, std::initializer_list<HttpHeader> headers)
     {
-        HttpHeadersCollection headersCollection;
+        HttpHeaderCollection headersCollection;
         for (const auto &header : headers)
         {
             headersCollection.set(header);
@@ -104,7 +104,7 @@ namespace HttpServerAdvanced
         return status_;
     }
 
-    HttpHeadersCollection &HttpResponse::headers()
+    HttpHeaderCollection &HttpResponse::headers()
     {
         return headers_;
     }

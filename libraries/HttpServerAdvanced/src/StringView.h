@@ -11,9 +11,10 @@ namespace HttpServerAdvanced
         StringView() : _data(nullptr), _length(0) {}
         StringView(const char *cstr, size_t length) : _data(cstr), _length(length) {}
         StringView(const StringView &other) : _data(other._data), _length(other._length) {}
-        constexpr StringView(const char *cstr) : _data(cstr), _length(cstr ? strlen(cstr) : 0) {}
-
+        StringView(const char *cstr) : _data(cstr), _length(cstr ? strlen(cstr) : 0) {}
         StringView(const String &str) : _data(str.c_str()), _length(str.length()) {}
+        
+        virtual ~StringView() = default;
 
         // Comparison methods
         int compareTo(const char *cstr, size_t length, bool ignoreCase = false) const
@@ -104,6 +105,10 @@ namespace HttpServerAdvanced
         bool isEmpty() const
         {
             return _length == 0 || _data == nullptr;
+        }
+        const char* c_str() const
+        {
+            return _data;
         }
         size_t length() const
         {
@@ -253,5 +258,17 @@ namespace HttpServerAdvanced
     protected:
         const char *_data;
         size_t _length;
+    };
+    class OwningStringView : public StringView
+    {
+    private:
+        String ownedString_;
+    public:
+        // Constructors
+        OwningStringView(const char *cstr, size_t length) : ownedString_(cstr, length), StringView(ownedString_.c_str(), ownedString_.length()) {}
+        OwningStringView(const StringView &other) : ownedString_(other.c_str(), other.length()), StringView(ownedString_.c_str(), ownedString_.length()) {}
+        OwningStringView(const char *cstr) : ownedString_(cstr), StringView(ownedString_.c_str(), ownedString_.length()) {}
+        OwningStringView(const String &str) : ownedString_(str), StringView(ownedString_.c_str(), ownedString_.length()) {}
+        OwningStringView(String&& str) : ownedString_(std::move(str)), StringView(ownedString_.c_str(), ownedString_.length()) {}
     };
 } // namespace HttpServerAdvanced

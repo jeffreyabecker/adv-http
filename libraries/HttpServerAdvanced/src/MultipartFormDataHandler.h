@@ -6,6 +6,7 @@
 #include "./IHttpHandler.h"
 #include "./HttpResponse.h"
 #include "./HttpHeader.h"
+#include "./HttpHeaderCollection.h"
 #include "./Buffer.h"
 #include "./Defines.h"
 #include "./HandlerRestrictions.h"

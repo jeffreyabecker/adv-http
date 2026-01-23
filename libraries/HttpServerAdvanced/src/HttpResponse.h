@@ -3,6 +3,7 @@
 #include <cstring>
 #include "./HttpStatus.h"
 #include "./HttpHeader.h"
+#include "./HttpHeaderCollection.h"
 #include "./Streams.h"
 #include "./Iterators.h"
 #include "./HttpResponseBodyStream.h"
@@ -18,18 +19,18 @@ namespace HttpServerAdvanced
   {
   private:
     HttpStatus status_;
-    HttpHeadersCollection headers_;
+    HttpHeaderCollection headers_;
     std::unique_ptr<HttpResponseBodyStream> body_;
 
     static constexpr const char *defaultContentType = "text/plain";
     void init(size_t contentLength);
 
   public:
-    HttpResponse(HttpStatus status, String &&body, HttpHeadersCollection && headers);
-    HttpResponse(HttpStatus status, const String &body, HttpHeadersCollection && headers);
-    HttpResponse(HttpStatus status, const char *body, HttpHeadersCollection && headers);
-    HttpResponse(HttpStatus status, const uint8_t *body, size_t length, HttpHeadersCollection && headers);
-    HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeadersCollection && headers);
+    HttpResponse(HttpStatus status, String &&body, HttpHeaderCollection && headers);
+    HttpResponse(HttpStatus status, const String &body, HttpHeaderCollection && headers);
+    HttpResponse(HttpStatus status, const char *body, HttpHeaderCollection && headers);
+    HttpResponse(HttpStatus status, const uint8_t *body, size_t length, HttpHeaderCollection && headers);
+    HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeaderCollection && headers);
 
     // static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &body, std::initializer_list<std::pair<const char *, const char *>> headers);
     // static std::unique_ptr<IHttpResponse> create(HttpStatus status, String &&body, std::initializer_list<std::pair<const char *, const char *>> headers);
@@ -46,7 +47,7 @@ namespace HttpServerAdvanced
     ~HttpResponse() override = default;
 
     HttpStatus status() const override;
-    HttpHeadersCollection &headers() override;
+    HttpHeaderCollection &headers() override;
     std::unique_ptr<HttpResponseBodyStream> getBody() override;
   };
     // Stream contract used throughout the HTTP pipeline:

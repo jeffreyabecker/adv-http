@@ -22,7 +22,7 @@ namespace HttpServerAdvanced
             return providerRegistry_.createContextHandler(context);
         }
 
-        virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, String &&body, HttpHeadersCollection headers = HttpHeadersCollection()) override
+        virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, String &&body, HttpHeaderCollection headers = HttpHeaderCollection()) override
         {
             return std::make_unique<HttpResponse>(status, std::move(body), std::move(headers));
         }

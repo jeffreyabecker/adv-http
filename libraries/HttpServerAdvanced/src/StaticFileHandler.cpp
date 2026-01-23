@@ -130,7 +130,7 @@ namespace HttpServerAdvanced
         }
 
         // Build headers
-        HttpHeadersCollection headers;
+        HttpHeaderCollection headers;
         headers.push_back(HttpHeader::ContentType(contentType));
         headers.push_back(HttpHeader::ContentLength(String(file.size())));
         headers.push_back(HttpHeader::ETag(getEtag(file)));
