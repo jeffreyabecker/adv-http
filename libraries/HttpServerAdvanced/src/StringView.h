@@ -13,7 +13,7 @@ namespace HttpServerAdvanced
         StringView(const StringView &other) : _data(other._data), _length(other._length) {}
         StringView(const char *cstr) : _data(cstr), _length(cstr ? strlen(cstr) : 0) {}
         StringView(const String &str) : _data(str.c_str()), _length(str.length()) {}
-        
+
         virtual ~StringView() = default;
 
         // Comparison methods
@@ -106,7 +106,7 @@ namespace HttpServerAdvanced
         {
             return _length == 0 || _data == nullptr;
         }
-        const char* c_str() const
+        const char *c_str() const
         {
             return _data;
         }
@@ -259,16 +259,31 @@ namespace HttpServerAdvanced
         const char *_data;
         size_t _length;
     };
+    // a specialization of StringView that *might* own the underlying string data
     class OwningStringView : public StringView
     {
     private:
         String ownedString_;
+
     public:
         // Constructors
-        OwningStringView(const char *cstr, size_t length) : ownedString_(cstr, length), StringView(ownedString_.c_str(), ownedString_.length()) {}
-        OwningStringView(const StringView &other) : ownedString_(other.c_str(), other.length()), StringView(ownedString_.c_str(), ownedString_.length()) {}
-        OwningStringView(const char *cstr) : ownedString_(cstr), StringView(ownedString_.c_str(), ownedString_.length()) {}
-        OwningStringView(const String &str) : ownedString_(str), StringView(ownedString_.c_str(), ownedString_.length()) {}
-        OwningStringView(String&& str) : ownedString_(std::move(str)), StringView(ownedString_.c_str(), ownedString_.length()) {}
+        OwningStringView(const char *cstr, size_t length, bool copyValue = true) 
+            : ownedString_(copyValue ? String(cstr, length) : String()), 
+              StringView(copyValue ? ownedString_.c_str() : cstr, copyValue ? ownedString_.length() : length) 
+        {}
+        OwningStringView(const StringView &other, bool copyValue = true) 
+            : ownedString_(copyValue ? String(other.c_str(), other.length()) : String()), 
+              StringView(copyValue ? ownedString_.c_str() : other.c_str(), copyValue ? ownedString_.length() : other.length()) 
+            {}
+        OwningStringView(const char *cstr, bool copyValue = true) 
+            : ownedString_(copyValue ? String(cstr) : String()), 
+              StringView(copyValue ? ownedString_.c_str() : cstr, copyValue ? ownedString_.length() : strlen(cstr)) 
+        {}
+        OwningStringView(const String &str, bool copyValue = true) 
+            : ownedString_(copyValue ? str : String()), 
+              StringView(copyValue ? ownedString_.c_str() : str.c_str(), copyValue ? ownedString_.length() : str.length()) 
+        {}
+        // we always own the data if the input is an rvalue String
+        OwningStringView(String &&str) : ownedString_(std::move(str)), StringView(ownedString_.c_str(), ownedString_.length()) {}
     };
 } // namespace HttpServerAdvanced
