@@ -14,7 +14,7 @@
 | Concurrency | Pipelined / multi-connection capable via `HttpPipeline` | Single simultaneous client (documented) |
 | Parsing strategy | `http_parser` streaming parser with fixed buffer and strict limits | `readStringUntil()` / `String`-heavy parsing — simpler but unbounded |
 | Memory model | **Bounded & predictable** (static parser buffer, stack I/O buffers, configurable limits) | **Dynamic & unbounded** (many `String` allocations, risk of fragmentation/OOM) |
-| Request handling model | Factories + handler classes (Request, Form, RawBody, Multipart) | `RequestHandler` callbacks with legacy-style upload/raw handlers |
+| Request handling model | Factories + handler classes (Request, Form, RawBody, Multipart, Json) | `RequestHandler` callbacks with legacy-style upload/raw handlers |
 | Multipart uploads | Streaming `MultipartFormDataHandler` — chunked callbacks, low memory | `HTTPUpload` with chunk buffer and callbacks — works, but parsing uses strings |
 | Raw body | `RawBodyHandler` streaming + buffered options | `HTTPRaw` with buffer and `raw()` callbacks |
 | Response streaming | Stream-based `IHttpResponse`, chunked iterator, no big buffers | `streamFile()` and chunk methods; simpler API for sketches |

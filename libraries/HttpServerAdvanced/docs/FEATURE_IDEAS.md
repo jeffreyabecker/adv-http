@@ -17,7 +17,6 @@ Move path parameter parsing earlier in the request processing pipeline. This all
 
 
 
-
 ## IoT Device Template Implementation
 
 ### Overview
@@ -35,3 +34,5 @@ Implement a reusable IoT device template within the HttpServerAdvanced library t
 - Ensure compatibility with resource-constrained devices by optimizing for low memory and power usage.
 - Include documentation and examples for extending the template with device-specific features.
 - Wrap the update library functionality to enable over-the-air (OTA) updates directly via the UI, allowing users to upload firmware binaries through a web interface
+
+
