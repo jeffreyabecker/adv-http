@@ -56,7 +56,7 @@ namespace HttpServerAdvanced
             {
                 providerRegistry_.add(std::move(predicate), std::move(factory));
             };
-            return HandlerBuilder<THandler>(std::move(addHandler), IHttpHandler::Predicate([req](HttpRequest &context) { return req(context); }), handler, adapterExtractor);
+            return HandlerBuilder<THandler>(std::move(addHandler), request, handler, adapterExtractor);
         }
 
         template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
@@ -68,7 +68,7 @@ namespace HttpServerAdvanced
             {
                 providerRegistry_.add(std::move(predicate), std::move(factory));
             };
-            return HandlerBuilder<THandler>(std::move(addHandler), IHttpHandler::Predicate([req](HttpRequest &context) { return req(context); }), handler);
+            return HandlerBuilder<THandler>(std::move(addHandler), request, handler);
         }
         template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const char *path, const typename THandler::Invocation &handler)
@@ -81,7 +81,7 @@ namespace HttpServerAdvanced
             {
                 providerRegistry_.add(std::move(predicate), std::move(factory));
             };
-            return HandlerBuilder<THandler>(std::move(addHandler), IHttpHandler::Predicate([request](HttpRequest &context) { return request(context); }), handler, adapterExtractor);
+            return HandlerBuilder<THandler>(std::move(addHandler), request, handler, adapterExtractor);
         }
 
         template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
@@ -93,7 +93,7 @@ namespace HttpServerAdvanced
             {
                 providerRegistry_.add(std::move(predicate), std::move(factory));
             };
-            return HandlerBuilder<THandler>(std::move(addHandler), IHttpHandler::Predicate([request](HttpRequest &context) { return request(context); }), handler);
+            return HandlerBuilder<THandler>(std::move(addHandler), request, handler);
         }
 
         void onNotFound(IHttpHandler::InvocationCallback invocation)

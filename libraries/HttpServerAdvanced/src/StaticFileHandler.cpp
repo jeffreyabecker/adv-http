@@ -1,5 +1,6 @@
 #include "StaticFileHandler.h"
 #include "HttpHandler.h"
+#include "StringResponse.h"
 #include <ctime>
 
 namespace HttpServerAdvanced
@@ -105,9 +106,9 @@ namespace HttpServerAdvanced
         if (!isGet && !isHead)
         {
             return HttpHandler::create(
-                HttpResponse::create(HttpStatus::MethodNotAllowed(),
-                                     "Method Not Allowed",
-                                     {std::move(HttpHeader::Allow("GET, HEAD"))}));
+                StringResponse::create(HttpStatus::MethodNotAllowed(),
+                                       "Method Not Allowed",
+                                       {std::move(HttpHeader::Allow("GET, HEAD"))}));
         }
 
         File file = fileLocator_.getFile(context);

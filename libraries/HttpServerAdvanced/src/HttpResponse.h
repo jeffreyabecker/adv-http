@@ -25,17 +25,14 @@ namespace HttpServerAdvanced
   public:
     HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeaderCollection &&headers);
 
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &body, std::initializer_list<HttpHeader> headers = {});
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, String &&body, std::initializer_list<HttpHeader> headers = {});
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const char *body, std::initializer_list<HttpHeader> headers = {});
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const uint8_t *body, size_t length, std::initializer_list<HttpHeader> headers = {});
-
     ~HttpResponse() override = default;
 
     HttpStatus status() const override;
     HttpHeaderCollection &headers() override;
     std::unique_ptr<HttpResponseBodyStream> getBody() override;
   };
+
+  
   // Stream contract used throughout the HTTP pipeline:
   //  - available() == 0   : end of stream (no more bytes)
   //  - available()  > 0   : that many bytes are buffered and readable now

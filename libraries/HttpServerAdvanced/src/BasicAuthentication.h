@@ -7,6 +7,7 @@
 #include "./HttpStatus.h"
 #include "./HttpUtility.h"
 #include "./HttpHandler.h"
+#include "./StringResponse.h"
 #include <memory>
 
 namespace HttpServerAdvanced
@@ -14,7 +15,8 @@ namespace HttpServerAdvanced
     namespace BasicAuthImpl
     {
 
-        bool CheckBasicAuthCredentials(HttpRequest &context, std::function<bool(const String &, const String &)> validator, const String &realm, std::function<void(const String &, const String &)> onSuccess)
+        bool CheckBasicAuthCredentials(HttpRequest &context, std::function<bool(const String &, const String &)> validator,
+                                       const String &realm, std::function<void(const String &, const String &)> onSuccess)
         {
             auto authHeaderOpt = context.headers().find("Authorization");
             if (!authHeaderOpt.has_value())
@@ -52,10 +54,19 @@ namespace HttpServerAdvanced
             return true;
         }
     }
-
-    IHttpHandler::InterceptorCallback BasicAuth(std::function<bool(const String &, const String &)> validator, const String &realm = "Restricted Area", std::function<void(const String &, const String &)> onSuccess = nullptr)
+    std::unique_ptr<IHttpResponse> defaultOnFailure(HttpRequest &context, const String &realm)
     {
-        return [validator, &realm, onSuccess](HttpRequest &context, IHttpHandler::InvocationCallback next)
+        return StringResponse::create(
+            HttpStatus::Unauthorized(),
+            "Unauthorized",
+            {HttpHeader::WwwAuthenticate(String("Basic realm=\"") + realm + "\"")});
+    }
+
+    IHttpHandler::InterceptorCallback BasicAuth(std::function<bool(const String &, const String &)> validator, const String &realm = "Restricted Area",
+                                                std::function<void(const String &, const String &)> onSuccess = nullptr,
+                                                std::function<std::unique_ptr<IHttpResponse>(HttpRequest &context, const String &)> onFailure = defaultOnFailure)
+    {
+        return [validator, &realm, onSuccess, onFailure](HttpRequest &context, IHttpHandler::InvocationCallback next)
         {
             if (BasicAuthImpl::CheckBasicAuthCredentials(context, validator, realm, onSuccess))
             {
@@ -63,24 +74,21 @@ namespace HttpServerAdvanced
             }
             else
             {
-
-                std::unique_ptr<IHttpResponse> response =
-                    HttpResponse::create(
-                        HttpStatus::Unauthorized(),
-                        "Unauthorized",
-                        {HttpHeader::WwwAuthenticate(String("Basic realm=\"") + realm + "\"")});
+                std::unique_ptr<IHttpResponse> response = onFailure(context, realm);
                 return std::move(response);
             }
         };
     }
 
-    IHttpHandler::InterceptorCallback BasicAuth(const String &expectedUsername, const String &expectedPassword, const String &realm = "Restricted Area", std::function<void(const String &, const String &)> onSuccess = nullptr)
+    IHttpHandler::InterceptorCallback BasicAuth(const String &expectedUsername, const String &expectedPassword, const String &realm = "Restricted Area",
+                                                std::function<void(const String &, const String &)> onSuccess = nullptr,
+                                                std::function<std::unique_ptr<IHttpResponse>(HttpRequest &context, const String &)> onFailure = defaultOnFailure)
     {
         // Explicitly construct std::function to avoid overload ambiguity
         std::function<bool(const String &, const String &)> validator = [expectedUsername, expectedPassword](const String &foundUsername, const String &foundPassword)
         {
             return foundUsername == expectedUsername && foundPassword == expectedPassword;
         };
-        return BasicAuth(validator, realm, onSuccess);
+        return BasicAuth(validator, realm, onSuccess, onFailure);
     }
 } // namespace HttpServerAdvanced

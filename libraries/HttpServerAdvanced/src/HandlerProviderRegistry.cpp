@@ -2,6 +2,7 @@
 #include "./HttpRequest.h"
 #include "./HttpHandler.h"
 #include "./HttpResponse.h"
+#include "./StringResponse.h"
 
 namespace HttpServerAdvanced
 {
@@ -9,7 +10,7 @@ namespace HttpServerAdvanced
     std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createDefaultHandler(HttpRequest &context)
     {
         return std::make_unique<HttpHandler>(
-            HttpResponse::create(HttpStatus::NotFound(), "404 Not Found",
+            StringResponse::create(HttpStatus::NotFound(), "404 Not Found",
                                  {HttpHeader(HttpHeaderNames::ContentType, "text/plain")}),
             [](const HttpRequest &)
             { return true; });

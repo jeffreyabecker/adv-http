@@ -6,7 +6,7 @@ HttpServer WebServer;
 
 Response onHello(HttpRequest &context)
 {
-    return HttpResponse::create(HttpStatus::Ok(), "text/plain", "Hello World\n");
+    return StringResponse::create(HttpStatus::Ok(), "text/plain", "Hello World\n");
 }
 
 Response onPinRequest(HttpRequest &context, std::vector<String> &&pathParams)
@@ -16,18 +16,18 @@ Response onPinRequest(HttpRequest &context, std::vector<String> &&pathParams)
         int pin = pathParams[0].toInt();
         int value = digitalRead(pin); // Just an example operation
         String response = "Requested pin: " + String(pin) + ". Value: " + String(value) + "\n";
-        return HttpResponse::create(HttpStatus::Ok(), "text/plain", response);
+        return StringResponse::create(HttpStatus::Ok(), "text/plain", response);
     }
     else
     {
-        return HttpResponse::create(HttpStatus::BadRequest(), "text/plain", "Pin not specified\n");
+        return StringResponse::create(HttpStatus::BadRequest(), "text/plain", "Pin not specified\n");
     }
 }
 Response onGreeting(HttpRequest &context, PostBodyData &&pathParams)
 {
     String name = pathParams.get("name").value_or("Guest");
     String response = "Hello, " + name + "!\n";
-    return HttpResponse::create(HttpStatus::Ok(), "text/plain", response);
+    return StringResponse::create(HttpStatus::Ok(), "text/plain", response);
 }
 
 Response onEcho(HttpRequest &, size_t recievedLength, size_t contentLength, const uint8_t *chunk, size_t chunkLength){
@@ -39,7 +39,7 @@ Response onEcho(HttpRequest &, size_t recievedLength, size_t contentLength, cons
     String response = "Received " + String(recievedLength) + " of " + String(contentLength) + " bytes\n";
     response += "Chunk (" + String(chunkLength) + " bytes): ";
     response += String(reinterpret_cast<const char *>(chunk), chunkLength) + "\n";
-    return HttpResponse::create(HttpStatus::Ok(), "text/plain", response);
+    return StringResponse::create(HttpStatus::Ok(), "text/plain", response);
 }
 // Response onFileUpload(HttpRequest &context, PostBodyData &&postData)
 // {
@@ -49,11 +49,11 @@ Response onEcho(HttpRequest &, size_t recievedLength, size_t contentLength, cons
 //         auto &fileData = fileOpt.value();
 //         auto contentType = fileData.contentType();
 //         String response = "Received file: " + fileData.filename()+" " + contentType + " (" + String(fileData.length()) + " bytes)\n";
-//         return HttpResponse::create(HttpStatus::Ok(), "text/plain", response);
+//         return StringResponse::create(HttpStatus::Ok(), "text/plain", response);
 //     }
 //     else
 //     {
-//         return HttpResponse::create(HttpStatus::BadRequest(), "text/plain", "No file uploaded\n");
+//         return StringResponse::create(HttpStatus::BadRequest(), "text/plain", "No file uploaded\n");
 //     }
 // }
 

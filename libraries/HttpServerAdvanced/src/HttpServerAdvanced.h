@@ -13,6 +13,8 @@
 #include "./BasicAuthentication.h"
 #include "./CrossOriginRequestSharing.h"
 #include "./StaticFilesBuilder.h"
+#include "./StringResponse.h"
+#include "./FormResponse.h"
 #include "./WebServer.h"
 
 
@@ -24,7 +26,7 @@ using HttpServerAdvanced::WebServerBuilder;
 using HttpServerAdvanced::Form;
 using HttpServerAdvanced::RawBody;
 using HttpServerAdvanced::GetRequest;
-//using HttpServerAdvanced::Json;
+using HttpServerAdvanced::Json;
 using HttpServerAdvanced::Buffered;
 using HttpServerAdvanced::Multipart;
 using Upload = HttpServerAdvanced::Multipart;
@@ -35,6 +37,8 @@ using HttpServerAdvanced::HttpHandler;
 using HttpServerAdvanced::HttpHeader;
 using HttpServerAdvanced::HttpMethod;
 using HttpServerAdvanced::HttpResponse;
+using HttpServerAdvanced::StringResponse;
+using HttpServerAdvanced::FormResponse;
 using HttpServerAdvanced::HttpStatus;
 using HttpServerAdvanced::IHttpResponse;
 

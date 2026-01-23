@@ -5,6 +5,7 @@
 #include <optional>
 #include "./IHttpHandler.h"
 #include "./HttpResponse.h"
+#include "./StringResponse.h"
 #include "./HttpHeader.h"
 #include "./HttpHeaderCollection.h"
 #include "./Buffer.h"
@@ -181,7 +182,7 @@ namespace HttpServerAdvanced
                 }
                 if (boundary_.length() == 0)
                 {
-                    response_ = HttpResponse::create(HttpStatus::BadRequest(), "Missing or invalid boundary", {});
+                    response_ = StringResponse::create(HttpStatus::BadRequest(), "Missing or invalid boundary", {});
                     return;
                 }
             }

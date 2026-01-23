@@ -21,35 +21,35 @@ Response onGetPin(HttpRequest &request, std::vector<String> &&params)
   int pin = params.size() > 0 ? params[0].toInt() : -1;
   if (pin < 0 || pin > 20)
   {
-    return HttpResponse::create(HttpStatus::BadRequest(), String("Invalid pin number"), {HttpHeader::ContentType("text/plain")});
+    return StringResponse::create(HttpStatus::BadRequest(), String("Invalid pin number"), {HttpHeader::ContentType("text/plain")});
   }
   int value = digitalRead(pin);
   String response = String("Pin ") + pin + " value: " + String(value) + "\n";
 
-  return HttpResponse::create(HttpStatus::Ok(), std::move(response), {HttpHeader::ContentType("text/plain")});
+  return StringResponse::create(HttpStatus::Ok(), std::move(response), {HttpHeader::ContentType("text/plain")});
 }
 Response onSetPin(HttpRequest &request, std::vector<String> &&params, String && value)
 {
     int pin = params.size() > 0 ? params[0].toInt() : -1;
     if (pin < 0 || pin > 20)
     {
-      return HttpResponse::create(HttpStatus::BadRequest(), String("Invalid pin number"), {HttpHeader::ContentType("text/plain")});
+      return StringResponse::create(HttpStatus::BadRequest(), String("Invalid pin number"), {HttpHeader::ContentType("text/plain")});
     }
     String response = String("Set: Pin ") + pin + " value: " + String(value) + "\n";
-    return HttpResponse::create(HttpStatus::Ok(), std::move(response), {HttpHeader::ContentType("text/plain")});
+    return StringResponse::create(HttpStatus::Ok(), std::move(response), {HttpHeader::ContentType("text/plain")});
 }
 Response onRawBody(HttpRequest &request, RawBodyBuffer &&bodyData)
 {
     String response = "Received raw body data:\n";
     response += String((const char *)bodyData.data(), bodyData.size()) + "\n";
-    return HttpResponse::create(HttpStatus::Ok(), std::move(response), {HttpHeader::ContentType("text/plain")});
+    return StringResponse::create(HttpStatus::Ok(), std::move(response), {HttpHeader::ContentType("text/plain")});
 }
 // Response onJsonBody(HttpRequest &request, JsonDocument &&jsonData)
 // {
 //     String response = "Received JSON body data:\n";
 //     const char *sensor = jsonData["sensor"];
 //     response += String(sensor) + "\n";
-//     return HttpResponse::create(HttpStatus::Ok(), std::move(response), {HttpHeader::ContentType("application/json")});
+//     return StringResponse::create(HttpStatus::Ok(), std::move(response), {HttpHeader::ContentType("application/json")});
 // }
 
 Response onFileUpload(HttpRequest &request, MultipartFormDataBuffer &&bodyData)
@@ -58,7 +58,7 @@ Response onFileUpload(HttpRequest &request, MultipartFormDataBuffer &&bodyData)
     if (bodyData.status() == MultipartStatus::Completed)
     {
     }
-    return HttpResponse::create(HttpStatus::Ok(), std::move(response), {HttpHeader::ContentType("text/plain")});
+    return StringResponse::create(HttpStatus::Ok(), std::move(response), {HttpHeader::ContentType("text/plain")});
 }
 void setupWebServer(WebServer &server)
 {

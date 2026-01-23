@@ -61,7 +61,7 @@ namespace HttpServerAdvanced
     class PairEncodingIterator : public BoundedStreamIterable<PairEncodingIterator>
     {
     private:
-        static constexpr char *ValueDelimiter = "=";
+        static constexpr const char *ValueDelimiter = "=";
         std::pair<StringView, StringView> pair_;
 
         virtual bool compareValue(const PairEncodingIterator &other) const override
@@ -109,7 +109,7 @@ namespace HttpServerAdvanced
     class FormUrlEncodingIterator : public BoundedStreamIterable<FormUrlEncodingIterator>
     {
     private:
-        static constexpr char *PairDelimiter = "&";
+        static constexpr const char *PairDelimiter = "&";
         const std::vector<std::pair<StringView, StringView>> &pairs_;
 
         virtual bool compareValue(const FormUrlEncodingIterator &other) const override
@@ -168,9 +168,42 @@ namespace HttpServerAdvanced
             }
             return views;
          }
+         size_t totalLength_;
+         size_t position_;
+         static size_t calculateTotalLength(const std::vector<std::pair<StringView,StringView>> & viewData)
+         {
+            size_t total = 0;
+            for (const auto & pair : viewData)
+            {
+                total += pair.first.length();
+                if (!pair.second.isEmpty())
+                {
+                    total += 1; // '='
+                    total += pair.second.length();
+                }
+            }
+            total += (viewData.size() > 1 ? (viewData.size() - 1) : 0); // '&' delimiters
+            return total;
+         }
         public:
 
         FormEncodingStream(std::vector<std::pair<String,String>> && data) : data_(std::move(data)), viewData_(toViewData(data_)),
-        IndefiniteConcatStream<FormUrlEncodingIterator, FormUrlEncodingIterator>(FormUrlEncodingIterator::begin(viewData_), FormUrlEncodingIterator::end(viewData_)) {}
+        IndefiniteConcatStream<FormUrlEncodingIterator, FormUrlEncodingIterator>(FormUrlEncodingIterator::begin(viewData_), FormUrlEncodingIterator::end(viewData_)), 
+        totalLength_(calculateTotalLength(viewData_)), position_(0) {}
+
+        virtual int available() override
+        {
+            return totalLength_ - position_;
+        }
+
+        virtual int read() override
+        {
+            int result = IndefiniteConcatStream<FormUrlEncodingIterator, FormUrlEncodingIterator>::read();
+            if (result != -1)
+            {
+            ++position_;
+            }
+            return result;
+        }
     };
 }

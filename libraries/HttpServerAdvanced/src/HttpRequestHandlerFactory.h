@@ -2,6 +2,7 @@
 #include "./IHttpRequestHandlerFactory.h"
 #include "./HandlerProviderRegistry.h"
 #include "./HttpResponse.h"
+#include "./StringResponse.h"
 
 namespace HttpServerAdvanced
 {
@@ -24,7 +25,7 @@ namespace HttpServerAdvanced
 
         virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, String &&body) override
         {
-            return HttpResponse::create(status, std::move(body), {});
+            return StringResponse::create(status, std::move(body), {});
         }
     };
 } // namespace HttpServerAdvanced

@@ -13,7 +13,7 @@ Examples organized by complexity and feature coverage. Each example builds on co
 - `WebServer` instantiation
 - `server.use()` configuration pattern
 - `GetRequest` handler
-- `HttpResponse::create()` with string body
+- `StringResponse::create()` usage
 
 ```
 GET /         → "Hello, World!"
@@ -119,36 +119,6 @@ POST /api/led     → {"state": true} to control LED
 GET /index.html   → Serve /wwwroot/index.html
 GET /css/app.css  → Serve /wwwroot/css/app.css
 GET /api/data     → API route (not static)
-```
-
----
-
-### 3.2 FileUpload
-**File**: `examples/FileUpload/FileUpload.ino`  
-**Features**: Multipart file uploads  
-**Concepts**:
-- `Multipart` handler type
-- `MultipartFormDataBuffer` chunk handling
-- `MultipartStatus` state machine
-- Writing to filesystem in chunks
-
-```
-POST /upload  → Upload file to LittleFS
-GET  /files   → List uploaded files
-```
-
----
-
-### 3.3 FileDownload
-**File**: `examples/FileDownload/FileDownload.ino`  
-**Features**: Streaming file downloads  
-**Concepts**:
-- Opening file as response body stream
-- Content-Disposition header
-- Large file handling without buffering
-
-```
-GET /download/filename.bin  → Stream file to client
 ```
 
 ---
