@@ -18,6 +18,8 @@ Response statusHandler(HttpRequest &request)
 {
     String status = "{\"status\":\"running\",\"uptime\":" + String(millis()) + "}";
     return StringResponse::create(HttpStatus::Ok(), "application/json", status);
+String status = "Status: running, Uptime: " + String(millis()) + " ms";
+return StringResponse::create(HttpStatus::Ok(), "text/plain", status);
 }
 
 void setup()

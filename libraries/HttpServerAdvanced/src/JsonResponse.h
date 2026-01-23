@@ -13,7 +13,7 @@ namespace HttpServerAdvanced
     class JsonResponse
     {
     public:
-        static std::unique_ptr<IHttpResponse> create(HttpStatus status, const JsonDocument &doc, std::initializer_list<HttpHeader> headers = {});
+        static std::unique_ptr<IHttpResponse> create(HttpStatus status, const JsonDocument &doc, std::initializer_list<HttpHeader> headers );
         static std::unique_ptr<IHttpResponse> create(HttpStatus status, const JsonDocument &doc);
     };
 }

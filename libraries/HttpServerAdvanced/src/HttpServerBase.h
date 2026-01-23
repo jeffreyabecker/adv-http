@@ -67,6 +67,9 @@ namespace HttpServerAdvanced
         size_t activeConnections() const { return pipelines_.size(); }
         static constexpr size_t maxConcurrentConnections() { return MAX_CONCURRENT_CONNECTIONS; }
 
+        virtual IPAddress localIP() const = 0;
+        virtual uint16_t localPort() const = 0;
+
     protected:
         std::function<PipelineHandlerPtr(HttpServerBase &)> pipelineHandlerFactory_;
         // Multiple concurrent pipelines (one per accepted client)

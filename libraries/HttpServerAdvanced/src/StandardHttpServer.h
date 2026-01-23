@@ -31,6 +31,14 @@ namespace HttpServerAdvanced
         {
             server_.configureConnection(callback);
         }
+        virtual IPAddress localIP() const override
+        {
+            return WiFi.localIP();
+        }
+        virtual uint16_t localPort() const override
+        {
+            return server_.port();
+        }
 
     protected:
         std::unique_ptr<IClient> accept() override

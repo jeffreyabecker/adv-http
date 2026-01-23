@@ -2,7 +2,7 @@
 #include <HttpServerAdvanced.h>
 #include "../../../WifiSetup.h"
 #include "../../../FSSetup.h"
-
+#include <ArduinoJson.h>    
 
 SecureHttpServerConfig<BR_KEYTYPE_RSA> httpsConfig(LittleFS, "/cert.pem", "/key.pem");
 SecureWebServer server;
@@ -14,8 +14,12 @@ Response httpsRootHandler(HttpRequest &request)
 
 Response httpsDataHandler(HttpRequest &request)
 {
-    String data = "{\"secure\":true,\"protocol\":\"https\",\"port\":443}";
-    return StringResponse::create(HttpStatus::Ok(), "application/json", data);
+    JsonDocument doc;
+    doc["secure"] = true;
+    doc["protocol"] = "https";
+    doc["port"] = 443;
+    doc["timestamp"] = millis();
+    return JsonResponse::create(HttpStatus::Ok(), doc);
 }
 
 volatile int setup0Done = 0;

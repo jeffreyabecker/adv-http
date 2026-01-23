@@ -8,23 +8,46 @@ WebServer server;
 
 Response configGetHandler(HttpRequest &request)
 {
+    JsonDocument doc;
+    doc["wifi"] = "enabled";
+    doc["localIp"] = request.localIP().toString();
+    doc["localPort"] = request.localPort();
+    doc["debug"] = true;
     // Return current configuration as JSON
-    String config = "{\"wifi\":\"enabled\",\"port\":8080,\"debug\":true}";
-    return StringResponse::create(HttpStatus::Ok(), "application/json", config);
+    return JsonResponse::create(HttpStatus::Ok(), doc);
+}
+JsonDocument getCurrentPin(){
+    int pinStatus = digitalRead(LED_BUILTIN);
+    JsonDocument doc;
+    doc["led"] = "controlled";
+    doc["status"] = pinStatus == HIGH ? "on" : "off";
+    return doc;
 }
 
 Response ledControlJsonHandler(HttpRequest &request)
 {
-    // Example JSON response for LED control
-    String response = "{\"led\":\"controlled\",\"status\":\"on\"}";
-    return StringResponse::create(HttpStatus::Ok(), "application/json", response);
+        // Example JSON response for LED control
+    JsonDocument doc = getCurrentPin();
+    return JsonResponse::create(HttpStatus::Ok(), doc);
 }
 
-Response configPostHandler(HttpRequest &request, PostBodyData &&formData)
+Response ledControlPostHandler(HttpRequest &request, JsonDocument &&body)
 {
-    // Simple echo back of received parameters as JSON
-    String response = "{\"received\":true,\"message\":\"Configuration updated\"}";
-    return StringResponse::create(HttpStatus::Ok(), "application/json", response);
+    if (body.containsKey("led"))
+    {
+        String ledState = body["led"];
+        if (ledState == "on")
+        {
+            digitalWrite(LED_BUILTIN, HIGH);
+        }
+        else if (ledState == "off")
+        {
+            digitalWrite(LED_BUILTIN, LOW);
+        }
+    }
+
+    JsonDocument doc = getCurrentPin();
+    return JsonResponse::create(HttpStatus::Ok(), doc);
 }
 
 volatile int setup0Done = 0;
@@ -37,22 +60,25 @@ void setup()
 
     setupWiFi();
     setupFilesystem();
+    pinMode(LED_BUILTIN, OUTPUT);
 
     auto handlers = server.cfg();
-    
+
     // GET current config
     handlers.on<GetRequest>("/api/config", configGetHandler);
-    
+
     // POST to update config (using Form for simplicity; true JSON parsing would use dedicated handler)
-    handlers.on<Form>("/api/config", configPostHandler);
-    
+    handlers.on<Json>("/api/led", ledControlPostHandler);
+
     // LED control
     handlers.on<GetRequest>("/api/led", ledControlJsonHandler);
 
     server.begin();
-    Serial.println("Server started on port 8080");
+    Serial.println("Server started on port " + String(server.localPort()));
     Serial.println("GET /api/config - retrieve configuration");
     Serial.println("GET /api/led - get LED status");
+    Serial.println("POST /api/led {\"led\":\"on\"} - turn LED on");
+    Serial.println("POST /api/led {\"led\":\"off\"} - turn LED off");
 
     setup0Done = 1;
 }
@@ -65,12 +91,15 @@ void loop()
     delay(100);
 }
 
-void setup1(){
-    while(setup0Done == 0){
+void setup1()
+{
+    while (setup0Done == 0)
+    {
         delay(100);
     }
 }
-void loop1(){
+void loop1()
+{
     // Your main application code goes here
     delay(100);
 }
