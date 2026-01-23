@@ -1,2 +1,2 @@
-FSConfig.h
-WifiConfig.h
+FSSetup.h
+WifiSetup.h

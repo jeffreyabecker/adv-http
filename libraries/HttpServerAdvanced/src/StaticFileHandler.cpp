@@ -107,8 +107,7 @@ namespace HttpServerAdvanced
             return HttpHandler::create(
                 HttpResponse::create(HttpStatus::MethodNotAllowed(),
                                      "Method Not Allowed",
-                                     {std::move(HttpHeader::Allow("GET, HEAD"))}),
-                HttpRequestPhase::CompletedStartingLine);
+                                     {std::move(HttpHeader::Allow("GET, HEAD"))}));
         }
 
         File file = fileLocator_.getFile(context);
@@ -149,8 +148,7 @@ namespace HttpServerAdvanced
             std::make_unique<HttpResponse>(
                 HttpStatus::Ok(),
                 std::make_unique<FileStreamWrapper>(file),
-                std::move(headers)),
-            HttpRequestPhase::CompletedStartingLine);
+                std::move(headers)));
     }
 
     void StaticFileHandlerFactory::setFileLocator(FileLocator &fileLocator)

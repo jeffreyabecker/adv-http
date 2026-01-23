@@ -22,27 +22,14 @@ namespace HttpServerAdvanced
     HttpHeaderCollection headers_;
     std::unique_ptr<HttpResponseBodyStream> body_;
 
-    static constexpr const char *defaultContentType = "text/plain";
-    void init(size_t contentLength);
-
   public:
-    HttpResponse(HttpStatus status, String &&body, HttpHeaderCollection && headers);
-    HttpResponse(HttpStatus status, const String &body, HttpHeaderCollection && headers);
-    HttpResponse(HttpStatus status, const char *body, HttpHeaderCollection && headers);
-    HttpResponse(HttpStatus status, const uint8_t *body, size_t length, HttpHeaderCollection && headers);
+
     HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeaderCollection && headers);
 
-    // static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &body, std::initializer_list<std::pair<const char *, const char *>> headers);
-    // static std::unique_ptr<IHttpResponse> create(HttpStatus status, String &&body, std::initializer_list<std::pair<const char *, const char *>> headers);
-    // static std::unique_ptr<IHttpResponse> create(HttpStatus status, const char *body, std::initializer_list<std::pair<const char *, const char *>> headers);
-    // static std::unique_ptr<IHttpResponse> create(HttpStatus status, const uint8_t *body, size_t length, std::initializer_list<std::pair<const char *, const char *>> headers);
-    // static std::unique_ptr<IHttpResponse> create(HttpStatus status, std::unique_ptr<Stream> body, std::initializer_list<std::pair<const char *, const char *>> headers);
-
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &body, std::initializer_list<HttpHeader> headers);
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, String &&body, std::initializer_list<HttpHeader> headers);
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const char *body, std::initializer_list<HttpHeader> headers);
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const uint8_t *body, size_t length, std::initializer_list<HttpHeader> headers);
-    static std::unique_ptr<IHttpResponse> create(HttpStatus status, std::unique_ptr<Stream> body, std::initializer_list<HttpHeader> headers);
+    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &body, std::initializer_list<HttpHeader> headers = {});
+    static std::unique_ptr<IHttpResponse> create(HttpStatus status, String &&body, std::initializer_list<HttpHeader> headers = {});
+    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const char *body, std::initializer_list<HttpHeader> headers = {});
+    static std::unique_ptr<IHttpResponse> create(HttpStatus status, const uint8_t *body, size_t length, std::initializer_list<HttpHeader> headers = {});
 
     ~HttpResponse() override = default;
 
