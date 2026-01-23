@@ -36,10 +36,10 @@ namespace HttpServerAdvanced
                           { return std::move(*resp); }),
               filter_(filter) {}
 
-        HttpHandler(std::unique_ptr<IHttpResponse> response, HttpRequestPhaseFlags callAt)
+        HttpHandler(std::unique_ptr<IHttpResponse> response, HttpRequestPhaseFlags callAt = HttpRequestPhase::All)
             : invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpRequest &) mutable -> IHttpHandler::HandlerResult
                           { return std::move(*resp); }),
-              filter_([](const HttpRequest &) { return true; }) {} // will be set via setPhaseFilter
+              filter_([callAt](const HttpRequest & req) { return req.completedPhases() | callAt > 0; }) {} // will be set via setPhaseFilter
 
         template <typename... Args>
         static std::unique_ptr<IHttpHandler> create(Args &&...args)

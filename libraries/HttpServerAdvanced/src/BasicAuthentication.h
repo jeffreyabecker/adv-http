@@ -44,7 +44,8 @@ namespace HttpServerAdvanced
             {
                 onSuccess(username, password);
             }
-            else{
+            else
+            {
                 context.items().emplace("BasicAuth::Username", username);
                 context.items().emplace("BasicAuth::Password", password);
             }
@@ -62,9 +63,13 @@ namespace HttpServerAdvanced
             }
             else
             {
-                auto response = HttpResponse::create(HttpStatus::Unauthorized(), "Unauthorized");
-                response->headers().set(HttpHeaderNames::WwwAuthenticate, String("Basic realm=\"") + realm + "\"");
-                return response;
+
+                std::unique_ptr<IHttpResponse> response =
+                    HttpResponse::create(
+                        HttpStatus::Unauthorized(),
+                        "Unauthorized",
+                        {HttpHeader::WwwAuthenticate(String("Basic realm=\"") + realm + "\"")});
+                return std::move(response);
             }
         };
     }
@@ -72,7 +77,7 @@ namespace HttpServerAdvanced
     IHttpHandler::InterceptorCallback BasicAuth(const String &expectedUsername, const String &expectedPassword, const String &realm = "Restricted Area", std::function<void(const String &, const String &)> onSuccess = nullptr)
     {
         // Explicitly construct std::function to avoid overload ambiguity
-        std::function<bool(const String &, const String &)> validator = [expectedUsername, expectedPassword](const String & foundUsername, const String & foundPassword)
+        std::function<bool(const String &, const String &)> validator = [expectedUsername, expectedPassword](const String &foundUsername, const String &foundPassword)
         {
             return foundUsername == expectedUsername && foundPassword == expectedPassword;
         };

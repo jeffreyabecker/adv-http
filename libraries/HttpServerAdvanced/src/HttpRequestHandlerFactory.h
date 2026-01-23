@@ -24,7 +24,7 @@ namespace HttpServerAdvanced
 
         virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, String &&body, HttpHeadersCollection headers = HttpHeadersCollection()) override
         {
-            return HttpResponse::create(status, std::move(body), headers);
+            return std::make_unique<HttpResponse>(status, std::move(body), std::move(headers));
         }
     };
 } // namespace HttpServerAdvanced

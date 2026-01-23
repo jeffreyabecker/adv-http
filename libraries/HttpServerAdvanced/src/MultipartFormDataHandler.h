@@ -9,6 +9,7 @@
 #include "./Buffer.h"
 #include "./Defines.h"
 #include "./HandlerRestrictions.h"
+#include "./HttpContentTypes.h"
 namespace HttpServerAdvanced
 {
     enum class MultipartStatus
