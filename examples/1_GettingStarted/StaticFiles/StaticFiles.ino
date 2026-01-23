@@ -27,7 +27,8 @@ void setup()
     
     // Add an API endpoint that won't be intercepted by static files
     handlers.on<GetRequest>("/api/data", [](HttpRequest &request) {
-        String data = "{\"message\":\"This is an API endpoint, not a static file\"}";
+        unsigned long uptime = millis();
+        String data = "{\"message\":\"This is an API endpoint, not a static file\",\"uptime\":" + String(uptime) + "}";
         return StringResponse::create(HttpStatus::Ok(), "application/json", data);
     });
 
