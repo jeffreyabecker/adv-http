@@ -1,25 +1,10 @@
 #include <Arduino.h>
 #include <HttpServerAdvanced.h>
+#include "../../../WifiSetup.h"
+#include "../../../FSSetup.h"
 
-// Example self-signed certificate and key data
-// In production, you would load these from storage or define them as constants
-// These are placeholders - generate real certificates for actual use
 
-// Example certificate (DER format as hex string - truncated for example)
-const char CERTIFICATE_PEM[] = R"(
------BEGIN CERTIFICATE-----
-MIIDXTCCAkWgAwIBAgIJAKZ2w6Fv4W3tMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
-... (certificate content would go here) ...
------END CERTIFICATE-----
-)";
-
-// Example private key (DER format as hex string - truncated for example)
-const char PRIVATE_KEY_PEM[] = R"(
------BEGIN PRIVATE KEY-----
-MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC... (key content) ...
------END PRIVATE KEY-----
-)";
-
+SecureHttpServerConfig<BR_KEYTYPE_RSA> httpsConfig(LittleFS, "/cert.pem", "/key.pem");
 SecureWebServer server;
 
 Response httpsRootHandler(HttpRequest &request)
@@ -32,6 +17,8 @@ Response httpsDataHandler(HttpRequest &request)
     String data = "{\"secure\":true,\"protocol\":\"https\",\"port\":443}";
     return StringResponse::create(HttpStatus::Ok(), "application/json", data);
 }
+
+volatile int setup0Done = 0;
 
 void setup()
 {
@@ -56,16 +43,29 @@ void setup()
 
     // Start the HTTPS server on port 443
     // The server will use TLS 1.2+ for secure connections
-    server.begin();
+    server.begin(httpsConfig);
     
     Serial.println("HTTPS Server started on port 443");
     Serial.println("Connect via: https://[device-ip]/");
     Serial.println("\nNote: Use a self-signed certificate in development");
     Serial.println("To generate a self-signed cert, run:");
     Serial.println("openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes");
+    setup0Done = 1;
 }
-
+// Main loop to handle incoming HTTPS requests. Bare metal requires that network code runs on core0
+// for proper performance application code should run on core1
 void loop()
 {
+    server.handleClient();
+}
+
+
+void setup1(){
+    while(setup0Done == 0){
+        delay(100);
+    }
+}
+void loop1(){
+    // Your main application code goes here
     delay(100);
 }
