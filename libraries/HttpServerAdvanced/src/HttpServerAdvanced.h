@@ -6,7 +6,7 @@
 //  Add using statements to pull members out of namespaces .
 #include "./StandardHttpServer.h"
 #include "./SecureHttpServer.h"
-#include "./CoreServices.h"
+#include "./WebServerBuilder.h"
 #include "./KeyValuePairView.h"
 #include "./HttpUtility.h"
 #include "./UriView.h"
@@ -15,12 +15,12 @@
 #include "./StaticFilesBuilder.h"
 #include "./WebServer.h"
 
-using HttpServerAdvanced::CoreServices;
+
 
 using HttpServerAdvanced::StandardHttpServer;
 using HttpServerAdvanced::SecureHttpServer;
 using HttpServerAdvanced::SecureHttpServerConfig;
-using HttpServerAdvanced::CoreServicesBuilder;
+using HttpServerAdvanced::WebServerBuilder;
 using HttpServerAdvanced::Form;
 using HttpServerAdvanced::RawBody;
 using HttpServerAdvanced::GetRequest;

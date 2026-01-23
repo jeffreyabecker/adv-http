@@ -1,7 +1,7 @@
 #pragma once
 #include <Arduino.h>
 
-#include "./CoreServices.h"
+#include "./WebServerBuilder.h"
 #include <FS.h>
 #include "./HttpContentTypes.h"
 #include "./HandlerProviderRegistry.h"
@@ -19,11 +19,11 @@ namespace HttpServerAdvanced
         std::function<void(StaticFilesBuilder &)> setupFunc_;
         DefaultFileLocator fileLocator_;
 
-        friend std::function<void(CoreServicesBuilder &)> &StaticFiles(FS &fs, std::function<void(StaticFilesBuilder &)> setupFunc);
+        friend std::function<void(WebServerBuilder &)> &StaticFiles(FS &fs, std::function<void(StaticFilesBuilder &)> setupFunc);
 
     protected:
         static constexpr const char *NAME = "StaticFiles";
-        void init(HttpServerAdvanced::CoreServicesBuilder &coreBuilder);
+        void init(HttpServerAdvanced::WebServerBuilder &coreBuilder);
 
     public:
         StaticFilesBuilder(FS &fs, HttpServerAdvanced::HttpContentTypes &contentTypes, std::function<void(StaticFilesBuilder &)> setupFunc);
@@ -34,5 +34,5 @@ namespace HttpServerAdvanced
         StaticFilesBuilder &setFilesystemContentRoot(const String &root);
     };
 
-    std::function<void(CoreServicesBuilder &)> &StaticFiles(FS &fs, std::function<void(StaticFilesBuilder &)> setupFunc = nullptr);
+    std::function<void(WebServerBuilder &)> &StaticFiles(FS &fs, std::function<void(StaticFilesBuilder &)> setupFunc = nullptr);
 };

@@ -285,7 +285,7 @@ Limited configurability:
 
 The `examples/HelloWebServer.ino` sketch in `HttpServerAdvanced` demonstrates several architectural and API patterns that shape the library's capabilities and how it's used in production sketches:
 
-- **Service registration and composition** — Uses `server.use(CoreServices(...))` and a builder pattern (via `CoreServicesBuilder` / `WebServerBuilder`) to register modular components before `server.begin()`.
+- **Service registration and composition** — Uses `server.use(WebServerBuilder(...))` and a builder pattern (via `WebServerBuilder` / `WebServerBuilder`) to register modular components before `server.begin()`.
 - **Pluggable components** — Shows `builder.use(StaticFiles(...))` to attach static file serving backed by a filesystem (`LittleFS` via `FSConfig.h`), demonstrating dependency injection for services and content-type registration.
 - **Factory-based handlers** — Uses `Form::makeFactory` and other `*::makeFactory` helpers to create handlers that integrate with the server's service registry (no global state required).
 - **Control flow** — Uses `server.handleClient()` in `loop()` for polling (rather than blocking), exposing explicit lifecycle control to the sketch.
@@ -293,7 +293,7 @@ The `examples/HelloWebServer.ino` sketch in `HttpServerAdvanced` demonstrates se
 Example pattern from the sketch:
 
 ```cpp
-server.use(CoreServices([](WebServerBuilder &builder) {
+server.use(WebServerBuilder([](WebServerBuilder &builder) {
   builder.use(StaticFiles(LittleFS, [](StaticFilesBuilder &b) {
     b.setFilesystemContentRoot("/wwwroot");
   }));

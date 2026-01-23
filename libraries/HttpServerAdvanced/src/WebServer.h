@@ -1,6 +1,6 @@
-#pragma once
+#pragma once    
 #include "./StandardHttpServer.h"
-#include "./CoreServices.h"
+#include "./WebServerBuilder.h"
 #include "./WebServerConfig.h"
 #include <type_traits>
 namespace HttpServerAdvanced
@@ -12,21 +12,7 @@ namespace HttpServerAdvanced
     class FriendlyWebServer : public THttpServer
     {
     private:
-        class WebServerBuilder : public CoreServicesBuilder
-        {
-        private:
-            HttpServerBase &server_;
 
-        public:
-            WebServerBuilder(HttpServerBase &server) : CoreServicesBuilder([](CoreServicesBuilder &coreServices) {}),
-                                                               server_(server)
-            {
-            }
-            void init()
-            {
-                CoreServicesBuilder::init(server_);
-            }
-        };
         WebServerBuilder builder_;
         WebServerConfig config_;
 
@@ -35,6 +21,10 @@ namespace HttpServerAdvanced
         {
             static_assert(std::is_convertible_v<THttpServer*, HttpServerBase*>, "THttpServer must be convertible to HttpServerBase");
             builder_.init();
+        }
+        WebServerConfig& use(std::function<void(WebServerBuilder &)> component){
+             config_.use(component);
+             return config_;
         }
         WebServerConfig &cfg()
         {

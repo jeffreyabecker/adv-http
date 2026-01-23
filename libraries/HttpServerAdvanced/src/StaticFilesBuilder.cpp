@@ -13,7 +13,7 @@ namespace HttpServerAdvanced
     {
     }
 
-    void StaticFilesBuilder::init(HttpServerAdvanced::CoreServicesBuilder &coreBuilder)
+    void StaticFilesBuilder::init(HttpServerAdvanced::WebServerBuilder &coreBuilder)
     {
         if (setupFunc_)
         {
@@ -47,12 +47,12 @@ namespace HttpServerAdvanced
         return *this;
     }
 
-    std::function<void(CoreServicesBuilder &)> &StaticFiles(FS &fs, std::function<void(StaticFilesBuilder &)> setupFunc)
+    std::function<void(WebServerBuilder &)> &StaticFiles(FS &fs, std::function<void(StaticFilesBuilder &)> setupFunc)
     {
-        static std::function<void(CoreServicesBuilder &)> *instance = nullptr;
+        static std::function<void(WebServerBuilder &)> *instance = nullptr;
         if (instance == nullptr)
         {
-            instance = new std::function<void(CoreServicesBuilder &)>([setupFunc, &fs](CoreServicesBuilder &coreBuilder)
+            instance = new std::function<void(WebServerBuilder &)>([setupFunc, &fs](WebServerBuilder &coreBuilder)
                                                                       {
                 auto &contentTypes = coreBuilder.contentTypes();
                 StaticFilesBuilder staticFilesBuilder(fs, contentTypes, setupFunc);

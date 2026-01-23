@@ -1,6 +1,6 @@
 #pragma once
 #include "./StandardHttpServer.h"
-#include "./CoreServices.h"
+#include "./WebServerBuilder.h"
 
 namespace HttpServerAdvanced
 {   
@@ -8,11 +8,11 @@ namespace HttpServerAdvanced
     {
     private:
         HttpServerBase &server_;
-        CoreServicesBuilder &builder_;
+        WebServerBuilder &builder_;
 
     public:
-        WebServerConfig(HttpServerBase &server, CoreServicesBuilder &builder) : server_(server), builder_(builder) {}
-        CoreServicesBuilder &use(std::function<void(CoreServicesBuilder &)> component)
+        WebServerConfig(HttpServerBase &server, WebServerBuilder &builder) : server_(server), builder_(builder) {}
+        WebServerBuilder &use(std::function<void(WebServerBuilder &)> component)
         {
             return builder_.use(component);
         }
@@ -81,6 +81,10 @@ namespace HttpServerAdvanced
         void interceptRequest(IHttpHandler::InterceptorCallback wrapper)
         {
             builder_.handlerProviders().interceptRequest(wrapper);
+        }
+        inline HttpServerBase &server()
+        {
+            return server_;
         }
     };
 }
