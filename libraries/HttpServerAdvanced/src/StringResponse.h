@@ -8,6 +8,7 @@
 #include "./HttpContentTypes.h"
 #include <Arduino.h>
 #include <memory>
+#include <ArduinoJson.h>
 
 namespace HttpServerAdvanced
 {
@@ -29,4 +30,6 @@ namespace HttpServerAdvanced
         static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &contentType, String &&body);
         static std::unique_ptr<IHttpResponse> create(HttpStatus status, const String &contentType, const char *body);
     };
+
+
 }

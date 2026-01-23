@@ -14,6 +14,7 @@
 #include "./CrossOriginRequestSharing.h"
 #include "./StaticFilesBuilder.h"
 #include "./StringResponse.h"
+#include "./JsonResponse.h"
 #include "./FormResponse.h"
 #include "./WebServer.h"
 
@@ -27,6 +28,7 @@ using HttpServerAdvanced::Form;
 using HttpServerAdvanced::RawBody;
 using HttpServerAdvanced::GetRequest;
 using HttpServerAdvanced::Json;
+using HttpServerAdvanced::JsonResponse;
 using HttpServerAdvanced::Buffered;
 using HttpServerAdvanced::Multipart;
 using Upload = HttpServerAdvanced::Multipart;
