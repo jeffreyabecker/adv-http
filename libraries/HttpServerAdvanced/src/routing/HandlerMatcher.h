@@ -1,8 +1,8 @@
 #pragma once
 #include <Arduino.h>
-#include "./core/Defines.h"
-#include "./util/StringUtility.h"
-#include "./util/UriView.h"
+#include "../core/Defines.h"
+#include "../util/StringUtility.h"
+#include "../util/UriView.h"
 #include <initializer_list>
 #include <functional>
 namespace HttpServerAdvanced
@@ -89,3 +89,4 @@ namespace HttpServerAdvanced
 
 // Include HttpRequest after class definition to resolve forward declaration
 #include "./HttpRequest.h"
+

@@ -2,9 +2,9 @@
 #include <Arduino.h>
 #include <functional>
 #include "./core/Defines.h"
-#include "./HandlerProviderRegistry.h"
+#include "./routing/HandlerProviderRegistry.h"
 #include "./HttpRequest.h"
-#include "./ProviderRegistryBuilder.h"
+#include "./routing/ProviderRegistryBuilder.h"
 #include "./core/HttpContentTypes.h"
 #include "./HttpRequestHandlerFactory.h"
 #include <any>
@@ -55,3 +55,4 @@ namespace HttpServerAdvanced
     };
 
 } // namespace HttpServerAdvanced
+
