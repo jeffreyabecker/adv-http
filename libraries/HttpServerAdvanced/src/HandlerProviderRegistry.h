@@ -4,12 +4,12 @@
 #include <vector>
 
 #include "./IHttpHandler.h"
-#include "./HttpResponse.h"
+#include "./response/HttpResponse.h"
 #include "./core/HttpStatus.h"
 #include "./core/HttpHeader.h"
 #include "./core/HttpHeaderCollection.h"
 #include "./HttpHandler.h"
-#include "./IHttpResponse.h"
+#include "./response/IHttpResponse.h"
 #include "./IHandlerProvider.h"
 
 namespace HttpServerAdvanced
@@ -98,3 +98,4 @@ namespace HttpServerAdvanced
         // void addResponseFilter(IHttpResponse::ResponseFilter filter);
     };
 }
+

@@ -1,12 +1,12 @@
 #pragma once
 #include <memory>
-#include "./core/HttpStatus.h"
-#include "./core/HttpHeader.h"
-#include "./core/HttpHeaderCollection.h"
-#include "./streams/Streams.h"
-#include "./streams/Iterators.h"
-#include "./HttpResponseBodyStream.h"
-#include "./IHttpResponse.h"
+#include "../core/HttpStatus.h"
+#include "../core/HttpHeader.h"
+#include "../core/HttpHeaderCollection.h"
+#include "../streams/Streams.h"
+#include "../streams/Iterators.h"
+#include "HttpResponseBodyStream.h"
+#include "IHttpResponse.h"
 
 namespace HttpServerAdvanced
 {
@@ -167,4 +167,5 @@ namespace HttpServerAdvanced
   }
 
 } // namespace HttpServerAdvanced
+
 

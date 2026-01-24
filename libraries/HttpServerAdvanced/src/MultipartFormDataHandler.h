@@ -4,8 +4,8 @@
 #include <cstring>
 #include <optional>
 #include "./IHttpHandler.h"
-#include "./HttpResponse.h"
-#include "./StringResponse.h"
+#include "./response/HttpResponse.h"
+#include "./response/StringResponse.h"
 #include "./core/HttpHeader.h"
 #include "./core/HttpHeaderCollection.h"
 #include "./core/Buffer.h"
@@ -290,3 +290,4 @@ namespace HttpServerAdvanced
         }
     };
 } // namespace HttpServerAdvanced
+

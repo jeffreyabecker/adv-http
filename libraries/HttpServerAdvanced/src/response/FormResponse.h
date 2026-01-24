@@ -3,11 +3,11 @@
 #include <vector>
 #include <map>
 #include <utility>
-#include "./core/HttpStatus.h"
-#include "./core/HttpHeader.h"
-#include "./core/HttpHeaderCollection.h"
-#include "./HttpResponse.h"
-#include "./streams/UriStream.h"
+#include "../core/HttpStatus.h"
+#include "../core/HttpHeader.h"
+#include "../core/HttpHeaderCollection.h"
+#include "HttpResponse.h"
+#include "../streams/UriStream.h"
 #include <Arduino.h>
 #include <memory>
 
@@ -69,4 +69,5 @@ namespace HttpServerAdvanced
         );
     };
 }
+
 

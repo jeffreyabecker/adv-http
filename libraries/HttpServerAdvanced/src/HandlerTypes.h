@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <vector>
 #include "./IHttpHandler.h"
-#include "./IHttpResponse.h"
+#include "./response/IHttpResponse.h"
 #include "./HttpHandler.h"
 #include "./HandlerRestrictions.h"
 #include "./HandlerMatcher.h"
@@ -79,3 +79,4 @@ namespace HttpServerAdvanced
 
 
 } // namespace HttpServerAdvanced
+

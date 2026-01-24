@@ -1,8 +1,8 @@
 #include "./HandlerProviderRegistry.h"
 #include "./HttpRequest.h"
 #include "./HttpHandler.h"
-#include "./HttpResponse.h"
-#include "./StringResponse.h"
+#include "./response/HttpResponse.h"
+#include "./response/StringResponse.h"
 
 namespace HttpServerAdvanced
 {
@@ -127,3 +127,4 @@ namespace HttpServerAdvanced
     }
 
 } // namespace HttpServerAdvanced
+

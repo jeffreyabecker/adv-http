@@ -1,6 +1,6 @@
 #include "StaticFileHandler.h"
 #include "HttpHandler.h"
-#include "StringResponse.h"
+#include "./response/StringResponse.h"
 #include <ctime>
 
 namespace HttpServerAdvanced

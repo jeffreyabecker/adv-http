@@ -3,11 +3,11 @@
 #include <Arduino.h>
 #include "./core/Defines.h"
 #include "./HttpRequest.h"
-#include "./HttpResponse.h"
+#include "./response/HttpResponse.h"
 #include "./core/HttpStatus.h"
 #include "./util/HttpUtility.h"
 #include "./HttpHandler.h"
-#include "./StringResponse.h"
+#include "./response/StringResponse.h"
 #include <memory>
 
 namespace HttpServerAdvanced
@@ -92,3 +92,4 @@ namespace HttpServerAdvanced
         return BasicAuth(validator, realm, onSuccess, onFailure);
     }
 } // namespace HttpServerAdvanced
+

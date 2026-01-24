@@ -1,9 +1,9 @@
 #pragma once
 #include <memory>
 #include <functional>
-#include "./core/HttpStatus.h"
-#include "./core/HttpHeader.h"
-#include "./core/HttpHeaderCollection.h"
+#include "../core/HttpStatus.h"
+#include "../core/HttpHeader.h"
+#include "../core/HttpHeaderCollection.h"
 
 namespace HttpServerAdvanced
 {
@@ -21,3 +21,4 @@ namespace HttpServerAdvanced
   };
 
 } // namespace HttpServerAdvanced
+

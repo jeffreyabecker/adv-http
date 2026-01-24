@@ -13,9 +13,9 @@
 #include "./BasicAuthentication.h"
 #include "./CrossOriginRequestSharing.h"
 #include "./StaticFilesBuilder.h"
-#include "./StringResponse.h"
-#include "./JsonResponse.h"
-#include "./FormResponse.h"
+#include "./response/StringResponse.h"
+#include "./response/JsonResponse.h"
+#include "./response/FormResponse.h"
 #include "./WebServer.h"
 
 
@@ -59,3 +59,4 @@ using HttpServerAdvanced::MultipartStatus;
 using WebServer = HttpServerAdvanced::FriendlyWebServer<StandardHttpServer<>>;
 using SecureWebServer = HttpServerAdvanced::FriendlyWebServer<SecureHttpServer>;
 using HttpServerAdvanced::WebServerConfig;
+

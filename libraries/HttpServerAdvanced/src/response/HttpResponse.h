@@ -1,15 +1,15 @@
 #pragma once
 #include <initializer_list>
 #include <cstring>
-#include "./core/HttpStatus.h"
-#include "./core/HttpHeader.h"
-#include "./core/HttpHeaderCollection.h"
-#include "./streams/Streams.h"
-#include "./streams/Iterators.h"
-#include "./HttpResponseBodyStream.h"
-#include "./ChunkedHttpResponseBodyStream.h"
-#include "./HttpResponseIterators.h"
-#include "./IHttpResponse.h"
+#include "../core/HttpStatus.h"
+#include "../core/HttpHeader.h"
+#include "../core/HttpHeaderCollection.h"
+#include "../streams/Streams.h"
+#include "../streams/Iterators.h"
+#include "HttpResponseBodyStream.h"
+#include "ChunkedHttpResponseBodyStream.h"
+#include "HttpResponseIterators.h"
+#include "IHttpResponse.h"
 #include <Arduino.h>
 #include <memory>
 namespace HttpServerAdvanced
@@ -41,4 +41,5 @@ namespace HttpServerAdvanced
   std::unique_ptr<Stream> CreateResponseStream(std::unique_ptr<IHttpResponse> response);
 
 } // namespace HttpServerAdvanced
+
 

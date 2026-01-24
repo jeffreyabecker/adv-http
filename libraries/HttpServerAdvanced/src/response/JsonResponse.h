@@ -1,8 +1,8 @@
 #pragma once
 #include <initializer_list>
-#include "./core/HttpStatus.h"
-#include "./core/HttpHeader.h"
-#include "./IHttpResponse.h"
+#include "../core/HttpStatus.h"
+#include "../core/HttpHeader.h"
+#include "IHttpResponse.h"
 #include <Arduino.h>
 #include <memory>
 #include <ArduinoJson.h>
@@ -17,3 +17,4 @@ namespace HttpServerAdvanced
         static std::unique_ptr<IHttpResponse> create(HttpStatus status, const JsonDocument &doc);
     };
 }
+

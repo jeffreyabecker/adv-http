@@ -1,5 +1,5 @@
 #include "HttpResponseIterators.h"
-#include "./core/HttpHeaderCollection.h"
+#include "../core/HttpHeaderCollection.h"
 #include <ctime>
 #include <sys/time.h>
 #include <cstring>
@@ -53,3 +53,4 @@ namespace HttpServerAdvanced
         }
     }
 } // namespace HttpServerAdvanced
+

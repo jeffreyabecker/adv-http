@@ -1,6 +1,6 @@
 #pragma once
 #include "./IHttpHandler.h"
-#include "./HttpResponse.h"
+#include "./response/HttpResponse.h"
 namespace HttpServerAdvanced
 {   
     class HttpRequest;
@@ -16,3 +16,4 @@ namespace HttpServerAdvanced
         }
     };
 }
+

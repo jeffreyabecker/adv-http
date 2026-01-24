@@ -3,7 +3,7 @@
 #include "./core/HttpHeader.h"
 #include "./core/HttpHeaderCollection.h"
 #include "./HttpServerBase.h"
-#include "./HttpResponse.h"
+#include "./response/HttpResponse.h"
 #include "./core/HttpRequestPhase.h"
 #include "./IHttpHandler.h"
 #include "./PipelineError.h"
@@ -189,3 +189,4 @@ namespace HttpServerAdvanced
     };
 
 }
+
