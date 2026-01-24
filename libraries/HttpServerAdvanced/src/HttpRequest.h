@@ -47,23 +47,7 @@ namespace HttpServerAdvanced
             }
             return handler_.get();
         }
-        void appendBodyContents(const uint8_t *at, std::size_t length)
-        {
-
-            auto handler = tryGetHandler();
-            if (bodyBytesReceived_ == 0)
-            {
-                completedPhases_ |= HttpRequestPhase::BeginReadingBody;
-                handleStep();
-            }
-            if (handler)
-            {
-                handler->handleBodyChunk(*this, at, length);
-            }
-
-            bodyBytesReceived_ += length;
-            handleStep();
-        }
+        void appendBodyContents(const uint8_t *at, std::size_t length);
         void completedWritingResponse()
         {
             completedPhases_ |= HttpRequestPhase::CompletedWritingResponse;
@@ -93,32 +77,9 @@ namespace HttpServerAdvanced
             handleStep();
         }
 
-        void handleStep()
-        {
-            auto handler = tryGetHandler();
-            if (handler)
-            {
-                auto newResponse = handler->handleStep(*this);
-                if (newResponse && !haveSentResponse_)
-                {
-                    response_ = std::move(newResponse);
-                    sendResponse();
-                }
-            }
-        }
+        void handleStep();
 
-        void sendResponse()
-        {
-            haveSentResponse_ = true;
-            bool hasResponse = (response_ != nullptr);
-
-            if (!response_)
-            {
-                response_ = handlerFactory_.createResponse(HttpStatus::InternalServerError(), String("Internal Server Error: No response generated"));
-            }
-            completedPhases_ |= HttpRequestPhase::WritingResponseStarted;
-            onStreamReady_(CreateResponseStream(std::move(response_)));
-        }
+        void sendResponse();
         virtual int onMessageBegin(const char *method, uint16_t versionMajor, uint16_t versionMinor, String &&url) override
         {
             method_ = method;
@@ -157,44 +118,7 @@ namespace HttpServerAdvanced
             completedReadingMessage();
             return 0;
         }
-        virtual void onError(HttpServerAdvanced::PipelineError error) override
-        {
-            if (!haveSentResponse_)
-            {
-                HttpStatus status;
-                String message;
-
-                switch (error.code())
-                {
-                case HttpServerAdvanced::PipelineErrorCode::InvalidVersion:
-                case HttpServerAdvanced::PipelineErrorCode::InvalidMethod:
-                    status = HttpStatus::BadRequest();
-                    message = "Bad Request: ";
-                    break;
-                case HttpServerAdvanced::PipelineErrorCode::UriTooLong:
-                case HttpServerAdvanced::PipelineErrorCode::HeaderTooLarge:
-                case HttpServerAdvanced::PipelineErrorCode::BodyTooLarge:
-                    status = HttpStatus::PayloadTooLarge();
-                    message = "Payload Too Large: ";
-                    break;
-                case HttpServerAdvanced::PipelineErrorCode::Timeout:
-                    status = HttpStatus::RequestTimeout();
-                    message = "Request Timeout: ";
-                    break;
-                case HttpServerAdvanced::PipelineErrorCode::UnsupportedMediaType:
-                    status = HttpStatus::UnsupportedMediaType();
-                    message = "Unsupported Media Type: ";
-                    break;
-                default:
-                    status = HttpStatus::BadRequest();
-                    message = "Bad Request: ";
-                    break;
-                }
-
-                response_ = handlerFactory_.createResponse(status, std::move(message + String(error.message())));
-                sendResponse();
-            }
-        }
+        virtual void onError(HttpServerAdvanced::PipelineError error) override;
         virtual void onClientDisconnected() override
         {
         }
