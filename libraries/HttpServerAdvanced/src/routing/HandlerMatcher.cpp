@@ -1,5 +1,5 @@
 #include "HandlerMatcher.h"
-#include "../server/HttpRequest.h"
+#include "../core/HttpRequest.h"
 #include "../util/StringUtility.h"
 #include "../util/UriView.h"
 
@@ -310,4 +310,5 @@ namespace HttpServerAdvanced
     }
 
 } // namespace HttpServerAdvanced
+
 

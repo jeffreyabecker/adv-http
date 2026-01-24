@@ -1,5 +1,5 @@
 #include "HandlerProviderRegistry.h"
-#include "../server/HttpRequest.h"
+#include "../core/HttpRequest.h"
 #include "../handlers/HttpHandler.h"
 #include "../response/HttpResponse.h"
 #include "../response/StringResponse.h"
@@ -127,6 +127,7 @@ namespace HttpServerAdvanced
     }
 
 } // namespace HttpServerAdvanced
+
 
 
 

@@ -3,10 +3,10 @@
 #include <functional>
 #include "../core/Defines.h"
 #include "../routing/HandlerProviderRegistry.h"
-#include "HttpRequest.h"
+#include "../core/HttpRequest.h"
 #include "../routing/ProviderRegistryBuilder.h"
 #include "../core/HttpContentTypes.h"
-#include "HttpRequestHandlerFactory.h"
+#include "../HttpRequestHandlerFactory.h"
 #include <any>
 
 #include "HttpServerBase.h"

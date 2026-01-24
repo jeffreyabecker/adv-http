@@ -5,7 +5,7 @@
 #include "FileLocator.h"
 #include "../core/HttpContentTypes.h"
 #include "../response/HttpResponse.h"
-#include "../server/HttpRequest.h"
+#include "../core/HttpRequest.h"
 #include "../handlers/IHandlerProvider.h"
 namespace HttpServerAdvanced
 {
@@ -43,6 +43,7 @@ namespace HttpServerAdvanced
     };
 
 } // namespace HttpServerAdvanced
+
 
 
 

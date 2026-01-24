@@ -1,7 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include <FS.h>
-#include "../server/HttpRequest.h"
+#include "../core/HttpRequest.h"
 
 
 namespace HttpServerAdvanced
@@ -17,4 +17,5 @@ namespace HttpServerAdvanced
     };
 
 } // namespace HttpServerAdvanced
+
 

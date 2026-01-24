@@ -4,7 +4,7 @@
 #include <FS.h>
 #include "FileLocator.h"
 #include <functional>
-#include "../server/HttpRequest.h"
+#include "../core/HttpRequest.h"
 
 namespace HttpServerAdvanced
 {
@@ -48,5 +48,6 @@ namespace HttpServerAdvanced
     };
 
 } // namespace HttpServerAdvanced
+
 
 

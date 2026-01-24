@@ -2,7 +2,7 @@
 
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
-#include "HttpServerBase.h"
+#include "../server/HttpServerBase.h"
 #include "../response/HttpResponse.h"
 #include "../core/HttpRequestPhase.h"
 #include "../handlers/IHttpHandler.h"
