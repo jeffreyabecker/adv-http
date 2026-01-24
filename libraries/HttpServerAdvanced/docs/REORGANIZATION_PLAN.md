@@ -43,106 +43,127 @@ src/
 
 ## Comprehensive File Mapping
 
-This table provides a complete alphabetical listing of all 82 source files and their destination folders.
+This table provides a complete alphabetical listing of all source files (.h and .cpp) and their destination folders, with status tracking for the migration.
 
-| Current File | Destination Folder | Purpose |
-|--------------|-------------------|---------|
-| `AggregateFileLocator.cpp` | `staticfiles/` | Multi-source file locator implementation |
-| `AggregateFileLocator.h` | `staticfiles/` | Multi-source file locator |
-| `Base64Stream.cpp` | `streams/` | Base64 encoding/decoding implementation |
-| `Base64Stream.h` | `streams/` | Base64 encoding/decoding streams |
-| `BasicAuthentication.h` | `security/` | HTTP Basic authentication |
-| `Buffer.h` | `core/` | Buffer type for request handling |
-| `BufferedStringBodyHandler.h` | `handlers/` | Body handler buffering to string |
-| `BufferingHttpHandlerBase.cpp` | `handlers/` | Buffering handler base implementation |
-| `BufferingHttpHandlerBase.h` | `handlers/` | Base class for buffering handlers |
-| `ChunkedHttpResponseBodyStream.cpp` | `response/` | Chunked encoding implementation |
-| `ChunkedHttpResponseBodyStream.h` | `response/` | Chunked transfer encoding stream |
-| `CrossOriginRequestSharing.h` | `security/` | CORS support |
-| `DefaultFileLocator.cpp` | `staticfiles/` | Default file locator implementation |
-| `DefaultFileLocator.h` | `staticfiles/` | LittleFS-based file locator |
-| `Defines.h` | `core/` | Library-wide defines and macros |
-| `FileLocator.h` | `staticfiles/` | File locator interface |
-| `FormBodyHandler.h` | `handlers/` | Form data parsing handler |
-| `FormResponse.cpp` | `response/` | Form response implementation |
-| `FormResponse.h` | `response/` | URL-encoded response builder |
-| `HandlerBuilder.h` | `routing/` | Fluent handler configuration builder |
-| `HandlerMatcher.h` | `routing/` | URL/method matching logic |
-| `HandlerProviderRegistry.cpp` | `routing/` | Handler registry implementation |
-| `HandlerProviderRegistry.h` | `routing/` | Handler registration and lookup |
-| `HandlerRestrictions.h` | `handlers/` | Handler access restrictions |
-| `HandlerTypes.h` | `handlers/` | Handler type definitions |
-| `HttpContentTypes.h` | `core/` | MIME type constants |
-| `HttpHandler.h` | `handlers/` | Concrete HTTP handler |
-| `HttpHeader.h` | `core/` | Header name constants and types |
-| `HttpHeaderCollection.h` | `core/` | Header container |
-| `HttpMethod.h` | `core/` | HTTP method enumeration |
-| `HttpPipeline.cpp` | `pipeline/` | Pipeline implementation |
-| `HttpPipeline.h` | `pipeline/` | Request processing pipeline |
-| `HttpRequest.h` | `server/` | Request object |
-| `HttpRequestHandlerFactory.h` | `server/` | Factory for creating handlers |
-| `HttpRequestPhase.h` | `core/` | Request processing phase enum |
-| `HttpResponse.cpp` | `response/` | Response implementation |
-| `HttpResponse.h` | `response/` | Core response class |
-| `HttpResponseBodyStream.h` | `response/` | Response body stream interface |
-| `HttpResponseIterators.h` | `response/` | Response iteration helpers |
-| `HttpServerAdvanced.h` | *(root)* | Main library include - stays at root |
-| `HttpServerBase.cpp` | `server/` | Base server implementation |
-| `HttpServerBase.h` | `server/` | Abstract server base class |
-| `HttpStatus.h` | `core/` | HTTP status codes |
-| `HttpTimeouts.h` | `core/` | Timeout configuration |
-| `HttpUtility.cpp` | `util/` | Utility function implementation |
-| `HttpUtility.h` | `util/` | Web encoding/decoding utilities |
-| `IHandlerProvider.h` | `handlers/` | Handler provider interface |
-| `IHttpHandler.h` | `handlers/` | Handler interface |
-| `IHttpRequestHandlerFactory.h` | `server/` | Handler factory interface |
-| `IHttpResponse.h` | `response/` | Response interface |
-| `IPipelineHandler.h` | `pipeline/` | Pipeline handler interface |
-| `Iterators.h` | `streams/` | Stream iterator base classes |
-| `JsonBodyHandler.h` | `handlers/` | JSON body parsing handler |
-| `JsonResponse.cpp` | `response/` | JSON response implementation |
-| `JsonResponse.h` | `response/` | JSON response builder |
-| `KeyValuePairView.h` | `util/` | Key-value pair container view |
-| `MultipartFormDataHandler.h` | `handlers/` | Multipart form parsing |
-| `NetClient.h` | `pipeline/` | Network client abstraction |
-| `PipelineError.h` | `pipeline/` | Pipeline error types |
-| `PipelineHandleClientResult.h` | `pipeline/` | Pipeline result enumeration |
-| `ProviderRegistryBuilder.h` | `routing/` | Registry builder helper |
-| `RawBodyHandler.h` | `handlers/` | Raw body access handler |
-| `RequestParser.h` | `pipeline/` | HTTP request parsing |
-| `SecureHttpServer.h` | `server/` | HTTPS server implementation |
-| `SecureHttpServerConfig.h` | `server/` | HTTPS configuration |
-| `StandardHttpServer.h` | `server/` | HTTP server implementation |
-| `StaticFileHandler.cpp` | `staticfiles/` | Static file handler implementation |
-| `StaticFileHandler.h` | `staticfiles/` | Handler for serving static files |
-| `StaticFilesBuilder.cpp` | `staticfiles/` | Static files builder implementation |
-| `StaticFilesBuilder.h` | `staticfiles/` | Fluent static file configuration |
-| `Streams.cpp` | `streams/` | Stream implementations |
-| `Streams.h` | `streams/` | Stream types (Memory, Concat, etc.) |
-| `StringResponse.cpp` | `response/` | String response implementation |
-| `StringResponse.h` | `response/` | Simple string response builder |
-| `StringUtility.h` | `util/` | String comparison helpers |
-| `StringView.h` | `util/` | Non-owning string view |
-| `UriStream.cpp` | `streams/` | URI encoding implementation |
-| `UriStream.h` | `streams/` | URI encoding/decoding streams |
-| `UriView.h` | `util/` | URI parsing and components |
-| `WebServer.h` | `server/` | High-level WebServer class |
-| `WebServerBuilder.h` | `server/` | WebServer fluent builder |
-| `WebServerConfig.h` | `server/` | WebServer configuration |
+**Status Legend:** ✓ = Moved | ○ = Pending
+
+| Current File | Destination Folder | Status | Purpose |
+|--------------|-------------------|--------|---------|
+| `AggregateFileLocator.cpp` | `staticfiles/` | ○ | Multi-source file locator implementation |
+| `AggregateFileLocator.h` | `staticfiles/` | ○ | Multi-source file locator |
+| `Base64Stream.cpp` | `streams/` | ○ | Base64 encoding/decoding implementation |
+| `Base64Stream.h` | `streams/` | ○ | Base64 encoding/decoding streams |
+| `BasicAuthentication.h` | `security/` | ○ | HTTP Basic authentication |
+| `Buffer.h` | `core/` | ○ | Buffer type for request handling |
+| `BufferedStringBodyHandler.cpp` | `handlers/` | ○ | Buffering handler implementation |
+| `BufferedStringBodyHandler.h` | `handlers/` | ○ | Body handler buffering to string |
+| `BufferingHttpHandlerBase.cpp` | `handlers/` | ○ | Buffering handler base implementation |
+| `BufferingHttpHandlerBase.h` | `handlers/` | ○ | Base class for buffering handlers |
+| `ChunkedHttpResponseBodyStream.cpp` | `response/` | ○ | Chunked encoding implementation |
+| `ChunkedHttpResponseBodyStream.h` | `response/` | ○ | Chunked transfer encoding stream |
+| `CrossOriginRequestSharing.h` | `security/` | ○ | CORS support |
+| `DefaultFileLocator.cpp` | `staticfiles/` | ○ | Default file locator implementation |
+| `DefaultFileLocator.h` | `staticfiles/` | ○ | LittleFS-based file locator |
+| `Defines.h` | `core/` | ○ | Library-wide defines and macros |
+| `FileLocator.h` | `staticfiles/` | ○ | File locator interface |
+| `FormBodyHandler.cpp` | `handlers/` | ○ | Form data handler implementation |
+| `FormBodyHandler.h` | `handlers/` | ○ | Form data parsing handler |
+| `FormResponse.cpp` | `response/` | ○ | Form response implementation |
+| `FormResponse.h` | `response/` | ○ | URL-encoded response builder |
+| `HandlerBuilder.cpp` | `routing/` | ○ | Handler builder implementation (stub) |
+| `HandlerBuilder.h` | `routing/` | ○ | Fluent handler configuration builder |
+| `HandlerMatcher.cpp` | `routing/` | ○ | URL/method matching implementation |
+| `HandlerMatcher.h` | `routing/` | ○ | URL/method matching logic |
+| `HandlerProviderRegistry.cpp` | `routing/` | ○ | Handler registry implementation |
+| `HandlerProviderRegistry.h` | `routing/` | ○ | Handler registration and lookup |
+| `HandlerRestrictions.h` | `handlers/` | ○ | Handler access restrictions |
+| `HandlerTypes.h` | `handlers/` | ○ | Handler type definitions |
+| `HttpContentTypes.h` | `core/` | ○ | MIME type constants |
+| `HttpHandler.h` | `handlers/` | ○ | Concrete HTTP handler |
+| `HttpHeader.h` | `core/` | ○ | Header name constants and types |
+| `HttpHeaderCollection.cpp` | `core/` | ○ | Header collection implementation |
+| `HttpHeaderCollection.h` | `core/` | ○ | Header container |
+| `HttpMethod.h` | `core/` | ○ | HTTP method enumeration |
+| `HttpPipeline.cpp` | `pipeline/` | ○ | Pipeline implementation |
+| `HttpPipeline.h` | `pipeline/` | ○ | Request processing pipeline |
+| `HttpRequest.cpp` | `server/` | ○ | Request implementation |
+| `HttpRequest.h` | `server/` | ○ | Request object |
+| `HttpRequestHandlerFactory.h` | `server/` | ○ | Factory for creating handlers |
+| `HttpRequestPhase.h` | `core/` | ○ | Request processing phase enum |
+| `HttpResponse.cpp` | `response/` | ○ | Response implementation |
+| `HttpResponse.h` | `response/` | ○ | Core response class |
+| `HttpResponseBodyStream.h` | `response/` | ○ | Response body stream interface |
+| `HttpResponseIterators.cpp` | `response/` | ○ | Response iteration helpers implementation |
+| `HttpResponseIterators.h` | `response/` | ○ | Response iteration helpers |
+| `HttpServerAdvanced.h` | *(root)* | ✓ | Main library include - stays at root |
+| `HttpServerBase.cpp` | `server/` | ○ | Base server implementation |
+| `HttpServerBase.h` | `server/` | ○ | Abstract server base class |
+| `HttpStatus.h` | `core/` | ○ | HTTP status codes |
+| `HttpTimeouts.h` | `core/` | ○ | Timeout configuration |
+| `HttpUtility.cpp` | `util/` | ✓ | Utility function implementation |
+| `HttpUtility.h` | `util/` | ✓ | Web encoding/decoding utilities |
+| `IHandlerProvider.h` | `handlers/` | ○ | Handler provider interface |
+| `IHttpHandler.h` | `handlers/` | ○ | Handler interface |
+| `IHttpRequestHandlerFactory.h` | `server/` | ○ | Handler factory interface |
+| `IHttpResponse.h` | `response/` | ○ | Response interface |
+| `IPipelineHandler.h` | `pipeline/` | ○ | Pipeline handler interface |
+| `Iterators.h` | `streams/` | ○ | Stream iterator base classes |
+| `JsonBodyHandler.cpp` | `handlers/` | ○ | JSON body handler implementation |
+| `JsonBodyHandler.h` | `handlers/` | ○ | JSON body parsing handler |
+| `JsonResponse.cpp` | `response/` | ○ | JSON response implementation |
+| `JsonResponse.h` | `response/` | ○ | JSON response builder |
+| `KeyValuePairView.h` | `util/` | ✓ | Key-value pair container view |
+| `MultipartFormDataHandler.cpp` | `handlers/` | ○ | Multipart form handler implementation |
+| `MultipartFormDataHandler.h` | `handlers/` | ○ | Multipart form parsing |
+| `NetClient.h` | `pipeline/` | ○ | Network client abstraction |
+| `PipelineError.cpp` | `pipeline/` | ○ | Pipeline error implementation |
+| `PipelineError.h` | `pipeline/` | ○ | Pipeline error types |
+| `PipelineHandleClientResult.h` | `pipeline/` | ○ | Pipeline result enumeration |
+| `ProviderRegistryBuilder.h` | `routing/` | ○ | Registry builder helper |
+| `RawBodyHandler.cpp` | `handlers/` | ○ | Raw body handler implementation |
+| `RawBodyHandler.h` | `handlers/` | ○ | Raw body access handler |
+| `RequestParser.cpp` | `pipeline/` | ○ | HTTP request parsing implementation |
+| `RequestParser.h` | `pipeline/` | ○ | HTTP request parsing |
+| `SecureHttpServer.h` | `server/` | ○ | HTTPS server implementation |
+| `SecureHttpServerConfig.h` | `server/` | ○ | HTTPS configuration |
+| `StandardHttpServer.h` | `server/` | ○ | HTTP server implementation |
+| `StaticFileHandler.cpp` | `staticfiles/` | ○ | Static file handler implementation |
+| `StaticFileHandler.h` | `staticfiles/` | ○ | Handler for serving static files |
+| `StaticFilesBuilder.cpp` | `staticfiles/` | ○ | Static files builder implementation |
+| `StaticFilesBuilder.h` | `staticfiles/` | ○ | Fluent static file configuration |
+| `Streams.cpp` | `streams/` | ○ | Stream implementations |
+| `Streams.h` | `streams/` | ○ | Stream types (Memory, Concat, etc.) |
+| `StringResponse.cpp` | `response/` | ○ | String response implementation |
+| `StringResponse.h` | `response/` | ○ | Simple string response builder |
+| `StringUtility.cpp` | `util/` | ✓ | String utility implementation |
+| `StringUtility.h` | `util/` | ✓ | String comparison helpers |
+| `StringView.h` | `util/` | ✓ | Non-owning string view |
+| `UriStream.cpp` | `streams/` | ○ | URI encoding implementation |
+| `UriStream.h` | `streams/` | ○ | URI encoding/decoding streams |
+| `UriView.cpp` | `util/` | ✓ | URI parsing implementation |
+| `UriView.h` | `util/` | ✓ | URI parsing and components |
+| `WebServer.h` | `server/` | ○ | High-level WebServer class |
+| `WebServerBuilder.h` | `server/` | ○ | WebServer fluent builder |
+| `WebServerConfig.h` | `server/` | ○ | WebServer configuration |
 
 ### File Count by Destination
 
-| Destination | Count | Files |
-|-------------|-------|-------|
-| *(root)* | 1 | HttpServerAdvanced.h |
-| `core/` | 9 | Buffer.h, Defines.h, HttpContentTypes.h, HttpHeader.h, HttpHeaderCollection.h, HttpMethod.h, HttpRequestPhase.h, HttpStatus.h, HttpTimeouts.h |
-| `handlers/` | 12 | BufferedStringBodyHandler.h, BufferingHttpHandlerBase.cpp/h, FormBodyHandler.h, HandlerRestrictions.h, HandlerTypes.h, HttpHandler.h, IHandlerProvider.h, IHttpHandler.h, JsonBodyHandler.h, MultipartFormDataHandler.h, RawBodyHandler.h |
-| `pipeline/` | 7 | HttpPipeline.cpp/h, IPipelineHandler.h, NetClient.h, PipelineError.h, PipelineHandleClientResult.h, RequestParser.h |
-| `response/` | 13 | ChunkedHttpResponseBodyStream.cpp/h, FormResponse.cpp/h, HttpResponse.cpp/h, HttpResponseBodyStream.h, HttpResponseIterators.h, IHttpResponse.h, JsonResponse.cpp/h, StringResponse.cpp/h |
-| `routing/` | 5 | HandlerBuilder.h, HandlerMatcher.h, HandlerProviderRegistry.cpp/h, ProviderRegistryBuilder.h |
-| `security/` | 2 | BasicAuthentication.h, CrossOriginRequestSharing.h |
-| `server/` | 10 | HttpRequest.h, HttpRequestHandlerFactory.h, HttpServerBase.cpp/h, IHttpRequestHandlerFactory.h, SecureHttpServer.h, SecureHttpServerConfig.h, StandardHttpServer.h, WebServer.h, WebServerBuilder.h, WebServerConfig.h |
-| `staticfiles/` | 8 | AggregateFileLocator.cpp/h, DefaultFileLocator.cpp/h, FileLocator.h, StaticFileHandler.cpp/h, StaticFilesBuilder.cpp/h |
+| Destination | Total Files | .h Files | .cpp Files | Moved |
+|-------------|-------------|----------|-----------|-------|
+| *(root)* | 1 | 1 | 0 | ✓ |
+| `core/` | 10 | 9 | 1 | ○ |
+| `handlers/` | 20 | 12 | 8 | ○ |
+| `pipeline/` | 12 | 7 | 5 | ○ |
+| `response/` | 20 | 10 | 10 | ○ |
+| `routing/` | 8 | 5 | 3 | ○ |
+| `security/` | 2 | 2 | 0 | ○ |
+| `server/` | 15 | 10 | 5 | ○ |
+| `staticfiles/` | 9 | 5 | 4 | ○ |
+| `streams/` | 8 | 5 | 3 | ○ |
+| `util/` | 8 | 5 | 3 | ✓ |
+| **Total** | **113** | **61** | **52** | **2/11** |
+
+**Note:** File count increased from original plan (82 files) due to .cpp files created during split phase. Total now includes all implementation files produced by the split phase.
 | `streams/` | 7 | Base64Stream.cpp/h, Iterators.h, Streams.cpp/h, UriStream.cpp/h |
 | `util/` | 6 | HttpUtility.cpp/h, KeyValuePairView.h, StringUtility.h, StringView.h, UriView.h |
 | **Total** | **82** | |
