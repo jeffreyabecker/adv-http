@@ -17,26 +17,29 @@ The following headers have non-trivial inline method implementations that should
 
 ### Files to Split
 
-| File | Lines | Suggested Split | Notes |
-|------|-------|-----------------|-------|
-| `NetClient.h` | 471 | Extract `NetClient.cpp` for `ClientImpl<T>` and `ServerImpl<T>` method bodies | Template implementations must stay in header, but non-template helpers can move |
-| `HandlerMatcher.h` | 337 | Extract `HandlerMatcher.cpp` for `canHandle()`, `extractArgs()`, URL matching logic | Large matching implementations inline |
-| `HttpHeader.h` | 373 | Extract `HttpHeaderNames.h` for constants; `HttpHeader.cpp` for factory methods | Constants bloat every TU |
-| `MultipartFormDataHandler.h` | 343 | Extract `MultipartFormDataHandler.cpp` for parsing methods (`extractBoundary`, `parsePartHeaders`, `findBoundary`, `handleBodyChunk`) | Heavy parsing logic inline |
-| `RequestParser.h` | 287 | Extract `RequestParser.cpp` for `http_parser` callback implementations and parsing state machine | Complex parser logic |
-| `RawBodyHandler.h` | 120 | Extract `RawBodyHandler.cpp` for `handleStep()`, `handleBodyChunk()` | Moderate inline logic |
-| `HttpHeaderCollection.h` | 118 | Extract `HttpHeaderCollection.cpp` for `set()`, `find()` methods | Collection manipulation inline |
-| `PipelineError.h` | 109 | Extract `PipelineError.cpp` for `PipelineErrorName()`, `PipelineErrorMessage()` switch tables | Large switch statements inline |
-| `FormBodyHandler.h` | 78 | Extract `FormBodyHandler.cpp` for body parsing logic | Small but has parsing |
-| `JsonBodyHandler.h` | 81 | Extract `JsonBodyHandler.cpp` for body handling | Small but has logic |
-| `BufferedStringBodyHandler.h` | 79 | Extract `BufferedStringBodyHandler.cpp` for body handling | Small but has logic |
-| `StringView.h` | 274 | Extract `StringView.cpp` for non-trivial methods (`indexOf`, `lastIndexOf`, `substring`, `trim`, `replace`) | Many search/manipulation methods inline |
-| `StringUtility.h` | 176 | Extract `StringUtility.cpp` for `compareTo`, `indexOf`, `lastIndexOf`, `replace` implementations | All functions are inline |
-| `HttpRequest.h` | 242 | Extract `HttpRequest.cpp` for `handleStep()`, `sendResponse()`, `onError()`, callback implementations | Private method implementations inline |
-| `HttpResponseIterators.h` | 191 | Extract `HttpResponseIterators.cpp` for `EnsureRequiredHeaders()`, `getHeaderDateValue()`, stream construction | Helper functions inline |
-| `Streams.h` / `Streams.cpp` | 214 / 325 | Consider splitting into `ReadStream.h`, `MemoryStreams.h`, `ConcatStream.h`, `LazyStream.h` | Multiple stream types in one file |
-| `UriView.h` | 123 | Extract `UriView.cpp` for `parse()` method | URI parsing logic inline |
-| `HandlerBuilder.h` | 162 | Extract `HandlerBuilder.cpp` for destructor and `getFactory()` | Template class but some logic extractable |
+| File | Lines | Suggested Split | Status | Notes |
+|------|-------|-----------------|--------|-------|
+| `StringUtility.h` | 176 | Extract `StringUtility.cpp` for `compareTo`, `indexOf`, `lastIndexOf`, `replace` implementations | ✓ DONE | All functions are inline |
+| `HandlerMatcher.h` | 337 | Extract `HandlerMatcher.cpp` for `canHandle()`, `extractArgs()`, URL matching logic | ✓ DONE | Large matching implementations inline |
+| `RequestParser.h` | 287 | Extract `RequestParser.cpp` for `http_parser` callback implementations and parsing state machine | ✓ DONE | Complex parser logic |
+| `NetClient.h` | 471 | Extract `NetClient.cpp` for `ClientImpl<T>` and `ServerImpl<T>` method bodies | PENDING | Template implementations must stay in header, but non-template helpers can move |
+| `MultipartFormDataHandler.h` | 343 | Extract `MultipartFormDataHandler.cpp` for parsing methods (`extractBoundary`, `parsePartHeaders`, `findBoundary`, `handleBodyChunk`) | ✓ DONE | Heavy parsing logic inline |
+| `HttpRequest.h` | 242 | Extract `HttpRequest.cpp` for `handleStep()`, `sendResponse()`, `onError()`, callback implementations | ✓ DONE | Private method implementations inline |
+| `UriView.h` | 123 | Extract `UriView.cpp` for `parse()` method | ✓ DONE | URI parsing logic inline |
+| `HttpResponseIterators.h` | 191 | Extract `HttpResponseIterators.cpp` for `EnsureRequiredHeaders()`, `getHeaderDateValue()`, stream construction | ✓ DONE | Helper functions inline |
+| `HttpHeader.h` | 373 | Extract `HttpHeaderNames.h` for constants; `HttpHeader.cpp` for factory methods | DEFER | Constants bloat every TU; factory methods are trivial 1-liners (better kept inline) |
+| `StringView.h` | 274 | Extract `StringView.cpp` for non-trivial methods (`indexOf`, `lastIndexOf`, `substring`, `trim`, `replace`) | DEFER | Methods mostly delegate to StringUtility; trivial wrappers better kept inline |
+| `RawBodyHandler.h` | 120 | Extract `RawBodyHandler.cpp` for `handleStep()`, `handleBodyChunk()` | ✓ DONE | Moderate inline logic |
+| `HttpHeaderCollection.h` | 118 | Extract `HttpHeaderCollection.cpp` for `set()`, `find()` methods | ✓ DONE | Collection manipulation inline |
+| `UriView.h` | 123 | Extract `UriView.cpp` for `parse()` method | DONE (duplicate) | URI parsing logic inline |
+| `HandlerBuilder.h` | 162 | Extract `HandlerBuilder.cpp` for destructor and `getFactory()` | PENDING | Template class but some logic extractable |
+| `PipelineError.h` | 109 | Extract `PipelineError.cpp` for `PipelineErrorName()`, `PipelineErrorMessage()` switch tables | ✓ DONE | Large switch statements inline |
+| `FormBodyHandler.h` | 78 | Extract `FormBodyHandler.cpp` for body parsing logic | ✓ DONE | Small but has parsing |
+| `JsonBodyHandler.h` | 81 | Extract `JsonBodyHandler.cpp` for body handling | ✓ DONE | Small but has logic |
+| `BufferedStringBodyHandler.h` | 79 | Extract `BufferedStringBodyHandler.cpp` for body handling | ✓ DONE | Small but has logic |
+| `HandlerBuilder.h` | 162 | Extract `HandlerBuilder.cpp` for destructor and `getFactory()` | ✓ DONE | Template class but some logic extractable |
+| `NetClient.h` | 471 | Extract `NetClient.cpp` for `ClientImpl<T>` and `ServerImpl<T>` method bodies | DEFER | Almost entirely template code; templates must stay in headers |
+| `Streams.h` / `Streams.cpp` | 214 / 325 | Consider splitting into `ReadStream.h`, `MemoryStreams.h`, `ConcatStream.h`, `LazyStream.h` | DEFER | Multiple stream types in one file; consider later as advanced refactor |
 
 
 ---
