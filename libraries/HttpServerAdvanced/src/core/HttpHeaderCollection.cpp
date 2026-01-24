@@ -1,5 +1,5 @@
-#include "HttpHeaderCollection.h"
-#include "HttpHeader.h"
+#include "./HttpHeaderCollection.h"
+#include "./HttpHeader.h"
 #include "../util/StringUtility.h"
 
 namespace HttpServerAdvanced

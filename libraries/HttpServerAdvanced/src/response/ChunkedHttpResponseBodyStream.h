@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include "HttpResponseBodyStream.h"
+#include "./HttpResponseBodyStream.h"
 #include "../core/Defines.h"
 
 namespace HttpServerAdvanced

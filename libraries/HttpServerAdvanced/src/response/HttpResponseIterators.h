@@ -5,8 +5,8 @@
 #include "../core/HttpHeaderCollection.h"
 #include "../streams/Streams.h"
 #include "../streams/Iterators.h"
-#include "HttpResponseBodyStream.h"
-#include "IHttpResponse.h"
+#include "./HttpResponseBodyStream.h"
+#include "./IHttpResponse.h"
 
 namespace HttpServerAdvanced
 {

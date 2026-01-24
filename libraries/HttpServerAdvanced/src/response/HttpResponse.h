@@ -6,10 +6,10 @@
 #include "../core/HttpHeaderCollection.h"
 #include "../streams/Streams.h"
 #include "../streams/Iterators.h"
-#include "HttpResponseBodyStream.h"
-#include "ChunkedHttpResponseBodyStream.h"
-#include "HttpResponseIterators.h"
-#include "IHttpResponse.h"
+#include "./HttpResponseBodyStream.h"
+#include "./ChunkedHttpResponseBodyStream.h"
+#include "./HttpResponseIterators.h"
+#include "./IHttpResponse.h"
 #include <Arduino.h>
 #include <memory>
 namespace HttpServerAdvanced

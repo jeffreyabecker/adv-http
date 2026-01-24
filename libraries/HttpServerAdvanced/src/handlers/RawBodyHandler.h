@@ -1,11 +1,11 @@
 #pragma once
 #include <Arduino.h>
 #include <optional>
-#include "IHttpHandler.h"
+#include "./IHttpHandler.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
 #include "../core/Buffer.h"
-#include "HandlerRestrictions.h"
+#include "./HandlerRestrictions.h"
 
 namespace HttpServerAdvanced
 {

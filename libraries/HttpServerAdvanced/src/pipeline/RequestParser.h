@@ -3,10 +3,10 @@
 #include <functional>
 
 #include "../core/HttpTimeouts.h"
-#include "IPipelineHandler.h"
+#include "./IPipelineHandler.h"
 
 #include <http_parser.h>
-#include "PipelineError.h"
+#include "./PipelineError.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstddef>
