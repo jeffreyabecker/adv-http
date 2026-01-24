@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 #include "../core/Defines.h"
-#include "./HttpRequest.h"
+#include "../server/HttpRequest.h"
 #include "../response/HttpResponse.h"
 #include "../core/HttpStatus.h"
 #include "../util/HttpUtility.h"
@@ -92,6 +92,7 @@ namespace HttpServerAdvanced
         return BasicAuth(validator, realm, onSuccess, onFailure);
     }
 } // namespace HttpServerAdvanced
+
 
 
 

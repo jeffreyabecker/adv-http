@@ -1,5 +1,5 @@
-#include "HttpRequest.h"
-#include "./handlers/IHttpHandler.h"
+#include "../server/HttpRequest.h"
+#include "../handlers/IHttpHandler.h"
 #include "IHttpRequestHandlerFactory.h"
 
 namespace HttpServerAdvanced
@@ -87,3 +87,5 @@ namespace HttpServerAdvanced
         }
     }
 } // namespace HttpServerAdvanced
+
+

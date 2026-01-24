@@ -65,7 +65,7 @@ namespace HttpServerAdvanced
 }
 
 // Include HttpRequest after class definition to resolve circular dependency
-#include "./HttpRequest.h"
+#include "../server/HttpRequest.h"
 
 namespace HttpServerAdvanced {
     inline bool HttpHandler::defaultFilter(const HttpRequest &context) {
@@ -77,4 +77,5 @@ namespace HttpServerAdvanced {
         filter_ = [callAt](const HttpRequest &ctx) { return ctx.completedPhases() == callAt; };
     }
 }
+
 

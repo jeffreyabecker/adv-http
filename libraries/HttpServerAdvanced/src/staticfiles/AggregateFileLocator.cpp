@@ -1,5 +1,5 @@
 #include "AggregateFileLocator.h"
-#include "HttpRequest.h"
+#include "../server/HttpRequest.h"
 
 namespace HttpServerAdvanced
 {
@@ -54,3 +54,4 @@ namespace HttpServerAdvanced
     }
 
 } // namespace HttpServerAdvanced
+

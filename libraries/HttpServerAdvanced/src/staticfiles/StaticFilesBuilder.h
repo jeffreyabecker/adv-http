@@ -1,7 +1,7 @@
 #pragma once
 #include <Arduino.h>
 
-#include "./WebServerBuilder.h"
+#include "../server/WebServerBuilder.h"
 #include <FS.h>
 #include "../core/HttpContentTypes.h"
 #include "../routing/HandlerProviderRegistry.h"

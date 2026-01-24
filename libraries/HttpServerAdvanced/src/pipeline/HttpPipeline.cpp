@@ -1,5 +1,5 @@
 #include "HttpPipeline.h"
-#include "HttpServerBase.h"
+#include "../server/HttpServerBase.h"
 
 namespace HttpServerAdvanced
 {

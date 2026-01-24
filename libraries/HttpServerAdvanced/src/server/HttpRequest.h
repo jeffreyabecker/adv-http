@@ -1,14 +1,14 @@
 #pragma once
 
-#include "./core/HttpHeader.h"
-#include "./core/HttpHeaderCollection.h"
-#include "./HttpServerBase.h"
-#include "./response/HttpResponse.h"
-#include "./core/HttpRequestPhase.h"
-#include "./handlers/IHttpHandler.h"
-#include "./pipeline/PipelineError.h"
-#include "./util/UriView.h"
-#include "./IHttpRequestHandlerFactory.h"
+#include "../core/HttpHeader.h"
+#include "../core/HttpHeaderCollection.h"
+#include "HttpServerBase.h"
+#include "../response/HttpResponse.h"
+#include "../core/HttpRequestPhase.h"
+#include "../handlers/IHttpHandler.h"
+#include "../pipeline/PipelineError.h"
+#include "../util/UriView.h"
+#include "IHttpRequestHandlerFactory.h"
 
 namespace HttpServerAdvanced
 {   
@@ -189,6 +189,7 @@ namespace HttpServerAdvanced
     };
 
 }
+
 
 
 

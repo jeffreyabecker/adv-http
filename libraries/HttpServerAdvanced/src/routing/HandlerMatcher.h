@@ -88,5 +88,6 @@ namespace HttpServerAdvanced
 } // namespace HttpServerAdvanced
 
 // Include HttpRequest after class definition to resolve forward declaration
-#include "./HttpRequest.h"
+#include "../server/HttpRequest.h"
+
 

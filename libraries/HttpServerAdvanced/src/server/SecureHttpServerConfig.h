@@ -1,6 +1,6 @@
 #pragma once
-#include "./core/Defines.h"
-#include "./StandardHttpServer.h"
+#include "../core/Defines.h"
+#include "StandardHttpServer.h"
 #include <WiFi.h>
 #include <type_traits>
 #include <utility>
@@ -98,3 +98,4 @@ namespace HttpServerAdvanced
     };
 
 }
+

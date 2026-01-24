@@ -1,7 +1,7 @@
 #pragma once
-#include "./StandardHttpServer.h"
-#include "./SecureHttpServerConfig.h"
-#include "./pipeline/NetClient.h"
+#include "StandardHttpServer.h"
+#include "SecureHttpServerConfig.h"
+#include "../pipeline/NetClient.h"
 #include <WiFi.h>
 #include <type_traits>
 #include <utility>
@@ -57,4 +57,5 @@ namespace HttpServerAdvanced
         }
     };
 }
+
 

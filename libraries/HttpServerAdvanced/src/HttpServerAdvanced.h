@@ -4,9 +4,9 @@
 // TODO: This is the root include of the library. It should include all public headers.
 //  Add includes for all public headers here.
 //  Add using statements to pull members out of namespaces .
-#include "./StandardHttpServer.h"
-#include "./SecureHttpServer.h"
-#include "./WebServerBuilder.h"
+#include "./server/StandardHttpServer.h"
+#include "./server/SecureHttpServer.h"
+#include "./server/WebServerBuilder.h"
 #include "./util/KeyValuePairView.h"
 #include "./util/HttpUtility.h"
 #include "./util/UriView.h"
@@ -16,7 +16,7 @@
 #include "./response/StringResponse.h"
 #include "./response/JsonResponse.h"
 #include "./response/FormResponse.h"
-#include "./WebServer.h"
+#include "./server/WebServer.h"
 
 
 
@@ -59,6 +59,7 @@ using HttpServerAdvanced::MultipartStatus;
 using WebServer = HttpServerAdvanced::FriendlyWebServer<StandardHttpServer<>>;
 using SecureWebServer = HttpServerAdvanced::FriendlyWebServer<SecureHttpServer>;
 using HttpServerAdvanced::WebServerConfig;
+
 
 
 

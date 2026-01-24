@@ -1,7 +1,7 @@
 #pragma once    
-#include "./StandardHttpServer.h"
-#include "./WebServerBuilder.h"
-#include "./WebServerConfig.h"
+#include "StandardHttpServer.h"
+#include "WebServerBuilder.h"
+#include "WebServerConfig.h"
 #include <type_traits>
 namespace HttpServerAdvanced
 {
@@ -35,3 +35,4 @@ namespace HttpServerAdvanced
     
 
 }
+

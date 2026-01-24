@@ -1,15 +1,15 @@
 #pragma once
 #include <Arduino.h>
 #include <functional>
-#include "./core/Defines.h"
-#include "./routing/HandlerProviderRegistry.h"
-#include "./HttpRequest.h"
-#include "./routing/ProviderRegistryBuilder.h"
-#include "./core/HttpContentTypes.h"
-#include "./HttpRequestHandlerFactory.h"
+#include "../core/Defines.h"
+#include "../routing/HandlerProviderRegistry.h"
+#include "HttpRequest.h"
+#include "../routing/ProviderRegistryBuilder.h"
+#include "../core/HttpContentTypes.h"
+#include "HttpRequestHandlerFactory.h"
 #include <any>
 
-#include "./HttpServerBase.h"
+#include "HttpServerBase.h"
 
 namespace HttpServerAdvanced
 {
@@ -55,4 +55,5 @@ namespace HttpServerAdvanced
     };
 
 } // namespace HttpServerAdvanced
+
 
