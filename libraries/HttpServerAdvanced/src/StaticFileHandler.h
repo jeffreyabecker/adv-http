@@ -3,7 +3,7 @@
 
 #include <FS.h>
 #include "./FileLocator.h"
-#include "./HttpContentTypes.h"
+#include "./core/HttpContentTypes.h"
 #include "./HttpResponse.h"
 #include "./HttpRequest.h"
 #include "./IHandlerProvider.h"

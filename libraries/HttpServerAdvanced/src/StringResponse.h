@@ -1,11 +1,11 @@
 #pragma once
 #include <initializer_list>
-#include "./HttpStatus.h"
-#include "./HttpHeader.h"
-#include "./HttpHeaderCollection.h"
+#include "./core/HttpStatus.h"
+#include "./core/HttpHeader.h"
+#include "./core/HttpHeaderCollection.h"
 #include "./HttpResponse.h"
 #include "./Streams.h"
-#include "./HttpContentTypes.h"
+#include "./core/HttpContentTypes.h"
 #include <Arduino.h>
 #include <memory>
 #include <ArduinoJson.h>

@@ -2,7 +2,7 @@
 #include <memory>
 #include <functional>
 
-#include "./HttpTimeouts.h"
+#include "./core/HttpTimeouts.h"
 #include "./PipelineError.h"
 
 #include <cstddef>

@@ -1,9 +1,9 @@
 #pragma once
 #include <initializer_list>
 #include <cstring>
-#include "./HttpStatus.h"
-#include "./HttpHeader.h"
-#include "./HttpHeaderCollection.h"
+#include "./core/HttpStatus.h"
+#include "./core/HttpHeader.h"
+#include "./core/HttpHeaderCollection.h"
 #include "./Streams.h"
 #include "./Iterators.h"
 #include "./HttpResponseBodyStream.h"

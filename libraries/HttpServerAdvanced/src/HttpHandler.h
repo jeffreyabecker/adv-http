@@ -1,8 +1,8 @@
 #pragma once
 #include <memory>
 #include <functional>
-#include "./HttpMethod.h"
-#include "./HttpRequestPhase.h"
+#include "./core/HttpMethod.h"
+#include "./core/HttpRequestPhase.h"
 #include "./IHttpHandler.h"
 
 namespace HttpServerAdvanced

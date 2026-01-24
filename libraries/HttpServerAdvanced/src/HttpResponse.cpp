@@ -1,6 +1,6 @@
 #include "HttpResponse.h"
 #include "./Streams.h"
-#include "./HttpContentTypes.h"
+#include "./core/HttpContentTypes.h"
 namespace HttpServerAdvanced
 {
 

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <Arduino.h>
-#include "./Defines.h"
+#include "./core/Defines.h"
 #include "./HttpRequest.h"
 #include "./HttpResponse.h"
-#include "./HttpStatus.h"
+#include "./core/HttpStatus.h"
 #include "./util/HttpUtility.h"
 #include "./HttpHandler.h"
 #include "./StringResponse.h"

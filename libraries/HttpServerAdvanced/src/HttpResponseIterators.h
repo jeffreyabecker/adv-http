@@ -1,8 +1,8 @@
 #pragma once
 #include <memory>
-#include "./HttpStatus.h"
-#include "./HttpHeader.h"
-#include "./HttpHeaderCollection.h"
+#include "./core/HttpStatus.h"
+#include "./core/HttpHeader.h"
+#include "./core/HttpHeaderCollection.h"
 #include "./Streams.h"
 #include "./Iterators.h"
 #include "./HttpResponseBodyStream.h"

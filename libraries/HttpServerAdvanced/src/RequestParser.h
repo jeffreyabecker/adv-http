@@ -2,7 +2,7 @@
 #include <memory>
 #include <functional>
 
-#include "./HttpTimeouts.h"
+#include "./core/HttpTimeouts.h"
 #include "./IPipelineHandler.h"
 
 #include <http_parser.h>
@@ -14,7 +14,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
-#include "./Defines.h"
+#include "./core/Defines.h"
 
 namespace HttpServerAdvanced
 {

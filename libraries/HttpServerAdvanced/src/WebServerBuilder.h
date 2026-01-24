@@ -1,11 +1,11 @@
 #pragma once
 #include <Arduino.h>
 #include <functional>
-#include "./Defines.h"
+#include "./core/Defines.h"
 #include "./HandlerProviderRegistry.h"
 #include "./HttpRequest.h"
 #include "./ProviderRegistryBuilder.h"
-#include "./HttpContentTypes.h"
+#include "./core/HttpContentTypes.h"
 #include "./HttpRequestHandlerFactory.h"
 #include <any>
 

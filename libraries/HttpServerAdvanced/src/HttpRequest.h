@@ -1,10 +1,10 @@
 #pragma once
 
-#include "./HttpHeader.h"
-#include "./HttpHeaderCollection.h"
+#include "./core/HttpHeader.h"
+#include "./core/HttpHeaderCollection.h"
 #include "./HttpServerBase.h"
 #include "./HttpResponse.h"
-#include "./HttpRequestPhase.h"
+#include "./core/HttpRequestPhase.h"
 #include "./IHttpHandler.h"
 #include "./PipelineError.h"
 #include "./util/UriView.h"

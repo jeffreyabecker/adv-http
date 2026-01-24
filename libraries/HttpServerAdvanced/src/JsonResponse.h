@@ -1,7 +1,7 @@
 #pragma once
 #include <initializer_list>
-#include "./HttpStatus.h"
-#include "./HttpHeader.h"
+#include "./core/HttpStatus.h"
+#include "./core/HttpHeader.h"
 #include "./IHttpResponse.h"
 #include <Arduino.h>
 #include <memory>

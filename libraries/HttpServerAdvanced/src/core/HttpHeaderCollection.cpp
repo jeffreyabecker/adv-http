@@ -1,6 +1,6 @@
 #include "HttpHeaderCollection.h"
 #include "HttpHeader.h"
-#include "StringUtility.h"
+#include "../util/StringUtility.h"
 
 namespace HttpServerAdvanced
 {

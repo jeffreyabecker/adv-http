@@ -1,5 +1,5 @@
 #include "HttpResponseIterators.h"
-#include "HttpHeaderCollection.h"
+#include "./core/HttpHeaderCollection.h"
 #include <ctime>
 #include <sys/time.h>
 #include <cstring>

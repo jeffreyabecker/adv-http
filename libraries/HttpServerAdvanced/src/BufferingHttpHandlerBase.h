@@ -1,9 +1,9 @@
 #pragma once
 #include <vector>
 #include "./IHttpHandler.h"
-#include "./Defines.h"
-#include "./HttpRequestPhase.h"
-#include "./HttpHeader.h"
+#include "./core/Defines.h"
+#include "./core/HttpRequestPhase.h"
+#include "./core/HttpHeader.h"
 #include <limits>
 #include <algorithm>
 #include <optional>

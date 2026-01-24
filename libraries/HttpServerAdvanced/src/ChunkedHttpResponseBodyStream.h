@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include "./HttpResponseBodyStream.h"
-#include "./Defines.h"
+#include "./core/Defines.h"
 
 namespace HttpServerAdvanced
 {

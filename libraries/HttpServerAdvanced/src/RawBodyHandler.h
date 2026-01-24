@@ -2,9 +2,9 @@
 #include <Arduino.h>
 #include <optional>
 #include "./IHttpHandler.h"
-#include "./HttpHeader.h"
-#include "./HttpHeaderCollection.h"
-#include "./Buffer.h"
+#include "./core/HttpHeader.h"
+#include "./core/HttpHeaderCollection.h"
+#include "./core/Buffer.h"
 #include "./HandlerRestrictions.h"
 
 namespace HttpServerAdvanced

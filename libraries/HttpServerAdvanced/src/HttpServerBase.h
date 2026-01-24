@@ -3,7 +3,7 @@
 #include "./HttpPipeline.h"
 #include "./IPipelineHandler.h"
 #include "./PipelineHandleClientResult.h"
-#include "./HttpTimeouts.h"
+#include "./core/HttpTimeouts.h"
 
 #include <memory>
 #include <list>

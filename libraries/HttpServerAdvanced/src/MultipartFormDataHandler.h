@@ -6,12 +6,12 @@
 #include "./IHttpHandler.h"
 #include "./HttpResponse.h"
 #include "./StringResponse.h"
-#include "./HttpHeader.h"
-#include "./HttpHeaderCollection.h"
-#include "./Buffer.h"
-#include "./Defines.h"
+#include "./core/HttpHeader.h"
+#include "./core/HttpHeaderCollection.h"
+#include "./core/Buffer.h"
+#include "./core/Defines.h"
 #include "./HandlerRestrictions.h"
-#include "./HttpContentTypes.h"
+#include "./core/HttpContentTypes.h"
 namespace HttpServerAdvanced
 {
     enum class MultipartStatus

@@ -3,7 +3,7 @@
 
 #include "./WebServerBuilder.h"
 #include <FS.h>
-#include "./HttpContentTypes.h"
+#include "./core/HttpContentTypes.h"
 #include "./HandlerProviderRegistry.h"
 #include "./StaticFileHandler.h"
 #include "./DefaultFileLocator.h"
