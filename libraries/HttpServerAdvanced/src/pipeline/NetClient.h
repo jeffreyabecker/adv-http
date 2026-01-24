@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include "./core/Defines.h"
+#include "../core/Defines.h"
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -469,3 +469,4 @@ namespace HttpServerAdvanced
     };
 
 } // namespace HttpServerAdvanced
+

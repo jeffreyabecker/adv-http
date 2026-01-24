@@ -1,8 +1,8 @@
 #pragma once
 
-#include "./HttpPipeline.h"
-#include "./IPipelineHandler.h"
-#include "./PipelineHandleClientResult.h"
+#include "./pipeline/HttpPipeline.h"
+#include "./pipeline/IPipelineHandler.h"
+#include "./pipeline/PipelineHandleClientResult.h"
 #include "./core/HttpTimeouts.h"
 
 #include <memory>
@@ -81,3 +81,4 @@ namespace HttpServerAdvanced
     };
 
 } // namespace HttpServerAdvanced
+

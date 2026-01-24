@@ -2,8 +2,8 @@
 #include <memory>
 #include <functional>
 
-#include "./core/HttpTimeouts.h"
-#include "./PipelineError.h"
+#include "../core/HttpTimeouts.h"
+#include "PipelineError.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -40,3 +40,4 @@ namespace HttpServerAdvanced
      
 
 }
+

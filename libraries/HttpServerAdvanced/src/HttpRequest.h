@@ -6,7 +6,7 @@
 #include "./response/HttpResponse.h"
 #include "./core/HttpRequestPhase.h"
 #include "./handlers/IHttpHandler.h"
-#include "./PipelineError.h"
+#include "./pipeline/PipelineError.h"
 #include "./util/UriView.h"
 #include "./IHttpRequestHandlerFactory.h"
 
@@ -189,5 +189,6 @@ namespace HttpServerAdvanced
     };
 
 }
+
 
 

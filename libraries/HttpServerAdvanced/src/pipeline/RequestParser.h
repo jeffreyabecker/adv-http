@@ -2,11 +2,11 @@
 #include <memory>
 #include <functional>
 
-#include "./core/HttpTimeouts.h"
-#include "./IPipelineHandler.h"
+#include "../core/HttpTimeouts.h"
+#include "IPipelineHandler.h"
 
 #include <http_parser.h>
-#include "./PipelineError.h"
+#include "PipelineError.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstddef>
@@ -14,7 +14,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
-#include "./core/Defines.h"
+#include "../core/Defines.h"
 
 namespace HttpServerAdvanced
 {
@@ -163,3 +163,4 @@ namespace HttpServerAdvanced
         RequestParserEvent currentEvent() const { return currentEvent_; }
     };
 }
+

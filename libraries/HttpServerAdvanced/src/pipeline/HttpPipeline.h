@@ -2,11 +2,11 @@
 #include <memory>
 #include <functional>
 
-#include "./core/HttpTimeouts.h"
-#include "./IPipelineHandler.h"
-#include "./RequestParser.h"
-#include "./PipelineHandleClientResult.h"
-#include "./NetClient.h"
+#include "../core/HttpTimeouts.h"
+#include "IPipelineHandler.h"
+#include "RequestParser.h"
+#include "PipelineHandleClientResult.h"
+#include "NetClient.h"
 
 #include <http_parser.h>
 #include <cstddef>
@@ -83,3 +83,4 @@ namespace HttpServerAdvanced
     };
 
 } // namespace HttpServerAdvanced
+
