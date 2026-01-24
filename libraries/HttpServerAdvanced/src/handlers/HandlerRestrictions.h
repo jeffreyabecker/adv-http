@@ -1,8 +1,8 @@
 #pragma once
 #include <Arduino.h>
 #include <functional>
-#include "./core/Defines.h"
-#include "./IHttpHandler.h"
+#include "../core/Defines.h"
+#include "IHttpHandler.h"
 #include "./HandlerMatcher.h"
 namespace HttpServerAdvanced
 {
@@ -111,3 +111,4 @@ namespace HttpServerAdvanced
         };
     }
 } // namespace HttpServerAdvanced
+

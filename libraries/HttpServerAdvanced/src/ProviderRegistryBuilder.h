@@ -2,11 +2,11 @@
 #include <Arduino.h>
 #include <utility>
 #include "./core/Defines.h"
-#include "./HttpHandler.h"
-#include "./HandlerTypes.h"
+#include "./handlers/HttpHandler.h"
+#include "./handlers/HandlerTypes.h"
 
 #include "./HandlerMatcher.h"
-#include "./HandlerRestrictions.h"
+#include "./handlers/HandlerRestrictions.h"
 #include "./HandlerProviderRegistry.h"
 #include "./HandlerBuilder.h"
 
@@ -104,3 +104,4 @@ namespace HttpServerAdvanced
         }
     };
 } // namespace HttpServerAdvanced
+

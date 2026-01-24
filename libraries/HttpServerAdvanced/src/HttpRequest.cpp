@@ -1,5 +1,5 @@
 #include "HttpRequest.h"
-#include "IHttpHandler.h"
+#include "./handlers/IHttpHandler.h"
 #include "IHttpRequestHandlerFactory.h"
 
 namespace HttpServerAdvanced

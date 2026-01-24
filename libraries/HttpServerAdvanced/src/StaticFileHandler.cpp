@@ -1,5 +1,5 @@
 #include "StaticFileHandler.h"
-#include "HttpHandler.h"
+#include "./handlers/HttpHandler.h"
 #include "./response/StringResponse.h"
 #include <ctime>
 

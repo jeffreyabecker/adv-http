@@ -6,7 +6,7 @@
 #include "./response/HttpResponse.h"
 #include "./core/HttpStatus.h"
 #include "./util/HttpUtility.h"
-#include "./HttpHandler.h"
+#include "./handlers/HttpHandler.h"
 #include "./response/StringResponse.h"
 #include <memory>
 
@@ -92,4 +92,5 @@ namespace HttpServerAdvanced
         return BasicAuth(validator, realm, onSuccess, onFailure);
     }
 } // namespace HttpServerAdvanced
+
 

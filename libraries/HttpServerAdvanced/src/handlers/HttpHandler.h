@@ -1,9 +1,9 @@
 #pragma once
 #include <memory>
 #include <functional>
-#include "./core/HttpMethod.h"
-#include "./core/HttpRequestPhase.h"
-#include "./IHttpHandler.h"
+#include "../core/HttpMethod.h"
+#include "../core/HttpRequestPhase.h"
+#include "IHttpHandler.h"
 
 namespace HttpServerAdvanced
 {
@@ -77,3 +77,4 @@ namespace HttpServerAdvanced {
         filter_ = [callAt](const HttpRequest &ctx) { return ctx.completedPhases() == callAt; };
     }
 }
+

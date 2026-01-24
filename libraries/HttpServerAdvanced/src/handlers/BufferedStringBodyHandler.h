@@ -1,9 +1,9 @@
 #pragma once
 #include <Arduino.h>
-#include "./BufferingHttpHandlerBase.h"
-#include "./HandlerRestrictions.h"
-#include "./util/KeyValuePairView.h"
-#include "./util/HttpUtility.h"
+#include "BufferingHttpHandlerBase.h"
+#include "HandlerRestrictions.h"
+#include "../util/KeyValuePairView.h"
+#include "../util/HttpUtility.h"
 
 namespace HttpServerAdvanced
 {
@@ -47,3 +47,4 @@ namespace HttpServerAdvanced
     };
 
 } // namespace HttpServerAdvanced
+

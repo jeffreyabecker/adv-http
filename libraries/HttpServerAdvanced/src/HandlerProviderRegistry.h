@@ -3,14 +3,14 @@
 #include <functional>
 #include <vector>
 
-#include "./IHttpHandler.h"
+#include "./handlers/IHttpHandler.h"
 #include "./response/HttpResponse.h"
 #include "./core/HttpStatus.h"
 #include "./core/HttpHeader.h"
 #include "./core/HttpHeaderCollection.h"
-#include "./HttpHandler.h"
+#include "./handlers/HttpHandler.h"
 #include "./response/IHttpResponse.h"
-#include "./IHandlerProvider.h"
+#include "./handlers/IHandlerProvider.h"
 
 namespace HttpServerAdvanced
 {
@@ -98,4 +98,5 @@ namespace HttpServerAdvanced
         // void addResponseFilter(IHttpResponse::ResponseFilter filter);
     };
 }
+
 
