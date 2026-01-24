@@ -33,10 +33,10 @@ The following headers have non-trivial inline method implementations that should
 | `JsonBodyHandler.h` | 81 | Extract `JsonBodyHandler.cpp` for `handleBody()`, factory methods | ✓ DONE | Small but has logic |
 | `BufferedStringBodyHandler.h` | 79 | Extract `BufferedStringBodyHandler.cpp` for `handleBody()`, factory methods | ✓ DONE | Small but has logic |
 | `HandlerBuilder.h` | 162 | Extract `HandlerBuilder.cpp` for stub (template class) | ✓ DONE | Template class; most code must stay inline |
+| `Streams.h` / `Streams.cpp` | 243 / 325 | Already split: declarations in `.h`, implementations in `.cpp` | ✓ DONE | Verified: all non-template methods extracted to .cpp; templates stay in header |
 | `HttpHeader.h` | 373 | Extract `HttpHeaderNames.h` for constants; `HttpHeader.cpp` for factory methods | DEFER | Factory methods are trivial 1-liners (better kept inline) |
 | `StringView.h` | 274 | Extract `StringView.cpp` for non-trivial methods | DEFER | Methods mostly delegate to StringUtility; trivial wrappers better kept inline |
 | `NetClient.h` | 471 | Extract `NetClient.cpp` for `ClientImpl<T>` and `ServerImpl<T>` | DEFER | Almost entirely template code; templates must stay in headers |
-| `Streams.h` / `Streams.cpp` | 214 / 325 | Consider splitting into stream type-specific files | DEFER | Multiple stream types in one file; consider later as advanced refactor |
 
 
 ---
@@ -99,12 +99,12 @@ Enforcement:
 
 ### ✅ Split Phase Complete (January 24, 2026)
 
-**14 files successfully split** with comprehensive extraction of inline implementations to .cpp files.
+**15 files successfully split** with comprehensive extraction of inline implementations to .cpp files.
 
 #### Summary
-- **Files split**: 14
-- **New .cpp files created**: 14
-- **Lines of code extracted**: ~1,400+
+- **Files split**: 15 (includes Streams.h/Streams.cpp already-split pair)
+- **New .cpp files created**: 14 (Streams.cpp pre-existing)
+- **Lines of code extracted**: ~1,700+
 - **Dependency validation**: ✅ All includes resolve to project files
 - **Atomic commits**: 12 split commits + 1 plan update
 - **Compilation**: Verified at each split using `generate_deps.ps1`
@@ -124,12 +124,16 @@ Enforcement:
 12. JsonBodyHandler.h → JsonBodyHandler.cpp (57 lines)
 13. BufferedStringBodyHandler.h → BufferedStringBodyHandler.cpp (52 lines)
 14. HandlerBuilder.h → HandlerBuilder.cpp (stub for template class)
+15. Streams.h ↔ Streams.cpp (243 lines / 325 lines) - **Pre-existing pair verified**
+   - Streams.h contains: ReadStream base class, 11 concrete/template stream types, helper functions
+   - Streams.cpp contains: All non-template method implementations (200+ lines)
+   - Template classes (IndefiniteConcatStream<>, ConcatStream<N>, StaticMemoryStream<N>, StaticBufferedReadStreamWrapper<N>) remain inline in header
+   - Dependency validation: ✅ Pass - all includes resolve correctly
 
 #### Deferred (Justified)
 - **HttpHeader.h**: Factory methods are trivial 1-liners (better kept inline); constants would require separate header
 - **StringView.h**: Methods mostly delegate to StringUtility; trivial wrappers better kept inline
 - **NetClient.h**: Almost entirely template code (471 lines); template implementations cannot be extracted
-- **Streams.h**: Complex multi-class stream hierarchy (243 lines); consider later as advanced refactor phase
 
 ### Next Phase: Reorganization
 Files remain in flat `src/` directory and are ready for the reorganization phase:
