@@ -2,8 +2,8 @@
 #include <Arduino.h>
 #include "./BufferingHttpHandlerBase.h"
 #include "./HandlerRestrictions.h"
-#include "./KeyValuePairView.h"
-#include "./HttpUtility.h"
+#include "./util/KeyValuePairView.h"
+#include "./util/HttpUtility.h"
 
 
 #include <ArduinoJson.h>

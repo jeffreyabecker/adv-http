@@ -1,8 +1,8 @@
 #pragma once
 #include <Arduino.h>
 #include "./Defines.h"
-#include "./StringUtility.h"
-#include "./UriView.h"
+#include "./util/StringUtility.h"
+#include "./util/UriView.h"
 #include <initializer_list>
 #include <functional>
 namespace HttpServerAdvanced

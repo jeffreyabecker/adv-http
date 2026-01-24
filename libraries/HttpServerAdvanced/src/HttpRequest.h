@@ -7,7 +7,7 @@
 #include "./HttpRequestPhase.h"
 #include "./IHttpHandler.h"
 #include "./PipelineError.h"
-#include "./UriView.h"
+#include "./util/UriView.h"
 #include "./IHttpRequestHandlerFactory.h"
 
 namespace HttpServerAdvanced

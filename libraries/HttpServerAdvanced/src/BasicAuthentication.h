@@ -5,7 +5,7 @@
 #include "./HttpRequest.h"
 #include "./HttpResponse.h"
 #include "./HttpStatus.h"
-#include "./HttpUtility.h"
+#include "./util/HttpUtility.h"
 #include "./HttpHandler.h"
 #include "./StringResponse.h"
 #include <memory>
