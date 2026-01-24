@@ -1,13 +1,13 @@
 # HttpServerAdvanced Split Plan
 
-This document defines the controlled, one-at-a-time file splitting workflow that must run before the main reorganization (moving files into folders). The goal is to extract large or inline-implemented files into smaller declaration/implementation units while keeping the repository in a compilable state at every step.
+This document defines the controlled, one-at-a-time file splitting workflow that runs before the main reorganization. The goal is to extract large or inline-implemented files into smaller declaration/implementation units while keeping the repository in a compilable state at every step.
 
 ## Goals
 
 - Split large headers with inline implementations into declaration + implementation files.
 - Verify compilation after each split while files remain in the flat `src/` layout.
-- Use dependency scanning to detect and correct include paths before moving files.
-- Only move files into the new folder structure after the split compiles in-place.
+- Use dependency scanning to detect and correct include paths during splits.
+- Keep files in the flat `src/` directory during the split phase; moving to subfolders happens later during reorganization.
 
 ---
 
@@ -45,7 +45,7 @@ The following headers have non-trivial inline method implementations that should
 
 1. Pick the highest-priority file to split.
 2. Create new split files in-place inside the flat `src/` directory (e.g., add `HandlerMatcher.cpp` next to `HandlerMatcher.h`).
-3. Update include directives in the `src/` copies so the project compiles while still flat (use local includes like `#include "HandlerMatcher.h"`).
+3. Update include directives in the split files so the project compiles while still flat (use local includes like `#include "HandlerMatcher.h"`).
 4. Run the dependency scanner script to detect unresolved includes:
 
    ```powershell
@@ -54,12 +54,10 @@ The following headers have non-trivial inline method implementations that should
 
    - Fix include directives reported as unresolved or external where they should be project-local.
 5. Compile (use the project's compile command). If compile fails, fix the split while files remain in `src/` or revert from `src.bak`.
-6. When the split compiles successfully in-place, move the split files and any directly dependent files to the appropriate destination subfolder and update include paths to the new relative paths (e.g., `#include "../core/HttpHeader.h"`).
-7. Immediately delete the original flat-file versions from `src/` to avoid duplicate-symbol issues with Arduino's recursive build.
-8. Run the dependency scanner again and then compile. If it fails, restore from `src.bak`, revert the move, and fix issues before retrying.
-9. Once compilation succeeds, update the comprehensive file mapping table in the main reorganization plan to list the new files and destinations, then proceed to the next split.
+6. Once the split compiles successfully in-place, update the comprehensive file mapping table in the main reorganization plan to list the new files as still residing in the flat `src/` directory.
+7. Mark the file as completed in the split plan and proceed to the next split.
 
-Rationale: Splitting first and confirming correctness while files remain in the flat `src/` layout prevents include path regressions and keeps the scope of each change small and reviewable.
+Rationale: Splitting first and confirming correctness while files remain in the flat `src/` layout prevents include path regressions and keeps the scope of each change small and reviewable. Moving files to their target subfolders happens later during the reorganization phase.
 
 ---
 
@@ -71,31 +69,29 @@ Rationale: Splitting first and confirming correctness while files remain in the 
 
 ---
 
-## Include Path Policy (for splits and subsequent moves)
+## Include Path Policy (for splits)
 
-When splitting files and later moving them, follow these rules:
+When splitting files in-place in `src/`, follow these rules:
 
-- Use relative, quoted includes for project headers (e.g., `#include "../core/HttpHeader.h"`).
-- When files remain in `src/` during splitting, prefer local includes (e.g., `#include "HandlerMatcher.h"`).
-- Use `"./"` for same-folder includes when moved into a subfolder.
+- Use local, quoted includes for project headers (e.g., `#include "HandlerMatcher.h"`).
+- Keep includes simple while files remain in the flat `src/` directory.
 - Reserve `<...>` includes for external/system headers only.
 
 Enforcement:
 
 - Run `generate_deps.ps1` to detect unresolved includes before compiling.
-- Use grep/regex to ensure no old absolute or root-based includes remain before deleting originals.
+- Relative paths for moved files will be applied during the reorganization phase.
 
 ---
 
 ## Small-Scope Checklist (per file)
 
 1. Add split file(s) in `src/`.
-2. Update include directives locally.
+2. Update include directives to local includes.
 3. Run `generate_deps.ps1` and fix reported issues.
-4. Compile.
-5. Move validated split file(s) to target subfolder.
-6. Update includes to relative paths and run `generate_deps.ps1` again.
-7. Compile; if successful, delete originals and update mapping in reorg plan.
+4. Compile and verify success.
+5. Update the file mapping table in the reorganization plan to list new split files.
+6. Mark the file as completed in this split plan.
 
 ---
 
