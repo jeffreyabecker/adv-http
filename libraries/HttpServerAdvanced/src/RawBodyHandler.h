@@ -5,6 +5,7 @@
 #include "./HttpHeader.h"
 #include "./HttpHeaderCollection.h"
 #include "./Buffer.h"
+#include "./HandlerRestrictions.h"
 
 namespace HttpServerAdvanced
 {

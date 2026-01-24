@@ -3,6 +3,7 @@
 #include <functional>
 #include "./Defines.h"
 #include "./HandlerMatcher.h"
+#include "./HandlerRestrictions.h"
 
 namespace HttpServerAdvanced
 {

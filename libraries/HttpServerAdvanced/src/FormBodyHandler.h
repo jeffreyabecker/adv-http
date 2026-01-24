@@ -3,6 +3,8 @@
 #include "./BufferingHttpHandlerBase.h"
 #include "./KeyValuePairView.h"
 #include "./HttpUtility.h"
+#include "./HandlerRestrictions.h"
+#include "./HandlerMatcher.h"
 
 namespace HttpServerAdvanced
 {

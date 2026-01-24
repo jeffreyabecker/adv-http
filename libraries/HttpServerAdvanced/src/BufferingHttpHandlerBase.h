@@ -2,6 +2,8 @@
 #include <vector>
 #include "./IHttpHandler.h"
 #include "./Defines.h"
+#include "./HttpRequestPhase.h"
+#include "./HttpHeader.h"
 #include <limits>
 #include <algorithm>
 #include <optional>
