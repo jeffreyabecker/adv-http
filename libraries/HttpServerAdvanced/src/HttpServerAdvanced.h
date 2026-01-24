@@ -42,6 +42,8 @@
 #include "./routing/HandlerMatcher.h"
 #include "./routing/HandlerProviderRegistry.h"
 #include "./routing/ProviderRegistryBuilder.h"
+#include "./routing/BasicAuthentication.h"
+#include "./routing/CrossOriginRequestSharing.h"
 
 // HTTP pipeline
 #include "./pipeline/HttpPipeline.h"
@@ -50,10 +52,6 @@
 #include "./pipeline/PipelineError.h"
 #include "./pipeline/PipelineHandleClientResult.h"
 #include "./pipeline/RequestParser.h"
-
-// Security
-#include "./security/BasicAuthentication.h"
-#include "./security/CrossOriginRequestSharing.h"
 
 // Static file serving
 #include "./staticfiles/AggregateFileLocator.h"
