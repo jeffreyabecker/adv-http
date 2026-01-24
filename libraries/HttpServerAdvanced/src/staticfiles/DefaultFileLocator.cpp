@@ -1,4 +1,4 @@
-#include "./DefaultFileLocator.h"
+#include "DefaultFileLocator.h"
 
 namespace HttpServerAdvanced {
 
@@ -98,3 +98,4 @@ bool DefaultFileLocator::canHandle(const String& path) {
 }
 
 } // namespace HttpServerAdvanced
+

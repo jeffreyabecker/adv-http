@@ -2,11 +2,11 @@
 #include <Arduino.h>
 
 #include <FS.h>
-#include "./FileLocator.h"
-#include "./core/HttpContentTypes.h"
-#include "./response/HttpResponse.h"
+#include "FileLocator.h"
+#include "../core/HttpContentTypes.h"
+#include "../response/HttpResponse.h"
 #include "./HttpRequest.h"
-#include "./handlers/IHandlerProvider.h"
+#include "../handlers/IHandlerProvider.h"
 namespace HttpServerAdvanced
 {
     using namespace HttpServerAdvanced;
@@ -43,5 +43,6 @@ namespace HttpServerAdvanced
     };
 
 } // namespace HttpServerAdvanced
+
 
 

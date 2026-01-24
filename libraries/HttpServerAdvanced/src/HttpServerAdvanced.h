@@ -10,9 +10,9 @@
 #include "./util/KeyValuePairView.h"
 #include "./util/HttpUtility.h"
 #include "./util/UriView.h"
-#include "./BasicAuthentication.h"
-#include "./CrossOriginRequestSharing.h"
-#include "./StaticFilesBuilder.h"
+#include "./security/BasicAuthentication.h"
+#include "./security/CrossOriginRequestSharing.h"
+#include "./staticfiles/StaticFilesBuilder.h"
 #include "./response/StringResponse.h"
 #include "./response/JsonResponse.h"
 #include "./response/FormResponse.h"
@@ -59,4 +59,6 @@ using HttpServerAdvanced::MultipartStatus;
 using WebServer = HttpServerAdvanced::FriendlyWebServer<StandardHttpServer<>>;
 using SecureWebServer = HttpServerAdvanced::FriendlyWebServer<SecureHttpServer>;
 using HttpServerAdvanced::WebServerConfig;
+
+
 

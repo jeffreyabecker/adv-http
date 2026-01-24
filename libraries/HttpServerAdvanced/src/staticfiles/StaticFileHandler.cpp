@@ -1,6 +1,6 @@
 #include "StaticFileHandler.h"
-#include "./handlers/HttpHandler.h"
-#include "./response/StringResponse.h"
+#include "../handlers/HttpHandler.h"
+#include "../response/StringResponse.h"
 #include <ctime>
 
 namespace HttpServerAdvanced
@@ -158,3 +158,4 @@ namespace HttpServerAdvanced
     }
 
 } // namespace HttpServerAdvanced
+
