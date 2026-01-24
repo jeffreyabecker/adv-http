@@ -1,22 +1,91 @@
 // dont do a pragma here because its a wrapper around other include files
 // #pragma once
 
-// TODO: This is the root include of the library. It should include all public headers.
-//  Add includes for all public headers here.
-//  Add using statements to pull members out of namespaces .
-#include "./server/StandardHttpServer.h"
-#include "./server/SecureHttpServer.h"
-#include "./server/WebServerBuilder.h"
-#include "./util/KeyValuePairView.h"
-#include "./util/HttpUtility.h"
-#include "./util/UriView.h"
+// Core HTTP types and utilities
+#include "./core/Buffer.h"
+#include "./core/Defines.h"
+#include "./core/HttpContentTypes.h"
+#include "./core/HttpHeader.h"
+#include "./core/HttpHeaderCollection.h"
+#include "./core/HttpMethod.h"
+#include "./core/HttpRequest.h"
+#include "./core/HttpRequestPhase.h"
+#include "./core/HttpStatus.h"
+#include "./core/HttpTimeouts.h"
+#include "./core/IHttpRequestHandlerFactory.h"
+
+// HTTP Handlers
+#include "./handlers/BufferedStringBodyHandler.h"
+#include "./handlers/BufferingHttpHandlerBase.h"
+#include "./handlers/FormBodyHandler.h"
+#include "./handlers/HandlerRestrictions.h"
+#include "./handlers/HandlerTypes.h"
+#include "./handlers/HttpHandler.h"
+#include "./handlers/IHandlerProvider.h"
+#include "./handlers/IHttpHandler.h"
+#include "./handlers/JsonBodyHandler.h"
+#include "./handlers/MultipartFormDataHandler.h"
+#include "./handlers/RawBodyHandler.h"
+
+// HTTP Response types
+#include "./response/ChunkedHttpResponseBodyStream.h"
+#include "./response/FormResponse.h"
+#include "./response/HttpResponse.h"
+#include "./response/HttpResponseBodyStream.h"
+#include "./response/HttpResponseIterators.h"
+#include "./response/IHttpResponse.h"
+#include "./response/JsonResponse.h"
+#include "./response/StringResponse.h"
+
+// Request routing
+#include "./routing/HandlerBuilder.h"
+#include "./routing/HandlerMatcher.h"
+#include "./routing/HandlerProviderRegistry.h"
+#include "./routing/ProviderRegistryBuilder.h"
+
+// HTTP pipeline
+#include "./pipeline/HttpPipeline.h"
+#include "./pipeline/IPipelineHandler.h"
+#include "./pipeline/NetClient.h"
+#include "./pipeline/PipelineError.h"
+#include "./pipeline/PipelineHandleClientResult.h"
+#include "./pipeline/RequestParser.h"
+
+// Security
 #include "./security/BasicAuthentication.h"
 #include "./security/CrossOriginRequestSharing.h"
+
+// Static file serving
+#include "./staticfiles/AggregateFileLocator.h"
+#include "./staticfiles/DefaultFileLocator.h"
+#include "./staticfiles/FileLocator.h"
+#include "./staticfiles/StaticFileHandler.h"
 #include "./staticfiles/StaticFilesBuilder.h"
-#include "./response/StringResponse.h"
-#include "./response/JsonResponse.h"
-#include "./response/FormResponse.h"
+
+// Stream utilities
+#include "./streams/Base64Stream.h"
+#include "./streams/Iterators.h"
+#include "./streams/Streams.h"
+#include "./streams/UriStream.h"
+
+// Utility functions
+#include "./util/HttpUtility.h"
+#include "./util/KeyValuePairView.h"
+#include "./util/StringUtility.h"
+#include "./util/StringView.h"
+#include "./util/UriView.h"
+
+// Server implementations
+#include "./server/HttpServerBase.h"
+#include "./server/SecureHttpServer.h"
+#include "./server/SecureHttpServerConfig.h"
+#include "./server/StandardHttpServer.h"
 #include "./server/WebServer.h"
+#include "./server/WebServerBuilder.h"
+#include "./server/WebServerConfig.h"
+
+// Request handler factory
+#include "./HttpRequestHandlerFactory.h"
 
 
 
