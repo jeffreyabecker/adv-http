@@ -1,9 +1,9 @@
 #include "./HttpUtility.h"
 #include <optional>
 #include "./HttpUtility.h"
-#include "./Base64Stream.h"
-#include "./Streams.h"
-#include "./UriStream.h"
+#include "../streams/Base64Stream.h"
+#include "../streams/Streams.h"
+#include "../streams/UriStream.h"
 namespace HttpServerAdvanced
 {
 

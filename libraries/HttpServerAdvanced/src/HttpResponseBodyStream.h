@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 #include <Arduino.h>
-#include "./Streams.h"
+#include "./streams/Streams.h"
 
 namespace HttpServerAdvanced
 {
@@ -68,3 +68,4 @@ namespace HttpServerAdvanced
   }
 
 } // namespace HttpServerAdvanced
+

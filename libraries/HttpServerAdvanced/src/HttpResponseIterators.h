@@ -3,8 +3,8 @@
 #include "./core/HttpStatus.h"
 #include "./core/HttpHeader.h"
 #include "./core/HttpHeaderCollection.h"
-#include "./Streams.h"
-#include "./Iterators.h"
+#include "./streams/Streams.h"
+#include "./streams/Iterators.h"
 #include "./HttpResponseBodyStream.h"
 #include "./IHttpResponse.h"
 
@@ -167,3 +167,4 @@ namespace HttpServerAdvanced
   }
 
 } // namespace HttpServerAdvanced
+

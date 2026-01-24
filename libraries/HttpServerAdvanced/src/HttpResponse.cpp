@@ -1,5 +1,5 @@
 #include "HttpResponse.h"
-#include "./Streams.h"
+#include "./streams/Streams.h"
 #include "./core/HttpContentTypes.h"
 namespace HttpServerAdvanced
 {
@@ -29,3 +29,4 @@ namespace HttpServerAdvanced
     }
 
 } // namespace HttpServerAdvanced
+

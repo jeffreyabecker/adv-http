@@ -4,8 +4,8 @@
 #include "./core/HttpStatus.h"
 #include "./core/HttpHeader.h"
 #include "./core/HttpHeaderCollection.h"
-#include "./Streams.h"
-#include "./Iterators.h"
+#include "./streams/Streams.h"
+#include "./streams/Iterators.h"
 #include "./HttpResponseBodyStream.h"
 #include "./ChunkedHttpResponseBodyStream.h"
 #include "./HttpResponseIterators.h"
@@ -41,3 +41,4 @@ namespace HttpServerAdvanced
   std::unique_ptr<Stream> CreateResponseStream(std::unique_ptr<IHttpResponse> response);
 
 } // namespace HttpServerAdvanced
+

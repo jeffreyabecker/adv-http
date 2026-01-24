@@ -1,7 +1,7 @@
 #include "./JsonResponse.h"
 #include "./core/HttpHeaderCollection.h"
 #include "./HttpResponse.h"
-#include "./Streams.h"
+#include "./streams/Streams.h"
 #include "./core/HttpContentTypes.h"
 namespace HttpServerAdvanced
 {
@@ -43,3 +43,4 @@ namespace HttpServerAdvanced
 
 
 } // namespace HttpServerAdvanced
+
