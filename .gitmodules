@@ -1,3 +1,0 @@
-[submodule "libraries/HttpServerAdvanced/libs/llhttp"]
-	path = libraries/HttpServerAdvanced/libs/llhttp
-	url = https://github.com/nodejs/llhttp
