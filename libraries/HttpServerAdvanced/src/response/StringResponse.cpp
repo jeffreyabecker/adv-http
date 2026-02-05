@@ -1,4 +1,4 @@
-#include "./StringResponse.h"
+#include "StringResponse.h"
 
 namespace HttpServerAdvanced
 {

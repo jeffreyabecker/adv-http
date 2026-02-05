@@ -1,6 +1,7 @@
 #pragma once
+#ifdef HTTPSERVER_ADVANCED_ENABLE_SSL_SUPPORT
 #include "../core/Defines.h"
-#include "./StandardHttpServer.h"
+#include "StandardHttpServer.h"
 #include <WiFi.h>
 #include <type_traits>
 #include <utility>
@@ -99,3 +100,4 @@ namespace HttpServerAdvanced
 
 }
 
+#endif

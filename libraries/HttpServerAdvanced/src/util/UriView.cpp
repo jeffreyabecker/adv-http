@@ -1,5 +1,5 @@
-#include "./UriView.h"
-#include "./HttpUtility.h"
+#include "UriView.h"
+#include "HttpUtility.h"
 
 namespace HttpServerAdvanced
 {

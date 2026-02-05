@@ -8,7 +8,7 @@
 #include "../handlers/IHttpHandler.h"
 #include "../pipeline/PipelineError.h"
 #include "../util/UriView.h"
-#include "./IHttpRequestHandlerFactory.h"
+#include "IHttpRequestHandlerFactory.h"
 
 namespace HttpServerAdvanced
 {   

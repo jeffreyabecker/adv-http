@@ -9,12 +9,12 @@
 #include "../core/HttpRequestHandlerFactory.h"
 #include <any>
 
-#include "./HttpServerBase.h"
+#include "HttpServerBase.h"
 
 namespace HttpServerAdvanced
 {
 
-    class WebServerBuilder //: ServiceManagerService<HttpServerAdvanced::HttpServerBase, WebServerBuilder>
+    class WebServerBuilder 
     {
     protected:
 
@@ -31,9 +31,6 @@ namespace HttpServerAdvanced
             server_.setPipelineHandlerFactory([this](HttpServerBase &server) {
                 return HttpRequest::createPipelineHandler(server, handlerFactory_);
             });
-            // server_.addService<HandlerProviderRegistry *>(server_, HandlerProviderRegistry::ServiceName, &providerRegistry_);
-            // server_.addService<IHttpRequestHandlerFactory *>(server_, IHttpRequestHandlerFactory::ServiceName, &handlerFactory_);
-            // server_.addService<HttpContentTypes *>(server_, HttpContentTypes::ServiceName, &contentTypes_);
         }
 
 

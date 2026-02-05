@@ -3,9 +3,9 @@
 #include <vector>
 #include <optional>
 #include <algorithm>
-#include "./HttpHeader.h"
-#include "./HttpHeaderCollection.h"
-#include "./util/StringUtility.h"
+#include "HttpHeader.h"
+#include "HttpHeaderCollection.h"
+#include "../util/StringUtility.h"
 
 namespace HttpServerAdvanced
 {

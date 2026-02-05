@@ -1,17 +1,17 @@
-#include "./RequestParser.h"
-#include "./IPipelineHandler.h"
-#include "./PipelineError.h"
-#include <cstring>
+#include "RequestParser.h"
+#include "IPipelineHandler.h"
+#include "PipelineError.h"
+#include <cstring> // Required for strncmp
 
 namespace HttpServerAdvanced
 {
     // Static method implementations
-    RequestParser *RequestParser::get_instance(http_parser *parser)
+    RequestParser *RequestParser::get_instance(llhttp_t *parser)
     {
         return static_cast<RequestParser *>(parser->data);
     }
 
-    int RequestParser::on_message_begin_cb(http_parser *parser)
+    int RequestParser::on_message_begin_cb(llhttp_t *parser)
     {
         auto *self = get_instance(parser);
         if (self)
@@ -21,7 +21,7 @@ namespace HttpServerAdvanced
         return 0;
     }
 
-    int RequestParser::on_url_cb(http_parser *parser, const char *at, std::size_t length)
+    int RequestParser::on_url_cb(llhttp_t *parser, const char *at, std::size_t length)
     {
         auto *self = get_instance(parser);
         if (self)
@@ -39,49 +39,11 @@ namespace HttpServerAdvanced
         return 0;
     }
 
-    int RequestParser::on_header_field_cb(http_parser *parser, const char *at, std::size_t length)
+    int RequestParser::on_header_field_cb(llhttp_t *parser, const char *at, std::size_t length)
     {
         auto *self = get_instance(parser);
         if (self)
         {
-            // If we haven't invoked onMessageBegin yet and we're starting headers, do it now
-            if (self->currentEvent_ == RequestParserEvent::Url && self->urlLen_ > 0)
-            {
-                int result = self->eventHandler_.onMessageBegin(
-                    http_method_str(static_cast<http_method>(self->parser_.method)),
-                    self->parser_.http_major,
-                    self->parser_.http_minor,
-                    String(self->buffer_.data() + self->urlPos_, self->urlLen_));
-                self->resetBuffer();
-
-                if (result != 0)
-                {
-                    return result;
-                }
-            }
-
-            // If we were processing a header value and now we're starting a new field,
-            // it means the previous header is complete
-            if (self->currentEvent_ == RequestParserEvent::HeaderValue && self->headerFieldLen_ > 0)
-            {
-                if (self->headerCount_ >= HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT)
-                {
-                    // Too many headers: inform handler and abort parsing
-                    self->currentEvent_ = RequestParserEvent::Error;
-                    self->eventHandler_.onError(PipelineError(PipelineErrorCode::HeaderTooLarge));
-                    return -1;
-                }
-                ++self->headerCount_;
-                int result = self->eventHandler_.onHeader(
-                    String(self->buffer_.data() + self->headerFieldPos_, self->headerFieldLen_),
-                    String(self->buffer_.data() + self->headerValuePos_, self->headerValueLen_));
-                self->resetBuffer();
-                if (result != 0)
-                {
-                    return result;
-                }
-            }
-
             self->currentEvent_ = RequestParserEvent::HeaderField;
             // Buffer the header field chunk
             if (!self->appendToBuffer(at, length, HttpServerAdvanced::MAX_REQUEST_HEADER_NAME_LENGTH, self->headerFieldPos_, self->headerFieldLen_))
@@ -95,7 +57,7 @@ namespace HttpServerAdvanced
         return 0;
     }
 
-    int RequestParser::on_header_value_cb(http_parser *parser, const char *at, std::size_t length)
+    int RequestParser::on_header_value_cb(llhttp_t *parser, const char *at, std::size_t length)
     {
         auto *self = get_instance(parser);
         if (self)
@@ -113,36 +75,18 @@ namespace HttpServerAdvanced
         return 0;
     }
 
-    int RequestParser::on_headers_complete_cb(http_parser *parser)
+    int RequestParser::on_headers_complete_cb(llhttp_t *parser)
     {
         auto *self = get_instance(parser);
         if (self)
         {
-            // Complete the last header if we have one
-            if (self->headerFieldLen_ > 0)
-            {
-                if (self->headerCount_ >= HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT)
-                {
-                    return -1;
-                }
-                ++self->headerCount_;
-                int result = self->eventHandler_.onHeader(
-                    String(self->buffer_.data() + self->headerFieldPos_, self->headerFieldLen_),
-                    String(self->buffer_.data() + self->headerValuePos_, self->headerValueLen_));
-                self->resetBuffer();
-                if (result != 0)
-                {
-                    return result;
-                }
-            }
-
             self->currentEvent_ = RequestParserEvent::HeadersComplete;
             return self->eventHandler_.onHeadersComplete();
         }
         return 0;
     }
 
-    int RequestParser::on_body_cb(http_parser *parser, const char *at, std::size_t length)
+    int RequestParser::on_body_cb(llhttp_t *parser, const char *at, std::size_t length)
     {
         auto *self = get_instance(parser);
         if (self)
@@ -153,13 +97,158 @@ namespace HttpServerAdvanced
         return 0;
     }
 
-    int RequestParser::on_message_complete_cb(http_parser *parser)
+    int RequestParser::on_message_complete_cb(llhttp_t *parser)
     {
         auto *self = get_instance(parser);
         if (self)
         {
             self->currentEvent_ = RequestParserEvent::MessageComplete;
             return self->eventHandler_.onMessageComplete();
+        }
+        return 0;
+    }
+
+    // New llhttp-specific callbacks
+    int RequestParser::on_protocol_cb(llhttp_t *parser, const char *at, std::size_t length)
+    {
+        // Protocol callback - not typically used for HTTP/1.1, but could be useful for HTTP/2
+        return 0;
+    }
+
+ 
+
+    int RequestParser::on_method_cb(llhttp_t *parser, const char *at, std::size_t length)
+    {
+        auto *self = get_instance(parser);
+        if (self)
+        {
+            // Just buffer the method data
+            if (!self->appendToBuffer(at, length, 16, self->methodPos_, self->methodLen_))
+            {
+                self->currentEvent_ = RequestParserEvent::Error;
+                self->eventHandler_.onError(PipelineError(PipelineErrorCode::ParseError));
+                return -1;
+            }
+        }
+        return 0;
+    }
+
+    int RequestParser::on_version_cb(llhttp_t *parser, const char *at, std::size_t length)
+    {
+        auto *self = get_instance(parser);
+        if (self)
+        {
+            // Just buffer the version data
+            if (!self->appendToBuffer(at, length, 16, self->versionPos_, self->versionLen_))
+            {
+                self->currentEvent_ = RequestParserEvent::Error;
+                self->eventHandler_.onError(PipelineError(PipelineErrorCode::ParseError));
+                return -1;
+            }
+        }
+        return 0;
+    }
+
+    // Completion callbacks - these are called when parsing of each component is complete
+    int RequestParser::on_protocol_complete_cb(llhttp_t *parser)
+    {
+        return 0;
+    }
+
+    int RequestParser::on_url_complete_cb(llhttp_t *parser)
+    {
+        auto *self = get_instance(parser);
+        if (self && self->urlLen_ > 0)
+        {
+            // URL is complete, call onMessageBegin with method, version, and URL
+            int result = self->eventHandler_.onMessageBegin(
+                self->method_.c_str(),
+                self->versionMajor_,
+                self->versionMinor_,
+                String(self->buffer_.data() + self->urlPos_, self->urlLen_));
+            
+            if (result != 0)
+            {
+                return result;
+            }
+        }
+        return 0;
+    }
+
+    int RequestParser::on_method_complete_cb(llhttp_t *parser)
+    {
+        auto *self = get_instance(parser);
+        if (self && self->methodLen_ > 0)
+        {
+            // Copy method from buffer to method_ string
+            self->method_ = String(self->buffer_.data() + self->methodPos_, self->methodLen_);
+        }
+        return 0;
+    }
+
+    int RequestParser::on_version_complete_cb(llhttp_t *parser)
+    {
+        auto *self = get_instance(parser);
+        if (self && self->versionLen_ > 0)
+        {
+            // Parse version string like "HTTP/1.1" or "1.1"
+            const char* versionStr = self->buffer_.data() + self->versionPos_;
+            size_t len = self->versionLen_;
+            
+            // Find the version numbers after "HTTP/" or at start
+            const char* numberStart = versionStr;
+            if (len >= 5 && strncmp(versionStr, "HTTP/", 5) == 0)
+            {
+                numberStart = versionStr + 5;
+                len -= 5;
+            }
+            
+            // Parse major.minor format
+            if (len >= 3)
+            {
+                self->versionMajor_ = numberStart[0] - '0';
+                if (len >= 3 && numberStart[1] == '.')
+                {
+                    self->versionMinor_ = numberStart[2] - '0';
+                }
+            }
+        }
+        return 0;
+    }
+
+    int RequestParser::on_header_field_complete_cb(llhttp_t *parser)
+    {
+        // Header field is complete - just return success
+        // The actual header processing happens in on_header_value_complete_cb
+        // when both field and value are available
+        return 0;
+    }
+
+    int RequestParser::on_header_value_complete_cb(llhttp_t *parser)
+    {
+        auto *self = get_instance(parser);
+        if (self && self->headerFieldLen_ > 0 && self->headerValueLen_ > 0)
+        {
+            // Header field and value are complete, call onHeader
+            if (self->headerCount_ >= HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT)
+            {
+                self->currentEvent_ = RequestParserEvent::Error;
+                self->eventHandler_.onError(PipelineError(PipelineErrorCode::HeaderTooLarge));
+                return -1;
+            }
+            ++self->headerCount_;
+            int result = self->eventHandler_.onHeader(
+                String(self->buffer_.data() + self->headerFieldPos_, self->headerFieldLen_),
+                String(self->buffer_.data() + self->headerValuePos_, self->headerValueLen_));
+            
+            // Reset header field and value lengths for next header
+            self->headerFieldLen_ = 0;
+            self->headerValueLen_ = 0;
+            
+            if (result != 0)
+            {
+                return result;
+            }
         }
         return 0;
     }

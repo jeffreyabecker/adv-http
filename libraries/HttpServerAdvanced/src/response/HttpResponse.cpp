@@ -1,4 +1,4 @@
-#include "./HttpResponse.h"
+#include "HttpResponse.h"
 #include "../streams/Streams.h"
 #include "../core/HttpContentTypes.h"
 namespace HttpServerAdvanced

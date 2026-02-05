@@ -1,4 +1,4 @@
-#include "./HttpPipeline.h"
+#include "HttpPipeline.h"
 #include "../server/HttpServerBase.h"
 
 namespace HttpServerAdvanced

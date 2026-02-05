@@ -1,4 +1,4 @@
-#include "./StaticFileHandler.h"
+#include "StaticFileHandler.h"
 #include "../handlers/HttpHandler.h"
 #include "../response/StringResponse.h"
 #include <ctime>

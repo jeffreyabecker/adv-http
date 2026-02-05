@@ -114,6 +114,10 @@ namespace HttpServerAdvanced
 #else
     constexpr size_t MAX_CONCURRENT_CONNECTIONS = HTTPSERVER_ADVANCED_MAX_CONCURRENT_CONNECTIONS;
 #endif
+
+#ifndef HTTPSERVER_ADVANCED_ENABLE_SSL_SUPPORT
+    #define HTTPSERVER_ADVANCED_ENABLE_SSL_SUPPORT 0
+#endif
 } // namespace HttpServerAdvanced
 
 

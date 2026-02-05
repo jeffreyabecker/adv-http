@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 
-#include "./FileLocator.h"
+#include "FileLocator.h"
 
 namespace HttpServerAdvanced
 {

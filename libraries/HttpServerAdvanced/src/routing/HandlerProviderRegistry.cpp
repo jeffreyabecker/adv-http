@@ -1,4 +1,4 @@
-#include "./HandlerProviderRegistry.h"
+#include "HandlerProviderRegistry.h"
 #include "../core/HttpRequest.h"
 #include "../handlers/HttpHandler.h"
 #include "../response/HttpResponse.h"

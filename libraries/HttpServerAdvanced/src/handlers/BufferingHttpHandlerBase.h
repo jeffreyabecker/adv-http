@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "./IHttpHandler.h"
+#include "IHttpHandler.h"
 #include "../core/Defines.h"
 #include "../core/HttpRequestPhase.h"
 #include "../core/HttpHeader.h"

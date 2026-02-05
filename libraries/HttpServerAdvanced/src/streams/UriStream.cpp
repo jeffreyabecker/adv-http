@@ -1,4 +1,4 @@
-#include "./UriStream.h"
+#include "UriStream.h"
 namespace HttpServerAdvanced
 {
     // UriDecodingStream

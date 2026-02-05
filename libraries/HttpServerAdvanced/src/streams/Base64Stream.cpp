@@ -1,4 +1,4 @@
-#include "./Base64Stream.h"
+#include "Base64Stream.h"
 #include <cstring>
 
 namespace HttpServerAdvanced

@@ -1,7 +1,7 @@
 #pragma once
 // https://github.com/nodejs/llhttp
 #include <Arduino.h>
-#include <http_parser.h>
+#include "../llhttp/include/llhttp.h"
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -16,7 +16,7 @@ namespace HttpServerAdvanced
   public:
     HttpStatus() : value_(0), description_() {} 
     HttpStatus(uint16_t v) : value_(v), description_() {}
-    HttpStatus(enum http_status s) : value_(static_cast<uint16_t>(s)), description_() {}
+
     HttpStatus(uint16_t v, const char *desc) : value_(v), description_(desc) {}
     HttpStatus(uint16_t v, arduino::String &&desc) : value_(v), description_(std::move(desc)) {}
     HttpStatus(uint16_t v, const arduino::String &desc = "") : value_(v), description_(desc) {}
@@ -109,31 +109,7 @@ namespace HttpServerAdvanced
       return value_ >= v;
     }
 
-    // Comparison with enum http_status
-    bool operator==(enum http_status s) const
-    {
-      return value_ == static_cast<uint16_t>(s);
-    }
-    bool operator!=(enum http_status s) const
-    {
-      return value_ != static_cast<uint16_t>(s);
-    }
-    bool operator<(enum http_status s) const
-    {
-      return value_ < static_cast<uint16_t>(s);
-    }
-    bool operator<=(enum http_status s) const
-    {
-      return value_ <= static_cast<uint16_t>(s);
-    }
-    bool operator>(enum http_status s) const
-    {
-      return value_ > static_cast<uint16_t>(s);
-    }
-    bool operator>=(enum http_status s) const
-    {
-      return value_ >= static_cast<uint16_t>(s);
-    }
+
 
     uint16_t code() const
     {
@@ -143,7 +119,7 @@ namespace HttpServerAdvanced
     const char* toString() const
     {
       if(description_.isEmpty()){
-        return http_status_str(static_cast<enum http_status>(value_));
+        return llhttp_status_name(static_cast<llhttp_status_t>(value_));
       }
       return description_.c_str();
     }

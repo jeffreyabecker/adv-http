@@ -1,6 +1,6 @@
 #pragma once
-#include "./StandardHttpServer.h"
-#include "./WebServerBuilder.h"
+#include "StandardHttpServer.h"
+#include "WebServerBuilder.h"
 
 namespace HttpServerAdvanced
 {   

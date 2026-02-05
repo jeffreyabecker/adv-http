@@ -1,12 +1,13 @@
 #pragma once
 #include <memory>
 #include <functional>
+#include <utility>
 
 #include "../core/HttpTimeouts.h"
-#include "./IPipelineHandler.h"
+#include "IPipelineHandler.h"
 
-#include <http_parser.h>
-#include "./PipelineError.h"
+#include "../llhttp/include/llhttp.h"
+#include "PipelineError.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstddef>
@@ -35,8 +36,8 @@ namespace HttpServerAdvanced
     class RequestParser
     {
     private:
-        http_parser parser_;
-        http_parser_settings settings_;
+        llhttp_t parser_;
+        llhttp_settings_t settings_;
         RequestParserEvent currentEvent_ = RequestParserEvent::None;
         IPipelineHandler &eventHandler_;
         /**
@@ -56,6 +57,10 @@ namespace HttpServerAdvanced
         std::size_t writePos_ = 0;
         std::size_t urlPos_ = 0;
         std::size_t urlLen_ = 0;
+        std::size_t methodPos_ = 0;
+        std::size_t methodLen_ = 0;
+        std::size_t versionPos_ = 0;
+        std::size_t versionLen_ = 0;
         std::size_t headerFieldPos_ = 0;
         std::size_t headerFieldLen_ = 0;
         std::size_t headerValuePos_ = 0;
@@ -89,51 +94,75 @@ namespace HttpServerAdvanced
         void resetBuffer()
         {
             writePos_ = 0;
+            methodLen_ = 0;
             urlLen_ = 0;
+            versionLen_ = 0;
             headerFieldLen_ = 0;
             headerValueLen_ = 0;
         }
 
-        // Helper to get HttpRequestParser* from http_parser
-        static RequestParser *get_instance(http_parser *parser);
+        // Helper to get RequestParser* from llhttp_t
+        static RequestParser *get_instance(llhttp_t *parser);
 
-        // Static trampoline functions for http_parser_settings
-        static int on_message_begin_cb(http_parser *parser);
-        static int on_url_cb(http_parser *parser, const char *at, std::size_t length);
-        static int on_header_field_cb(http_parser *parser, const char *at, std::size_t length);
-        static int on_header_value_cb(http_parser *parser, const char *at, std::size_t length);
-        static int on_headers_complete_cb(http_parser *parser);
-        static int on_body_cb(http_parser *parser, const char *at, std::size_t length);
-        static int on_message_complete_cb(http_parser *parser);
+        // Static trampoline functions for llhttp_settings_t
+        static int on_message_begin_cb(llhttp_t *parser);
+        static int on_protocol_cb(llhttp_t *parser, const char *at, std::size_t length);
+        static int on_url_cb(llhttp_t *parser, const char *at, std::size_t length);
+        static int on_method_cb(llhttp_t *parser, const char *at, std::size_t length);
+        static int on_version_cb(llhttp_t *parser, const char *at, std::size_t length);
+        static int on_header_field_cb(llhttp_t *parser, const char *at, std::size_t length);
+        static int on_header_value_cb(llhttp_t *parser, const char *at, std::size_t length);
+        static int on_headers_complete_cb(llhttp_t *parser);
+        static int on_body_cb(llhttp_t *parser, const char *at, std::size_t length);
+        static int on_message_complete_cb(llhttp_t *parser);
+        static int on_protocol_complete_cb(llhttp_t *parser);
+        static int on_url_complete_cb(llhttp_t *parser);
+        static int on_method_complete_cb(llhttp_t *parser);
+        static int on_version_complete_cb(llhttp_t *parser);
+        static int on_header_field_complete_cb(llhttp_t *parser);
+        static int on_header_value_complete_cb(llhttp_t *parser);
+
+        String method_;
+        short versionMajor_ = 1;
+        short versionMinor_ = 1;
 
     public:
         RequestParser(IPipelineHandler &eventHandler)
             : eventHandler_(eventHandler)
         {
-            http_parser_settings_init(&settings_);
+            llhttp_settings_init(&settings_);
             settings_.on_message_begin = on_message_begin_cb;
+            settings_.on_protocol = on_protocol_cb;
             settings_.on_url = on_url_cb;
+            settings_.on_method = on_method_cb;
+            settings_.on_version = on_version_cb;
             settings_.on_header_field = on_header_field_cb;
             settings_.on_header_value = on_header_value_cb;
             settings_.on_headers_complete = on_headers_complete_cb;
             settings_.on_body = on_body_cb;
             settings_.on_message_complete = on_message_complete_cb;
+            settings_.on_protocol_complete = on_protocol_complete_cb;
+            settings_.on_url_complete = on_url_complete_cb;
+            settings_.on_method_complete = on_method_complete_cb;
+            settings_.on_version_complete = on_version_complete_cb;
+            settings_.on_header_field_complete = on_header_field_complete_cb;
+            settings_.on_header_value_complete = on_header_value_complete_cb;
 
-            http_parser_init(&parser_, HTTP_REQUEST);
+            llhttp_init(&parser_, HTTP_REQUEST, &settings_);
             parser_.data = this;
         }
 
         std::size_t execute(const uint8_t *data, std::size_t length)
         {
-            int result = http_parser_execute(&parser_, &settings_, reinterpret_cast<const char *>(data), length);
-            if (parser_.http_errno != HPE_OK)
+            llhttp_errno_t result = llhttp_execute(&parser_, reinterpret_cast<const char *>(data), length);
+            if (result != HPE_OK)
             {
                 // If we already flagged an error (e.g., buffer overflow) the handler has been notified.
                 if (currentEvent_ != RequestParserEvent::Error)
                 {
                     currentEvent_ = RequestParserEvent::Error;
-                    // Map http_parser internal errno to library-level PipelineErrorCode.
-                    // Do not expose http_errno in the public API; report a generic parse error for now.
+                    // Map llhttp internal errno to library-level PipelineErrorCode.
+                    // Do not expose llhttp errno in the public API; report a generic parse error for now.
                     eventHandler_.onError(PipelineError(PipelineErrorCode::ParseError));
                 }
             }
@@ -143,21 +172,21 @@ namespace HttpServerAdvanced
                 headerCount_ = 0;
                 resetBuffer();
             }
-            return result;
+            return (result == HPE_OK) ? length : 0;
         }
 
-        const char *method() const { return http_method_str(static_cast<http_method>(parser_.method)); }
-        short versionMajor() const { return parser_.http_major; }
-        short versionMinor() const { return parser_.http_minor; }
+        const char *method() const { return method_.c_str(); }
+        short versionMajor() const { return versionMajor_; }
+        short versionMinor() const { return versionMinor_; }
 
         bool isFinished() const
         {
-            return http_body_is_final(&parser_);
+            return llhttp_message_needs_eof(&parser_) == 0;
         }
 
         bool shouldKeepAlive() const
         {
-            return http_should_keep_alive(&parser_);
+            return llhttp_should_keep_alive(&parser_) != 0;
         }
 
         RequestParserEvent currentEvent() const { return currentEvent_; }

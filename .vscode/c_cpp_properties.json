@@ -3,6 +3,7 @@
         {
             "name": "Local Arduino Pico",
             "includePath": [
+                "${workspaceFolder}",                
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/cores/rp2040",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/cores/rp2040/api/deprecated",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/cores/rp2040/api/deprecated-avr-comp",
@@ -15,7 +16,6 @@
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/pico-sdk/src/rp2_common/pico_cyw43_arch/include",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/pico-sdk/src/rp2_common/pico_cyw43_driver/include",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/pico-sdk/src/rp2_common/cmsis/stub/CMSIS/Device/RP2040/Include",
-                "${workspaceFolder}",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/pico-sdk/src/boards/include",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/pico-sdk/src/common/hardware_claim/include",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/pico-sdk/src/common/pico_base_headers/include",
@@ -146,7 +146,18 @@
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/pico-sdk/src/rp2_common/pico_platform_common/include",
                 "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/pico-sdk/lib/cyw43-driver/src",
                 "${workspaceFolder}/libraries/HttpServerAdvanced/src",
-                "${workspaceFolder}/.arduino/user/libraries/ArduinoJson/src"
+                "${workspaceFolder}/.arduino/user/libraries/ArduinoJson/src",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/core",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/handlers",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/pipeline",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/response",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/routing",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/server",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/staticfiles",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/streams",
+                "${workspaceFolder}/libraries/HttpServerAdvanced/src/util",
+                "${workspaceFolder}/.arduino/packages/rp2040/hardware/rp2040/5.4.4/ArduinoCore-API/api"
+
                 
             ],
             "defines": [

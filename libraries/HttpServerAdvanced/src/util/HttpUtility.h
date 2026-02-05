@@ -1,7 +1,7 @@
 #pragma once
 #include <Arduino.h>
-#include "./StringUtility.h"
-#include "./StringView.h"
+#include "StringUtility.h"
+#include "StringView.h"
 #include <vector>
 #include <map>
 #include <initializer_list>

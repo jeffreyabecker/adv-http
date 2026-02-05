@@ -1,8 +1,8 @@
 #pragma once
-#include "./core/IHttpRequestHandlerFactory.h"
-#include "./routing/HandlerProviderRegistry.h"
-#include "./response/HttpResponse.h"
-#include "./response/StringResponse.h"
+#include "core/IHttpRequestHandlerFactory.h"
+#include "routing/HandlerProviderRegistry.h"
+#include "response/HttpResponse.h"
+#include "response/StringResponse.h"
 
 namespace HttpServerAdvanced
 {

@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <algorithm>
 #include <array>
-#include "./core/Defines.h"
+#include "core/Defines.h"
 
 namespace HttpServerAdvanced
 {

@@ -3,9 +3,9 @@
 #include <vector>
 #include <algorithm>
 #include <optional>
-#include "./HttpUtility.h"
-#include "./KeyValuePairView.h"
-#include "./StringView.h"
+#include "HttpUtility.h"
+#include "KeyValuePairView.h"
+#include "StringView.h"
 namespace HttpServerAdvanced
 {
 

@@ -1,4 +1,4 @@
-#include "./DefaultFileLocator.h"
+#include "DefaultFileLocator.h"
 
 namespace HttpServerAdvanced {
 

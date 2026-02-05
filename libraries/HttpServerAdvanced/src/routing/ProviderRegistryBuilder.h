@@ -5,10 +5,10 @@
 #include "../handlers/HttpHandler.h"
 #include "../handlers/HandlerTypes.h"
 
-#include "./HandlerMatcher.h"
+#include "HandlerMatcher.h"
 #include "../handlers/HandlerRestrictions.h"
-#include "./HandlerProviderRegistry.h"
-#include "./HandlerBuilder.h"
+#include "HandlerProviderRegistry.h"
+#include "HandlerBuilder.h"
 
 namespace HttpServerAdvanced
 {

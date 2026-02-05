@@ -1,6 +1,6 @@
-#include "./HttpUtility.h"
+#include "HttpUtility.h"
 #include <optional>
-#include "./HttpUtility.h"
+#include "HttpUtility.h"
 #include "../streams/Base64Stream.h"
 #include "../streams/Streams.h"
 #include "../streams/UriStream.h"

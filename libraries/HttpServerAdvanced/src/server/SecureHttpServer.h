@@ -1,6 +1,7 @@
 #pragma once
-#include "./StandardHttpServer.h"
-#include "./SecureHttpServerConfig.h"
+#ifdef HTTPSERVER_ADVANCED_ENABLE_SSL_SUPPORT
+#include "StandardHttpServer.h"
+#include "SecureHttpServerConfig.h"
 #include "../pipeline/NetClient.h"
 #include <WiFi.h>
 #include <type_traits>
@@ -59,3 +60,4 @@ namespace HttpServerAdvanced
 }
 
 
+#endif

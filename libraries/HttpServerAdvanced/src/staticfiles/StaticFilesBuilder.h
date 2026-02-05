@@ -5,9 +5,9 @@
 #include <FS.h>
 #include "../core/HttpContentTypes.h"
 #include "../routing/HandlerProviderRegistry.h"
-#include "./StaticFileHandler.h"
-#include "./DefaultFileLocator.h"
-#include "./FileLocator.h"
+#include "StaticFileHandler.h"
+#include "DefaultFileLocator.h"
+#include "FileLocator.h"
 
 namespace HttpServerAdvanced
 {

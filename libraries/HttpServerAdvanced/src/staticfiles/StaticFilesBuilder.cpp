@@ -1,4 +1,4 @@
-#include "./StaticFilesBuilder.h"
+#include "StaticFilesBuilder.h"
 #include <FS.h>
 namespace HttpServerAdvanced
 {

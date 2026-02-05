@@ -3,7 +3,7 @@
 #include <functional>
 #include "../core/HttpMethod.h"
 #include "../core/HttpRequestPhase.h"
-#include "./IHttpHandler.h"
+#include "IHttpHandler.h"
 
 namespace HttpServerAdvanced
 {
