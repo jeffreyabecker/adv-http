@@ -23,6 +23,8 @@ namespace HttpServerAdvanced
     class ReadStream : public Stream
     {
     public:
+        using Stream::write;
+
         virtual ~ReadStream() = default;
         virtual size_t write(uint8_t b) override;
     };
@@ -94,8 +96,19 @@ namespace HttpServerAdvanced
         Sentinel end_;
 
     public:
+        IndefiniteConcatStream() = default;
+
         template <typename FIt = ForwardIt, typename S = Sentinel>
         IndefiniteConcatStream(FIt first, S last) : current_(first), end_(last) {}
+
+    protected:
+        void resetRange(ForwardIt first, Sentinel last)
+        {
+            current_ = first;
+            end_ = last;
+        }
+
+    public:
 
         virtual int available() override
         {
@@ -149,14 +162,12 @@ namespace HttpServerAdvanced
 
     public:
         ConcatStream(std::array<std::unique_ptr<Stream>, N> streams)
-            : IndefiniteConcatStream<typename std::array<std::unique_ptr<Stream>, N>::iterator>(streams.begin(), streams.end()),
-              streams_(std::move(streams)) {}
-
-        ConcatStream(std::initializer_list<std::unique_ptr<Stream>> list)
-            : IndefiniteConcatStream<typename std::array<std::unique_ptr<Stream>, N>::iterator>(streams_.begin(), streams_.end())
+            : streams_(std::move(streams))
         {
-            std::copy(list.begin(), list.end(), streams_.begin());
+            this->resetRange(streams_.begin(), streams_.end());
         }
+
+        ConcatStream(std::initializer_list<std::unique_ptr<Stream>>) = delete;
     };
 
     /**
@@ -174,6 +185,8 @@ namespace HttpServerAdvanced
         void compactBuffer();
 
     public:
+        using Stream::write;
+
         NonOwningMemoryStream(uint8_t *buffer, size_t size);
         virtual ~NonOwningMemoryStream() = default;
         virtual int available() override;

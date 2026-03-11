@@ -41,6 +41,8 @@ namespace HttpServerAdvanced
     int peekInner() const;
 
   public:
+    using HttpResponseBodyStream::write;
+
     explicit ChunkedHttpResponseBodyStream(std::unique_ptr<Stream> innerStream);
     static std::unique_ptr<HttpResponseBodyStream> create(std::unique_ptr<Stream> innerStream);
     virtual int available() override;

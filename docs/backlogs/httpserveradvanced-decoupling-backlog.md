@@ -24,14 +24,20 @@ Ordering is intentional:
 - compatibility namespace and header scaffold has landed under `src/compat/`
 - the compatibility umbrella is exposed from the public top-level header
 - `COMPAT-001` is complete
+- `COMPAT-002` is complete
 - the initial stream compatibility shim is in place
 - the initial IP address compatibility shim is in place
 - the initial filesystem and file-handle compatibility shim is in place
+- native Unity coverage now exercises the non-Arduino stream compatibility path and core stream utility classes
+- the non-Arduino stream shim now exposes Arduino-compatible bulk-write helpers and a default no-op `flush()`
+- `ConcatStream` construction from owned storage has been fixed so its iterator state no longer dangles after move construction
+- the non-Arduino filesystem shim now matches actual static-file usage with a nullable value-style `File` wrapper over a separate `FileImpl`
+- the non-Arduino `FileImpl` contract is now explicitly read-only; `File` keeps `Stream` compatibility with no-op write/flush behavior only
+- native Unity coverage now exercises the non-Arduino filesystem compatibility path and file-handle semantics
 - unused peer transport wrappers were removed from `NetClient.h`
 
 ### In progress
 
-- `COMPAT-002`
 - `COMPAT-003`
 - `COMPAT-004`
 
@@ -79,7 +85,7 @@ Follow-on work moved to other tasks:
 
 ### COMPAT-002: Introduce compatibility stream type
 
-- Status: `in-progress`
+- Status: `done`
 - Goal: preserve existing stream semantics while removing direct `Arduino.h` dependency from core-facing headers.
 - Scope:
   - add a compatibility `Stream` type alias under `ARDUINO`
@@ -112,16 +118,16 @@ Completed so far:
 - under `ARDUINO`, the compatibility type aliases the real Arduino `Stream`
 - outside Arduino, the compatibility type is a minimal abstract interface with the methods the library currently relies on
 - several central headers already include `compat/Stream.h` explicitly instead of relying on transitive Arduino includes
+- the non-Arduino compatibility stream now provides Arduino-style bulk write helpers via the byte-wise write entrypoint
+- native tests cover stream utility behavior through the non-Arduino compatibility seam
+- stream compatibility validation uncovered and fixed a real iterator-lifetime bug in `ConcatStream`
+- the remaining stream-heavy headers no longer name Arduino `Stream` directly outside the compatibility layer
+- an Arduino-core compile was attempted through both Arduino CLI and PlatformIO; the resulting failures were in unrelated example packaging, llhttp include-path, and parser enum/name-conflict issues rather than stream compatibility code
 
-Remaining work:
+Follow-on work moved to other tasks:
 
-- retarget the remaining stream-centric headers and implementations to the compatibility include path
-  - `src/streams/Base64Stream.h`
-  - `src/streams/UriStream.h`
-  - `src/staticfiles/StaticFileHandler.h` and related implementation files that still lean on Arduino stream declarations transitively
-- verify whether any other Arduino `Stream` methods are still required by real call sites beyond the current compatibility surface
-- run compile validation on both Arduino and native targets once the remaining stream-heavy files are migrated
-- close this item only after the remaining stream-heavy files compile cleanly through the compatibility stream path
+- broader Arduino build recovery belongs to `COMPAT-007`
+- remaining non-stream Arduino include reduction belongs to later string and header-retargeting work, especially `COMPAT-006`
 
 ### COMPAT-003: Introduce compatibility IP address type
 
@@ -201,24 +207,22 @@ Completed so far:
 
 - `HttpServerAdvanced::FS` and `HttpServerAdvanced::File` remain the public spellings for now, but resolve through `HttpServerAdvanced::Compat`
 - under `ARDUINO`, the compatibility types alias `fs::FS` and `fs::File`
-- outside Arduino, `File` is a minimal stream-compatible abstract file-handle type and `FS` is a minimal file-opening interface
+- outside Arduino, `FS` is a minimal file-opening interface and `File` is a nullable value-style wrapper over a separate `FileImpl`
 - static-file headers should include `compat/FileSystem.h` explicitly instead of relying on Arduino filesystem headers for type declarations
 - `StaticFilesBuilder` now uses the compatibility filesystem include path instead of exposing Arduino `FS.h` directly
+- the non-Arduino shim now matches actual static-file call-site behavior:
+  - default-constructed invalid `File`
+  - returned-by-value handles from `open()` and locator flows
+  - truthiness checks and shared handle semantics through copies
+  - read-oriented metadata access for static-file responses
+- the non-Arduino `FileImpl` contract is now explicitly read-only; write and flush behavior stay as no-ops on the `File` wrapper only
+- native tests cover invalid-file state, by-value `open()`, copyable handles, and read-only file semantics through the compatibility layer
 
 Remaining work:
 
-- finish retargeting static-file implementation files and file-backed stream wrappers onto the compatibility filesystem types
-  - `src/staticfiles/DefaultFileLocator.cpp`
-  - `src/staticfiles/AggregateFileLocator.cpp`
-  - `src/staticfiles/StaticFileHandler.cpp`
-  - `src/staticfiles/StaticFilesBuilder.cpp`
-- decide how invalid-file state and `open()` failure should be represented in the non-Arduino shim path
-- reconcile the current non-Arduino `File` abstraction with actual call-site behavior
-  - value-like default construction
-  - truthiness checks
-  - returned-by-value file handles from lookup and open flows
-- validate that the current abstract `File` surface covers all metadata and stream behavior used by the static-file code
-- close this item only after the file-handle design matches real static-file usage and the static-file implementation files are fully retargeted
+- validate the Arduino alias path with a real compile, not just native tests and header checks
+- confirm whether the static-file wrapper should remain the only file-to-stream adapter long term or whether keeping `File` as a read-only `Stream` adapter is the intended stable design
+- close this item once Arduino compile validation passes and the current read-only value-handle design is accepted as the steady-state compatibility surface
 
 ### COMPAT-005: Introduce timing abstraction without Arduino runtime coupling
 

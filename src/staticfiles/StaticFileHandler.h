@@ -23,6 +23,8 @@ namespace HttpServerAdvanced
             File file_;
 
         public:
+            using Stream::write;
+
             FileStreamWrapper(File file);
             virtual int available() override;
             virtual int read() override;

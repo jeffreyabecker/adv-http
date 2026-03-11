@@ -2,6 +2,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <type_traits>
 
 #include "Stream.h"
 
@@ -17,12 +19,16 @@ namespace HttpServerAdvanced
         using File = fs::File;
         using FS = fs::FS;
 #else
-        class File : public Stream
+        class FileImpl
         {
         public:
-            virtual ~File() = default;
+            virtual ~FileImpl() = default;
 
-            virtual explicit operator bool() const = 0;
+            virtual int available() = 0;
+            virtual int read() = 0;
+            virtual int peek() = 0;
+
+            virtual bool isValid() const = 0;
             virtual bool isDirectory() const = 0;
             virtual void close() = 0;
             virtual std::size_t size() const = 0;
@@ -30,12 +36,96 @@ namespace HttpServerAdvanced
             virtual uint32_t getLastWrite() const = 0;
         };
 
+        class File : public Stream
+        {
+        private:
+            std::shared_ptr<FileImpl> impl_;
+
+        public:
+            using Stream::write;
+
+            File() = default;
+            explicit File(std::shared_ptr<FileImpl> impl) : impl_(std::move(impl)) {}
+
+            template <typename T, typename = std::enable_if_t<std::is_base_of_v<FileImpl, T>>>
+            explicit File(std::shared_ptr<T> impl) : impl_(std::move(impl)) {}
+
+            explicit operator bool() const
+            {
+                return impl_ != nullptr && impl_->isValid();
+            }
+
+            int available() override
+            {
+                return impl_ != nullptr ? impl_->available() : 0;
+            }
+
+            int read() override
+            {
+                return impl_ != nullptr ? impl_->read() : -1;
+            }
+
+            int peek() override
+            {
+                return impl_ != nullptr ? impl_->peek() : -1;
+            }
+
+            std::size_t write(uint8_t byte) override
+            {
+                static_cast<void>(byte);
+                return 0;
+            }
+
+            void flush() override
+            {
+            }
+
+            int availableForWrite() override
+            {
+                return 0;
+            }
+
+            bool isDirectory() const
+            {
+                return impl_ != nullptr ? impl_->isDirectory() : false;
+            }
+
+            void close()
+            {
+                if (impl_ != nullptr)
+                {
+                    impl_->close();
+                }
+            }
+
+            std::size_t size() const
+            {
+                return impl_ != nullptr ? impl_->size() : 0;
+            }
+
+            const char *fullName() const
+            {
+                return impl_ != nullptr ? impl_->fullName() : "";
+            }
+
+            uint32_t getLastWrite() const
+            {
+                return impl_ != nullptr ? impl_->getLastWrite() : 0;
+            }
+        };
+
         class FS
         {
         public:
             virtual ~FS() = default;
 
-            virtual File &open(const char *path, const char *mode) = 0;
+            virtual File open(const char *path, const char *mode) = 0;
+
+            template <typename TPath>
+            auto open(const TPath &path, const char *mode) -> decltype(path.c_str(), File())
+            {
+                return open(path.c_str(), mode);
+            }
         };
 #endif
     }
