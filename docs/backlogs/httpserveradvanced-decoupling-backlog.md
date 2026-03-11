@@ -17,13 +17,38 @@ Ordering is intentional:
 - `blocked`: waiting on a prerequisite or design decision
 - `done`: implemented and validated
 
+## Progress Snapshot
+
+### Completed so far
+
+- compatibility namespace and header scaffold has landed under `src/compat/`
+- the compatibility umbrella is exposed from the public top-level header
+- `COMPAT-001` is complete
+- the initial stream compatibility shim is in place
+- the initial IP address compatibility shim is in place
+- the initial filesystem and file-handle compatibility shim is in place
+- unused peer transport wrappers were removed from `NetClient.h`
+
+### In progress
+
+- `COMPAT-002`
+- `COMPAT-003`
+- `COMPAT-004`
+
+### Not started
+
+- `COMPAT-005`
+- `COMPAT-006`
+- `COMPAT-007`
+- all tasks in Workstreams 2 through 4
+
 ## Workstream 1: Compatibility Type Foundations
 
 This workstream establishes the alias-or-shim layer before any broad call-site migration.
 
 ### COMPAT-001: Create compatibility namespace and header layout
 
-- Status: `in-progress`
+- Status: `done`
 - Goal: introduce a single place for library-owned compatibility types so later migrations do not scatter `#ifdef ARDUINO` throughout the codebase.
 - Scope:
   - create a dedicated header area for compatibility types, likely under `src/compat/`
@@ -39,18 +64,18 @@ This workstream establishes the alias-or-shim layer before any broad call-site m
   - Arduino-specific includes are confined to compatibility headers or adapters
   - the namespace and include pattern are stable enough for follow-on tasks
 
-Current implementation direction:
+Completed so far:
 
 - canonical compatibility types live under `HttpServerAdvanced::Compat`
 - `src/compat/Compat.h` is the umbrella header for compatibility seams
-- future tasks should add Arduino alias paths or non-Arduino shim definitions in leaf headers under `src/compat/`
-- core headers should include compatibility leaf headers instead of `Arduino.h` as they are migrated
-
-Initial scaffold landed:
-
-- added `src/compat/Compat.h`
 - added placeholder leaf headers for stream, IP address, filesystem, and clock seams
 - exposed the compatibility umbrella from the top-level public header so downstream code has a stable include path while the seams are filled in
+- central public and compatibility entry points now use that scaffold consistently enough for follow-on seam work
+
+Follow-on work moved to other tasks:
+
+- broader include-boundary cleanup belongs to `COMPAT-006`
+- compile-oriented validation belongs to `COMPAT-007`
 
 ### COMPAT-002: Introduce compatibility stream type
 
@@ -81,12 +106,22 @@ Initial scaffold landed:
   - Arduino builds still resolve to the real Arduino `Stream`
   - native compilation can parse the updated headers without Arduino IO base classes
 
-Current implementation direction:
+Completed so far:
 
 - `HttpServerAdvanced::Stream` remains the public spelling for now, but resolves through `HttpServerAdvanced::Compat::Stream`
 - under `ARDUINO`, the compatibility type aliases the real Arduino `Stream`
 - outside Arduino, the compatibility type is a minimal abstract interface with the methods the library currently relies on
-- header migration should prefer explicit `compat/Stream.h` includes instead of relying on transitive Arduino includes
+- several central headers already include `compat/Stream.h` explicitly instead of relying on transitive Arduino includes
+
+Remaining work:
+
+- retarget the remaining stream-centric headers and implementations to the compatibility include path
+  - `src/streams/Base64Stream.h`
+  - `src/streams/UriStream.h`
+  - `src/staticfiles/StaticFileHandler.h` and related implementation files that still lean on Arduino stream declarations transitively
+- verify whether any other Arduino `Stream` methods are still required by real call sites beyond the current compatibility surface
+- run compile validation on both Arduino and native targets once the remaining stream-heavy files are migrated
+- close this item only after the remaining stream-heavy files compile cleanly through the compatibility stream path
 
 ### COMPAT-003: Introduce compatibility IP address type
 
@@ -114,12 +149,20 @@ Current implementation direction:
   - Arduino builds still pass real `IPAddress` values through the alias path
   - non-Arduino code can represent endpoint addresses without Arduino networking headers
 
-Current implementation direction:
+Completed so far:
 
 - `HttpServerAdvanced::IPAddress` remains the public spelling for now, but resolves through `HttpServerAdvanced::Compat::IpAddress`
 - under `ARDUINO`, the compatibility type aliases the real Arduino `IPAddress`
 - outside Arduino, the compatibility type is a small IPv4 value type with only the construction and value semantics the current transport contracts require
 - bind-address defaults should use a library-owned `Compat::IpAddressAny` constant instead of directly naming Arduino's `IPADDR_ANY`
+
+Remaining work:
+
+- confirm the non-Arduino `IpAddress` surface is sufficient for all current transport and request code paths
+- remove any remaining transport headers or adapters that still rely on Arduino IP declarations transitively
+  - especially around `HttpServerBase` and any server-side headers still depending on Arduino IP declarations through other includes
+- validate the Arduino alias path with a real compile, not just header checks
+- close this item once transport-facing headers no longer need Arduino IP declarations outside the compatibility layer and the alias path compiles successfully
 
 ### COMPAT-004: Introduce compatibility file-system and file-handle types
 
@@ -154,12 +197,28 @@ Current implementation direction:
   - Arduino builds still use the native filesystem types through aliases
   - non-Arduino compilation has a viable file and filesystem contract for later tests and adapters
 
-Current implementation direction:
+Completed so far:
 
 - `HttpServerAdvanced::FS` and `HttpServerAdvanced::File` remain the public spellings for now, but resolve through `HttpServerAdvanced::Compat`
 - under `ARDUINO`, the compatibility types alias `fs::FS` and `fs::File`
 - outside Arduino, `File` is a minimal stream-compatible abstract file-handle type and `FS` is a minimal file-opening interface
 - static-file headers should include `compat/FileSystem.h` explicitly instead of relying on Arduino filesystem headers for type declarations
+- `StaticFilesBuilder` now uses the compatibility filesystem include path instead of exposing Arduino `FS.h` directly
+
+Remaining work:
+
+- finish retargeting static-file implementation files and file-backed stream wrappers onto the compatibility filesystem types
+  - `src/staticfiles/DefaultFileLocator.cpp`
+  - `src/staticfiles/AggregateFileLocator.cpp`
+  - `src/staticfiles/StaticFileHandler.cpp`
+  - `src/staticfiles/StaticFilesBuilder.cpp`
+- decide how invalid-file state and `open()` failure should be represented in the non-Arduino shim path
+- reconcile the current non-Arduino `File` abstraction with actual call-site behavior
+  - value-like default construction
+  - truthiness checks
+  - returned-by-value file handles from lookup and open flows
+- validate that the current abstract `File` surface covers all metadata and stream behavior used by the static-file code
+- close this item only after the file-handle design matches real static-file usage and the static-file implementation files are fully retargeted
 
 ### COMPAT-005: Introduce timing abstraction without Arduino runtime coupling
 
@@ -286,12 +345,14 @@ This workstream should begin only after Workstream 1 has landed.
 
 ## Suggested Execution Order
 
-1. `COMPAT-001` through `COMPAT-003`
-2. `COMPAT-005` and `COMPAT-004`
-3. `COMPAT-006` and `COMPAT-007`
-4. `TEXT-001` through `TEXT-005`
-5. `API-001` through `API-003`
-6. `FEAT-001` through `FEAT-003`
+1. finish `COMPAT-003`
+2. finish `COMPAT-002`
+3. finish `COMPAT-004`
+4. implement `COMPAT-005`
+5. complete `COMPAT-006` and `COMPAT-007`
+6. move into `TEXT-001` through `TEXT-005`
+7. move into `API-001` through `API-003`
+8. finish `FEAT-001` through `FEAT-003`
 
 ## Notes
 
