@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Arduino.h>
+#include "../compat/IpAddress.h"
 #include <WiFi.h>
 #include "HttpServerBase.h"
 
@@ -13,7 +13,7 @@ namespace HttpServerAdvanced
 
     public:
         static constexpr uint16_t DefaultPort = DEFAULT_PORT;
-        StandardHttpServer(uint16_t port = DefaultPort, const IPAddress &ip = IPAddress(IPADDR_ANY))
+        StandardHttpServer(uint16_t port = DefaultPort, const IPAddress &ip = IPAddress(HttpServerAdvanced::Compat::IpAddressAny))
             : server_(ip, port)
         {
         }

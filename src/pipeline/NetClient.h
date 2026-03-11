@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Arduino.h>
+#include "../compat/IpAddress.h"
 #include "../core/Defines.h"
 #include <memory>
 #include <type_traits>

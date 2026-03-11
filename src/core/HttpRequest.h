@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../compat/IpAddress.h"
 #include "../compat/Stream.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"

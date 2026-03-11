@@ -2,6 +2,7 @@
 #include <memory>
 #include <functional>
 
+#include "../compat/IpAddress.h"
 #include "../core/HttpTimeouts.h"
 #include "../compat/Stream.h"
 #include "PipelineError.h"

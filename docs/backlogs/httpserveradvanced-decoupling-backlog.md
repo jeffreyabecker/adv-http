@@ -90,7 +90,7 @@ Current implementation direction:
 
 ### COMPAT-003: Introduce compatibility IP address type
 
-- Status: `todo`
+- Status: `in-progress`
 - Goal: replace direct `IPAddress` exposure in core transport contracts with a compatibility value type.
 - Scope:
   - add an `IpAddress` compatibility type alias under `ARDUINO`
@@ -114,9 +114,16 @@ Current implementation direction:
   - Arduino builds still pass real `IPAddress` values through the alias path
   - non-Arduino code can represent endpoint addresses without Arduino networking headers
 
+Current implementation direction:
+
+- `HttpServerAdvanced::IPAddress` remains the public spelling for now, but resolves through `HttpServerAdvanced::Compat::IpAddress`
+- under `ARDUINO`, the compatibility type aliases the real Arduino `IPAddress`
+- outside Arduino, the compatibility type is a small IPv4 value type with only the construction and value semantics the current transport contracts require
+- bind-address defaults should use a library-owned `Compat::IpAddressAny` constant instead of directly naming Arduino's `IPADDR_ANY`
+
 ### COMPAT-004: Introduce compatibility file-system and file-handle types
 
-- Status: `todo`
+- Status: `in-progress`
 - Goal: isolate Arduino FS usage behind a narrow alias-or-shim layer so static-file serving can migrate without carrying Arduino FS headers into the core.
 - Scope:
   - add compatibility `FS` and `File` types aliased under `ARDUINO`
@@ -146,6 +153,13 @@ Current implementation direction:
   - static-file headers no longer expose Arduino `fs::FS` or `fs::File` directly
   - Arduino builds still use the native filesystem types through aliases
   - non-Arduino compilation has a viable file and filesystem contract for later tests and adapters
+
+Current implementation direction:
+
+- `HttpServerAdvanced::FS` and `HttpServerAdvanced::File` remain the public spellings for now, but resolve through `HttpServerAdvanced::Compat`
+- under `ARDUINO`, the compatibility types alias `fs::FS` and `fs::File`
+- outside Arduino, `File` is a minimal stream-compatible abstract file-handle type and `FS` is a minimal file-opening interface
+- static-file headers should include `compat/FileSystem.h` explicitly instead of relying on Arduino filesystem headers for type declarations
 
 ### COMPAT-005: Introduce timing abstraction without Arduino runtime coupling
 

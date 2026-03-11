@@ -1,6 +1,6 @@
 #pragma once
+#include "../compat/FileSystem.h"
 #include <Arduino.h>
-#include <FS.h>
 #include "../core/HttpRequest.h"
 
 
