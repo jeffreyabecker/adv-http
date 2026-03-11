@@ -1,6 +1,6 @@
 # HttpServerAdvanced Library Documentation
 
-A comprehensive, pipeline-based HTTP server library for Arduino/RP2040 (Pico W) platforms with advanced routing, handler patterns, and HTTPS support.
+A comprehensive, pipeline-based HTTP server library for Arduino/RP2040 (Pico W) platforms with advanced routing and handler patterns.
 
 ---
 
@@ -550,11 +550,9 @@ The server module provides the main server classes.
 |-------|---------|
 | `HttpServerBase` | Abstract base with connection management |
 | `StandardHttpServer<T>` | Template for standard (HTTP) servers |
-| `SecureHttpServer` | HTTPS server using BearSSL |
 | `FriendlyWebServer<T>` | User-friendly wrapper with builder API |
 | `WebServerBuilder` | Configuration builder |
 | `WebServerConfig` | Unified configuration facade |
-| `ISecureHttpServerConfig` | Certificate/key configuration interface |
 
 #### HttpServerBase
 
@@ -603,21 +601,6 @@ public:
     
     IPAddress localIP() const override;
     uint16_t localPort() const override;
-};
-```
-
-#### SecureHttpServer
-
-HTTPS server using BearSSL:
-
-```cpp
-class SecureHttpServer : public StandardHttpServer<BearSSL::WiFiServerSecure, 443> {
-public:
-    SecureHttpServer(uint16_t port = 443, const IPAddress& ip = IPADDR_ANY);
-    SecureHttpServer(ISecureHttpServerConfig& config, uint16_t port = 443);
-    
-    void begin() override;
-    void begin(ISecureHttpServerConfig& config);
 };
 ```
 
@@ -926,10 +909,9 @@ IHandlerProvider
 
 HttpServerBase
 └── StandardHttpServer<TServer, PORT>
-    └── SecureHttpServer
 
 FriendlyWebServer<THttpServer>
-└── (wraps any StandardHttpServer or SecureHttpServer)
+└── (wraps any StandardHttpServer)
 
 FileLocator
 ├── DefaultFileLocator
@@ -1087,19 +1069,6 @@ server.use(StaticFiles(LittleFS, [](StaticFilesBuilder& files) {
     files.setFilesystemContentRoot("/www")
          .setRequestPathPrefixes("/static", "/api");
 }));
-```
-
-### HTTPS Server
-
-```cpp
-#include <WiFiServerSecure.h>
-
-class MySSLConfig : public ISecureHttpServerConfig {
-    // Implement certificate/key methods
-};
-
-MySSLConfig sslConfig;
-FriendlyWebServer<SecureHttpServer> secureServer(sslConfig, 443);
 ```
 
 ### Global Middleware

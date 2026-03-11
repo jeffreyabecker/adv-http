@@ -8,7 +8,7 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "C:/ode/pico-httpserveradvanced/src",
+                "C:/ode/pico-httpserveradvanced",
                 "C:/ode/pico-httpserveradvanced/.pio/libdeps/rpipicow/ArduinoJson/src",
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040",
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040/api/deprecated",
@@ -163,7 +163,7 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "C:/ode/pico-httpserveradvanced/src",
+                    "C:/ode/pico-httpserveradvanced",
                     "C:/ode/pico-httpserveradvanced/.pio/libdeps/rpipicow/ArduinoJson/src",
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040",
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040/api/deprecated",

@@ -26,8 +26,10 @@ The library currently depends directly on Arduino across most layers:
 - packaging is Arduino-library oriented via `library.properties`
 - many core and utility headers include `Arduino.h`
 - internal types use Arduino `String`, `IPAddress`, `Stream`, and Arduino-style client/server interfaces
-- optional JSON support is tied to `ArduinoJson`
+- optional JSON support is currently tied to `ArduinoJson`, but `ArduinoJson` itself is not Arduino-specific and can work with standard C++ strings
 - examples are sketch-first and Arduino-specific
+
+The current codebase also still exposes HTTPS/TLS-specific surface area such as `SecureHttpServer`, `SecureHttpServerConfig`, and the `HttpsServer` example. That support should be treated as removal scope rather than migration scope.
 
 The current `String` coupling is concentrated in a few important clusters:
 
@@ -61,6 +63,10 @@ When inventorying and migrating `String`, classify each usage before changing it
   - examples: response factories, route-builder convenience methods, auth callbacks, Arduino-oriented umbrella typedefs
 - Arduino-only integrations: leave on `String` until that adapter layer is split out
   - examples: FS/TLS configuration helpers and sketch-facing convenience APIs
+
+`ArduinoJson` should be treated separately from Arduino-only dependencies. Despite the name, it does not require Arduino runtime types and should be evaluated as a portable dependency that can remain usable after internal migration to `std::string` and `std::string_view`.
+
+HTTPS/TLS should be treated differently. For this library, HTTPS support is a niche embedded use case with high certificate-management cost and disproportionate complexity. The plan should assume the current HTTPS/TLS server code is removed rather than carried forward into the decoupled architecture.
 
 ### Recommended Sequence
 
@@ -159,6 +165,15 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
   - runtime/time: `millis()`, delays, timeout behavior
   - storage/FS: static file locators and Arduino FS assumptions
   - optional integrations: `ArduinoJson`, TLS/SSL, board-specific features
+- distinguish portable optional dependencies from Arduino-only ones
+  - `ArduinoJson` can remain a candidate core or cross-platform dependency because it does not require Arduino and supports standard-string-based usage
+  - TLS/SSL should be classified for removal rather than adapter migration
+  - board/FS-specific pieces still need separate adapter analysis
+- identify HTTPS/TLS removal scope explicitly
+  - `SecureHttpServer`
+  - `SecureHttpServerConfig`
+  - secure-server umbrella aliases and includes
+  - HTTPS example and related docs
 - identify files that should become platform-neutral first
   - `core/`
   - most of `util/`
@@ -187,6 +202,7 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 
 - every Arduino dependency has a destination strategy: keep, wrap, replace, or move
 - every `String` use is classified as internal ownership, internal view, compatibility boundary, or Arduino-only adapter code
+- HTTPS/TLS code paths are explicitly classified as removal scope instead of future core or adapter surface
 - a target package split is agreed before implementation begins
 
 ### Phase 3: Introduce a platform-neutral core layer
@@ -275,17 +291,25 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 
 - keep optional features optional
 - avoid forcing platform-specific dependencies into the platform-neutral core
+- remove HTTPS/TLS support from the library surface instead of migrating it forward
 
 #### Work
 
 - isolate `ArduinoJson` support behind a feature adapter layer
+- treat `ArduinoJson` as a portable optional library rather than an inherently Arduino-only dependency
 - keep JSON-disabled builds as a first-class configuration
 - review static file serving for file-system assumptions and move Arduino FS-specific behavior behind adapters
-- review TLS/HTTPS server pieces and identify board-specific or framework-specific code paths
+- remove TLS/HTTPS server code and related public API surface
+  - delete `SecureHttpServer` and `SecureHttpServerConfig`
+  - remove secure-server aliases and includes from umbrella headers
+  - remove the HTTPS example and update docs that advertise HTTPS support
+  - do not replace this with a new cross-platform TLS abstraction unless a concrete supported use case is later approved
 
 #### Acceptance Criteria
 
 - the core library can build without `ArduinoJson`
+- if JSON support remains enabled, it can operate on standard C++ string types without reintroducing Arduino type dependencies
+- the library no longer exposes built-in HTTPS/TLS server support
 - optional features are enabled through adapters or feature flags, not hardwired includes
 
 ### Phase 7: Preserve and then reshape the public API
@@ -334,7 +358,7 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 3. Core string and utility abstractions
 4. Core transport abstraction and Arduino transport adapters
 5. Core stream abstraction and Arduino stream adapters
-6. Optional feature isolation: JSON, FS, TLS
+6. Optional feature isolation: JSON, FS, and remove HTTPS/TLS support
 7. Public API compatibility cleanup
 8. CI and dependency-boundary enforcement
 
@@ -343,6 +367,7 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 - `String` usage is deeply embedded in public and internal APIs, so careless replacement will create wide churn.
 - `NetClient.h` currently mixes transport abstraction with Arduino-specific value types, making it a high-impact file.
 - response streaming and static file serving may rely on Arduino IO semantics more than the headers suggest.
+- removing HTTPS/TLS is a deliberate feature reduction and will break any users depending on `SecureHttpServer` or its example/documentation path.
 - examples can mask coupling because they compile only in sketch-first flows today.
 
 ## Recommended Immediate Next Step

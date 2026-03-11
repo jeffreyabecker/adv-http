@@ -155,21 +155,6 @@ POST    /api/data  → With CORS headers
 
 ---
 
-### 3.3 HttpsServer
-**File**: `examples/HttpsServer/HttpsServer.ino`  
-**Features**: TLS/HTTPS support  
-**Concepts**:
-- `SecureWebServer` instantiation
-- Certificate and key configuration
-- `ISecureHttpServerConfig` implementation
-- RSA vs EC key types
-
-```
-HTTPS on port 443 with self-signed cert
-```
-
----
-
 ## 4. Advanced Patterns
 
 ### 4.1 InterceptorPipeline
@@ -337,10 +322,9 @@ Any request → Redirect to /setup
 | 10 | RestfulApi | ⭐⭐⭐ | Full API pattern |
 | 11 | ErrorHandling | ⭐⭐ | Robust handlers |
 | 12 | WebDashboard | ⭐⭐⭐ | Full application |
-| 13 | HttpsServer | ⭐⭐⭐ | TLS setup |
-| 14 | InterceptorPipeline | ⭐⭐⭐ | Advanced middleware |
-| 15 | OtaUpdate | ⭐⭐⭐⭐ | Production feature |
-| 16 | CaptivePortal | ⭐⭐⭐⭐ | Advanced networking |
+| 13 | InterceptorPipeline | ⭐⭐⭐ | Advanced middleware |
+| 14 | OtaUpdate | ⭐⭐⭐⭐ | Production feature |
+| 15 | CaptivePortal | ⭐⭐⭐⭐ | Advanced networking |
 
 ---
 

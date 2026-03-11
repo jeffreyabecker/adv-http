@@ -456,7 +456,7 @@ server.addHook([](const String& method, const String& url, WiFiClient* client, .
 | Basic Authentication | ✅ `authenticate()` | ✅ `BasicAuth()` middleware |
 | Digest Authentication | ✅ Built-in | ❌ Not implemented |
 | CORS Support | ✅ `enableCORS()` | ✅ `CrossOriginRequestSharing()` |
-| HTTPS/TLS | ✅ `WebServerSecure` | ✅ `SecureHttpServer` |
+| HTTPS/TLS | ✅ `WebServerSecure` | ❌ Removed from library scope |
 | Request Size Limits | ❌ | ✅ Built-in |
 | Header Size Limits | ❌ | ✅ Built-in |
 | Timeout Protection | ✅ Fixed values | ✅ Configurable |
@@ -758,9 +758,8 @@ return StringResponse::create(
 | Request Data | UrlParameters | Path parameters |
 | Security | BasicAuthentication | Auth middleware |
 | Security | CorsSupport | CORS configuration |
-| Security | HttpsServer | TLS/HTTPS |
 
-**Total: 10 examples (organized in categories)**
+**Total: 9 examples (organized in categories)**
 
 ### Example Quality Comparison
 

@@ -75,8 +75,6 @@
 
 // Server implementations
 #include "server/HttpServerBase.h"
-#include "server/SecureHttpServer.h"
-#include "server/SecureHttpServerConfig.h"
 #include "server/StandardHttpServer.h"
 #include "server/WebServer.h"
 #include "server/WebServerBuilder.h"
@@ -88,8 +86,6 @@
 using HttpServerAdvanced::Form;
 using HttpServerAdvanced::GetRequest;
 using HttpServerAdvanced::RawBody;
-using HttpServerAdvanced::SecureHttpServer;
-using HttpServerAdvanced::SecureHttpServerConfig;
 using HttpServerAdvanced::StandardHttpServer;
 using HttpServerAdvanced::WebServerBuilder;
 #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
@@ -125,5 +121,4 @@ using HttpServerAdvanced::MultipartFormDataBuffer;
 using HttpServerAdvanced::MultipartStatus;
 using HttpServerAdvanced::RawBodyBuffer;
 using WebServer = HttpServerAdvanced::FriendlyWebServer<StandardHttpServer<>>;
-using SecureWebServer = HttpServerAdvanced::FriendlyWebServer<SecureHttpServer>;
 using HttpServerAdvanced::WebServerConfig;
