@@ -66,7 +66,7 @@ namespace HttpServerAdvanced
         std::size_t headerValuePos_ = 0;
         std::size_t headerValueLen_ = 0;
         std::size_t headerCount_ = 0;
-        bool isFinished = false;
+        bool finished_ = false;
 
         bool appendToBuffer(const char *data, std::size_t length, std::size_t maxAllowed, std::size_t &startPos, std::size_t &curLen)
         {
@@ -200,14 +200,14 @@ namespace HttpServerAdvanced
 
         std::size_t execute(const uint8_t *data, std::size_t length)
         {
-            if (isFinished)
+            if (finished_)
             {
                 return 0;
             }
             llhttp_errno_t result = HPE_OK;
             if (data == nullptr || length == 0)
             {
-                isFinished = true;
+                finished_ = true;
                 result = llhttp_finish(&parser_);
                 if (result != HPE_OK)
                 {

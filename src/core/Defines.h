@@ -115,7 +115,11 @@ namespace HttpServerAdvanced
 #endif
 
 #ifndef HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON
+#ifdef ARDUINOJSON_VERSION
+    #define HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON 1
+#else
     #define HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON 0
+#endif
 #endif
 } // namespace HttpServerAdvanced
 
