@@ -1,5 +1,0 @@
-{
-    // Make PlatformIO use a local .pio folder for all data
-    "platformio-ide.useBuiltinPIOCore": true,
-    "platformio-ide.customPATH": "${workspaceFolder}\\.pio"
-}
