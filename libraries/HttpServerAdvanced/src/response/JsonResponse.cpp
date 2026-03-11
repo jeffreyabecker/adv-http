@@ -1,8 +1,11 @@
+#include "../core/Defines.h"   
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 #include "JsonResponse.h"
 #include "../core/HttpHeaderCollection.h"
 #include "HttpResponse.h"
 #include "../streams/Streams.h"
 #include "../core/HttpContentTypes.h"
+
 namespace HttpServerAdvanced
 {
 
@@ -43,5 +46,5 @@ namespace HttpServerAdvanced
 
 
 } // namespace HttpServerAdvanced
-
+#endif
 

@@ -1,4 +1,6 @@
 #pragma once
+#include "../core/Defines.h"
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 #include <initializer_list>
 #include "../core/HttpStatus.h"
 #include "../core/HttpHeader.h"
@@ -18,3 +20,4 @@ namespace HttpServerAdvanced
     };
 }
 
+#endif

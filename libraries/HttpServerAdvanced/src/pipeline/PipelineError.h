@@ -19,6 +19,22 @@ namespace HttpServerAdvanced
         UnsupportedMediaType = 11,
         BadRequest = 12,
         InternalError = 100,
+        StrictError = 2,
+        CrExpectedError = 25,
+        LfExpectedError = 3,
+        UnexpectedContentLengthError = 4,
+        UnexpectedSpaceError = 30,
+        ClosedConnectionError = 5,
+        InvalidMethodError = 6,
+        InvalidUrlError = 7,
+        InvalidConstantError = 8,
+        InvalidVersionError = 9,
+        InvalidHeaderTokenError = 10,
+        InvalidContentLengthError = 11,
+        InvalidChunkSizeError = 12,
+        InvalidStatusError = 13,
+        InvalidEofStateError = 14,
+        InvalidTransferEncodingError = 15,
         Unknown = 101
     };
 

@@ -85,48 +85,45 @@
 // Request handler factory
 #include "core/HttpRequestHandlerFactory.h"
 
-
-
-using HttpServerAdvanced::StandardHttpServer;
+using HttpServerAdvanced::Form;
+using HttpServerAdvanced::GetRequest;
+using HttpServerAdvanced::RawBody;
 using HttpServerAdvanced::SecureHttpServer;
 using HttpServerAdvanced::SecureHttpServerConfig;
+using HttpServerAdvanced::StandardHttpServer;
 using HttpServerAdvanced::WebServerBuilder;
-using HttpServerAdvanced::Form;
-using HttpServerAdvanced::RawBody;
-using HttpServerAdvanced::GetRequest;
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 using HttpServerAdvanced::Json;
 using HttpServerAdvanced::JsonResponse;
+#endif
 using HttpServerAdvanced::Buffered;
 using HttpServerAdvanced::Multipart;
 using Upload = HttpServerAdvanced::Multipart;
 
+using HttpServerAdvanced::FormResponse;
 using HttpServerAdvanced::HttpContentTypes;
-using HttpServerAdvanced::HttpRequest;
 using HttpServerAdvanced::HttpHandler;
 using HttpServerAdvanced::HttpHeader;
 using HttpServerAdvanced::HttpMethod;
+using HttpServerAdvanced::HttpRequest;
 using HttpServerAdvanced::HttpResponse;
-using HttpServerAdvanced::StringResponse;
-using HttpServerAdvanced::FormResponse;
 using HttpServerAdvanced::HttpStatus;
 using HttpServerAdvanced::IHttpResponse;
+using HttpServerAdvanced::StringResponse;
 
 using PostBodyData = HttpServerAdvanced::KeyValuePairView<String, String>;
 using HttpServerAdvanced::BasicAuth;
 using HttpServerAdvanced::CrossOriginRequestSharing;
 using HttpServerAdvanced::HandlerMatcher;
+using HttpServerAdvanced::StaticFiles;
 using HttpServerAdvanced::WebUtility;
-using HttpServerAdvanced::StaticFiles;;
+;
 using HttpServerAdvanced::StaticFilesBuilder;
 using Response = HttpServerAdvanced::IHttpHandler::HandlerResult;
 using Uri = HttpServerAdvanced::HandlerMatcher;
-using HttpServerAdvanced::RawBodyBuffer;
 using HttpServerAdvanced::MultipartFormDataBuffer;
 using HttpServerAdvanced::MultipartStatus;
+using HttpServerAdvanced::RawBodyBuffer;
 using WebServer = HttpServerAdvanced::FriendlyWebServer<StandardHttpServer<>>;
 using SecureWebServer = HttpServerAdvanced::FriendlyWebServer<SecureHttpServer>;
 using HttpServerAdvanced::WebServerConfig;
-
-
-
-

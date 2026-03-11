@@ -1,4 +1,6 @@
 #pragma once
+#include "../core/Defines.h"
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 #include <Arduino.h>
 #include "BufferingHttpHandlerBase.h"
 #include "HandlerRestrictions.h"
@@ -51,4 +53,4 @@ namespace HttpServerAdvanced
     };
 
 } // namespace HttpServerAdvanced
-
+#endif

@@ -198,6 +198,123 @@ namespace HttpServerAdvanced
          */
         virtual void end() = 0;
     };
+
+    /**
+     * @brief Interface for a network peer (e.g., UDP).
+     *
+     * This abstract class defines the interface for a peer that can send and receive
+     * datagrams, join multicast groups, and manage connection status.
+     */
+    class IPeer
+    {
+    public:
+        /**
+         * @brief Initializes and starts listening on the specified port.
+         *
+         * @param port The port number to listen on.
+         * @return 1 if successful, 0 if there are no sockets available to use.
+         */
+        virtual uint8_t begin(uint16_t port) = 0;
+
+        /**
+         * @brief Initializes and starts listening on the specified multicast IP address and port.
+         *
+         * @param multicast The multicast IP address to listen on.
+         * @param port The port number to listen on.
+         * @return 1 if successful, 0 if there are no sockets available to use.
+         */
+        virtual uint8_t beginMulticast(IPAddress multicast, uint16_t port) = 0;
+
+        /**
+         * @brief Finishes with the UDP connection.
+         */
+        virtual void end() = 0;
+
+        /**
+         * @brief Joins a multicast group and listens on the given port.
+         *
+         * @param interfaceAddr The local interface address.
+         * @param multicast The multicast group address.
+         * @param port The port number to listen on.
+         * @return 1 if successful, 0 otherwise.
+         */
+        virtual uint8_t beginMulticast(IPAddress interfaceAddr, IPAddress multicast, uint16_t port);
+
+        /**
+         * @brief Starts building up a packet to send to the remote host.
+         *
+         * @param ip The IP address of the remote host.
+         * @param port The port number of the remote host.
+         * @return 1 if successful, 0 if there was a problem with the supplied IP address or port.
+         */
+        virtual int beginPacket(IPAddress ip, uint16_t port) = 0;
+
+        /**
+         * @brief Finishes the packet and sends it.
+         *
+         * @return 1 if the packet was sent successfully, 0 if there was an error.
+         */
+        virtual int endPacket() = 0;
+
+        /**
+         * @brief Writes data into the packet.
+         *
+         * @param buffer Pointer to the buffer containing data to write.
+         * @param size Number of bytes to write.
+         * @return The number of bytes written.
+         */
+        virtual size_t write(const uint8_t *buffer, size_t size) = 0;
+
+        /**
+         * @brief Starts processing the next available incoming packet.
+         *
+         * @return The size of the packet in bytes, or 0 if no packets are available.
+         */
+        virtual int parsePacket() = 0;
+
+        /**
+         * @brief Returns the number of bytes remaining in the current packet.
+         *
+         * @return The number of bytes available.
+         */
+        virtual int available() = 0;
+
+        /**
+         * @brief Reads data from the current packet.
+         *
+         * @param buffer Pointer to the buffer where read data will be stored.
+         * @param len Maximum number of bytes to read.
+         * @return The number of bytes actually read, or 0 if none are available.
+         */
+        virtual int read(uint8_t *buffer, size_t len) = 0;
+
+        /**
+         * @brief Returns the next byte from the current packet without moving on to the next byte.
+         *
+         * @return The next byte, or -1 if none are available.
+         */
+        virtual int peek() = 0;
+
+        /**
+         * @brief Finishes reading the current packet.
+         */
+        virtual void flush() = 0;
+
+        /**
+         * @brief Returns the IP address of the host who sent the current incoming packet.
+         *
+         * @return The IP address of the remote host.
+         */
+        virtual IPAddress remoteIP() = 0;
+
+        /**
+         * @brief Returns the port of the host who sent the current incoming packet.
+         *
+         * @return The port number of the remote host.
+         */
+        virtual uint16_t remotePort() = 0;
+    };
+
     /**
      * @brief Implementation of ClientWrapper for a specific Client type T.
      *
@@ -358,7 +475,7 @@ namespace HttpServerAdvanced
         }
         virtual uint32_t getTimeout() const override
         {
-            return const_cast<T&>(connection_).getTimeout();
+            return const_cast<T &>(connection_).getTimeout();
         }
 
     private:
@@ -407,8 +524,8 @@ namespace HttpServerAdvanced
             auto client = connection_.accept();
             if (client)
             {
-                using ClientType = std::remove_reference_t<decltype(client)>;
-                return std::make_unique<ClientImpl<ClientType>>(client);
+                using ClientType = typename std::remove_reference<decltype(client)>::type;
+                return std::unique_ptr<IClient>(new ClientImpl<ClientType>(client));
             }
             return nullptr;
         }
@@ -468,5 +585,131 @@ namespace HttpServerAdvanced
         T connection_;
     };
 
-} // namespace HttpServerAdvanced
 
+    /**
+     * @brief Implementation of PeerWrapper for a specific Peer type T.
+     *
+     * T is required to implement the peer interface through SFINAE.
+     *
+     * @tparam T The peer type to wrap.
+     */
+    template <typename T>
+    class PeerImpl : public IPeer
+    {
+    public:
+        /**
+         * @brief Constructor for PeerImpl.
+         *
+         * Uses a variadic template to allow for different peer types.
+         *
+         * @tparam Args The argument types for the peer constructor.
+         * @param args The arguments to forward to the peer constructor.
+         */
+        template <typename... Args>
+        PeerImpl(Args &&...args) : peer_(std::forward<Args>(args)...) {}
+
+        /**
+         * @brief Destructor for PeerImpl.
+         */
+        ~PeerImpl() override = default;
+
+        uint8_t begin(uint16_t port) override
+        {
+            return peer_.begin(port);
+        }
+
+        uint8_t beginMulticast(IPAddress multicast, uint16_t port) override
+        {
+            return peer_.beginMulticast(multicast, port);
+        }
+        // If T provides a member function `stop`, prefer calling `stop()`; otherwise call `end()`.
+        template <typename U = T, typename std::enable_if<
+                      !std::is_member_function_pointer<decltype(&U::stop)>::value,
+                      int>::type = 0>
+        void end() override
+        {
+            peer_.end();
+        }
+
+        template <typename U = T, typename std::enable_if<
+                      std::is_member_function_pointer<decltype(&U::stop)>::value,
+                      int>::type = 0>
+        void end() override
+        {
+            peer_.stop();
+        }
+
+        uint8_t beginMulticast(IPAddress interfaceAddr, IPAddress multicast, uint16_t port) override
+        {
+            return peer_.beginMulticast(interfaceAddr, multicast, port);
+        }
+
+        int beginPacket(IPAddress ip, uint16_t port) override
+        {
+            return peer_.beginPacket(ip, port);
+        }
+
+        int endPacket() override
+        {
+            return peer_.endPacket();
+        }
+
+        size_t write(const uint8_t *buffer, size_t size) override
+        {
+            return peer_.write(buffer, size);
+        }
+
+        int parsePacket() override
+        {
+            return peer_.parsePacket();
+        }
+
+        int available() override
+        {
+            return peer_.available();
+        }
+
+        int read(uint8_t *buffer, size_t len) override
+        {
+            return peer_.read(buffer, len);
+        }
+
+        int peek() override
+        {
+            return peer_.peek();
+        }
+
+        void flush() override
+        {
+            peer_.flush();
+        }
+
+        IPAddress remoteIP() override
+        {
+            return peer_.remoteIP();
+        }
+
+        uint16_t remotePort() override
+        {
+            return peer_.remotePort();
+        }
+
+        /**
+         * @brief Configures the underlying peer connection.
+         *
+         * Allows customization of the peer connection via a callback.
+         *
+         * @param callback A function to configure the peer.
+         */
+        void configureConnection(std::function<void(T *)> callback)
+        {
+            if (callback)
+            {
+                callback(&peer_);
+            }
+        }
+
+    private:
+        T peer_;
+    };
+} // namespace HttpServerAdvanced

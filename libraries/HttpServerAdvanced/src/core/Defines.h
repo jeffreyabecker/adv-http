@@ -118,6 +118,10 @@ namespace HttpServerAdvanced
 #ifndef HTTPSERVER_ADVANCED_ENABLE_SSL_SUPPORT
     #define HTTPSERVER_ADVANCED_ENABLE_SSL_SUPPORT 0
 #endif
+
+#ifndef HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON
+    #define HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON 0
+#endif
 } // namespace HttpServerAdvanced
 
 

@@ -66,6 +66,7 @@ namespace HttpServerAdvanced
         std::size_t headerValuePos_ = 0;
         std::size_t headerValueLen_ = 0;
         std::size_t headerCount_ = 0;
+        bool isFinished = false;
 
         bool appendToBuffer(const char *data, std::size_t length, std::size_t maxAllowed, std::size_t &startPos, std::size_t &curLen)
         {
@@ -125,6 +126,51 @@ namespace HttpServerAdvanced
         String method_;
         short versionMajor_ = 1;
         short versionMinor_ = 1;
+        // Map llhttp error code to PipelineErrorCode
+        static PipelineErrorCode mapLlhttpErrorToPipelineError(int llhttpError)
+        {
+            switch (llhttpError)
+            {
+            case 0:
+                return PipelineErrorCode::None; // HPE_OK
+            case 1:
+                return PipelineErrorCode::InternalError; // HPE_INTERNAL
+            case 2:
+                return PipelineErrorCode::StrictError; // HPE_STRICT
+            case 25:
+                return PipelineErrorCode::CrExpectedError; // HPE_CR_EXPECTED
+            case 3:
+                return PipelineErrorCode::LfExpectedError; // HPE_LF_EXPECTED
+            case 4:
+                return PipelineErrorCode::UnexpectedContentLengthError; // HPE_UNEXPECTED_CONTENT_LENGTH
+            case 30:
+                return PipelineErrorCode::UnexpectedSpaceError; // HPE_UNEXPECTED_SPACE
+            case 5:
+                return PipelineErrorCode::ClosedConnectionError; // HPE_CLOSED_CONNECTION
+            case 6:
+                return PipelineErrorCode::InvalidMethodError; // HPE_INVALID_METHOD
+            case 7:
+                return PipelineErrorCode::InvalidUrlError; // HPE_INVALID_URL
+            case 8:
+                return PipelineErrorCode::InvalidConstantError; // HPE_INVALID_CONSTANT
+            case 9:
+                return PipelineErrorCode::InvalidVersionError; // HPE_INVALID_VERSION
+            case 10:
+                return PipelineErrorCode::InvalidHeaderTokenError; // HPE_INVALID_HEADER_TOKEN
+            case 11:
+                return PipelineErrorCode::InvalidContentLengthError; // HPE_INVALID_CONTENT_LENGTH
+            case 12:
+                return PipelineErrorCode::InvalidChunkSizeError; // HPE_INVALID_CHUNK_SIZE
+            case 13:
+                return PipelineErrorCode::InvalidStatusError; // HPE_INVALID_STATUS
+            case 14:
+                return PipelineErrorCode::InvalidEofStateError; // HPE_INVALID_EOF_STATE
+            case 15:
+                return PipelineErrorCode::InvalidTransferEncodingError; // HPE_INVALID_TRANSFER_ENCODING
+            default:
+                return PipelineErrorCode::ParseError;
+            }
+        }
 
     public:
         RequestParser(IPipelineHandler &eventHandler)
@@ -154,23 +200,45 @@ namespace HttpServerAdvanced
 
         std::size_t execute(const uint8_t *data, std::size_t length)
         {
-            llhttp_errno_t result = llhttp_execute(&parser_, reinterpret_cast<const char *>(data), length);
-            if (result != HPE_OK)
+            if (isFinished)
             {
-                // If we already flagged an error (e.g., buffer overflow) the handler has been notified.
-                if (currentEvent_ != RequestParserEvent::Error)
+                return 0;
+            }
+            llhttp_errno_t result = HPE_OK;
+            if (data == nullptr || length == 0)
+            {
+                isFinished = true;
+                result = llhttp_finish(&parser_);
+                if (result != HPE_OK)
                 {
-                    currentEvent_ = RequestParserEvent::Error;
-                    // Map llhttp internal errno to library-level PipelineErrorCode.
-                    // Do not expose llhttp errno in the public API; report a generic parse error for now.
-                    eventHandler_.onError(PipelineError(PipelineErrorCode::ParseError));
+                    // If we already flagged an error (e.g., buffer overflow) the handler has been notified.
+                    if (currentEvent_ != RequestParserEvent::Error)
+                    {
+                        currentEvent_ = RequestParserEvent::Error;
+                        // Map llhttp internal errno to library-level PipelineErrorCode and report it.
+                        eventHandler_.onError(PipelineError(mapLlhttpErrorToPipelineError(result)));
+                    }
                 }
             }
-            // Reset header counter for the next request on reused parser
-            if (currentEvent_ == RequestParserEvent::MessageComplete || currentEvent_ == RequestParserEvent::Error)
+            else
             {
-                headerCount_ = 0;
-                resetBuffer();
+                result = llhttp_execute(&parser_, reinterpret_cast<const char *>(data), length);
+                if (result != HPE_OK)
+                {
+                    // If we already flagged an error (e.g., buffer overflow) the handler has been notified.
+                    if (currentEvent_ != RequestParserEvent::Error)
+                    {
+                        currentEvent_ = RequestParserEvent::Error;
+                        // Map llhttp internal errno to library-level PipelineErrorCode and report it.
+                        eventHandler_.onError(PipelineError(mapLlhttpErrorToPipelineError(result)));
+                    }
+                }
+                // Reset header counter for the next request on reused parser
+                if (currentEvent_ == RequestParserEvent::MessageComplete || currentEvent_ == RequestParserEvent::Error)
+                {
+                    headerCount_ = 0;
+                    resetBuffer();
+                }
             }
             return (result == HPE_OK) ? length : 0;
         }
@@ -192,4 +260,3 @@ namespace HttpServerAdvanced
         RequestParserEvent currentEvent() const { return currentEvent_; }
     };
 }
-

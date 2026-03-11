@@ -1,0 +1,79 @@
+#######################################
+# Syntax Coloring Map For NetInterface
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+IClient	KEYWORD1
+IServer	KEYWORD1
+IPeer	KEYWORD1
+ClientImpl	KEYWORD1
+ServerImpl	KEYWORD1
+PeerImpl	KEYWORD1
+ConnectionStatus	KEYWORD1
+NetInterface	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+accept	KEYWORD2
+begin	KEYWORD2
+end	KEYWORD2
+write	KEYWORD2
+read	KEYWORD2
+flush	KEYWORD2
+stop	KEYWORD2
+status	KEYWORD2
+connected	KEYWORD2
+remoteIP	KEYWORD2
+remotePort	KEYWORD2
+localIP	KEYWORD2
+localPort	KEYWORD2
+setTimeout	KEYWORD2
+getTimeout	KEYWORD2
+available	KEYWORD2
+port	KEYWORD2
+beginPacket	KEYWORD2
+endPacket	KEYWORD2
+parsePacket	KEYWORD2
+peek	KEYWORD2
+beginMulticast	KEYWORD2
+configureConnection	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+CLOSED	LITERAL1
+LISTEN	LITERAL1
+SYN_SENT	LITERAL1
+SYN_RCVD	LITERAL1
+ESTABLISHED	LITERAL1
+FIN_WAIT_1	LITERAL1
+FIN_WAIT_2	LITERAL1
+CLOSE_WAIT	LITERAL1
+CLOSING	LITERAL1
+LAST_ACK	LITERAL1
+TIME_WAIT	LITERAL1
+addHandler	KEYWORD2
+uri	KEYWORD2
+method	KEYWORD2
+client	KEYWORD2
+send	KEYWORD2
+arg	KEYWORD2
+argName	KEYWORD2
+args	KEYWORD2
+hasArg	KEYWORD2
+onNotFound	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+HTTP_GET	LITERAL1
+HTTP_POST	LITERAL1
+HTTP_ANY	LITERAL1
+CONTENT_LENGTH_UNKNOWN	LITERAL1
