@@ -2,7 +2,7 @@
 
 ## Objective
 
-Break the library in `libraries/HttpServerAdvanced` into layered, platform-neutral components so the core HTTP pipeline and routing stack can build without Arduino headers or Arduino runtime types.
+Break the library in the top-level `src/` layout into layered, platform-neutral components so the core HTTP pipeline and routing stack can build without Arduino headers or Arduino runtime types.
 
 This is a large refactor. The work should be staged so that:
 
@@ -41,8 +41,8 @@ This is the first step.
 
 #### Work
 
-- add `libraries/HttpServerAdvanced/platformio.ini`
-- add `libraries/HttpServerAdvanced/library.json`
+- add top-level `platformio.ini`
+- add top-level `library.json`
 - define a minimal environment matrix matching currently relevant Arduino targets
   - RP2040 / Pico or Pico W
   - ESP32
@@ -243,7 +243,7 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 
 Implement Phase 1 only:
 
-- create `platformio.ini` and `library.json` for `libraries/HttpServerAdvanced`
+- create top-level `platformio.ini` and `library.json`
 - add one or two representative environments
 - make the library compile in isolation
 - stop there and evaluate the build friction before starting Phase 2
