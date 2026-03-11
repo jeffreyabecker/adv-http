@@ -13,6 +13,8 @@ This is a large refactor. The work should be staged so that:
 ## Constraints
 
 - Prefer `std::string` internally over Arduino `String`, except at Arduino-facing adapter boundaries.
+- Prefer `std::string_view` or equivalent non-owning spans for read-only parsing/view types instead of owning Arduino `String` buffers in the core.
+- For Arduino-facing ergonomics, prefer `const char *` inputs over Arduino `String` where ownership and mutation are not required.
 - Keep the existing public Arduino-friendly API working until a deliberate compatibility break is approved.
 - Avoid a flag day rewrite. Introduce seams first, then migrate call sites behind those seams.
 - Do not couple the platform-neutral core to PlatformIO itself; use PlatformIO first as a better build and validation tool.
@@ -26,6 +28,83 @@ The library currently depends directly on Arduino across most layers:
 - internal types use Arduino `String`, `IPAddress`, `Stream`, and Arduino-style client/server interfaces
 - optional JSON support is tied to `ArduinoJson`
 - examples are sketch-first and Arduino-specific
+
+The current `String` coupling is concentrated in a few important clusters:
+
+- core request and header state such as `HttpRequest`, `HttpHeader`, `HttpHeaderCollection`, and `RequestParser`
+- utility types that should become platform-neutral first, especially `StringUtility`, `StringView`, `UriView`, and query-string helpers
+- routing and response APIs that currently expose `String` broadly for matcher configuration, auth helpers, form helpers, and response bodies
+- some server/configuration surfaces where `String` is part of Arduino-facing configuration rather than core HTTP behavior
+
+## String Migration Strategy
+
+The `String` migration should be treated as its own staged track inside the broader decoupling work.
+
+### Objectives
+
+- move owned internal text data to `std::string` wherever Arduino APIs do not require `String`
+- use non-owning string views for parsing and matching paths that do not need ownership
+- preserve Arduino-friendly public entrypoints during the transition by converting only at adapter boundaries
+- bias Arduino-facing convenience APIs toward `const char *` inputs instead of `String` when they only need borrowed string data
+- avoid duplicating string algorithms by reusing the existing char-buffer-oriented helpers as the backend for both Arduino and standard-string call sites
+
+### Classification Rules
+
+When inventorying and migrating `String`, classify each usage before changing it:
+
+- owned internal state: convert to `std::string` first
+  - examples: request URL/version storage, header name/value storage, parsed query key/value data, matcher state
+- non-owning parsed views: convert to `std::string_view` or a library wrapper around it
+  - examples: `StringView`, `UriView` segments, parser slices into request buffers
+- Arduino compatibility surfaces: keep `String` overloads, but make them thin adapters over standard-string internals
+  - prefer `const char *` overloads first when the API only needs borrowed input, and keep `String` overloads only where needed for compatibility or ownership
+  - examples: response factories, route-builder convenience methods, auth callbacks, Arduino-oriented umbrella typedefs
+- Arduino-only integrations: leave on `String` until that adapter layer is split out
+  - examples: FS/TLS configuration helpers and sketch-facing convenience APIs
+
+### Recommended Sequence
+
+1. Refactor string utilities before touching higher layers.
+  - make the char pointer plus length algorithms in `util/StringUtility.*` the primary backend
+  - add `std::string` and `std::string_view` overloads there before removing Arduino overloads
+  - avoid introducing a second parallel set of bespoke text helpers
+2. Replace core view types next.
+  - redesign `util/StringView.h` and `OwningStringView` around standard storage rules
+  - update `util/UriView.*` and query parsing helpers so URI decomposition is backed by `std::string` ownership plus view slices
+3. Convert core owned text models.
+  - move `HttpHeader`, `HttpHeaderCollection`, `HttpRequest`, and parser-owned text state to `std::string`
+  - update pipeline callbacks such as `IPipelineHandler::onMessageBegin` and `onHeader` to accept standard-string-based values internally
+4. Migrate routing and handler internals.
+  - move matcher state, extracted route parameters, and content-type/method matching off Arduino `String`
+  - keep sketch-facing overloads only where they materially help Arduino ergonomics, and prefer `const char *` for borrowed inputs
+5. Delay compatibility-heavy public APIs until the internals are stable.
+  - prefer `const char *` entrypoints in response builders and convenience helpers when no ownership is required
+  - keep `String` overloads only where existing compatibility or ownership semantics still justify them
+  - have those overloads convert into `std::string` and forward to the new internals
+
+### Likely First Conversion Targets
+
+These files are good early candidates because they are central and mostly library-owned:
+
+- `util/StringUtility.*`
+- `util/StringView.h`
+- `util/HttpUtility.*`
+- `util/UriView.*`
+- `core/HttpHeader.h`
+- `core/HttpHeaderCollection.*`
+- `pipeline/RequestParser.*`
+- `core/HttpRequest.h`
+
+These files are likely better treated as compatibility layers until later phases because they are closer to user-facing Arduino ergonomics:
+
+- `response/StringResponse.*`
+- `response/FormResponse.*`
+- `routing/BasicAuthentication.h`
+- `routing/CrossOriginRequestSharing.h`
+- `routing/HandlerBuilder.*`
+- umbrella aliases in `HttpServerAdvanced.h`
+
+Within those compatibility-oriented surfaces, the preferred end state should still be Arduino-friendly APIs that accept `const char *` for borrowed text and reserve `String` for cases that genuinely need owned Arduino text.
 
 ## Migration Phases
 
@@ -88,10 +167,26 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
   - Arduino server/client wrappers
   - Arduino stream wrappers
   - Arduino-specific examples and convenience aliases
+- produce a `String` inventory grouped by migration role
+  - owned internal state that can move directly to `std::string`
+  - non-owning views that should become `std::string_view`-style types
+  - public Arduino compatibility surfaces that need overload-based shims
+  - genuinely Arduino-only text usage that should stay in adapters
+- identify Arduino-facing APIs that can be simplified from `String` parameters to `const char *`
+  - route configuration
+  - response helpers
+  - auth and CORS convenience functions
+  - other borrowed-input convenience APIs
+- identify high-churn signatures that should change only after compatibility shims exist
+  - `IPipelineHandler`
+  - `HttpRequest`
+  - `HttpHeader` and `HttpHeaderCollection`
+  - routing matcher and parameter extraction types
 
 #### Acceptance Criteria
 
 - every Arduino dependency has a destination strategy: keep, wrap, replace, or move
+- every `String` use is classified as internal ownership, internal view, compatibility boundary, or Arduino-only adapter code
 - a target package split is agreed before implementation begins
 
 ### Phase 3: Introduce a platform-neutral core layer
@@ -104,8 +199,8 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 #### Work
 
 - define core compatibility types in a dedicated namespace, for example:
-  - `Text` or direct `std::string`
-  - `StringView` backed by standard C++ string storage rules
+  - direct `std::string` for owned text
+  - `std::string_view` or a library wrapper backed by standard C++ string storage rules
   - `IpAddress` value type owned by this library or reused from a platform-neutral dependency
   - stream interfaces that model read/write/flush semantics without Arduino base classes
   - clock/time provider abstraction for timeout logic
@@ -117,11 +212,22 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
   - `util/StringView.h`
   - `util/HttpUtility.*`
   - `util/UriView.*`
-- replace internal Arduino string ownership with `std::string` where possible
+- rework the string stack from the bottom up
+  - keep the existing char-buffer algorithms as the canonical text-processing backend
+  - add standard-string overloads first, then demote Arduino `String` overloads to adapter status
+  - make ownership explicit so parsing code can return views without forcing `String` allocations
+- replace internal Arduino string ownership with `std::string` in core models and parser state
+  - request URL/version storage
+  - header names and values
+  - query parameter containers
+  - matcher-owned URI/content-type state
+- preserve Arduino-facing APIs with conversion shims until a deliberate public API cleanup phase
+- prefer `const char *` at Arduino-facing boundaries where the API only consumes borrowed text and does not need `String` ownership semantics
 
 #### Acceptance Criteria
 
 - core utility and HTTP model types compile in a non-Arduino translation unit
+- core parsing, header, and URI types no longer require Arduino `String` for internal ownership
 - the core layer has no direct dependency on `Arduino.h`
 
 ### Phase 4: Separate transport abstractions from Arduino transport adapters
