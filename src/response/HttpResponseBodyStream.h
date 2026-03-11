@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include "../compat/Stream.h"
 #include <Arduino.h>
 #include "../streams/Streams.h"
 

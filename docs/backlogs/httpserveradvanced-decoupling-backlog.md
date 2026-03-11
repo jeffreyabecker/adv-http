@@ -23,7 +23,7 @@ This workstream establishes the alias-or-shim layer before any broad call-site m
 
 ### COMPAT-001: Create compatibility namespace and header layout
 
-- Status: `todo`
+- Status: `in-progress`
 - Goal: introduce a single place for library-owned compatibility types so later migrations do not scatter `#ifdef ARDUINO` throughout the codebase.
 - Scope:
   - create a dedicated header area for compatibility types, likely under `src/compat/`
@@ -39,9 +39,22 @@ This workstream establishes the alias-or-shim layer before any broad call-site m
   - Arduino-specific includes are confined to compatibility headers or adapters
   - the namespace and include pattern are stable enough for follow-on tasks
 
+Current implementation direction:
+
+- canonical compatibility types live under `HttpServerAdvanced::Compat`
+- `src/compat/Compat.h` is the umbrella header for compatibility seams
+- future tasks should add Arduino alias paths or non-Arduino shim definitions in leaf headers under `src/compat/`
+- core headers should include compatibility leaf headers instead of `Arduino.h` as they are migrated
+
+Initial scaffold landed:
+
+- added `src/compat/Compat.h`
+- added placeholder leaf headers for stream, IP address, filesystem, and clock seams
+- exposed the compatibility umbrella from the top-level public header so downstream code has a stable include path while the seams are filled in
+
 ### COMPAT-002: Introduce compatibility stream type
 
-- Status: `todo`
+- Status: `in-progress`
 - Goal: preserve existing stream semantics while removing direct `Arduino.h` dependency from core-facing headers.
 - Scope:
   - add a compatibility `Stream` type alias under `ARDUINO`
@@ -54,6 +67,7 @@ This workstream establishes the alias-or-shim layer before any broad call-site m
   - `peek()`
   - `write(uint8_t)`
   - `flush()`
+  - `availableForWrite()` with default no-op behavior for non-Arduino shims because the in-tree memory-stream hierarchy currently overrides it
 - Primary files likely touched:
   - new compatibility stream header
   - `src/pipeline/IPipelineHandler.h`
@@ -66,6 +80,13 @@ This workstream establishes the alias-or-shim layer before any broad call-site m
   - core headers stop naming Arduino `Stream` directly and use the compatibility type instead
   - Arduino builds still resolve to the real Arduino `Stream`
   - native compilation can parse the updated headers without Arduino IO base classes
+
+Current implementation direction:
+
+- `HttpServerAdvanced::Stream` remains the public spelling for now, but resolves through `HttpServerAdvanced::Compat::Stream`
+- under `ARDUINO`, the compatibility type aliases the real Arduino `Stream`
+- outside Arduino, the compatibility type is a minimal abstract interface with the methods the library currently relies on
+- header migration should prefer explicit `compat/Stream.h` includes instead of relying on transitive Arduino includes
 
 ### COMPAT-003: Introduce compatibility IP address type
 

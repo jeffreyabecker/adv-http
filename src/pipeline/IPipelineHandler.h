@@ -3,6 +3,7 @@
 #include <functional>
 
 #include "../core/HttpTimeouts.h"
+#include "../compat/Stream.h"
 #include "PipelineError.h"
 
 #include <cstddef>

@@ -1,6 +1,7 @@
 #pragma once
 #include <initializer_list>
 #include <cstring>
+#include "../compat/Stream.h"
 #include "../core/HttpStatus.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"

@@ -2,6 +2,7 @@
 // #pragma once
 
 // Core HTTP types and utilities
+#include "compat/Compat.h"
 #include "core/Buffer.h"
 #include "core/Defines.h"
 #include "core/HttpContentTypes.h"
