@@ -38,6 +38,10 @@ The current `String` coupling is concentrated in a few important clusters:
 - routing and response APIs that currently expose `String` broadly for matcher configuration, auth helpers, form helpers, and response bodies
 - some server/configuration surfaces where `String` is part of Arduino-facing configuration rather than core HTTP behavior
 
+The stream story is more favorable than the string story. The response pipeline, response-body composition, and many helpers already revolve around `Stream`-shaped contracts such as `available()`, `read()`, `peek()`, `write(uint8_t)`, and `flush()`. Direct use of Arduino `Print` appears minimal to non-existent in library code, which suggests `Print` currently matters mostly through Arduino's `Stream` inheritance chain rather than through separate library-facing APIs.
+
+The other Arduino-specific APIs should follow the same general compatibility rule where practical: alias the real Arduino type when building under `ARDUINO`, and otherwise provide a minimal library-defined type or interface that exposes only the surface the current codebase already consumes. Based on current usage, that applies especially well to `IPAddress`, `FS`, and `File`.
+
 ## String Migration Strategy
 
 The `String` migration should be treated as its own staged track inside the broader decoupling work.
@@ -87,6 +91,106 @@ HTTPS/TLS should be treated differently. For this library, HTTPS support is a ni
   - prefer `const char *` entrypoints in response builders and convenience helpers when no ownership is required
   - keep `String` overloads only where existing compatibility or ownership semantics still justify them
   - have those overloads convert into `std::string` and forward to the new internals
+
+## Stream Compatibility Strategy
+
+The stream layer should be preserved semantically and shimmed, not redesigned into a completely different IO model.
+
+### Working Assumption
+
+- keep the current stream contract centered on `available()`, `read()`, `peek()`, `write(uint8_t)`, `flush()`, and end-of-stream behavior
+- avoid a broad rewrite of response composition, concatenation, chunking, buffering, and lazy stream creation
+- when `ARDUINO` is defined, alias the compatibility stream type directly to Arduino `Stream`
+- when `ARDUINO` is not defined, declare a pure-abstract stream type in the library namespace that exposes only the methods the library already uses
+- treat `Print` separately only if a concrete direct dependency is discovered during implementation
+
+### Observed Usage Shape
+
+- response writing currently passes around `std::unique_ptr<Stream>` through the pipeline and response stack
+- internal helpers such as `ReadStream`, `OctetsStream`, `StringStream`, `ConcatStream`, and response body wrappers already model a library-specific streaming workflow
+- file serving currently wraps Arduino `File` as a `Stream`
+- no significant direct `Print`-typed API surface is evident in the current library code; write behavior appears to flow through `Stream`
+
+### Proposed Shim Layers
+
+1. Core compatibility stream type.
+  - define a single compatibility stream type in the library namespace
+  - if `ARDUINO` is defined, alias it directly to Arduino `Stream`
+  - otherwise provide a pure-abstract type that mirrors only the subset of `Stream` behavior the library already relies on
+2. Optional Arduino `Print` adapter, only if needed.
+  - if implementation work reveals concrete `Print`-only call sites, add a dedicated writer shim for them
+  - do not introduce a separate `Print` abstraction in the core unless direct usage actually requires it
+3. Internal stream type migration.
+  - retarget existing helpers like `ReadStream`, `ConcatStream`, `HttpResponseBodyStream`, and chunked response wrappers onto the compatibility stream type with minimal behavioral change
+  - preserve the current stream lifecycle and ownership model based on `std::unique_ptr`
+
+### Compatibility Guidance
+
+- prefer preserving current stream semantics over inventing a more general abstraction that would force widespread response-path churn
+- treat `Stream` compatibility as a type-aliasing problem first, not an adapter problem, when building under Arduino
+- treat `Print` compatibility as a follow-up question, because current evidence suggests the code depends on it only indirectly through `Stream`
+
+## IPAddress and File-System Compatibility Strategy
+
+`IPAddress`, `FS`, and `File` should be handled with the same bias toward aliasing under Arduino and narrow shims elsewhere.
+
+### Working Assumption
+
+- when `ARDUINO` is defined, alias compatibility types directly to Arduino `IPAddress`, `fs::FS`, and `fs::File`
+- when `ARDUINO` is not defined, define only the smallest library-owned replacement surfaces required by current code
+- avoid speculative cross-platform wrappers that model more of the Arduino APIs than the library actually uses today
+- treat these as compatibility seams around transport and static-file serving, not as reasons to keep Arduino headers in the core
+
+### Observed `IPAddress` Usage Shape
+
+- transport and request interfaces mainly pass, store, and return `IPAddress` by value or const reference
+- server setup currently relies on a bind-address default such as `IPAddress(IPADDR_ANY)`
+- client and peer abstractions use `IPAddress` for local and remote endpoint access, packet destinations, and multicast entrypoints
+- current library code does not appear to rely on richer Arduino `IPAddress` helpers such as parsing, string formatting, indexing, or mutation-heavy operations in the core HTTP stack
+
+### Observed `FS` and `File` Usage Shape
+
+- static-file serving is the main consumer of Arduino file-system types
+- current code uses `FS` primarily for `open(path, "r")`
+- current code uses `File` primarily for default construction, truthiness checks, `isDirectory()`, `close()`, and stream-like read access
+- some file-serving paths also rely on metadata-oriented calls such as `size()`, `fullName()`, and `getLastWrite()` where available
+- `File` also matters because it is treated as a stream source in the response path
+
+### Proposed Shim Layers
+
+1. `IpAddress` compatibility type.
+  - define one library compatibility type for IP addresses
+  - if `ARDUINO` is defined, alias it directly to Arduino `IPAddress`
+  - otherwise provide a small value type sufficient for endpoint transport and bind-address defaults
+2. `FS` and `File` compatibility types.
+  - define one filesystem interface type and one file handle type in the library namespace
+  - if `ARDUINO` is defined, alias them directly to Arduino `fs::FS` and `fs::File`
+  - otherwise expose only the operations already consumed by static-file serving and file-backed response streaming
+3. Static-file adapter migration.
+  - retarget `FileLocator`, `DefaultFileLocator`, `AggregateFileLocator`, and static-file handlers onto those compatibility types
+  - keep Arduino-specific filesystem behavior in the Arduino adapter layer rather than in the core HTTP and routing code
+
+### Minimal Non-Arduino Surface To Preserve
+
+- `IpAddress`
+  - value semantics for storage, parameter passing, and return values
+  - a library-defined any-address default equivalent to current `IPADDR_ANY` usage
+- `FS`
+  - `open(path, mode)` for read-oriented file lookup
+- `File`
+  - default construction and invalid-file state
+  - truthiness or equivalent validity checks
+  - `isDirectory()`
+  - `close()`
+  - stream-oriented reads through the existing compatibility stream path
+  - metadata access only where current file-serving code actually requires it, such as `size()`, `fullName()`, and `getLastWrite()`
+
+### Compatibility Guidance
+
+- treat `IPAddress` as a narrow transport value type, not as a reason to keep Arduino networking headers in the HTTP core
+- treat `FS` and `File` as static-file adapter concerns first, even if file-backed response streaming continues to share the stream compatibility layer
+- prefer aliasing over wrapper layering under Arduino so existing board behavior stays as close as possible to today's implementation
+- keep the non-Arduino shims intentionally incomplete until new use cases justify expanding them
 
 ### Likely First Conversion Targets
 
@@ -162,7 +266,7 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
   - string and text APIs: `String`, string helpers, URI/query parsing
   - network types: `IPAddress`, client/server/peer wrappers
   - IO types: `Stream`, `Print`, response/body streaming
-  - runtime/time: `millis()`, delays, timeout behavior
+  - runtime/time: timeout behavior and any required clock source abstractions
   - storage/FS: static file locators and Arduino FS assumptions
   - optional integrations: `ArduinoJson`, TLS/SSL, board-specific features
 - distinguish portable optional dependencies from Arduino-only ones
@@ -181,6 +285,8 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 - identify files that should remain platform adapters
   - Arduino server/client wrappers
   - Arduino stream wrappers
+  - Arduino IP address aliases or shims
+  - Arduino filesystem aliases or shims
   - Arduino-specific examples and convenience aliases
 - produce a `String` inventory grouped by migration role
   - owned internal state that can move directly to `std::string`
@@ -197,6 +303,10 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
   - `HttpRequest`
   - `HttpHeader` and `HttpHeaderCollection`
   - routing matcher and parameter extraction types
+- define the minimum non-Arduino surfaces for Arduino-specific compatibility types before implementation begins
+  - `Stream` and any direct `Print` usage, if discovered
+  - `IPAddress` usage across client, server, peer, and request interfaces
+  - `FS` and `File` usage across static-file serving and file-backed streaming
 
 #### Acceptance Criteria
 
@@ -217,8 +327,9 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 - define core compatibility types in a dedicated namespace, for example:
   - direct `std::string` for owned text
   - `std::string_view` or a library wrapper backed by standard C++ string storage rules
-  - `IpAddress` value type owned by this library or reused from a platform-neutral dependency
-  - stream interfaces that model read/write/flush semantics without Arduino base classes
+  - an `IpAddress` compatibility type that aliases Arduino `IPAddress` under `ARDUINO` and otherwise resolves to a small library-owned value type
+  - a compatibility stream type that aliases Arduino `Stream` under `ARDUINO` and otherwise resolves to a pure-abstract library interface exposing only used methods
+  - filesystem compatibility types that alias Arduino `fs::FS` and `fs::File` under `ARDUINO` and otherwise expose only the file-lookup and file-read operations the library uses
   - clock/time provider abstraction for timeout logic
 - update low-level headers to stop including `Arduino.h`
   - `core/Defines.h`
@@ -256,7 +367,7 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 #### Work
 
 - redesign `pipeline/NetClient.h` so the primary interfaces are platform-neutral
-- remove direct use of Arduino `IPAddress` from transport contracts
+- remove direct use of Arduino networking headers from transport contracts by routing them through the `IpAddress` compatibility type
 - extract a smaller transport abstraction directly into HttpServerAdvanced core or a new dedicated adapter-neutral package
 - provide Arduino adapter implementations that wrap Arduino client/server/UDP objects
 - keep the existing Arduino-oriented constructors as thin wrappers during transition
@@ -270,20 +381,36 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 
 #### Goals
 
-- remove `Stream` and `Print` from core response and body handling
+- remove direct Arduino header coupling from core response and body handling without changing the current stream semantics
 - preserve efficient streaming behavior for embedded targets
+- preserve the existing stream-oriented response pipeline via compatibility shims rather than replacing it wholesale
 
 #### Work
 
-- define minimal writer and reader interfaces for response emission and request-body consumption
-- refactor response body streams and helpers to target those interfaces
-- adapt Arduino `Stream` and `Print` in a dedicated compatibility layer
+- define a library compatibility stream type that aliases Arduino `Stream` when `ARDUINO` is defined and otherwise resolves to a pure-abstract library type
+- keep the non-Arduino stream interface limited to the methods the library already uses
+  - `available()`
+  - `read()`
+  - `peek()`
+  - `write(uint8_t)`
+  - `flush()`
+  - any additional methods only if an existing call site requires them
+- refactor response body streams and helpers to target that compatibility type while preserving the current `available/read/peek/write/flush` contract
+- only add a separate Arduino `Print` shim if direct `Print` usage is discovered during the migration
+- migrate or wrap existing stream-centric helpers rather than replacing them with an unrelated IO abstraction
+  - `streams/Streams.*`
+  - `response/HttpResponseBodyStream.*`
+  - `response/ChunkedHttpResponseBodyStream.*`
+  - response iterator stream composition
+  - static-file stream wrappers
 - ensure chunked and direct response paths still work with bounded memory use
 
 #### Acceptance Criteria
 
-- response and body streaming compile without Arduino IO headers in the core
-- Arduino stream support remains available through adapters
+- core response and body streaming compile without Arduino IO headers in the core
+- existing stream-oriented response composition still works through the compatibility stream type with minimal semantic change
+- Arduino builds use the real Arduino `Stream` type via aliasing rather than an extra wrapper layer
+- no separate `Print` abstraction is introduced unless a concrete direct dependency requires it
 
 ### Phase 6: Split optional integrations into feature adapters
 
@@ -298,7 +425,7 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 - isolate `ArduinoJson` support behind a feature adapter layer
 - treat `ArduinoJson` as a portable optional library rather than an inherently Arduino-only dependency
 - keep JSON-disabled builds as a first-class configuration
-- review static file serving for file-system assumptions and move Arduino FS-specific behavior behind adapters
+- review static file serving for file-system assumptions and move Arduino FS-specific behavior behind `FS` and `File` compatibility aliases or shims
 - remove TLS/HTTPS server code and related public API surface
   - delete `SecureHttpServer` and `SecureHttpServerConfig`
   - remove secure-server aliases and includes from umbrella headers
@@ -352,6 +479,8 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 - regressions in dependency boundaries fail fast
 
 ## Suggested PR Breakdown
+
+Detailed implementation tasks are tracked in [docs/backlogs/httpserveradvanced-decoupling-backlog.md](docs/backlogs/httpserveradvanced-decoupling-backlog.md).
 
 1. PlatformIO support for `HttpServerAdvanced`
 2. Arduino dependency inventory and target architecture document
