@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../compat/IpAddress.h"
 #include "../pipeline/HttpPipeline.h"
 #include "../pipeline/IPipelineHandler.h"
 #include "../pipeline/PipelineHandleClientResult.h"

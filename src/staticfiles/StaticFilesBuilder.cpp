@@ -1,5 +1,5 @@
 #include "StaticFilesBuilder.h"
-#include <FS.h>
+
 namespace HttpServerAdvanced
 {
     StaticFilesBuilder::StaticFilesBuilder(FS &fs, HttpServerAdvanced::HttpContentTypes &contentTypes, std::function<void(StaticFilesBuilder &)> setupFunc)
