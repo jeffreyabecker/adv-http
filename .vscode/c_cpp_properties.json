@@ -10,6 +10,8 @@
             "includePath": [
                 "C:/ode/pico-httpserveradvanced",
                 "C:/ode/pico-httpserveradvanced/.pio/libdeps/rpipicow/ArduinoJson/src",
+                "C:/ode/pico-httpserveradvanced/src",
+                "C:/ode/pico-httpserveradvanced/src/llhttp/include",
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040",
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040/api/deprecated",
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040/api/deprecated-avr-comp",
@@ -165,6 +167,8 @@
                 "path": [
                     "C:/ode/pico-httpserveradvanced",
                     "C:/ode/pico-httpserveradvanced/.pio/libdeps/rpipicow/ArduinoJson/src",
+                    "C:/ode/pico-httpserveradvanced/src",
+                    "C:/ode/pico-httpserveradvanced/src/llhttp/include",
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040",
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040/api/deprecated",
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040/api/deprecated-avr-comp",
