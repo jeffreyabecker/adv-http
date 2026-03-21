@@ -15,11 +15,11 @@ namespace HttpServerAdvanced
         const String &value = header.value();
 
         auto it = std::find_if(begin(), end(), [&](const HttpHeader &h)
-                               { return h.name().equalsIgnoreCase(name); });
+                               { return StringUtil::compareTo(h.nameView(), header.nameView(), true) == 0; });
 
         if (it != end())
         {
-            if (name.equalsIgnoreCase(HttpHeaderNames::SetCookie))
+            if (StringUtil::compareTo(header.nameView(), HttpHeaderNames::SetCookie, true) == 0)
             {
                 if (forceOverwrite)
                 {
@@ -39,7 +39,10 @@ namespace HttpServerAdvanced
                 }
                 else
                 {
-                    *it = HttpHeader(name, it->value() + "," + value);
+                    String mergedValue = it->value();
+                    mergedValue += ",";
+                    mergedValue += value;
+                    *it = HttpHeader(name, std::move(mergedValue));
                 }
             }
         }
@@ -58,14 +61,17 @@ namespace HttpServerAdvanced
     void HttpHeaderCollection::remove(const String &name)
     {
         erase(std::remove_if(begin(), end(), [&](const HttpHeader &h)
-                             { return h.name().equalsIgnoreCase(name); }),
+                             { return StringUtil::compareTo(h.nameView(), std::string_view(name.c_str(), name.length()), true) == 0; }),
               end());
     }
 
     void HttpHeaderCollection::remove(const String &name, const String &value)
     {
         erase(std::remove_if(begin(), end(), [&](const HttpHeader &h)
-                             { return h.name().equalsIgnoreCase(name) && h.value().equals(value); }),
+                             {
+                                 return StringUtil::compareTo(h.nameView(), std::string_view(name.c_str(), name.length()), true) == 0 &&
+                                        h.valueView() == std::string_view(value.c_str(), value.length());
+                             }),
               end());
     }
 } // namespace HttpServerAdvanced

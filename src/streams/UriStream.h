@@ -1,8 +1,10 @@
 #pragma once
 #include <Arduino.h>
+#include <string_view>
+
 #include "Streams.h"
 #include "Iterators.h"
-#include "../util/StringView.h"
+
 namespace HttpServerAdvanced
 {
     /**
@@ -62,21 +64,21 @@ namespace HttpServerAdvanced
     {
     private:
         static constexpr const char *ValueDelimiter = "=";
-        std::pair<StringView, StringView> pair_;
+        std::pair<std::string_view, std::string_view> pair_;
 
         virtual bool compareValue(const PairEncodingIterator &other) const override
         {
-            return pair_.first.equals(other.pair_.first) && pair_.second.equals(other.pair_.second);
+            return pair_.first == other.pair_.first && pair_.second == other.pair_.second;
         }
 
     public:
-        PairEncodingIterator(std::pair<StringView, StringView> pair, size_t index = 0, size_t maxIndex = 3)
+        PairEncodingIterator(std::pair<std::string_view, std::string_view> pair, size_t index = 0, size_t maxIndex = 3)
             : BoundedStreamIterable<PairEncodingIterator>(index, maxIndex), pair_(pair) {}
         virtual value_type getAt(size_t index) const override
         {
             if (index == 0)
             {
-                return std::make_unique<UriEncodingStream>(std::make_unique<OctetsStream>(pair_.first.c_str(), pair_.first.length()));
+                return std::make_unique<UriEncodingStream>(std::make_unique<OctetsStream>(pair_.first.data(), pair_.first.size()));
             }
             else if (index == 1)
             {
@@ -84,21 +86,21 @@ namespace HttpServerAdvanced
             }
             else if (index == 2)
             {
-                return std::make_unique<UriEncodingStream>(std::make_unique<OctetsStream>(pair_.second.c_str(), pair_.second.length()));
+                return std::make_unique<UriEncodingStream>(std::make_unique<OctetsStream>(pair_.second.data(), pair_.second.size()));
             }
             return nullptr;
         }
-        static PairEncodingIterator begin(std::pair<StringView, StringView> pair)
+        static PairEncodingIterator begin(std::pair<std::string_view, std::string_view> pair)
         {
-            size_t maxIndex = pair.second.isEmpty() ? 1 : 3;
+            size_t maxIndex = pair.second.empty() ? 1 : 3;
             return PairEncodingIterator(pair, 0, maxIndex);
         }
-        static PairEncodingIterator end(std::pair<StringView, StringView> pair)
+        static PairEncodingIterator end(std::pair<std::string_view, std::string_view> pair)
         {
-            size_t maxIndex = pair.second.isEmpty() ? 1 : 3;
+            size_t maxIndex = pair.second.empty() ? 1 : 3;
             return PairEncodingIterator(pair, maxIndex, maxIndex);
         }
-        static std::unique_ptr<ReadStream> createStream(std::pair<StringView, StringView> pair)
+        static std::unique_ptr<ReadStream> createStream(std::pair<std::string_view, std::string_view> pair)
         {
             return std::make_unique<IndefiniteConcatStream<PairEncodingIterator>>(begin(pair), end(pair));
         }
@@ -110,7 +112,7 @@ namespace HttpServerAdvanced
     {
     private:
         static constexpr const char *PairDelimiter = "&";
-        const std::vector<std::pair<StringView, StringView>> &pairs_;
+        const std::vector<std::pair<std::string_view, std::string_view>> &pairs_;
 
         virtual bool compareValue(const FormUrlEncodingIterator &other) const override
         {
@@ -140,14 +142,14 @@ namespace HttpServerAdvanced
         }
 
     public:
-        FormUrlEncodingIterator(const std::vector<std::pair<StringView, StringView>> &pairs, size_t index = 0)
+        FormUrlEncodingIterator(const std::vector<std::pair<std::string_view, std::string_view>> &pairs, size_t index = 0)
             : BoundedStreamIterable<FormUrlEncodingIterator>(index, pairs.size() * 2 - (pairs.empty() ? 0 : 1)), pairs_(pairs) {}
 
-        static FormUrlEncodingIterator begin(const std::vector<std::pair<StringView, StringView>> &pairs)
+        static FormUrlEncodingIterator begin(const std::vector<std::pair<std::string_view, std::string_view>> &pairs)
         {
             return FormUrlEncodingIterator(pairs, 0);
         }
-        static FormUrlEncodingIterator end(const std::vector<std::pair<StringView, StringView>> &pairs)
+        static FormUrlEncodingIterator end(const std::vector<std::pair<std::string_view, std::string_view>> &pairs)
         {
             return FormUrlEncodingIterator(pairs, pairs.size() * 2 - (pairs.empty() ? 0 : 1));
         }
@@ -158,28 +160,30 @@ namespace HttpServerAdvanced
     {
         private:
          std::vector<std::pair<String,String>> data_;
-         std::vector<std::pair<StringView,StringView>> viewData_;
-         static std::vector<std::pair<StringView,StringView>> toViewData(const std::vector<std::pair<String,String>> & data)
+         std::vector<std::pair<std::string_view,std::string_view>> viewData_;
+         static std::vector<std::pair<std::string_view,std::string_view>> toViewData(const std::vector<std::pair<String,String>> & data)
          {
-            std::vector<std::pair<StringView,StringView>> views;
+            std::vector<std::pair<std::string_view,std::string_view>> views;
             for (const auto & pair : data)
             {
-                views.emplace_back(StringView(pair.first), StringView(pair.second));
+                views.emplace_back(
+                    std::string_view(pair.first.c_str(), pair.first.length()),
+                    std::string_view(pair.second.c_str(), pair.second.length()));
             }
             return views;
          }
          size_t totalLength_;
          size_t position_;
-         static size_t calculateTotalLength(const std::vector<std::pair<StringView,StringView>> & viewData)
+         static size_t calculateTotalLength(const std::vector<std::pair<std::string_view,std::string_view>> & viewData)
          {
             size_t total = 0;
             for (const auto & pair : viewData)
             {
-                total += pair.first.length();
-                if (!pair.second.isEmpty())
+                total += pair.first.size();
+                if (!pair.second.empty())
                 {
                     total += 1; // '='
-                    total += pair.second.length();
+                    total += pair.second.size();
                 }
             }
             total += (viewData.size() > 1 ? (viewData.size() - 1) : 0); // '&' delimiters

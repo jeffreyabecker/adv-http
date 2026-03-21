@@ -1,47 +1,77 @@
 #include "HttpUtility.h"
-#include <optional>
-#include "HttpUtility.h"
+
+#include <Arduino.h>
+#include <string_view>
+
+#include "StringView.h"
 #include "../streams/Base64Stream.h"
 #include "../streams/Streams.h"
 #include "../streams/UriStream.h"
+
 namespace HttpServerAdvanced
 {
-
-    std::vector<std::pair<String, String>> WebUtility::ParseQueryString(const char *query, std::size_t length)
+    namespace
     {
-        std::vector<std::pair<String, String>> params;
+        std::vector<std::pair<String, String>> toArduinoQueryPairs(const WebUtility::QueryParameters &params)
+        {
+            std::vector<std::pair<String, String>> converted;
+            converted.reserve(params.pairs().size());
+            for (const auto &pair : params.pairs())
+            {
+                converted.emplace_back(String(pair.first.c_str()), String(pair.second.c_str()));
+            }
+            return converted;
+        }
+    }
+
+    WebUtility::QueryParameters WebUtility::ParseQueryParameters(const char *query, std::size_t length)
+    {
+        std::vector<QueryParameter> params;
+        if (query == nullptr || length == 0)
+        {
+            return QueryParameters(std::move(params));
+        }
+
         size_t pos = 0;
         while (pos < length)
         {
-            size_t amp_pos = StringUtil::indexOf(query, length, "&", 1, pos);
-            size_t eq_pos = StringUtil::indexOf(query, length, "=", 1, pos);
-            if (eq_pos == -1 || (amp_pos != -1 && amp_pos < eq_pos))
+            std::string_view remaining(query + pos, length - pos);
+            const size_t ampOffset = remaining.find('&');
+            const size_t eqOffset = remaining.find('=');
+            const bool hasAmp = ampOffset != std::string_view::npos;
+            const bool hasEq = eqOffset != std::string_view::npos;
+            const size_t ampPos = hasAmp ? pos + ampOffset : length;
+            if (!hasEq || (hasAmp && ampOffset < eqOffset))
             {
-                // No '=' found, or '&' comes before '='
-                String key = DecodeURIComponent(query + pos, (amp_pos == -1 ? length : amp_pos) - pos);
-                params.emplace_back(key, String());
+                params.emplace_back(DecodeURIComponentToString(query + pos, ampPos - pos), std::string());
             }
             else
             {
-                String key = DecodeURIComponent(query + pos, eq_pos - pos);
-                String value;
-                if (amp_pos == -1)
-                {
-                    value = DecodeURIComponent(query + eq_pos + 1, length - (eq_pos + 1));
-                }
-                else
-                {
-                    value = DecodeURIComponent(query + eq_pos + 1, amp_pos - (eq_pos + 1));
-                }
-                params.emplace_back(key, value);
+                const size_t eqPos = pos + eqOffset;
+                const size_t valueStart = eqPos + 1;
+                const size_t valueLength = ampPos > valueStart ? ampPos - valueStart : 0;
+                params.emplace_back(
+                    DecodeURIComponentToString(query + pos, eqPos - pos),
+                    DecodeURIComponentToString(query + valueStart, valueLength));
             }
-            if (amp_pos == -1)
+
+            if (!hasAmp)
             {
                 break;
             }
-            pos = amp_pos + 1;
+            pos = ampPos + 1;
         }
-        return params;
+        return QueryParameters(std::move(params));
+    }
+
+    WebUtility::QueryParameters WebUtility::ParseQueryParameters(std::string_view query)
+    {
+        return ParseQueryParameters(query.data(), query.size());
+    }
+
+    std::vector<std::pair<String, String>> WebUtility::ParseQueryString(const char *query, std::size_t length)
+    {
+        return toArduinoQueryPairs(ParseQueryParameters(query, length));
     }
 
     std::vector<std::pair<String, String>> WebUtility::ParseQueryString(const String &query)
@@ -52,6 +82,18 @@ namespace HttpServerAdvanced
     std::vector<std::pair<String, String>> WebUtility::ParseQueryString(const StringView &query)
     {
         return ParseQueryString(query.begin(), query.length());
+    }
+
+    std::string WebUtility::DecodeURIComponentToString(const char *str, std::size_t length)
+    {
+        UriDecodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
+        auto decoded = ReadAsVector(uriStream);
+        return std::string(decoded.begin(), decoded.end());
+    }
+
+    std::string WebUtility::DecodeURIComponentToString(std::string_view str)
+    {
+        return DecodeURIComponentToString(str.data(), str.size());
     }
 
     String WebUtility::DecodeURIComponent(const String &str)
@@ -66,14 +108,26 @@ namespace HttpServerAdvanced
 
     String WebUtility::DecodeURIComponent(const char *str, std::size_t length)
     {
-        UriDecodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
-        return ReadAsString(uriStream);
+        const std::string decoded = DecodeURIComponentToString(str, length);
+        return String(decoded.c_str());
+    }
+
+    std::string WebUtility::EncodeURIComponentToString(const char *str, std::size_t length)
+    {
+        UriEncodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
+        auto encoded = ReadAsVector(uriStream);
+        return std::string(encoded.begin(), encoded.end());
+    }
+
+    std::string WebUtility::EncodeURIComponentToString(std::string_view str)
+    {
+        return EncodeURIComponentToString(str.data(), str.size());
     }
 
     String WebUtility::EncodeURIComponent(const char *str, std::size_t length)
     {
-        UriEncodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
-        return ReadAsString(uriStream);
+        const std::string encoded = EncodeURIComponentToString(str, length);
+        return String(encoded.c_str());
     }
 
     String WebUtility::EncodeURIComponent(const String &str)

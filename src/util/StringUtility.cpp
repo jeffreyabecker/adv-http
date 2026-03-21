@@ -1,4 +1,6 @@
 #include "StringUtility.h"
+
+#include <Arduino.h>
 #include <algorithm>
 #include <cctype>
 
@@ -140,6 +142,31 @@ namespace HttpServerAdvanced
                 }
             }
             return -1;
+        }
+
+        int compareTo(std::string_view a, std::string_view b, bool ignoreCase)
+        {
+            return compareTo(a.data(), a.size(), b.data(), b.size(), ignoreCase);
+        }
+
+        bool startsWith(std::string_view haystack, std::string_view needle, bool ignoreCase)
+        {
+            return startsWith(haystack.data(), haystack.size(), needle.data(), needle.size(), ignoreCase);
+        }
+
+        bool endsWith(std::string_view haystack, std::string_view needle, bool ignoreCase)
+        {
+            return endsWith(haystack.data(), haystack.size(), needle.data(), needle.size(), ignoreCase);
+        }
+
+        std::ptrdiff_t indexOf(std::string_view haystack, std::string_view needle, size_t fromIndex, bool ignoreCase)
+        {
+            return indexOf(haystack.data(), haystack.size(), needle.data(), needle.size(), fromIndex, ignoreCase);
+        }
+
+        std::ptrdiff_t lastIndexOf(std::string_view haystack, std::string_view needle, size_t fromIndex, bool ignoreCase)
+        {
+            return lastIndexOf(haystack.data(), haystack.size(), needle.data(), needle.size(), fromIndex, ignoreCase);
         }
 
         int compareTo(const String& a, const String& b, bool ignoreCase)

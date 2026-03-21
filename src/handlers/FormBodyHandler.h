@@ -11,14 +11,14 @@ namespace HttpServerAdvanced
     class FormBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_FORM_BODY_LENGTH>
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, KeyValuePairView<String, String> &&)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, WebUtility::QueryParameters &&)> handler_;
         ExtractArgsFromRequest extractor_;
 
     public:
-        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, KeyValuePairView<String, String> &&)> handler, ExtractArgsFromRequest extractor)
+        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, KeyValuePairView<String, String> &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequest &context, std::vector<String> &&, KeyValuePairView<String, String> &&postData)
+        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](HttpRequest &context, std::vector<String> &&, WebUtility::QueryParameters &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
 
@@ -29,7 +29,7 @@ namespace HttpServerAdvanced
 class Form
     {
     public:
-        using PostBodyData = KeyValuePairView<String, String>;
+        using PostBodyData = WebUtility::QueryParameters;
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, PostBodyData &&)>;
         using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, PostBodyData &&)>;
 

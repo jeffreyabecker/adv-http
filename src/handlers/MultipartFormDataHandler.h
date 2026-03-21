@@ -227,7 +227,7 @@ namespace HttpServerAdvanced
     class Multipart
     {
     public:
-        using PostBodyData = KeyValuePairView<String, String>;
+        using PostBodyData = WebUtility::QueryParameters;
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, PostBodyData &&)>;
         using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, PostBodyData &&)>;
 
@@ -250,7 +250,7 @@ namespace HttpServerAdvanced
                 {
                     // Handler expects PostBodyData (KeyValuePairView), not MultipartFormDataBuffer
                     // For now, just invoke with empty PostBodyData - this API mismatch needs design review
-                    KeyValuePairView<String, String> postData;
+                    WebUtility::QueryParameters postData;
                     return handler(ctx, std::move(params), std::move(postData));
                 };
                 return std::make_unique<MultipartFormDataHandler>(wrappedHandler, ExtractArgsFromRequest([params](HttpRequest &c)

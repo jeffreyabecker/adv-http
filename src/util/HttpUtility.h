@@ -1,28 +1,41 @@
 #pragma once
-#include <Arduino.h>
-#include "StringUtility.h"
-#include "StringView.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
-#include <map>
-#include <initializer_list>
-#include <unordered_map>
-#include <algorithm>
-#include <optional>
+
+#include "KeyValuePairView.h"
+
+class String;
 
 namespace HttpServerAdvanced
 {
+    class StringView;
+
     class WebUtility
     {
-
     public:
+        using QueryParameter = std::pair<std::string, std::string>;
+        using QueryParameters = KeyValuePairView<std::string, std::string>;
+
+        static QueryParameters ParseQueryParameters(const char *query, std::size_t length);
+        static QueryParameters ParseQueryParameters(std::string_view query);
+
         static std::vector<std::pair<String, String>> ParseQueryString(const char *query, std::size_t length);
         static std::vector<std::pair<String, String>> ParseQueryString(const String &query);
         static std::vector<std::pair<String, String>> ParseQueryString(const StringView &query);
+
+        static std::string DecodeURIComponentToString(const char *str, std::size_t length);
+        static std::string DecodeURIComponentToString(std::string_view str);
         static String DecodeURIComponent(const String &str);
         static String DecodeURIComponent(const char *str, std::size_t length);
         static String DecodeURIComponent(const StringView &str);
 
-
+        static std::string EncodeURIComponentToString(const char *str, std::size_t length);
+        static std::string EncodeURIComponentToString(std::string_view str);
         static String EncodeURIComponent(const char *str, std::size_t length);
         static String EncodeURIComponent(const String &str);
         static String EncodeURIComponent(const StringView &str);

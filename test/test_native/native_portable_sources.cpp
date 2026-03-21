@@ -1,3 +1,7 @@
 #include "../../src/streams/Streams.cpp"
 #include "../../src/streams/Base64Stream.cpp"
+#include "../../src/streams/UriStream.cpp"
+#include "../../src/core/HttpHeaderCollection.cpp"
+#include "../../src/util/HttpUtility.cpp"
 #include "../../src/util/StringUtility.cpp"
+#include "../../src/util/UriView.cpp"

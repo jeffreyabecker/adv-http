@@ -1,46 +1,47 @@
 #pragma once
-#include <Arduino.h>
-#include <vector>
-#include <algorithm>
-#include <optional>
+
+#include <string>
+#include <string_view>
+
 #include "HttpUtility.h"
-#include "KeyValuePairView.h"
-#include "StringView.h"
+
+class String;
+
 namespace HttpServerAdvanced
 {
-
     class UriView
     {
     public:
-        UriView(const String &uri = "")
-            : uri_(uri)
-        {
-            parse();
-        }
-        UriView(const UriView &that)
-            : uri_(that.uri_), scheme_(that.scheme_), userinfo_(that.userinfo_), host_(that.host_), port_(that.port_), path_(that.path_), _query(that._query), queryView_(that.queryView_), fragment_(that.fragment_) {}
+        UriView();
+        explicit UriView(std::string uri);
+        explicit UriView(std::string_view uri);
+        explicit UriView(const char *uri);
+        explicit UriView(const String &uri);
+        UriView(const UriView &that);
+        UriView &operator=(const UriView &that);
 
-        const StringView &scheme() const { return scheme_; }
-        const StringView &userinfo() const { return userinfo_; }
-        const StringView &host() const { return host_; }
-        const StringView &port() const { return port_; }
-        const StringView &path() const { return path_; }
-        const StringView &query() const { return _query; }
-        const KeyValuePairView<String, String> &queryView() const { return queryView_; }
-        const StringView &fragment() const { return fragment_; }
+        std::string_view scheme() const { return scheme_; }
+        std::string_view userinfo() const { return userinfo_; }
+        std::string_view host() const { return host_; }
+        std::string_view port() const { return port_; }
+        std::string_view path() const { return path_; }
+        std::string_view query() const { return query_; }
+        const WebUtility::QueryParameters &queryView() const { return queryView_; }
+        std::string_view fragment() const { return fragment_; }
+        const std::string &uri() const { return uri_; }
 
     private:
-        String uri_;  // Store original URI for StringView lifetime
-        StringView scheme_;
-        StringView userinfo_;
-        StringView host_;
-        StringView port_;
-        StringView path_;
-        StringView _query;
-        KeyValuePairView<String, String> queryView_;
-        StringView fragment_;
+        std::string uri_;
+        std::string_view scheme_;
+        std::string_view userinfo_;
+        std::string_view host_;
+        std::string_view port_;
+        std::string_view path_;
+        std::string_view query_;
+        WebUtility::QueryParameters queryView_;
+        std::string_view fragment_;
 
         void parse();
     };
 
-} // namespace ExtendedHttp
+} // namespace HttpServerAdvanced

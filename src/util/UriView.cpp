@@ -1,97 +1,148 @@
 #include "UriView.h"
+
+#include <Arduino.h>
+
 #include "HttpUtility.h"
 
 namespace HttpServerAdvanced
 {
+    UriView::UriView()
+        : UriView(std::string())
+    {
+    }
+
+    UriView::UriView(std::string uri)
+        : uri_(std::move(uri))
+    {
+        parse();
+    }
+
+    UriView::UriView(std::string_view uri)
+        : UriView(std::string(uri))
+    {
+    }
+
+    UriView::UriView(const char *uri)
+        : UriView(uri == nullptr ? std::string() : std::string(uri))
+    {
+    }
+
+    UriView::UriView(const String &uri)
+        : UriView(std::string(uri.c_str(), uri.length()))
+    {
+    }
+
+    UriView::UriView(const UriView &that)
+        : uri_(that.uri_), queryView_(that.queryView_)
+    {
+        parse();
+    }
+
+    UriView &UriView::operator=(const UriView &that)
+    {
+        if (this != &that)
+        {
+            uri_ = that.uri_;
+            queryView_ = that.queryView_;
+            parse();
+        }
+        return *this;
+    }
+
     void UriView::parse()
     {
-        const char* data = uri_.c_str();
-        std::size_t pos = 0;
-        std::size_t len = uri_.length();
+        scheme_ = std::string_view();
+        userinfo_ = std::string_view();
+        host_ = std::string_view();
+        port_ = std::string_view();
+        path_ = std::string_view();
+        query_ = std::string_view();
+        queryView_ = WebUtility::QueryParameters();
+        fragment_ = std::string_view();
 
-        // Parse scheme
-        std::size_t scheme_end = uri_.indexOf(':');
-        std::size_t slashslash = uri_.indexOf("//");
-        if (scheme_end != -1 && (slashslash == -1 || scheme_end < slashslash))
+        const char *data = uri_.c_str();
+        const std::string_view uriView(uri_);
+        std::size_t pos = 0;
+        const std::size_t len = uriView.size();
+
+        const std::size_t schemeEnd = uriView.find(':');
+        const std::size_t slashslash = uriView.find("//");
+        if (schemeEnd != std::string_view::npos && (slashslash == std::string_view::npos || schemeEnd < slashslash))
         {
-            scheme_ = StringView(data, scheme_end);
-            pos = scheme_end + 1;
+            scheme_ = std::string_view(data, schemeEnd);
+            pos = schemeEnd + 1;
         }
 
-        // Parse authority (userinfo@host[:port])
-        if (pos + 2 <= len && uri_[pos] == '/' && uri_[pos + 1] == '/')
+        if (pos + 2 <= len && uriView[pos] == '/' && uriView[pos + 1] == '/')
         {
             pos += 2;
-            std::size_t authority_end = uri_.indexOf('/', pos);
-            std::size_t query_start = uri_.indexOf('?', pos);
-            std::size_t fragment_start = uri_.indexOf('#', pos);
+            const std::size_t authorityEnd = uriView.find('/', pos);
+            const std::size_t queryStart = uriView.find('?', pos);
+            const std::size_t fragmentStart = uriView.find('#', pos);
 
             std::size_t end = len;
-            if (authority_end != -1 && authority_end < end)
-                end = authority_end;
-            if (query_start != -1 && query_start < end)
-                end = query_start;
-            if (fragment_start != -1 && fragment_start < end)
-                end = fragment_start;
+            if (authorityEnd != std::string_view::npos && authorityEnd < end)
+                end = authorityEnd;
+            if (queryStart != std::string_view::npos && queryStart < end)
+                end = queryStart;
+            if (fragmentStart != std::string_view::npos && fragmentStart < end)
+                end = fragmentStart;
 
-            std::size_t at_pos = uri_.indexOf('@', pos);
+            const std::size_t atPos = uriView.find('@', pos);
             std::size_t hostport_start = pos;
-            if (at_pos != -1 && at_pos < end)
+            if (atPos != std::string_view::npos && atPos < end)
             {
-                userinfo_ = StringView(data + pos, at_pos - pos);
-                hostport_start = at_pos + 1;
+                userinfo_ = std::string_view(data + pos, atPos - pos);
+                hostport_start = atPos + 1;
             }
 
-            std::size_t hostport_end = end;
-            std::size_t port_sep = uri_.indexOf(':', hostport_start);
-            if (port_sep != -1 && port_sep < hostport_end)
+            const std::size_t hostportEnd = end;
+            const std::size_t portSep = uriView.find(':', hostport_start);
+            if (portSep != std::string_view::npos && portSep < hostportEnd)
             {
-                host_ = StringView(data + hostport_start, port_sep - hostport_start);
-                port_ = StringView(data + port_sep + 1, hostport_end - port_sep - 1);
+                host_ = std::string_view(data + hostport_start, portSep - hostport_start);
+                port_ = std::string_view(data + portSep + 1, hostportEnd - portSep - 1);
             }
             else
             {
-                host_ = StringView(data + hostport_start, hostport_end - hostport_start);
+                host_ = std::string_view(data + hostport_start, hostportEnd - hostport_start);
             }
             pos = end;
         }
 
-        // Parse path
-        if (pos < len && uri_[pos] == '/')
+        if (pos < len && uriView[pos] == '/')
         {
-            std::size_t path_end = uri_.indexOf('?', pos);
-            std::size_t fragment_start = uri_.indexOf('#', pos);
+            const std::size_t pathEnd = uriView.find('?', pos);
+            const std::size_t fragmentStart = uriView.find('#', pos);
             std::size_t end = len;
-            if (path_end != -1 && path_end < end)
-                end = path_end;
-            if (fragment_start != -1 && fragment_start < end)
-                end = fragment_start;
-            path_ = StringView(data + pos, end - pos);
+            if (pathEnd != std::string_view::npos && pathEnd < end)
+                end = pathEnd;
+            if (fragmentStart != std::string_view::npos && fragmentStart < end)
+                end = fragmentStart;
+            path_ = std::string_view(data + pos, end - pos);
             pos = end;
         }
 
-        // Parse query
-        if (pos < len && uri_[pos] == '?')
+        if (pos < len && uriView[pos] == '?')
         {
-            std::size_t query_end = uri_.indexOf('#', pos + 1);
-            if (query_end != -1)
+            const std::size_t queryEnd = uriView.find('#', pos + 1);
+            if (queryEnd != std::string_view::npos)
             {
-                _query = StringView(data + pos + 1, query_end - pos - 1);
-                queryView_ = KeyValuePairView<String, String>(WebUtility::ParseQueryString(_query.begin(), _query.length()));
-                pos = query_end;
+                query_ = std::string_view(data + pos + 1, queryEnd - pos - 1);
+                queryView_ = WebUtility::ParseQueryParameters(query_);
+                pos = queryEnd;
             }
             else
             {
-                _query = StringView(data + pos + 1, len - pos - 1);
-                queryView_ = KeyValuePairView<String, String>(WebUtility::ParseQueryString(_query.begin(), _query.length()));
+                query_ = std::string_view(data + pos + 1, len - pos - 1);
+                queryView_ = WebUtility::ParseQueryParameters(query_);
                 pos = len;
             }
         }
 
-        // Parse fragment
-        if (pos < len && uri_[pos] == '#')
+        if (pos < len && uriView[pos] == '#')
         {
-            fragment_ = StringView(data + pos + 1, len - pos - 1);
+            fragment_ = std::string_view(data + pos + 1, len - pos - 1);
         }
     }
 } // namespace HttpServerAdvanced

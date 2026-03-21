@@ -44,9 +44,52 @@ public:
         return value_.empty();
     }
 
+    char operator[](std::size_t index) const
+    {
+        return value_[index];
+    }
+
+    std::size_t indexOf(char value, std::size_t fromIndex = 0) const
+    {
+        const std::size_t result = value_.find(value, fromIndex);
+        return result == std::string::npos ? static_cast<std::size_t>(-1) : result;
+    }
+
+    std::size_t indexOf(const char *value, std::size_t fromIndex = 0) const
+    {
+        const std::size_t result = value_.find(value != nullptr ? value : "", fromIndex);
+        return result == std::string::npos ? static_cast<std::size_t>(-1) : result;
+    }
+
     void reserve(std::size_t size)
     {
         value_.reserve(size);
+    }
+
+    void toLowerCase()
+    {
+        for (char &ch : value_)
+        {
+            ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        }
+    }
+
+    void toUpperCase()
+    {
+        for (char &ch : value_)
+        {
+            ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+        }
+    }
+
+    std::string::const_iterator begin() const
+    {
+        return value_.begin();
+    }
+
+    std::string::const_iterator end() const
+    {
+        return value_.end();
     }
 
     String &operator+=(char value)
@@ -80,3 +123,7 @@ public:
 private:
     std::string value_;
 };
+
+#ifndef F
+#define F(x) x
+#endif

@@ -6,6 +6,7 @@
 #include <functional>
 #include <optional>
 #include <algorithm>
+#include <string_view>
 
 namespace HttpServerAdvanced
 {
@@ -145,9 +146,19 @@ namespace HttpServerAdvanced
       return name_;
     }
 
+    std::string_view nameView() const
+    {
+      return std::string_view(name_.c_str(), name_.length());
+    }
+
     const String &value() const
     {
       return value_;
+    }
+
+    std::string_view valueView() const
+    {
+      return std::string_view(value_.c_str(), value_.length());
     }
 
 #if __cpp_structured_bindings

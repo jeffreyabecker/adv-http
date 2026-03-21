@@ -1,9 +1,9 @@
 #pragma once
-#include <Arduino.h>
-#include <vector>
-#include <algorithm>
+
 #include <optional>
-#include "HttpUtility.h"
+#include <utility>
+#include <vector>
+
 namespace HttpServerAdvanced
 {
     template <typename TKey, typename TValue>
@@ -16,19 +16,23 @@ namespace HttpServerAdvanced
         KeyValuePairView() : pairs_() {}
         KeyValuePairView(const std::vector<std::pair<TKey, TValue>> &pairs)
             : pairs_(pairs) {}
+        KeyValuePairView(std::vector<std::pair<TKey, TValue>> &&pairs)
+            : pairs_(std::move(pairs)) {}
         KeyValuePairView(const KeyValuePairView &that) : pairs_(that.pairs_) {}
-        KeyValuePairView(KeyValuePairView &&that) : pairs_(std::move(that.pairs_)) {}
+        KeyValuePairView(KeyValuePairView &&that) noexcept : pairs_(std::move(that.pairs_)) {}
         KeyValuePairView &operator=(const KeyValuePairView &that)
         {
             pairs_ = that.pairs_;
             return *this;
         }
-        KeyValuePairView &operator=(KeyValuePairView &&that)
+        KeyValuePairView &operator=(KeyValuePairView &&that) noexcept
         {
             pairs_ = std::move(that.pairs_);
             return *this;
         }
-        virtual std::size_t exists(const TKey &key) const
+
+        template <typename TLookup>
+        std::size_t exists(const TLookup &key) const
         {
             std::size_t cnt = 0;
             for (const auto &kv : pairs_)
@@ -39,7 +43,8 @@ namespace HttpServerAdvanced
             return cnt;
         }
         // Gets the value for a key, or returns std::nullopt if not found
-        std::optional<TValue> get(const TKey &key) const
+        template <typename TLookup>
+        std::optional<TValue> get(const TLookup &key) const
         {
             for (const auto &kv : pairs_)
             {
@@ -48,7 +53,9 @@ namespace HttpServerAdvanced
             }
             return std::nullopt;
         }
-        std::vector<TValue> getAll(const TKey &key) const
+
+        template <typename TLookup>
+        std::vector<TValue> getAll(const TLookup &key) const
         {
             std::vector<TValue> values;
             for (const auto &kv : pairs_)

@@ -7,7 +7,7 @@ namespace HttpServerAdvanced
     IHttpHandler::HandlerResult FormBodyHandler::handleBody(HttpRequest &context, std::vector<uint8_t> &&body)
     {
         auto params = extractor_(context);
-        KeyValuePairView<String, String> postData = WebUtility::ParseQueryString(reinterpret_cast<const char *>(body.data()), body.size());
+        WebUtility::QueryParameters postData = WebUtility::ParseQueryParameters(reinterpret_cast<const char *>(body.data()), body.size());
         return handler_(context, std::move(params), std::move(postData));
     }
 

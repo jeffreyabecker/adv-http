@@ -15,7 +15,7 @@ Response loginHandler(HttpRequest &request, PostBodyData &&formData)
     
     if (username.has_value())
     {
-        response += "Username: " + username.value() + "\n";
+        response += "Username: " + String(username->c_str()) + "\n";
     }
     
     if (password.has_value())
@@ -24,8 +24,8 @@ Response loginHandler(HttpRequest &request, PostBodyData &&formData)
     }
     
     // Simple validation
-    if (username.has_value() && username.value() == "admin" && 
-        password.has_value() && password.value() == "password")
+    if (username.has_value() && username.value() == std::string("admin") && 
+        password.has_value() && password.value() == std::string("password"))
     {
         return StringResponse::create(HttpStatus::Ok(), "text/plain", "Login successful!");
     }
@@ -42,12 +42,12 @@ Response settingsHandler(HttpRequest &request, PostBodyData &&formData)
     
     if (brightness.has_value())
     {
-        response += "Brightness: " + brightness.value() + "\n";
+        response += "Brightness: " + String(brightness->c_str()) + "\n";
     }
     
     if (timeout.has_value())
     {
-        response += "Timeout: " + timeout.value() + "\n";
+        response += "Timeout: " + String(timeout->c_str()) + "\n";
     }
     
     return StringResponse::create(HttpStatus::Ok(), "text/plain", response);
@@ -66,7 +66,7 @@ void setup()
 
     auto handlers = server.cfg();
     
-    // Form handlers receive PostBodyData (KeyValuePairView)
+    // Form handlers receive PostBodyData backed by standard-text query parameters.
     handlers.on<Form>("/login", loginHandler);
     handlers.on<Form>("/settings", settingsHandler);
 

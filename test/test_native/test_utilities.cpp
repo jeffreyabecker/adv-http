@@ -1,8 +1,13 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
+#include <Arduino.h>
+#include <cstring>
 #include <unity.h>
 
+#include "../../src/util/HttpUtility.h"
 #include "../../src/util/StringUtility.h"
+#include "../../src/core/HttpHeaderCollection.h"
+#include "../../src/util/UriView.h"
 
 using namespace HttpServerAdvanced::StringUtil;
 
@@ -39,12 +44,80 @@ namespace
         TEST_ASSERT_TRUE(replaced == String("aaXaaX"));
     }
 
+    void test_string_utility_string_view_overloads()
+    {
+        const std::string_view haystack = "AlphaBetaGamma";
+        TEST_ASSERT_EQUAL_INT(0, compareTo(std::string_view("abc"), std::string_view("ABC"), true));
+        TEST_ASSERT_TRUE(startsWith(haystack, std::string_view("Alpha"), false));
+        TEST_ASSERT_TRUE(endsWith(haystack, std::string_view("Gamma"), false));
+        TEST_ASSERT_EQUAL_INT(5, indexOf(haystack, std::string_view("Beta"), 0, false));
+        TEST_ASSERT_EQUAL_INT(13, lastIndexOf(haystack, std::string_view("a"), haystack.size() - 1, true));
+    }
+
+    void test_parse_query_parameters_uses_std_string_payloads()
+    {
+        const auto params = HttpServerAdvanced::WebUtility::ParseQueryParameters("name=Jane+Doe&role=admin&empty", strlen("name=Jane+Doe&role=admin&empty"));
+
+        TEST_ASSERT_EQUAL_UINT32(3, static_cast<uint32_t>(params.pairs().size()));
+        const auto name = params.get("name");
+        TEST_ASSERT_TRUE(name.has_value());
+        TEST_ASSERT_EQUAL_STRING("Jane Doe", name->c_str());
+
+        const auto role = params.get(std::string("role"));
+        TEST_ASSERT_TRUE(role.has_value());
+        TEST_ASSERT_EQUAL_STRING("admin", role->c_str());
+
+        const auto empty = params.get("empty");
+        TEST_ASSERT_TRUE(empty.has_value());
+        TEST_ASSERT_TRUE(empty->empty());
+    }
+
+    void test_uri_view_exposes_string_view_segments_and_query_payload()
+    {
+        const HttpServerAdvanced::UriView uri("https://user@example.com:8443/path/to/resource?first=one&second=two#frag");
+
+        TEST_ASSERT_EQUAL_STRING("https", std::string(uri.scheme()).c_str());
+        TEST_ASSERT_EQUAL_STRING("user", std::string(uri.userinfo()).c_str());
+        TEST_ASSERT_EQUAL_STRING("example.com", std::string(uri.host()).c_str());
+        TEST_ASSERT_EQUAL_STRING("8443", std::string(uri.port()).c_str());
+        TEST_ASSERT_EQUAL_STRING("/path/to/resource", std::string(uri.path()).c_str());
+        TEST_ASSERT_EQUAL_STRING("first=one&second=two", std::string(uri.query()).c_str());
+        TEST_ASSERT_EQUAL_STRING("frag", std::string(uri.fragment()).c_str());
+
+        const auto first = uri.queryView().get("first");
+        TEST_ASSERT_TRUE(first.has_value());
+        TEST_ASSERT_EQUAL_STRING("one", first->c_str());
+    }
+
+    void test_header_collection_supports_string_view_lookups()
+    {
+        HttpServerAdvanced::HttpHeaderCollection headers;
+        headers.set("Content-Type", "application/json");
+        headers.set("X-Test", "first", false);
+        headers.set("X-Test", "second", false);
+
+        const auto contentType = headers.find(std::string_view("content-type"));
+        TEST_ASSERT_TRUE(contentType.has_value());
+        TEST_ASSERT_EQUAL_STRING("Content-Type", std::string(contentType->nameView()).c_str());
+        TEST_ASSERT_EQUAL_STRING("application/json", std::string(contentType->valueView()).c_str());
+
+        TEST_ASSERT_TRUE(headers.exists(std::string_view("x-test")));
+        TEST_ASSERT_TRUE(headers.exists(std::string_view("x-test"), std::string_view("first,second")));
+
+        headers.remove(std::string_view("content-type"));
+        TEST_ASSERT_FALSE(headers.exists(std::string_view("content-type")));
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
         RUN_TEST(test_compareTo_basic);
         RUN_TEST(test_starts_ends_index);
         RUN_TEST(test_replace);
+        RUN_TEST(test_string_utility_string_view_overloads);
+        RUN_TEST(test_parse_query_parameters_uses_std_string_payloads);
+        RUN_TEST(test_uri_view_exposes_string_view_segments_and_query_payload);
+        RUN_TEST(test_header_collection_supports_string_view_lookups);
         return UNITY_END();
     }
 }

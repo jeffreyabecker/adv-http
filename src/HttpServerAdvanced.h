@@ -62,6 +62,7 @@
 #include "staticfiles/StaticFilesBuilder.h"
 
 // Stream utilities
+#include "streams/ByteStream.h"
 #include "streams/Base64Stream.h"
 #include "streams/Iterators.h"
 #include "streams/Streams.h"
@@ -111,7 +112,7 @@ using HttpServerAdvanced::HttpStatus;
 using HttpServerAdvanced::IHttpResponse;
 using HttpServerAdvanced::StringResponse;
 
-using PostBodyData = HttpServerAdvanced::KeyValuePairView<String, String>;
+using PostBodyData = HttpServerAdvanced::WebUtility::QueryParameters;
 using HttpServerAdvanced::BasicAuth;
 using HttpServerAdvanced::CrossOriginRequestSharing;
 using HttpServerAdvanced::HandlerMatcher;

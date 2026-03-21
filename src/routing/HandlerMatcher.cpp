@@ -1,4 +1,8 @@
 #include "HandlerMatcher.h"
+
+#include <string>
+#include <string_view>
+
 #include "../core/HttpRequest.h"
 #include "../util/StringUtility.h"
 #include "../util/UriView.h"
@@ -44,11 +48,13 @@ namespace HttpServerAdvanced
         auto v = UriView(uri);
         auto path = v.path();
 
-        const char *t = path.begin();
+        const char *t = path.data();
+        const char *tEnd = t + path.size();
         const char *p = uriPattern.begin();
+        const char *pEnd = p + uriPattern.length();
         const char *star = nullptr;
         const char *ts = nullptr;
-        while (t != path.end() && p != uriPattern.end())
+        while (t != tEnd && p != pEnd)
         {
             if (*p == *t)
             {
@@ -71,9 +77,9 @@ namespace HttpServerAdvanced
                 return false;
             }
         }
-        while (*p == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
+        while (p != pEnd && *p == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
             ++p;
-        return !*p;
+        return p == pEnd;
     }
 
     std::vector<String> defaultExtractParameters(HttpRequest &context, const String &uriPattern)
@@ -86,11 +92,13 @@ namespace HttpServerAdvanced
             return params;
         }
 
-        const char *t = path.begin();
+        const char *t = path.data();
+        const char *tEnd = t + path.size();
         const char *p = uriPattern.begin();
+        const char *pEnd = p + uriPattern.length();
         String currentParam;
 
-        while (t != path.end() && p != uriPattern.end())
+        while (t != tEnd && p != pEnd)
         {
             if (*p == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
             {
@@ -99,9 +107,9 @@ namespace HttpServerAdvanced
                 ++p; // Move past the REQUEST_MATCHER_PATH_WILDCARD_CHAR
 
                 // Capture characters until we hit the next REQUEST_MATCHER_PATH_DELIMITER in pattern or end of text
-                while (t != path.end() && (*t != REQUEST_MATCHER_PATH_DELIMITER || (p != uriPattern.end() && *p != REQUEST_MATCHER_PATH_DELIMITER)))
+                while (t != tEnd && (*t != REQUEST_MATCHER_PATH_DELIMITER || (p != pEnd && *p != REQUEST_MATCHER_PATH_DELIMITER)))
                 {
-                    if (*p == REQUEST_MATCHER_PATH_DELIMITER && *t == REQUEST_MATCHER_PATH_DELIMITER)
+                    if (p != pEnd && *p == REQUEST_MATCHER_PATH_DELIMITER && *t == REQUEST_MATCHER_PATH_DELIMITER)
                     {
                         break;
                     }
@@ -134,11 +142,11 @@ namespace HttpServerAdvanced
         }
 
         // Handle trailing wildcards
-        while (*p == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
+        while (p != pEnd && *p == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
         {
             currentParam = String();
             ++p;
-            while (*t && *t != REQUEST_MATCHER_PATH_DELIMITER)
+            while (t != tEnd && *t != REQUEST_MATCHER_PATH_DELIMITER)
             {
                 currentParam += *t;
                 ++t;
@@ -147,7 +155,7 @@ namespace HttpServerAdvanced
             {
                 params.push_back(currentParam);
             }
-            if (*p == REQUEST_MATCHER_PATH_DELIMITER && *t == REQUEST_MATCHER_PATH_DELIMITER)
+            if (p != pEnd && t != tEnd && *p == REQUEST_MATCHER_PATH_DELIMITER && *t == REQUEST_MATCHER_PATH_DELIMITER)
             {
                 ++t;
                 ++p;

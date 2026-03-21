@@ -1,11 +1,13 @@
 2026-03-21 - Copilot: created detailed Phase 2 text and utility backlog.
 2026-03-21 - Copilot: reordered Phase 2 so URI and query parsing lands before `StringUtility` and `StringView` cleanup to reduce churn.
+2026-03-21 - Copilot: implemented the first URI/query parsing migration slice and validated it through the native PlatformIO test lane.
+2026-03-21 - Copilot: admitted `HttpHeaderCollection` into the native lane and added standard-text header lookup accessors while leaving header/request ownership migration open.
 
 # No-Arduino Phase 2 Text And Utility Backlog
 
 ## Summary
 
-This phase attacks the deepest and widest coupling point in the repository: Arduino `String` and the text utility stack built around it. The core request model, header collection, URI parsing helpers, handler parameter plumbing, and many response helpers currently assume Arduino-owned strings. The first move in this phase should be the URI and query parsing transition so that the dominant parser-facing ownership and view semantics settle early, compile pressure drops sooner, and later `StringUtility` and `StringView` cleanup can follow the stabilized URI/query model instead of causing extra churn. After that, the remaining goal is to move internal ownership to `std::string`, replace bespoke text helpers in `StringUtility` with STL algorithms or small standard-library-backed helpers, retire `StringView` in favor of STL view and ownership constructs, and leave Arduino-facing overloads only as transition or boundary adapters rather than the internal model.
+This phase attacks the deepest and widest coupling point in the repository: Arduino `String` and the text utility stack built around it. The core request model, header collection, URI parsing helpers, handler parameter plumbing, and many response helpers currently assume Arduino-owned strings. The first move in this phase should be the URI and query parsing transition so that the dominant parser-facing ownership and view semantics settle early, compile pressure drops sooner, and later `StringUtility` and `StringView` cleanup can follow the stabilized URI/query model instead of causing extra churn. That URI/query slice is now in place, and `HttpHeaderCollection` has been admitted into the native lane with `std::string_view`-friendly lookup semantics, but header and request ownership are still Arduino-backed. The remaining goal is to move internal ownership to `std::string`, replace bespoke text helpers in `StringUtility` with STL algorithms or small standard-library-backed helpers, retire `StringView` in favor of STL view and ownership constructs, and leave Arduino-facing overloads only as transition or boundary adapters rather than the internal model.
 
 ## Goal / Acceptance Criteria
 
@@ -27,12 +29,12 @@ This phase attacks the deepest and widest coupling point in the repository: Ardu
 
 ### URI And Query Parsing First
 
-- [ ] Refactor `src/util/UriView.h` and `src/util/UriView.cpp` so URI ownership is standard-library-based before broader `StringUtility` and `StringView` cleanup begins.
-- [ ] Replace `KeyValuePairView<String, String>` query storage with a standard-text equivalent or a compatibility typedef that no longer requires Arduino ownership in the core.
-- [ ] Refactor `src/util/HttpUtility.h` and `src/util/HttpUtility.cpp` query parsing and URI encoding helpers to use standard-string-based results internally and to stop depending on `StringUtility` or `StringView` as core infrastructure.
-- [ ] Replace `String`-returning utility implementations in URI and query paths with standard-string internal generation plus compatibility adapters only where public transitions still require them.
-- [ ] Keep any Arduino-facing borrowed-input overloads on `const char *` before reintroducing `String` convenience overloads.
-- [ ] Verify that the URI and query transition leaves the phase in a materially lower-churn state before broad `StringUtility` and `StringView` cleanup continues.
+- [x] Refactor `src/util/UriView.h` and `src/util/UriView.cpp` so URI ownership is standard-library-based before broader `StringUtility` and `StringView` cleanup begins.
+- [x] Replace `KeyValuePairView<String, String>` query storage with a standard-text equivalent or a compatibility typedef that no longer requires Arduino ownership in the core.
+- [x] Refactor `src/util/HttpUtility.h` and `src/util/HttpUtility.cpp` query parsing and URI encoding helpers to use standard-string-based results internally and to stop depending on `StringUtility` or `StringView` as core infrastructure.
+- [x] Replace `String`-returning utility implementations in URI and query paths with standard-string internal generation plus compatibility adapters only where public transitions still require them.
+- [x] Keep any Arduino-facing borrowed-input overloads on `const char *` before reintroducing `String` convenience overloads.
+- [x] Verify that the URI and query transition leaves the phase in a materially lower-churn state before broad `StringUtility` and `StringView` cleanup continues.
 
 ### `StringUtility` Refactor
 
@@ -75,9 +77,9 @@ This phase attacks the deepest and widest coupling point in the repository: Ardu
 
 ### Tests And Validation
 
-- [ ] Extend native utility tests to cover URI parsing first, then replacement string helpers and view semantics once the parsing transition is in place.
-- [ ] Add focused tests for case-insensitive compare, prefix/suffix search, replacement, URI query parsing, and decoded/encoded output equivalence.
-- [ ] Verify that the curated native source list can admit the first refactored URI/query utility files without dragging in Arduino headers, then broaden that admission as later text cleanup lands.
+- [x] Extend native utility tests to cover URI parsing first, then replacement string helpers and view semantics once the parsing transition is in place.
+- [x] Add focused tests for case-insensitive compare, prefix/suffix search, replacement, URI query parsing, and decoded/encoded output equivalence.
+- [x] Verify that the curated native source list can admit the first refactored URI/query utility files without dragging in Arduino headers, then broaden that admission as later text cleanup lands.
 
 ## Owner
 

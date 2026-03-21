@@ -1,6 +1,10 @@
 #pragma once
-#include <Arduino.h>
+
 #include <cstddef>
+#include <string>
+#include <string_view>
+
+class String;
 
 namespace HttpServerAdvanced
 {
@@ -17,6 +21,16 @@ namespace HttpServerAdvanced
         std::ptrdiff_t indexOf(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, size_t fromIndex = 0, bool ignoreCase = false);
 
         std::ptrdiff_t lastIndexOf(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, size_t fromIndex = 0, bool ignoreCase = false);
+
+        int compareTo(std::string_view a, std::string_view b, bool ignoreCase = false);
+
+        bool startsWith(std::string_view haystack, std::string_view needle, bool ignoreCase = false);
+
+        bool endsWith(std::string_view haystack, std::string_view needle, bool ignoreCase = false);
+
+        std::ptrdiff_t indexOf(std::string_view haystack, std::string_view needle, size_t fromIndex = 0, bool ignoreCase = false);
+
+        std::ptrdiff_t lastIndexOf(std::string_view haystack, std::string_view needle, size_t fromIndex = 0, bool ignoreCase = false);
 
         // Overloads for Arduino String
         int compareTo(const String& a, const String& b, bool ignoreCase);
