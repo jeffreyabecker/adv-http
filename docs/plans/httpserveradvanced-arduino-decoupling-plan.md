@@ -10,6 +10,8 @@ This is a large refactor. The work should be staged so that:
 - each phase leaves the library in a buildable state
 - new abstractions are proven by builds and tests before the next dependency class is removed
 
+Related plans: [Arduino other dependencies](docs/plans/httpserveradvanced-arduino-other-dependencies.md), [Stream replacement plan](docs/plans/httpserveradvanced-stream-replacement-plan.md), [Filesystem interface plan](docs/plans/httpserveradvanced-filesystem-interface-plan.md), [Testing refactor plan](docs/plans/httpserveradvanced-testing-refactor-plan.md).
+
 ## Constraints
 
 - Prefer `std::string` internally over Arduino `String`, except at Arduino-facing adapter boundaries.
@@ -94,45 +96,28 @@ HTTPS/TLS should be treated differently. For this library, HTTPS support is a ni
 
 ## Stream Compatibility Strategy
 
-The stream layer should be preserved semantically and shimmed, not redesigned into a completely different IO model.
+Detailed stream replacement planning is tracked separately in [docs/plans/httpserveradvanced-stream-replacement-plan.md](docs/plans/httpserveradvanced-stream-replacement-plan.md).
 
-### Working Assumption
+At the decoupling-plan level, the important decision is:
 
-- keep the current stream contract centered on `available()`, `read()`, `peek()`, `write(uint8_t)`, `flush()`, and end-of-stream behavior
-- avoid a broad rewrite of response composition, concatenation, chunking, buffering, and lazy stream creation
-- when `ARDUINO` is defined, alias the compatibility stream type directly to Arduino `Stream`
-- when `ARDUINO` is not defined, declare a pure-abstract stream type in the library namespace that exposes only the methods the library already uses
-- treat `Print` separately only if a concrete direct dependency is discovered during implementation
+- preserve the library's existing streaming architecture
+- replace Arduino `Stream` as the core abstraction with narrower library-owned byte-source and byte-sink contracts
+- keep Arduino `Stream` and `Print` usage at adapter boundaries only
+- migrate read-only response and transform types first, because they represent the dominant in-tree usage shape
 
-### Observed Usage Shape
-
-- response writing currently passes around `std::unique_ptr<Stream>` through the pipeline and response stack
-- internal helpers such as `ReadStream`, `OctetsStream`, `StringStream`, `ConcatStream`, and response body wrappers already model a library-specific streaming workflow
-- file serving currently wraps Arduino `File` as a `Stream`
-- no significant direct `Print`-typed API surface is evident in the current library code; write behavior appears to flow through `Stream`
-
-### Proposed Shim Layers
-
-1. Core compatibility stream type.
-  - define a single compatibility stream type in the library namespace
-  - if `ARDUINO` is defined, alias it directly to Arduino `Stream`
-  - otherwise provide a pure-abstract type that mirrors only the subset of `Stream` behavior the library already relies on
-2. Optional Arduino `Print` adapter, only if needed.
-  - if implementation work reveals concrete `Print`-only call sites, add a dedicated writer shim for them
-  - do not introduce a separate `Print` abstraction in the core unless direct usage actually requires it
-3. Internal stream type migration.
-  - retarget existing helpers like `ReadStream`, `ConcatStream`, `HttpResponseBodyStream`, and chunked response wrappers onto the compatibility stream type with minimal behavioral change
-  - preserve the current stream lifecycle and ownership model based on `std::unique_ptr`
+The dedicated stream plan defines the target interfaces, behavioral semantics, migration phases, and acceptance criteria for that work.
 
 ### Compatibility Guidance
 
 - prefer preserving current stream semantics over inventing a more general abstraction that would force widespread response-path churn
-- treat `Stream` compatibility as a type-aliasing problem first, not an adapter problem, when building under Arduino
-- treat `Print` compatibility as a follow-up question, because current evidence suggests the code depends on it only indirectly through `Stream`
+- treat readable byte production as the core abstraction, with Arduino `Stream` retained only through adapter layers where needed
+- treat `Print` as a follow-up adapter concern, because current evidence suggests the code depends on it only indirectly through `Stream`
 
 ## IPAddress and File-System Compatibility Strategy
 
 `IPAddress`, `FS`, and `File` should be handled with the same bias toward aliasing under Arduino and narrow shims elsewhere.
+
+See also: filesystem interface planning in [docs/plans/httpserveradvanced-filesystem-interface-plan.md].
 
 ### Working Assumption
 
@@ -381,36 +366,37 @@ This phase does not remove Arduino dependencies yet. It creates the build harnes
 
 #### Goals
 
-- remove direct Arduino header coupling from core response and body handling without changing the current stream semantics
+- remove direct Arduino header coupling from core response and body handling without changing the current streaming semantics
 - preserve efficient streaming behavior for embedded targets
-- preserve the existing stream-oriented response pipeline via compatibility shims rather than replacing it wholesale
+- preserve the existing pull-based response pipeline and transform-stream workflow rather than replacing it wholesale
 
 #### Work
 
-- define a library compatibility stream type that aliases Arduino `Stream` when `ARDUINO` is defined and otherwise resolves to a pure-abstract library type
-- keep the non-Arduino stream interface limited to the methods the library already uses
+- define a library-owned readable byte-source contract for pull-based response and transform streams
   - `available()`
   - `read()`
   - `peek()`
-  - `write(uint8_t)`
-  - `flush()`
-  - any additional methods only if an existing call site requires them
-- refactor response body streams and helpers to target that compatibility type while preserving the current `available/read/peek/write/flush` contract
-- only add a separate Arduino `Print` shim if direct `Print` usage is discovered during the migration
+- preserve the current meaning of ready, exhausted, and not-yet-finished stream states so chunked and lazy responses keep working the same way
+- define a separate narrow byte-sink contract only for code paths that actually write bytes outward
+- keep `IClient` as the primary network sink unless a later refactor shows a clear benefit in making it share the sink contract directly
+- refactor response body streams, wrappers, and iterators to target the readable byte-source contract rather than a full Arduino-shaped duplex `Stream`
 - migrate or wrap existing stream-centric helpers rather than replacing them with an unrelated IO abstraction
   - `streams/Streams.*`
   - `response/HttpResponseBodyStream.*`
   - `response/ChunkedHttpResponseBodyStream.*`
   - response iterator stream composition
   - static-file stream wrappers
+- isolate the few genuinely read-write cases such as memory streams so they do not dictate the base contract for the whole response stack
+- add Arduino adapter types for `Stream` and `Print` only where concrete boundary code still needs them
 - ensure chunked and direct response paths still work with bounded memory use
 
 #### Acceptance Criteria
 
 - core response and body streaming compile without Arduino IO headers in the core
-- existing stream-oriented response composition still works through the compatibility stream type with minimal semantic change
-- Arduino builds use the real Arduino `Stream` type via aliasing rather than an extra wrapper layer
-- no separate `Print` abstraction is introduced unless a concrete direct dependency requires it
+- existing response composition, concatenation, buffering, and chunking continue to work through the library-owned readable byte-source contract with minimal semantic change
+- the pipeline still drains response bytes incrementally into a fixed-size buffer and forwards them to the client transport
+- Arduino `Stream` and `Print` appear only in adapter code or Arduino-facing compatibility layers
+- no separate `Print` abstraction is introduced in the core unless a concrete direct dependency requires it
 
 ### Phase 6: Split optional integrations into feature adapters
 
@@ -490,6 +476,8 @@ Detailed implementation tasks are tracked in [docs/backlogs/httpserveradvanced-d
 6. Optional feature isolation: JSON, FS, and remove HTTPS/TLS support
 7. Public API compatibility cleanup
 8. CI and dependency-boundary enforcement
+
+Related plan documents: [httpserveradvanced-arduino-other-dependencies.md](docs/plans/httpserveradvanced-arduino-other-dependencies.md), [httpserveradvanced-stream-replacement-plan.md](docs/plans/httpserveradvanced-stream-replacement-plan.md), [httpserveradvanced-filesystem-interface-plan.md](docs/plans/httpserveradvanced-filesystem-interface-plan.md), [httpserveradvanced-testing-refactor-plan.md](docs/plans/httpserveradvanced-testing-refactor-plan.md).
 
 ## Risks
 
