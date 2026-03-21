@@ -1,0 +1,25 @@
+name: Native Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+      - name: Run native tests
+        run: pwsh -NoProfile -File tools/run_native_tests.ps1
+      - name: Check for accidental Arduino.h in core headers
+        run: |
+          set -e
+          # fail if Arduino.h is included in core src except compat and test folders
+          if grep -R --line-number "#include \"Arduino.h\"\|#include <Arduino.h>" src | grep -v "src/compat"; then
+            echo "Found Arduino.h in core sources";
+            exit 1;
+          fi
