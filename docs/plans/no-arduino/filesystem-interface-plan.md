@@ -78,7 +78,7 @@ Design notes:
 - `IFile` is used through `std::unique_ptr<IFile>` to express single ownership. This maps naturally to the static-file code which passes `File` objects by value but treats them as unique handles.
 - `read()` returns `-1` on EOF/error to mirror existing `Stream` semantics used in the codebase; `read(buffer,len)` returns number of bytes read or `-1` on unrecoverable error.
 - `available()` previously returned an `int` with overloaded meanings. The new `AvailableResult` separates readiness from quantity and reduces ambiguity.
-- If an underlying platform cannot provide an accurate available count, adapters should map best-effort to `TemporarilyUnavailable` (count 0) or to `HasBytes` with an approximation when possible. See `docs/plans/httpserveradvanced-stream-replacement-plan.md` for mapping rules.
+- If an underlying platform cannot provide an accurate available count, adapters should map best-effort to `TemporarilyUnavailable` (count 0) or to `HasBytes` with an approximation when possible. See `docs/plans/no-arduino/stream-replacement-plan.md` for mapping rules.
 - `size()` is used for `Content-Length`. If size is unknown, returning `0` is acceptable but should be documented.
 
 ## Adapter mapping

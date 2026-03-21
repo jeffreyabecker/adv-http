@@ -10,7 +10,7 @@ This is a large refactor. The work should be staged so that:
 - each phase leaves the library in a buildable state
 - new abstractions are proven by builds and tests before the next dependency class is removed
 
-Related plans: [Arduino other dependencies](docs/plans/httpserveradvanced-arduino-other-dependencies.md), [Stream replacement plan](docs/plans/httpserveradvanced-stream-replacement-plan.md), [Filesystem interface plan](docs/plans/httpserveradvanced-filesystem-interface-plan.md), [Testing refactor plan](docs/plans/httpserveradvanced-testing-refactor-plan.md).
+Related plans: [Arduino other dependencies](docs/plans/no-arduino/arduino-other-dependencies.md), [Stream replacement plan](docs/plans/no-arduino/stream-replacement-plan.md), [Filesystem interface plan](docs/plans/no-arduino/filesystem-interface-plan.md), [Testing refactor plan](docs/plans/no-arduino/testing-refactor-plan.md).
 
 ## Constraints
 
@@ -96,7 +96,7 @@ HTTPS/TLS should be treated differently. For this library, HTTPS support is a ni
 
 ## Stream Compatibility Strategy
 
-Detailed stream replacement planning is tracked separately in [docs/plans/httpserveradvanced-stream-replacement-plan.md](docs/plans/httpserveradvanced-stream-replacement-plan.md).
+Detailed stream replacement planning is tracked separately in [docs/plans/no-arduino/stream-replacement-plan.md](docs/plans/no-arduino/stream-replacement-plan.md).
 
 At the decoupling-plan level, the important decision is:
 
@@ -117,7 +117,7 @@ The dedicated stream plan defines the target interfaces, behavioral semantics, m
 
 `IPAddress`, `FS`, and `File` should be handled with the same bias toward aliasing under Arduino and narrow shims elsewhere.
 
-See also: filesystem interface planning in [docs/plans/httpserveradvanced-filesystem-interface-plan.md].
+See also: filesystem interface planning in [docs/plans/no-arduino/filesystem-interface-plan.md].
 
 ### Working Assumption
 
@@ -477,7 +477,7 @@ Detailed implementation tasks are tracked in [docs/backlogs/httpserveradvanced-d
 7. Public API compatibility cleanup
 8. CI and dependency-boundary enforcement
 
-Related plan documents: [httpserveradvanced-arduino-other-dependencies.md](docs/plans/httpserveradvanced-arduino-other-dependencies.md), [httpserveradvanced-stream-replacement-plan.md](docs/plans/httpserveradvanced-stream-replacement-plan.md), [httpserveradvanced-filesystem-interface-plan.md](docs/plans/httpserveradvanced-filesystem-interface-plan.md), [httpserveradvanced-testing-refactor-plan.md](docs/plans/httpserveradvanced-testing-refactor-plan.md).
+Related plan documents: [arduino-other-dependencies.md](docs/plans/no-arduino/arduino-other-dependencies.md), [stream-replacement-plan.md](docs/plans/no-arduino/stream-replacement-plan.md), [filesystem-interface-plan.md](docs/plans/no-arduino/filesystem-interface-plan.md), [testing-refactor-plan.md](docs/plans/no-arduino/testing-refactor-plan.md).
 
 ## Risks
 

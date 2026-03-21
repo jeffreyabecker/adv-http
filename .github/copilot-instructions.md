@@ -22,3 +22,13 @@ static constexpr <type> [CompilerConstant] = HTTPSERVER_ADVANCED_[COMPILER_CONST
 
 - Code should read/use the `static constexpr` variable (`[CompilerConstant]`) rather than the raw `HTTPSERVER_ADVANCED_*` macro, except where preprocessor logic is explicitly required (`#if`, `#ifdef`).
 - Keep macro names `UPPER_SNAKE_CASE` with `HTTPSERVER_ADVANCED_` prefix; keep constexpr names `PascalCase` or existing project style for constants.
+
+## Backlog / Task-List (concise)
+
+- Filenames: use a three-digit, zero-padded numeric prefix + short-hyphen-title + `-backlog.md`.
+- Pick the smallest unused numeric prefix in `docs/backlog/task-lists` when adding a new item.
+- Minimal template: Title, short Summary (2–4 sentences), Goal/Acceptance Criteria, Tasks (checklist), Owner, Priority, References.
+- Keep items focused; split large efforts into multiple backlog files.
+- When updating a backlog file, add a one-line changelog note (date + author) at the top.
+
+(For automation, run a quick directory listing to find the next free prefix.)
