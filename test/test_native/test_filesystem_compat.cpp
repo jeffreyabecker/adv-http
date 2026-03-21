@@ -1,3 +1,5 @@
+#include "../support/include/ConsolidatedNativeSuite.h"
+
 #include <unity.h>
 
 #include <Arduino.h>
@@ -9,14 +11,6 @@
 #include <utility>
 
 using namespace HttpServerAdvanced;
-
-void setUp()
-{
-}
-
-void tearDown()
-{
-}
 
 namespace
 {
@@ -77,6 +71,7 @@ namespace
             {
                 return -1;
             }
+
             return static_cast<uint8_t>(data_[readPos_++]);
         }
 
@@ -86,6 +81,7 @@ namespace
             {
                 return -1;
             }
+
             return static_cast<uint8_t>(data_[readPos_]);
         }
     };
@@ -105,6 +101,14 @@ namespace
             return File(std::make_shared<FakeFileImpl>(lastPath, "data", 1234));
         }
     };
+
+    void localSetUp()
+    {
+    }
+
+    void localTearDown()
+    {
+    }
 
     void test_default_file_is_invalid_and_safe()
     {
@@ -151,13 +155,22 @@ namespace
         TEST_ASSERT_EQUAL_STRING("/www/app.js", file.fullName());
         TEST_ASSERT_EQUAL_INT('d', file.read());
     }
+
+    int runUnitySuite()
+    {
+        UNITY_BEGIN();
+        RUN_TEST(test_default_file_is_invalid_and_safe);
+        RUN_TEST(test_file_wraps_copyable_value_handle_and_has_noop_write_surface);
+        RUN_TEST(test_fs_open_returns_file_by_value_and_accepts_string_like_paths);
+        return UNITY_END();
+    }
 }
 
-int main(int, char **)
+int run_test_filesystem_compat()
 {
-    UNITY_BEGIN();
-    RUN_TEST(test_default_file_is_invalid_and_safe);
-    RUN_TEST(test_file_wraps_copyable_value_handle_and_has_noop_write_surface);
-    RUN_TEST(test_fs_open_returns_file_by_value_and_accepts_string_like_paths);
-    return UNITY_END();
+    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+        "filesystem compat",
+        runUnitySuite,
+        localSetUp,
+        localTearDown);
 }

@@ -1,26 +1,25 @@
+#include "../support/include/ConsolidatedNativeSuite.h"
+
 #include <unity.h>
 
 #include "../../src/streams/Streams.h"
 #include "../../src/streams/Base64Stream.h"
-
-#include "../../src/streams/Streams.cpp"
-#include "../../src/streams/Base64Stream.cpp"
 
 #include <memory>
 #include <vector>
 
 using namespace HttpServerAdvanced;
 
-void setUp()
-{
-}
-
-void tearDown()
-{
-}
-
 namespace
 {
+    void localSetUp()
+    {
+    }
+
+    void localTearDown()
+    {
+    }
+
     void test_empty_read_stream_reports_end_of_stream()
     {
         EmptyReadStream stream;
@@ -158,20 +157,29 @@ namespace
 
         TEST_ASSERT_TRUE(result == String("Man"));
     }
+
+    int runUnitySuite()
+    {
+        UNITY_BEGIN();
+        RUN_TEST(test_empty_read_stream_reports_end_of_stream);
+        RUN_TEST(test_octets_stream_reads_and_peeks_without_consuming_peek);
+        RUN_TEST(test_lazy_stream_adapter_creates_stream_once);
+        RUN_TEST(test_non_owning_memory_stream_supports_read_write_and_compaction);
+        RUN_TEST(test_non_owning_memory_stream_exposes_bulk_write_overloads);
+        RUN_TEST(test_buffered_read_stream_wrapper_buffers_peek_and_read);
+        RUN_TEST(test_concat_stream_reads_all_children_in_order);
+        RUN_TEST(test_read_helpers_convert_stream_contents);
+        RUN_TEST(test_base64_encoder_stream_encodes_expected_output);
+        RUN_TEST(test_base64_decoder_stream_decodes_expected_output);
+        return UNITY_END();
+    }
 }
 
-int main(int, char **)
+int run_test_stream_utilities()
 {
-    UNITY_BEGIN();
-    RUN_TEST(test_empty_read_stream_reports_end_of_stream);
-    RUN_TEST(test_octets_stream_reads_and_peeks_without_consuming_peek);
-    RUN_TEST(test_lazy_stream_adapter_creates_stream_once);
-    RUN_TEST(test_non_owning_memory_stream_supports_read_write_and_compaction);
-    RUN_TEST(test_non_owning_memory_stream_exposes_bulk_write_overloads);
-    RUN_TEST(test_buffered_read_stream_wrapper_buffers_peek_and_read);
-    RUN_TEST(test_concat_stream_reads_all_children_in_order);
-    RUN_TEST(test_read_helpers_convert_stream_contents);
-    RUN_TEST(test_base64_encoder_stream_encodes_expected_output);
-    RUN_TEST(test_base64_decoder_stream_decodes_expected_output);
-    return UNITY_END();
+    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+        "stream utilities",
+        runUnitySuite,
+        localSetUp,
+        localTearDown);
 }
