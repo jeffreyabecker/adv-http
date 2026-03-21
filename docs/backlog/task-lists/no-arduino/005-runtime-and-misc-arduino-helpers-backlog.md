@@ -1,10 +1,11 @@
+2026-03-21 - Copilot: added a concrete header-only clock seam with system and manual clocks while leaving pipeline time migration open.
 2026-03-21 - Copilot: created detailed Phase 3 runtime and miscellaneous Arduino helpers backlog.
 
 # No-Arduino Phase 3 Runtime And Miscellaneous Arduino Helpers Backlog
 
 ## Summary
 
-This phase cleans up the Arduino runtime dependencies that are not the main transport, stream, or filesystem seams but still prevent a clean platform-neutral core. The current repository still calls `millis()` directly in the pipeline, uses `F()` macro literals in `HttpUtility.cpp`, and leaves example/runtime concerns such as `Serial` logging conceptually mixed into the broader Arduino-centric surface. The goal of this phase is to move timekeeping and any residual runtime helpers behind explicit seams and stop core code from depending on Arduino runtime macros or functions.
+This phase cleans up the Arduino runtime dependencies that are not the main transport, stream, or filesystem seams but still prevent a clean platform-neutral core. The current repository still calls `millis()` directly in the pipeline, uses `F()` macro literals in `HttpUtility.cpp`, and leaves example/runtime concerns such as `Serial` logging conceptually mixed into the broader Arduino-centric surface. The goal of this phase is to move timekeeping and any residual runtime helpers behind explicit seams and stop core code from depending on Arduino runtime macros or functions. A concrete clock seam now exists in `src/compat/Clock.h` with both system and manual implementations, but no production timeout path consumes it yet.
 
 ## Goal / Acceptance Criteria
 
@@ -17,10 +18,10 @@ This phase cleans up the Arduino runtime dependencies that are not the main tran
 
 ### Clock Seam Implementation
 
-- [ ] Replace the placeholder `src/compat/Clock.h` forward declaration with an actual compatibility interface or value-type API for time access.
-- [ ] Decide whether the clock seam is header-only or requires a `.cpp` implementation for host and Arduino backends.
-- [ ] Define the minimum operations needed by the pipeline and timeout logic, such as `nowMillis()` and any deterministic test hooks.
-- [ ] Ensure the chosen API is easy to fake in host-side tests without global mutable state.
+- [x] Replace the placeholder `src/compat/Clock.h` forward declaration with an actual compatibility interface or value-type API for time access.
+- [x] Decide whether the clock seam is header-only or requires a `.cpp` implementation for host and Arduino backends.
+- [x] Define the minimum operations needed by the pipeline and timeout logic, such as `nowMillis()` and any deterministic test hooks.
+- [x] Ensure the chosen API is easy to fake in host-side tests without global mutable state.
 
 ### Pipeline Time Migration
 

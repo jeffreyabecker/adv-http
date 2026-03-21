@@ -1,10 +1,11 @@
+2026-03-21 - Copilot: introduced byte-source and byte-sink contracts plus legacy Stream bridge adapters while leaving response-path migration open.
 2026-03-21 - Copilot: created detailed Phase 5 stream and response backlog.
 
 # No-Arduino Phase 5 Stream And Response Backlog
 
 ## Summary
 
-This phase is the architectural seam change for the response path. The repository currently models response production, transform layers, file-backed output, and pipeline response callbacks around `std::unique_ptr<Stream>`, with a compat fallback that still mirrors Arduino `Stream` semantics. The goal of this phase is to introduce library-owned read and write contracts, migrate the read-only response types first, and stop letting duplex Arduino inheritance shape the entire response pipeline.
+This phase is the architectural seam change for the response path. The repository currently models response production, transform layers, file-backed output, and pipeline response callbacks around `std::unique_ptr<Stream>`, with a compat fallback that still mirrors Arduino `Stream` semantics. The goal of this phase is to introduce library-owned read and write contracts, migrate the read-only response types first, and stop letting duplex Arduino inheritance shape the entire response pipeline. The initial contract layer now exists in `src/streams/ByteStream.h`, backed by explicit availability semantics and bridge adapters to the current compat `Stream`, but no response or pipeline type consumes it yet.
 
 ## Goal / Acceptance Criteria
 
@@ -23,11 +24,11 @@ This phase is the architectural seam change for the response path. The repositor
 
 ### Core Interface Introduction
 
-- [ ] Decide where the new byte-source and byte-sink contracts live, such as `src/streams/` or `src/compat/`.
-- [ ] Introduce the readable byte-source interface with explicit semantics for readable, exhausted, and temporarily unavailable states.
-- [ ] Introduce a narrow byte-sink interface only where write-side abstraction is actually needed.
-- [ ] Decide how `Availability.h` participates in the new contract and whether it becomes the canonical availability-result definition.
-- [ ] Add temporary bridge adapters between the new contracts and the existing compat `Stream` type.
+- [x] Decide where the new byte-source and byte-sink contracts live, such as `src/streams/` or `src/compat/`.
+- [x] Introduce the readable byte-source interface with explicit semantics for readable, exhausted, and temporarily unavailable states.
+- [x] Introduce a narrow byte-sink interface only where write-side abstraction is actually needed.
+- [x] Decide how `Availability.h` participates in the new contract and whether it becomes the canonical availability-result definition.
+- [x] Add temporary bridge adapters between the new contracts and the existing compat `Stream` type.
 
 ### Read-Only Stream Migration
 

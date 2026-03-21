@@ -1,3 +1,4 @@
+2026-03-21 - Copilot: landed initial Phase 3-5 seam scaffolding for clock, transport, and byte-stream contracts while leaving call-site migration open.
 2026-03-21 - Copilot: created new no-Arduino migration backlog from docs/plans/no-arduino/*.
 2026-03-21 - Copilot: split Phase 0 into a separate detailed backlog and marked the umbrella phase complete.
 
@@ -5,7 +6,7 @@
 
 ## Summary
 
-This backlog replaces the deleted de-arduinofication task list with a single implementation-oriented program backlog derived from the current planning set under `docs/plans/no-arduino/`. The goal is to move the HTTP core, parsing, routing, response streaming, and static-file paths onto platform-neutral C++17 interfaces while preserving Arduino support through thin compatibility adapters. The work is intentionally staged so the repository remains buildable during migration, native coverage can expand incrementally, and HTTPS/TLS removal plus optional-feature isolation are handled as explicit scope rather than incidental churn.
+This backlog replaces the deleted de-arduinofication task list with a single implementation-oriented program backlog derived from the current planning set under `docs/plans/no-arduino/`. The goal is to move the HTTP core, parsing, routing, response streaming, and static-file paths onto platform-neutral C++17 interfaces while preserving Arduino support through thin compatibility adapters. The work is intentionally staged so the repository remains buildable during migration, native coverage can expand incrementally, and HTTPS/TLS removal plus optional-feature isolation are handled as explicit scope rather than incidental churn. The initial text migration slice is in place, and the first runtime, transport, and stream seam headers now exist in-tree, but pipeline, server, response, and request-model call sites still need to move onto them.
 
 ## Goal / Acceptance Criteria
 

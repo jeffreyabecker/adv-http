@@ -1,10 +1,11 @@
+2026-03-21 - Copilot: split transport interfaces from Arduino-shaped wrappers and introduced a dedicated endpoint value type without migrating pipeline call sites yet.
 2026-03-21 - Copilot: created detailed Phase 4 transport boundary backlog.
 
 # No-Arduino Phase 4 Transport Boundary Backlog
 
 ## Summary
 
-This phase narrows the transport seam to the actual contracts the HTTP pipeline needs and removes Arduino-shaped wrapper behavior from the core-facing boundary. The repository already has `IClient` and `IServer`, but `NetClient.h` still mixes interface definitions with template wrappers over Arduino server/client classes and still exposes `IPAddress` directly in the contract. The goal of this phase is to keep the useful seam, remove the accidental Arduino-shaped design choices from it, and make the server and pipeline layers depend only on transport interfaces and library-owned endpoint types.
+This phase narrows the transport seam to the actual contracts the HTTP pipeline needs and removes Arduino-shaped wrapper behavior from the core-facing boundary. The repository already has `IClient` and `IServer`, but `NetClient.h` still mixes interface definitions with template wrappers over Arduino server/client classes and still exposes `IPAddress` directly in the contract. The goal of this phase is to keep the useful seam, remove the accidental Arduino-shaped design choices from it, and make the server and pipeline layers depend only on transport interfaces and library-owned endpoint types. The first seam split is now in place: pure transport contracts live separately from wrapper adapters, and `TransportEndpoint` exists as the initial library-owned endpoint carrier, but pipeline and server consumers still read through the legacy surface.
 
 ## Goal / Acceptance Criteria
 
@@ -24,17 +25,17 @@ This phase narrows the transport seam to the actual contracts the HTTP pipeline 
 
 ### Endpoint Type Cleanup
 
-- [ ] Decide whether transport endpoints should be represented by the existing compat `IpAddress` plus port pair or a dedicated endpoint struct.
+- [x] Decide whether transport endpoints should be represented by the existing compat `IpAddress` plus port pair or a dedicated endpoint struct.
 - [ ] Refactor `src/pipeline/IPipelineHandler.h` so address-setting APIs use the chosen library-owned endpoint representation.
 - [ ] Refactor `src/core/HttpRequest.h` to store the chosen endpoint representation without Arduino-specific leakage.
 - [ ] Update any server-facing APIs in `src/server/HttpServerBase.h` and `src/server/StandardHttpServer.h` that still directly expose `IPAddress` assumptions.
 
 ### `NetClient.h` Separation
 
-- [ ] Split pure interface definitions from generic wrapper implementations in `src/pipeline/NetClient.h`.
-- [ ] Remove or relocate `ClientImpl<T>` and `ServerImpl<T>` so they no longer define the shape of the core transport contract.
-- [ ] Preserve only the minimum abstraction that the pipeline and server layers actually require.
-- [ ] Decide whether Arduino wrapper implementations remain in-tree as adapters or move to a distinct adapter header under `src/compat/` or `src/server/`.
+- [x] Split pure interface definitions from generic wrapper implementations in `src/pipeline/NetClient.h`.
+- [x] Remove or relocate `ClientImpl<T>` and `ServerImpl<T>` so they no longer define the shape of the core transport contract.
+- [x] Preserve only the minimum abstraction that the pipeline and server layers actually require.
+- [x] Decide whether Arduino wrapper implementations remain in-tree as adapters or move to a distinct adapter header under `src/compat/` or `src/server/`.
 
 ### Pipeline And Server Integration
 
@@ -52,7 +53,7 @@ This phase narrows the transport seam to the actual contracts the HTTP pipeline 
 
 ### Adapter Strategy
 
-- [ ] Decide where Arduino client/server adapters live after the seam cleanup.
+- [x] Decide where Arduino client/server adapters live after the seam cleanup.
 - [ ] Define the minimum adapter responsibilities, including endpoint translation and timeout forwarding.
 - [ ] Ensure any remaining adapter hooks such as `configureConnection()` do not leak platform detail back into the core contract.
 
