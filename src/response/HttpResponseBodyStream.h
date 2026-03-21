@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include "../compat/Stream.h"
 #include <Arduino.h>
 #include "../streams/Streams.h"
 
@@ -12,6 +13,8 @@ namespace HttpServerAdvanced
     std::unique_ptr<Stream> innerStream_;
 
   public:
+    using ReadStream::write;
+
     HttpResponseBodyStream(std::unique_ptr<Stream> innerStream);
     HttpResponseBodyStream(const String &str) : HttpResponseBodyStream(std::make_unique<HttpServerAdvanced::StringStream>(str)) {}
     HttpResponseBodyStream(String &&str) : HttpResponseBodyStream(std::make_unique<HttpServerAdvanced::StringStream>(std::move(str))) {}

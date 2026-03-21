@@ -2,6 +2,7 @@
 #include <memory>
 #include <functional>
 
+#include "../compat/Stream.h"
 #include "../core/HttpTimeouts.h"
 #include "IPipelineHandler.h"
 #include "RequestParser.h"

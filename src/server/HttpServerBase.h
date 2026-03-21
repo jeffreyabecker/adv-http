@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../compat/IpAddress.h"
 #include "../pipeline/HttpPipeline.h"
 #include "../pipeline/IPipelineHandler.h"
 #include "../pipeline/PipelineHandleClientResult.h"
@@ -29,38 +30,7 @@ namespace HttpServerAdvanced
         HttpTimeouts &timeouts();
         void setTimeouts(const HttpTimeouts &timeouts);
 
-        // std::map<String, std::any> &items() const;
 
-        // bool hasService(const String &serviceName) const;
-        // HttpServerBase &use(std::function<void(HttpServerBase &)> setupFunc);
-
-        // template <typename T>
-        // T *getService(const String &serviceName) const
-        // {
-        //     auto it = items_.find(serviceName);
-        //     if (it != items_.end())
-        //     {
-        //         if (auto ptr = std::any_cast<T>(&it->second))
-        //         {
-        //             return ptr;
-        //         }
-        //     }
-        //     return nullptr;
-        // }
-        // void addService(HttpServerBase &server, const String &serviceName, std::any serviceInstance);
-        // template <typename TServiceInstance>
-        // void addServiceOnce(HttpServerBase &server, const String &serviceName, TServiceInstance serviceInstance)
-        // {
-        //     if (!server.hasService(serviceName))
-        //     {
-        //         addService(server, serviceName, std::forward<TServiceInstance>(serviceInstance));
-        //     }
-        // }
-        // template <typename TServiceInstance>
-        // void addService(HttpServerBase &server, const String &serviceName, TServiceInstance serviceInstance)
-        // {
-        //     items_[serviceName] = std::make_any<TServiceInstance>(serviceInstance);
-        // }
         void setPipelineHandlerFactory(std::function<PipelineHandlerPtr(HttpServerBase &)> factory);
 
         // Accessors for concurrent connection limits

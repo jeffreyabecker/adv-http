@@ -1,7 +1,7 @@
 #pragma once
+#include "../compat/FileSystem.h"
 #include <Arduino.h>
 
-#include <FS.h>
 #include "FileLocator.h"
 #include "../core/HttpContentTypes.h"
 #include "../response/HttpResponse.h"
@@ -23,6 +23,8 @@ namespace HttpServerAdvanced
             File file_;
 
         public:
+            using Stream::write;
+
             FileStreamWrapper(File file);
             virtual int available() override;
             virtual int read() override;

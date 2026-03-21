@@ -2,6 +2,7 @@
 // #pragma once
 
 // Core HTTP types and utilities
+#include "compat/Compat.h"
 #include "core/Buffer.h"
 #include "core/Defines.h"
 #include "core/HttpContentTypes.h"
@@ -79,6 +80,9 @@
 #include "server/WebServer.h"
 #include "server/WebServerBuilder.h"
 #include "server/WebServerConfig.h"
+#ifdef ARDUINO
+#include "server/WiFiHttpServer.h"
+#endif
 
 // Request handler factory
 #include "core/HttpRequestHandlerFactory.h"
@@ -120,5 +124,8 @@ using Uri = HttpServerAdvanced::HandlerMatcher;
 using HttpServerAdvanced::MultipartFormDataBuffer;
 using HttpServerAdvanced::MultipartStatus;
 using HttpServerAdvanced::RawBodyBuffer;
-using WebServer = HttpServerAdvanced::FriendlyWebServer<StandardHttpServer<>>;
 using HttpServerAdvanced::WebServerConfig;
+#ifdef ARDUINO
+using HttpServerAdvanced::WiFiHttpServer;
+using WebServer = HttpServerAdvanced::FriendlyWebServer<HttpServerAdvanced::WiFiHttpServer<>>;
+#endif

@@ -1,8 +1,8 @@
 #pragma once
 #include <Arduino.h>
 
+#include "../compat/FileSystem.h"
 #include "../server/WebServerBuilder.h"
-#include <FS.h>
 #include "../core/HttpContentTypes.h"
 #include "../routing/HandlerProviderRegistry.h"
 #include "StaticFileHandler.h"

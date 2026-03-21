@@ -1,14 +1,10 @@
-#pragma once    
-#include "StandardHttpServer.h"
+#pragma once
 #include "WebServerBuilder.h"
 #include "WebServerConfig.h"
 #include <type_traits>
 namespace HttpServerAdvanced
 {
-
-
-
-    template <typename THttpServer = StandardHttpServer<>, typename... Args>
+    template <typename THttpServer, typename... Args>
     class FriendlyWebServer : public THttpServer
     {
     private:

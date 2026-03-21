@@ -3,7 +3,7 @@
 namespace HttpServerAdvanced
 {
 
-    HttpHeaderCollection buildHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength)
+    static HttpHeaderCollection buildHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength)
     {
         HttpHeaderCollection headersCollection;
         for (const auto &header : headers)

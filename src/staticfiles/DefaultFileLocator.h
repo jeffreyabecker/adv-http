@@ -1,7 +1,7 @@
 #pragma once
+#include "../compat/FileSystem.h"
 #include <Arduino.h>
 
-#include <FS.h>
 #include "FileLocator.h"
 #include <functional>
 #include "../core/HttpRequest.h"

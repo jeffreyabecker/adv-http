@@ -1,20 +1,20 @@
 #pragma once
 
-#include <Arduino.h>
-#include <WiFi.h>
+#include "../compat/IpAddress.h"
 #include "HttpServerBase.h"
 
 namespace HttpServerAdvanced
 {
-    template <typename TServer = WiFiServer,  uint16_t DEFAULT_PORT = 80>
+    template <typename TServer, uint16_t DEFAULT_PORT = 80>
     class StandardHttpServer : public HttpServerAdvanced::HttpServerBase
     {
     protected:
+        IPAddress bindAddress_;
 
     public:
         static constexpr uint16_t DefaultPort = DEFAULT_PORT;
-        StandardHttpServer(uint16_t port = DefaultPort, const IPAddress &ip = IPAddress(IPADDR_ANY))
-            : server_(ip, port)
+        StandardHttpServer(uint16_t port = DefaultPort, const IPAddress &ip = IPAddress(HttpServerAdvanced::Compat::IpAddressAny))
+            : bindAddress_(ip), server_(ip, port)
         {
         }
 
@@ -33,7 +33,7 @@ namespace HttpServerAdvanced
         }
         virtual IPAddress localIP() const override
         {
-            return WiFi.localIP();
+            return bindAddress_;
         }
         virtual uint16_t localPort() const override
         {
