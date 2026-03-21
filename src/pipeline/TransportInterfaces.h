@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TransportEndpoint.h"
+#include "../compat/IpAddress.h"
 #include "../compat/Availability.h"
 #include "../core/Defines.h"
 
@@ -60,15 +60,6 @@ namespace HttpServerAdvanced
             return TemporarilyUnavailableResult();
         }
 
-        virtual TransportEndpoint remoteEndpoint()
-        {
-            return TransportEndpoint(remoteIP(), remotePort());
-        }
-
-        virtual TransportEndpoint localEndpoint()
-        {
-            return TransportEndpoint(localIP(), localPort());
-        }
     };
 
     class IServer
@@ -80,14 +71,10 @@ namespace HttpServerAdvanced
 
         IServer() = default;
 
-        explicit IServer(const TransportEndpoint &endpoint)
-        {
-            (void)endpoint;
-        }
-
         IServer(const IPAddress &ip, std::uint16_t port)
-            : IServer(TransportEndpoint(ip, port))
         {
+            (void)ip;
+            (void)port;
         }
 
         virtual std::unique_ptr<IClient> accept() = 0;
@@ -95,10 +82,5 @@ namespace HttpServerAdvanced
         virtual ConnectionStatus status() = 0;
         virtual std::uint16_t port() const = 0;
         virtual void end() = 0;
-
-        virtual TransportEndpoint localEndpoint() const
-        {
-            return TransportEndpoint(IPAddress(), port());
-        }
     };
 }

@@ -11,11 +11,6 @@ namespace HttpServerAdvanced
 {
     namespace Compat
     {
-#ifdef ARDUINO
-        using IpAddress = ::IPAddress;
-
-        static constexpr uint32_t IpAddressAny = IPADDR_ANY;
-#else
         class IpAddress
         {
         public:
@@ -35,19 +30,53 @@ namespace HttpServerAdvanced
             {
             }
 
+#ifdef ARDUINO
+            explicit IpAddress(const ::IPAddress &address)
+                : octets_{address[0], address[1], address[2], address[3]}
+            {
+            }
+#endif
+
             constexpr uint8_t operator[](std::size_t index) const
             {
                 return octets_[index];
             }
 
-            constexpr bool operator==(const IpAddress &other) const = default;
+            constexpr const std::array<uint8_t, 4> &octets() const
+            {
+                return octets_;
+            }
+
+            constexpr uint32_t toUint32() const
+            {
+                return (static_cast<uint32_t>(octets_[0]) << 24) |
+                       (static_cast<uint32_t>(octets_[1]) << 16) |
+                       (static_cast<uint32_t>(octets_[2]) << 8) |
+                       static_cast<uint32_t>(octets_[3]);
+            }
+
+#ifdef ARDUINO
+            operator ::IPAddress() const
+            {
+                return ::IPAddress(octets_[0], octets_[1], octets_[2], octets_[3]);
+            }
+#endif
+
+            constexpr bool operator==(const IpAddress &other) const
+            {
+                return octets_ == other.octets_;
+            }
+
+            constexpr bool operator!=(const IpAddress &other) const
+            {
+                return !(*this == other);
+            }
 
         private:
             std::array<uint8_t, 4> octets_{};
         };
 
         static constexpr uint32_t IpAddressAny = 0;
-#endif
     }
 
     using IPAddress = Compat::IpAddress;
