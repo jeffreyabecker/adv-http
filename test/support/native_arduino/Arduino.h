@@ -16,6 +16,7 @@ class String
 public:
     String() = default;
     String(const char *value) : value_(value != nullptr ? value : "") {}
+    String(const char *value, std::size_t length) : value_(value != nullptr ? std::string(value, length) : std::string()) {}
     String(const std::string &value) : value_(value) {}
     String(std::string &&value) noexcept : value_(std::move(value)) {}
     String(char value) : value_(1, value) {}
@@ -57,6 +58,12 @@ public:
     String &operator+=(const char *value)
     {
         value_ += (value != nullptr ? value : "");
+        return *this;
+    }
+
+    String &operator+=(const String &value)
+    {
+        value_ += value.value_;
         return *this;
     }
 
