@@ -2,9 +2,10 @@
 #include "WebServerBuilder.h"
 #include "WebServerConfig.h"
 #include <type_traits>
+#include <utility>
 namespace HttpServerAdvanced
 {
-    template <typename THttpServer, typename... Args>
+    template <typename THttpServer>
     class FriendlyWebServer : public THttpServer
     {
     private:
@@ -13,7 +14,9 @@ namespace HttpServerAdvanced
         WebServerConfig config_;
 
     public:
-        FriendlyWebServer(Args... args) : THttpServer(args...), builder_(*this), config_(*this, builder_)
+        template <typename... TArgs>
+        explicit FriendlyWebServer(TArgs &&...args)
+            : THttpServer(std::forward<TArgs>(args)...), builder_(*this), config_(*this, builder_)
         {
             static_assert(std::is_convertible_v<THttpServer*, HttpServerBase*>, "THttpServer must be convertible to HttpServerBase");
             builder_.init();

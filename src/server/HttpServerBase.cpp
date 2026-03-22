@@ -2,7 +2,10 @@
 
 namespace HttpServerAdvanced {
 
-HttpServerBase::HttpServerBase() : pipelineHandlerFactory_(nullptr), clock_(&Compat::DefaultClock()) {}
+HttpServerBase::HttpServerBase(std::unique_ptr<IServer> server)
+    : pipelineHandlerFactory_(nullptr), server_(std::move(server)), clock_(&Compat::DefaultClock()) {
+    assert(server_ && "HttpServerBase requires a valid transport server");
+}
 
 HttpServerBase::~HttpServerBase() {
     end();
@@ -16,7 +19,11 @@ void HttpServerBase::handleClient() {
 
     // Accept new connections up to the configured maximum
     while (pipelines_.size() < HttpServerAdvanced::MAX_CONCURRENT_CONNECTIONS) {
-        std::unique_ptr<IClient> accepted = accept();
+        if (!server_) {
+            return;
+        }
+
+        std::unique_ptr<IClient> accepted = server_->accept();
         if (!accepted) {
             break;
         }
@@ -37,11 +44,22 @@ void HttpServerBase::handleClient() {
 }
 
 void HttpServerBase::begin() {
+    if (!server_) {
+        return;
+    }
+
+    server_->begin();
 }
 
 void HttpServerBase::end() {
     // Close and drop all pipelines
     pipelines_.clear();
+
+    if (!server_) {
+        return;
+    }
+
+    server_->end();
 }
 
 HttpTimeouts &HttpServerBase::timeouts() {
@@ -58,6 +76,22 @@ void HttpServerBase::setClock(const Compat::Clock &clock) {
 
 const Compat::Clock &HttpServerBase::clock() const {
     return *clock_;
+}
+
+std::string_view HttpServerBase::localAddress() const {
+    if (!server_) {
+        return {};
+    }
+
+    return server_->localAddress();
+}
+
+uint16_t HttpServerBase::localPort() const {
+    if (!server_) {
+        return 0;
+    }
+
+    return server_->port();
 }
 
 // std::map<String, std::any> &HttpServerBase::items() const {

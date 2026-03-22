@@ -4,6 +4,7 @@
 #include "../pipeline/HttpPipeline.h"
 #include "../pipeline/IPipelineHandler.h"
 #include "../pipeline/PipelineHandleClientResult.h"
+#include "../pipeline/TransportInterfaces.h"
 #include "../core/HttpTimeouts.h"
 
 #include <memory>
@@ -20,7 +21,7 @@ namespace HttpServerAdvanced
     class HttpServerBase
     {
     public:
-        HttpServerBase();
+        explicit HttpServerBase(std::unique_ptr<IServer> server);
         virtual ~HttpServerBase();
 
         void handleClient();
@@ -40,18 +41,17 @@ namespace HttpServerAdvanced
         size_t activeConnections() const { return pipelines_.size(); }
         static constexpr size_t maxConcurrentConnections() { return MAX_CONCURRENT_CONNECTIONS; }
 
-        virtual std::string_view localAddress() const = 0;
-        virtual uint16_t localPort() const = 0;
+        virtual std::string_view localAddress() const;
+        virtual uint16_t localPort() const;
 
     protected:
         std::function<PipelineHandlerPtr(HttpServerBase &)> pipelineHandlerFactory_;
+        std::unique_ptr<IServer> server_;
         // Multiple concurrent pipelines (one per accepted client)
         std::vector<std::unique_ptr<HttpPipeline>> pipelines_;
         HttpTimeouts timeouts_;
         const Compat::Clock *clock_;
         mutable std::map<String, std::any> items_;
-
-        virtual std::unique_ptr<IClient> accept() = 0;
     };
 
 } // namespace HttpServerAdvanced

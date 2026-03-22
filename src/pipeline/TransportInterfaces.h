@@ -75,6 +75,7 @@ namespace HttpServerAdvanced
         virtual void begin() = 0;
         virtual ConnectionStatus status() = 0;
         virtual std::uint16_t port() const = 0;
+        virtual std::string_view localAddress() const = 0;
         virtual void end() = 0;
     };
 }

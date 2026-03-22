@@ -7,6 +7,13 @@
 - Avoid exceptions and RTTI-heavy patterns unless explicitly requested.
 - Do not use global mutable state when avoidable.
 
+## API Evolution
+
+- The library does not currently have a stable API. Prefer clean internal and public API improvements over preserving backward compatibility.
+- If an API, type, method, header, or behavior should be removed or changed, remove or change it entirely rather than keeping deprecated paths alive.
+- Do not add shim headers, compatibility wrappers, alias types, forwarding overloads, or compatibility helper functions solely to preserve older call sites.
+- Do not update examples to preserve or demonstrate transitional APIs unless explicitly requested.
+
 ## Compiler Constants and Macros
 
 - Prefer `static constexpr` constants in C++ code over direct macro usage whenever possible.

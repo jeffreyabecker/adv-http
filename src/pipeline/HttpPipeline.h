@@ -8,7 +8,7 @@
 #include "IPipelineHandler.h"
 #include "RequestParser.h"
 #include "PipelineHandleClientResult.h"
-#include "NetClient.h"
+#include "TransportInterfaces.h"
 
 #include "../llhttp/include/llhttp.h"
 #include <cstddef>

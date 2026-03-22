@@ -77,13 +77,9 @@
 
 // Server implementations
 #include "server/HttpServerBase.h"
-#include "server/StandardHttpServer.h"
 #include "server/WebServer.h"
 #include "server/WebServerBuilder.h"
 #include "server/WebServerConfig.h"
-#ifdef ARDUINO
-#include "server/WiFiHttpServer.h"
-#endif
 
 // Request handler factory
 #include "core/HttpRequestHandlerFactory.h"
@@ -91,7 +87,6 @@
 using HttpServerAdvanced::Form;
 using HttpServerAdvanced::GetRequest;
 using HttpServerAdvanced::RawBody;
-using HttpServerAdvanced::StandardHttpServer;
 using HttpServerAdvanced::WebServerBuilder;
 #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 using HttpServerAdvanced::Json;
@@ -126,7 +121,4 @@ using HttpServerAdvanced::MultipartFormDataBuffer;
 using HttpServerAdvanced::MultipartStatus;
 using HttpServerAdvanced::RawBodyBuffer;
 using HttpServerAdvanced::WebServerConfig;
-#ifdef ARDUINO
-using HttpServerAdvanced::WiFiHttpServer;
-using WebServer = HttpServerAdvanced::FriendlyWebServer<HttpServerAdvanced::WiFiHttpServer<>>;
-#endif
+using WebServer = HttpServerAdvanced::FriendlyWebServer<HttpServerAdvanced::HttpServerBase>;
