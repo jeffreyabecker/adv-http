@@ -191,30 +191,17 @@ These files are good early candidates because they are central and mostly librar
 - `core/HttpRequest.h`
 
 These files are likely better treated as compatibility layers until later phases because they are closer to user-facing Arduino ergonomics:
-
-- `response/StringResponse.*`
-- `response/FormResponse.*`
 - `routing/BasicAuthentication.h`
 - `routing/CrossOriginRequestSharing.h`
 - `routing/HandlerBuilder.*`
-- umbrella aliases in `HttpServerAdvanced.h`
-
-Within those compatibility-oriented surfaces, the preferred end state should still be Arduino-friendly APIs that accept `const char *` for borrowed text and reserve `String` for cases that genuinely need owned Arduino text.
 
 ## Migration Phases
 
-### Phase 1: Convert HttpServerAdvanced to PlatformIO-based builds
 
 This is the first step.
 
-#### Goals
-
 - give the library its own repeatable build entrypoint outside the top-level sketch
 - compile the library against a small board matrix using PlatformIO
-- make the build usable as a safety net for the later refactor phases
-
-#### Work
-
 - add top-level `platformio.ini`
 - add top-level `library.json`
 - define a minimal environment matrix matching currently relevant Arduino targets
@@ -224,79 +211,54 @@ This is the first step.
 - wire required dependencies explicitly
   - `ArduinoJson` when JSON features are enabled
   - any remaining local dependencies needed for examples/tests
-- make at least one small compile target for the library itself and one example-oriented target
-- document the commands used to build the library in isolation
 
 #### Acceptance Criteria
 
-- `HttpServerAdvanced` builds from its own directory through PlatformIO
 - the build does not require the root sketch to compile
 - at least one representative example builds through PlatformIO
 - the PlatformIO config is suitable for later CI use
 
 #### Notes
 
-This phase does not remove Arduino dependencies yet. It creates the build harness needed to remove them safely.
 
 ### Phase 2: Inventory Arduino dependencies and define migration seams
 
-#### Goals
 
 - enumerate exactly which Arduino concepts appear in the library
 - decide which ones belong in the core and which must move to adapters
 
-#### Work
 
 - produce a dependency inventory grouped by category
   - string and text APIs: `String`, string helpers, URI/query parsing
-  - network types: `IPAddress`, client/server/peer wrappers
   - IO types: `Stream`, `Print`, response/body streaming
   - runtime/time: timeout behavior and any required clock source abstractions
   - storage/FS: static file locators and Arduino FS assumptions
   - optional integrations: `ArduinoJson`, TLS/SSL, board-specific features
 - distinguish portable optional dependencies from Arduino-only ones
-  - `ArduinoJson` can remain a candidate core or cross-platform dependency because it does not require Arduino and supports standard-string-based usage
   - TLS/SSL should be classified for removal rather than adapter migration
   - board/FS-specific pieces still need separate adapter analysis
 - identify HTTPS/TLS removal scope explicitly
   - `SecureHttpServer`
-  - `SecureHttpServerConfig`
   - secure-server umbrella aliases and includes
   - HTTPS example and related docs
 - identify files that should become platform-neutral first
   - `core/`
-  - most of `util/`
   - large parts of `routing/`, `handlers/`, `response/`, and `pipeline/`
 - identify files that should remain platform adapters
   - Arduino server/client wrappers
   - Arduino stream wrappers
-  - Arduino IP address aliases or shims
   - Arduino filesystem aliases or shims
   - Arduino-specific examples and convenience aliases
 - produce a `String` inventory grouped by migration role
   - owned internal state that can move directly to `std::string`
   - non-owning views that should become `std::string_view`-style types
   - public Arduino compatibility surfaces that need overload-based shims
-  - genuinely Arduino-only text usage that should stay in adapters
-- identify Arduino-facing APIs that can be simplified from `String` parameters to `const char *`
-  - route configuration
-  - response helpers
   - auth and CORS convenience functions
   - other borrowed-input convenience APIs
 - identify high-churn signatures that should change only after compatibility shims exist
-  - `IPipelineHandler`
-  - `HttpRequest`
-  - `HttpHeader` and `HttpHeaderCollection`
-  - routing matcher and parameter extraction types
-- define the minimum non-Arduino surfaces for Arduino-specific compatibility types before implementation begins
-  - `Stream` and any direct `Print` usage, if discovered
-  - `IPAddress` usage across client, server, peer, and request interfaces
-  - `FS` and `File` usage across static-file serving and file-backed streaming
 
 #### Acceptance Criteria
 
-- every Arduino dependency has a destination strategy: keep, wrap, replace, or move
-- every `String` use is classified as internal ownership, internal view, compatibility boundary, or Arduino-only adapter code
 - HTTPS/TLS code paths are explicitly classified as removal scope instead of future core or adapter surface
 - a target package split is agreed before implementation begins
 

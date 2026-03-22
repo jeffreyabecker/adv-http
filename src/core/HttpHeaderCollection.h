@@ -5,25 +5,10 @@
 #include <algorithm>
 #include <string_view>
 #include "HttpHeader.h"
-#include "HttpHeaderCollection.h"
 #include "../util/StringUtility.h"
 
 namespace HttpServerAdvanced
 {
-  namespace HeaderCollectionDetail
-  {
-    inline String ToArduinoString(std::string_view value)
-    {
-      String result;
-      result.reserve(value.size());
-      for (char ch : value)
-      {
-        result += ch;
-      }
-      return result;
-    }
-  }
-
   class HttpHeaderCollection : public std::vector<HttpHeader>
   {
 
@@ -43,7 +28,7 @@ namespace HttpServerAdvanced
     {
       for (const auto &h : headers)
       {
-        set(h.first, h.second);
+        set(std::string_view(h.first.c_str(), h.first.length()), std::string_view(h.second.c_str(), h.second.length()));
       }
     }
 
@@ -52,7 +37,7 @@ namespace HttpServerAdvanced
     {
       for (const auto &h : headers)
       {
-        set(String(h.first), String(h.second));
+        set(std::string_view(h.first != nullptr ? h.first : ""), std::string_view(h.second != nullptr ? h.second : ""));
       }
     }
 
@@ -116,36 +101,43 @@ namespace HttpServerAdvanced
 
     void set(const char *name, const char *value, bool forceOverwrite = false)
     {
-      set(String(name), String(value), forceOverwrite);
+      set(std::string_view(name != nullptr ? name : ""), std::string_view(value != nullptr ? value : ""), forceOverwrite);
     }
 
     void set(std::string_view name, std::string_view value, bool forceOverwrite = false)
     {
-      set(HeaderCollectionDetail::ToArduinoString(name), HeaderCollectionDetail::ToArduinoString(value), forceOverwrite);
+      set(HttpHeader(name, value), forceOverwrite);
     }
 
     void remove(const String &name);
 
     void remove(const char *name)
     {
-      remove(String(name));
+      remove(std::string_view(name != nullptr ? name : ""));
     }
 
     void remove(std::string_view name)
     {
-      remove(HeaderCollectionDetail::ToArduinoString(name));
+      erase(std::remove_if(begin(), end(), [name](const HttpHeader &h)
+                           { return StringUtil::compareTo(h.nameView(), name, true) == 0; }),
+            end());
     }
 
     void remove(const String &name, const String &value);
 
     void remove(const char *name, const char *value)
     {
-      remove(String(name), String(value));
+      remove(std::string_view(name != nullptr ? name : ""), std::string_view(value != nullptr ? value : ""));
     }
 
     void remove(std::string_view name, std::string_view value)
     {
-      remove(HeaderCollectionDetail::ToArduinoString(name), HeaderCollectionDetail::ToArduinoString(value));
+      erase(std::remove_if(begin(), end(), [name, value](const HttpHeader &h)
+                           {
+                             return StringUtil::compareTo(h.nameView(), name, true) == 0 &&
+                                    h.valueView() == value;
+                           }),
+            end());
     }
   };
 

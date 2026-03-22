@@ -12,6 +12,9 @@
 #include "../util/UriView.h"
 #include "IHttpRequestHandlerFactory.h"
 
+#include <string>
+#include <string_view>
+
 namespace HttpServerAdvanced
 {   
 
@@ -31,15 +34,46 @@ namespace HttpServerAdvanced
         mutable std::map<String, std::any> items_;
 
         // Merged from HttpRequest
-        const char *method_;
-        String version_;
-        String url_;
+        std::string method_;
+        std::string version_;
+        std::string url_;
+        mutable String versionCache_;
+        mutable String urlCache_;
+        mutable bool versionCacheValid_ = false;
+        mutable bool urlCacheValid_ = false;
         HttpHeaderCollection headers_;
         IPAddress remoteIP_;
         uint16_t remotePort_;
         IPAddress localIP_;
         uint16_t localPort_;
         IHttpRequestHandlerFactory& handlerFactory_;
+
+        void invalidateTextCaches()
+        {
+            versionCacheValid_ = false;
+            urlCacheValid_ = false;
+            cachedUriView_.reset();
+        }
+
+        const String &versionAdapter() const
+        {
+            if (!versionCacheValid_)
+            {
+                versionCache_ = HttpHeaderDetail::ToArduinoString(version_);
+                versionCacheValid_ = true;
+            }
+            return versionCache_;
+        }
+
+        const String &urlAdapter() const
+        {
+            if (!urlCacheValid_)
+            {
+                urlCache_ = HttpHeaderDetail::ToArduinoString(url_);
+                urlCacheValid_ = true;
+            }
+            return urlCache_;
+        }
 
         IHttpHandler *tryGetHandler()
         {
@@ -84,9 +118,10 @@ namespace HttpServerAdvanced
         void sendResponse();
         virtual int onMessageBegin(const char *method, uint16_t versionMajor, uint16_t versionMinor, String &&url) override
         {
-            method_ = method;
-            version_ = String(versionMajor) + "." + String(versionMinor);
-            url_ = std::move(url);
+            method_ = method != nullptr ? method : "";
+            version_ = std::to_string(versionMajor) + "." + std::to_string(versionMinor);
+            url_ = std::string(url.c_str(), url.length());
+            invalidateTextCaches();
             completedStartingLine();
             return 0;
         }
@@ -138,7 +173,7 @@ namespace HttpServerAdvanced
         }
         HttpRequest(HttpServerAdvanced::HttpServerBase &server, IHttpRequestHandlerFactory& handlerFactory)
             : server_(server), handlerFactory_(handlerFactory), handler_(nullptr), completedPhases_(0),
-              method_(nullptr), version_(), url_(), headers_(),
+              method_(), version_(), url_(), headers_(),
               remoteIP_(), remotePort_(0), localIP_(), localPort_(0) {}
         mutable std::unique_ptr<UriView> cachedUriView_;
 
@@ -149,9 +184,12 @@ namespace HttpServerAdvanced
         inline HttpRequestPhaseFlags completedPhases() const { return completedPhases_; }
 
         // Merged accessor methods from HttpRequest
-        inline const String &version() const { return version_; }
-        inline const char *method() const { return method_; }
-        inline const String &url() const { return url_; }
+        inline const String &version() const { return versionAdapter(); }
+        inline std::string_view versionView() const { return std::string_view(version_.data(), version_.size()); }
+        inline const char *method() const { return method_.c_str(); }
+        inline std::string_view methodView() const { return std::string_view(method_.data(), method_.size()); }
+        inline const String &url() const { return urlAdapter(); }
+        inline std::string_view urlView() const { return std::string_view(url_.data(), url_.size()); }
         inline const HttpHeaderCollection &headers() const { return headers_; }
         inline IPAddress remoteIP() { return remoteIP_; }
         inline uint16_t remotePort() { return remotePort_; }

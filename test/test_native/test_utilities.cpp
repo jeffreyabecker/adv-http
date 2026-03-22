@@ -108,6 +108,16 @@ namespace
         TEST_ASSERT_FALSE(headers.exists(std::string_view("content-type")));
     }
 
+    void test_http_header_preserves_standard_text_storage_with_arduino_adapters()
+    {
+        const HttpServerAdvanced::HttpHeader header(std::string("X-Mode"), std::string("native"));
+
+        TEST_ASSERT_EQUAL_STRING("X-Mode", std::string(header.nameView()).c_str());
+        TEST_ASSERT_EQUAL_STRING("native", std::string(header.valueView()).c_str());
+        TEST_ASSERT_TRUE(header.name() == String("X-Mode"));
+        TEST_ASSERT_TRUE(header.value() == String("native"));
+    }
+
     void test_html_encode_preserves_expected_entities_without_progmem_helpers()
     {
         const String encoded = HttpServerAdvanced::WebUtility::HtmlEncode("<&>\"'", 5);
@@ -132,6 +142,7 @@ namespace
         RUN_TEST(test_parse_query_parameters_uses_std_string_payloads);
         RUN_TEST(test_uri_view_exposes_string_view_segments_and_query_payload);
         RUN_TEST(test_header_collection_supports_string_view_lookups);
+        RUN_TEST(test_http_header_preserves_standard_text_storage_with_arduino_adapters);
         RUN_TEST(test_html_encode_preserves_expected_entities_without_progmem_helpers);
         RUN_TEST(test_html_attribute_encode_preserves_expected_entities_without_progmem_helpers);
         return UNITY_END();

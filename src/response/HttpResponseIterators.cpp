@@ -1,7 +1,6 @@
 #include "HttpResponseIterators.h"
 #include "../core/HttpHeaderCollection.h"
 #include <ctime>
-#include <sys/time.h>
 #include <cstring>
 
 namespace HttpServerAdvanced
@@ -10,10 +9,12 @@ namespace HttpServerAdvanced
     {
         // This assumes the system time is correctly set using the NTP system
         struct tm tm_time;
-        struct timeval tv;
-        gettimeofday(&tv, nullptr);
-        time_t now = tv.tv_sec;
+        const time_t now = time(nullptr);
+    #ifdef _WIN32
+        gmtime_s(&tm_time, &now);
+    #else
         gmtime_r(&now, &tm_time);
+    #endif
 
         char buf[32];
         strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", &tm_time);

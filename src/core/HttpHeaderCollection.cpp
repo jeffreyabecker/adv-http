@@ -6,13 +6,13 @@ namespace HttpServerAdvanced
 {
     void HttpHeaderCollection::set(const HttpHeader &header, bool forceOverwrite)
     {
-        set(header.name(), header.value(), forceOverwrite);
+        set(header.nameView(), header.valueView(), forceOverwrite);
     }
 
     void HttpHeaderCollection::set(HttpHeader &&header, bool forceOverwrite)
     {
-        const String &name = header.name();
-        const String &value = header.value();
+        const std::string_view name = header.nameView();
+        const std::string_view value = header.valueView();
 
         auto it = std::find_if(begin(), end(), [&](const HttpHeader &h)
                                { return StringUtil::compareTo(h.nameView(), header.nameView(), true) == 0; });
@@ -39,9 +39,9 @@ namespace HttpServerAdvanced
                 }
                 else
                 {
-                    String mergedValue = it->value();
+                    std::string mergedValue(it->valueView());
                     mergedValue += ",";
-                    mergedValue += value;
+                    mergedValue.append(value.data(), value.size());
                     *it = HttpHeader(name, std::move(mergedValue));
                 }
             }
@@ -54,24 +54,16 @@ namespace HttpServerAdvanced
 
     void HttpHeaderCollection::set(const String &name, const String &value, bool forceOverwrite)
     {
-        HttpHeader header(name, value);
-        set(std::move(header), forceOverwrite);
+        set(std::string_view(name.c_str(), name.length()), std::string_view(value.c_str(), value.length()), forceOverwrite);
     }
 
     void HttpHeaderCollection::remove(const String &name)
     {
-        erase(std::remove_if(begin(), end(), [&](const HttpHeader &h)
-                             { return StringUtil::compareTo(h.nameView(), std::string_view(name.c_str(), name.length()), true) == 0; }),
-              end());
+        remove(std::string_view(name.c_str(), name.length()));
     }
 
     void HttpHeaderCollection::remove(const String &name, const String &value)
     {
-        erase(std::remove_if(begin(), end(), [&](const HttpHeader &h)
-                             {
-                                 return StringUtil::compareTo(h.nameView(), std::string_view(name.c_str(), name.length()), true) == 0 &&
-                                        h.valueView() == std::string_view(value.c_str(), value.length());
-                             }),
-              end());
+        remove(std::string_view(name.c_str(), name.length()), std::string_view(value.c_str(), value.length()));
     }
 } // namespace HttpServerAdvanced

@@ -120,6 +120,30 @@ public:
         return !(left == right);
     }
 
+    friend bool operator<(const String &left, const String &right)
+    {
+        return left.value_ < right.value_;
+    }
+
+    friend String operator+(String left, const String &right)
+    {
+        left += right;
+        return left;
+    }
+
+    friend String operator+(String left, const char *right)
+    {
+        left += right;
+        return left;
+    }
+
+    friend String operator+(const char *left, const String &right)
+    {
+        String result(left);
+        result += right;
+        return result;
+    }
+
 private:
     std::string value_;
 };

@@ -6,10 +6,28 @@
 #include <functional>
 #include <optional>
 #include <algorithm>
+#include <string>
 #include <string_view>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace HttpServerAdvanced
 {
+
+  namespace HttpHeaderDetail
+  {
+    inline String ToArduinoString(std::string_view value)
+    {
+      String result;
+      result.reserve(value.size());
+      for (char ch : value)
+      {
+        result += ch;
+      }
+      return result;
+    }
+  }
 
   struct HttpHeaderNames
   {
@@ -125,15 +143,22 @@ namespace HttpServerAdvanced
   class HttpHeader
   {
   private:
-    String name_;
-    String value_;
+    std::string name_;
+    std::string value_;
+    mutable String nameCache_;
+    mutable String valueCache_;
+    mutable bool nameCacheValid_ = false;
+    mutable bool valueCacheValid_ = false;
 
   public:
     HttpHeader() = default;
-    explicit HttpHeader(const String &name, const String &value) : name_(name), value_(value) {}
-    explicit HttpHeader(const char *name, const char *value) : name_(name), value_(value) {}
-    explicit HttpHeader(const char *name, String &&value) : name_(name), value_(std::move(value)) {}
-    explicit HttpHeader(const String &name, const char *value) : name_(name), value_(value) {}
+    explicit HttpHeader(std::string name, std::string value) : name_(std::move(name)), value_(std::move(value)) {}
+    explicit HttpHeader(std::string_view name, std::string_view value) : name_(name), value_(value) {}
+    explicit HttpHeader(std::string_view name, std::string value) : name_(name), value_(std::move(value)) {}
+    explicit HttpHeader(const String &name, const String &value) : name_(name.c_str(), name.length()), value_(value.c_str(), value.length()) {}
+    explicit HttpHeader(const char *name, const char *value) : name_(name != nullptr ? name : ""), value_(value != nullptr ? value : "") {}
+    explicit HttpHeader(const char *name, String &&value) : name_(name != nullptr ? name : ""), value_(value.c_str(), value.length()) {}
+    explicit HttpHeader(const String &name, const char *value) : name_(name.c_str(), name.length()), value_(value != nullptr ? value : "") {}
 
     ~HttpHeader() = default;
     HttpHeader(const HttpHeader &) = default;
@@ -143,22 +168,42 @@ namespace HttpServerAdvanced
 
     const String &name() const
     {
-      return name_;
+      if (!nameCacheValid_)
+      {
+        nameCache_ = HttpHeaderDetail::ToArduinoString(name_);
+        nameCacheValid_ = true;
+      }
+      return nameCache_;
     }
 
     std::string_view nameView() const
     {
-      return std::string_view(name_.c_str(), name_.length());
+      return std::string_view(name_.data(), name_.size());
     }
 
     const String &value() const
     {
-      return value_;
+      if (!valueCacheValid_)
+      {
+        valueCache_ = HttpHeaderDetail::ToArduinoString(value_);
+        valueCacheValid_ = true;
+      }
+      return valueCache_;
     }
 
     std::string_view valueView() const
     {
-      return std::string_view(value_.c_str(), value_.length());
+      return std::string_view(value_.data(), value_.size());
+    }
+
+    const std::string &nameStorage() const
+    {
+      return name_;
+    }
+
+    const std::string &valueStorage() const
+    {
+      return value_;
     }
 
 #if __cpp_structured_bindings

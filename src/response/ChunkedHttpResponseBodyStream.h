@@ -27,6 +27,7 @@ namespace HttpServerAdvanced
 
     State state_ = State::Header;
     size_t chunkRemaining_ = 0;       ///< bytes left in current body phase
+    bool currentChunkIsLast_ = false;
     char headerBuf_[12] = {};         ///< "XXXX\r\n" (max 8 hex digits + CRLF + NUL)
     size_t headerPos_ = 0;
     size_t headerLen_ = 0;

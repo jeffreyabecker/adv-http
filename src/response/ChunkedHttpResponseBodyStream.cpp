@@ -25,18 +25,20 @@ namespace HttpServerAdvanced
     {
         // Determine how many bytes we can promise from the inner stream (up to chunkDataSize_)
         const AvailableResult innerAvail = innerSource_->available();
-        if (innerAvail <= 0)
+        if (!innerAvail.hasBytes())
         {
             // No data or awaiting more; transition to final chunk if truly ended
             if (innerAvail.isExhausted())
             {
                 state_ = State::Final;
                 finalPos_ = 0;
+                currentChunkIsLast_ = false;
             }
             // If temporarily unavailable or errored, we stay in Header and available() will return -1.
             return;
         }
         chunkRemaining_ = std::min(innerAvail.count, chunkDataSize_);
+        currentChunkIsLast_ = innerAvail.count <= chunkDataSize_;
         headerLen_ = static_cast<size_t>(std::snprintf(headerBuf_, sizeof(headerBuf_), "%zx\r\n", chunkRemaining_));
         headerPos_ = 0;
         state_ = State::Header;
@@ -65,11 +67,11 @@ namespace HttpServerAdvanced
                 // Inner stream returned -1 (awaiting)
                 return -1;
             }
-            return static_cast<int>(headerLen_ - headerPos_);
+            return static_cast<int>((headerLen_ - headerPos_) + chunkRemaining_ + (sizeof(trailer_) - 1) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Body:
-            return static_cast<int>(chunkRemaining_);
+            return static_cast<int>(chunkRemaining_ + (sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Trailer:
-            return static_cast<int>(sizeof(trailer_) - 1 - trailerPos_);
+            return static_cast<int>((sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Final:
             return static_cast<int>(sizeof(finalChunk_) - 1 - finalPos_);
         case State::Done:

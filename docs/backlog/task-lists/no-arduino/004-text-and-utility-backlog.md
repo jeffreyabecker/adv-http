@@ -2,12 +2,13 @@
 2026-03-21 - Copilot: reordered Phase 2 so URI and query parsing lands before `StringUtility` and `StringView` cleanup to reduce churn.
 2026-03-21 - Copilot: implemented the first URI/query parsing migration slice and validated it through the native PlatformIO test lane.
 2026-03-21 - Copilot: admitted `HttpHeaderCollection` into the native lane and added standard-text header lookup accessors while leaving header/request ownership migration open.
+2026-03-21 - Copilot: moved `HttpHeader` and `HttpRequest` internal ownership to `std::string`, widened the native portable source list to cover the new slice, and fixed host-safe response-path regressions uncovered by that validation.
 
 # No-Arduino Phase 2 Text And Utility Backlog
 
 ## Summary
 
-This phase attacks the deepest and widest coupling point in the repository: Arduino `String` and the text utility stack built around it. The core request model, header collection, URI parsing helpers, handler parameter plumbing, and many response helpers currently assume Arduino-owned strings. The first move in this phase should be the URI and query parsing transition so that the dominant parser-facing ownership and view semantics settle early, compile pressure drops sooner, and later `StringUtility` and `StringView` cleanup can follow the stabilized URI/query model instead of causing extra churn. That URI/query slice is now in place, and `HttpHeaderCollection` has been admitted into the native lane with `std::string_view`-friendly lookup semantics, but header and request ownership are still Arduino-backed. The remaining goal is to move internal ownership to `std::string`, replace bespoke text helpers in `StringUtility` with STL algorithms or small standard-library-backed helpers, retire `StringView` in favor of STL view and ownership constructs, and leave Arduino-facing overloads only as transition or boundary adapters rather than the internal model.
+This phase attacks the deepest and widest coupling point in the repository: Arduino `String` and the text utility stack built around it. The core request model, header collection, URI parsing helpers, handler parameter plumbing, and many response helpers currently assume Arduino-owned strings. The first move in this phase should be the URI and query parsing transition so that the dominant parser-facing ownership and view semantics settle early, compile pressure drops sooner, and later `StringUtility` and `StringView` cleanup can follow the stabilized URI/query model instead of causing extra churn. That URI/query slice is now in place, `HttpHeaderCollection` has been admitted into the native lane with `std::string_view`-friendly lookup semantics, and the next core ownership slice has landed with `HttpHeader` and `HttpRequest` now storing text internally as `std::string` while keeping Arduino-facing adapters at the boundary. The remaining goal is to replace bespoke text helpers in `StringUtility` with STL algorithms or small standard-library-backed helpers, retire `StringView` in favor of STL view and ownership constructs, keep unwinding Arduino ownership from routing and handler plumbing, and leave Arduino-facing overloads only as transition or boundary adapters rather than the internal model.
 
 ## Goal / Acceptance Criteria
 
@@ -56,10 +57,10 @@ This phase attacks the deepest and widest coupling point in the repository: Ardu
 
 ### Core Request And Header Models
 
-- [ ] Refactor `src/core/HttpHeader.h` constructors, named factories, and storage so header name/value ownership is standard-library-based.
-- [ ] Update `src/core/HttpHeaderCollection.h` and `src/core/HttpHeaderCollection.cpp` to store and manipulate standard-text header data.
-- [ ] Refactor `src/core/HttpRequest.h` and `src/core/HttpRequest.cpp` so request URL, version, and parser-owned text state do not rely on Arduino `String` for ownership.
-- [ ] Audit any helper methods on `HttpRequest` that expose `String` today and split them into core-facing standard accessors plus compatibility adapters if needed.
+- [x] Refactor `src/core/HttpHeader.h` constructors, named factories, and storage so header name/value ownership is standard-library-based.
+- [x] Update `src/core/HttpHeaderCollection.h` and `src/core/HttpHeaderCollection.cpp` to store and manipulate standard-text header data.
+- [x] Refactor `src/core/HttpRequest.h` and `src/core/HttpRequest.cpp` so request URL, version, and parser-owned text state do not rely on Arduino `String` for ownership.
+- [x] Audit any helper methods on `HttpRequest` that expose `String` today and split them into core-facing standard accessors plus compatibility adapters if needed.
 - [ ] Remove direct `Arduino.h` includes from core text-model headers once their replacement types are in place.
 
 ### Handler And Routing Plumbing
