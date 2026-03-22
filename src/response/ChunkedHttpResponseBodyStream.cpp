@@ -8,17 +8,9 @@ namespace HttpServerAdvanced
     ChunkedHttpResponseBodyStream::ChunkedHttpResponseBodyStream(std::unique_ptr<IByteSource> innerSource)
         : HttpResponseBodyStream(std::move(innerSource)) {}
 
-    ChunkedHttpResponseBodyStream::ChunkedHttpResponseBodyStream(std::unique_ptr<Stream> innerStream)
-        : HttpResponseBodyStream(std::move(innerStream)) {}
-
     std::unique_ptr<HttpResponseBodyStream> ChunkedHttpResponseBodyStream::create(std::unique_ptr<IByteSource> innerSource)
     {
         return std::make_unique<ChunkedHttpResponseBodyStream>(std::move(innerSource));
-    }
-
-    std::unique_ptr<HttpResponseBodyStream> ChunkedHttpResponseBodyStream::create(std::unique_ptr<Stream> innerStream)
-    {
-        return std::make_unique<ChunkedHttpResponseBodyStream>(std::move(innerStream));
     }
 
     void ChunkedHttpResponseBodyStream::prepareHeader()
@@ -46,7 +38,8 @@ namespace HttpServerAdvanced
 
     int ChunkedHttpResponseBodyStream::peekInner() const
     {
-        return innerSource_->peek();
+        uint8_t buffer[1] = {};
+        return innerSource_->peek(buffer) == 0 ? -1 : buffer[0];
     }
 
     int ChunkedHttpResponseBodyStream::available()
@@ -137,7 +130,9 @@ namespace HttpServerAdvanced
             }
         case State::Body:
         {
-            int c = innerSource_->read();
+            uint8_t buffer[1] = {};
+            const size_t bytesRead = innerSource_->read(buffer);
+            int c = bytesRead == 0 ? -1 : buffer[0];
             if (c >= 0 && chunkRemaining_ > 0)
             {
                 --chunkRemaining_;

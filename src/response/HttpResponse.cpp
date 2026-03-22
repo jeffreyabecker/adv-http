@@ -9,13 +9,6 @@ namespace HttpServerAdvanced
     {
     }
 
-
-
-    HttpResponse::HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeaderCollection &&headers)
-        : HttpResponse(status, std::make_unique<OwningStreamByteSourceAdapter>(std::move(body)), std::move(headers))
-    {
-    }
-
     HttpStatus HttpResponse::status() const
     {
         return status_;

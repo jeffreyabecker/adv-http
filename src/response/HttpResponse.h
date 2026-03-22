@@ -26,7 +26,6 @@ namespace HttpServerAdvanced
 
   public:
     HttpResponse(HttpStatus status, std::unique_ptr<IByteSource> body, HttpHeaderCollection &&headers);
-    HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeaderCollection &&headers);
 
     ~HttpResponse() override = default;
 
