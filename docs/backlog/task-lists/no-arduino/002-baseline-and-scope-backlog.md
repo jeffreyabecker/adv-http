@@ -15,11 +15,11 @@ This backlog captures the Phase 0 work needed before implementation-heavy no-Ard
 
 ## Current Validated Baseline
 
-- `src/compat/` already exists and contains `Availability.h`, `Clock.h`, `Compat.h`, `FileSystem.h`, `IpAddress.h`, `PosixFileAdapter.h`, `Span.h`, `span.hpp`, and `Stream.h`.
+- `src/compat/` already exists and contains `Availability.h`, `Clock.h`, `Compat.h`, `FileSystem.h`, `PosixFileAdapter.h`, `Span.h`, `span.hpp`, and `Stream.h`.
 - `src/compat/Compat.h` establishes the intended rule that core headers should depend on compatibility headers instead of directly including Arduino headers.
 - `src/compat/Stream.h` already aliases Arduino `Stream` under `ARDUINO` and provides a minimal non-Arduino abstract fallback, but large parts of the core still include `Arduino.h` directly and still traffic in `std::unique_ptr<Stream>`.
 - `src/compat/FileSystem.h` already aliases `fs::File` and `fs::FS` under `ARDUINO` and provides a host fallback plus `PosixFileAdapter.h`, but the fallback still models `File` as a `Stream` subclass, which couples filesystem migration to the current stream abstraction.
-- `src/compat/IpAddress.h` already provides a non-Arduino `IpAddress` value type and Arduino alias, but the transport contract still exposes `IPAddress` directly.
+- The old compatibility-layer network address shim has been removed; transport contracts now rely on textual address accessors instead.
 - `src/compat/Clock.h` is only a forward declaration, so the time seam exists only as intent, not as an implemented abstraction.
 - `platformio.ini` already pulls in `platformio/common.ini`, `platformio/rp2040.ini`, `platformio/esp32.ini`, `platformio/esp8266.ini`, and `platformio/native.ini`.
 - `platformio/native.ini` already has a consolidated native test lane with `test_build_src = no`.
@@ -40,7 +40,7 @@ This backlog captures the Phase 0 work needed before implementation-heavy no-Ard
 
 - `Stream` should remain a compatibility seam during migration but be pushed to adapter boundaries once byte-source and byte-sink contracts exist.
 - `Print` should remain adapter-only and should not become a new core abstraction.
-- `IPAddress` should be replaced in public transport/core contracts by a library-owned endpoint or compatibility value type.
+- Public transport/core contracts should stay on textual address accessors rather than reintroducing a separate binary address compatibility value.
 - `FS` and `File` should remain compatibility seams during migration, with static-file serving eventually depending on a narrower filesystem contract.
 - Timing/clock access should move behind a concrete compatibility seam and stop calling `millis()` directly in core code.
 - Example logging and sketch runtime concerns should remain Arduino-facing adapters rather than core library behavior.
@@ -100,7 +100,7 @@ Reasoning:
 - [x] Verify that the clock seam is incomplete and currently only forward declared.
 - [x] Verify that the filesystem seam exists and that a POSIX adapter already exists for host builds.
 - [x] Verify that the stream seam exists but still mirrors Arduino `Stream` semantics directly.
-- [x] Verify that the transport seam already exposes `IClient` and `IServer` but still mixes in Arduino-oriented wrappers and `IPAddress`-typed endpoints.
+- [x] Verify that the transport seam already exposes `IClient` and `IServer` but still mixes in Arduino-oriented wrappers and legacy address-typed endpoints.
 - [x] Verify the current PlatformIO environment baseline for RP2040, ESP32, ESP8266, and native.
 - [x] Verify that the native lane is already consolidated at the runner level.
 - [x] Verify that the curated native production-source list is still limited and therefore does not yet exercise parser, pipeline, response, or routing layers.
@@ -149,7 +149,6 @@ High
 - `src/compat/Clock.h`
 - `src/compat/Stream.h`
 - `src/compat/FileSystem.h`
-- `src/compat/IpAddress.h`
 - `src/compat/PosixFileAdapter.h`
 - `src/pipeline/NetClient.h`
 - `src/pipeline/HttpPipeline.cpp`

@@ -112,7 +112,7 @@ class HttpRequest : public IPipelineHandler {
     const String& uri() const;
     const String& version() const;
     const HttpHeaderCollection& headers() const;
-    const IPAddress& remoteIP() const;
+    std::string_view remoteAddress() const;
     
     // Parsed URI components
     const UriView& uriView() const;
@@ -575,7 +575,7 @@ public:
     size_t activeConnections() const;
     static constexpr size_t maxConcurrentConnections();  // MAX_CONCURRENT_CONNECTIONS
     
-    virtual IPAddress localIP() const = 0;
+    virtual std::string_view localAddress() const = 0;
     virtual uint16_t localPort() const = 0;
 
 protected:
@@ -594,12 +594,12 @@ Template for plain HTTP servers:
 template <typename TServer = WiFiServer, uint16_t DEFAULT_PORT = 80>
 class StandardHttpServer : public HttpServerBase {
 public:
-    StandardHttpServer(uint16_t port = DEFAULT_PORT, const IPAddress& ip = IPADDR_ANY);
+    StandardHttpServer(uint16_t port = DEFAULT_PORT, std::string bindAddress = std::string());
     
     void begin() override;
     void end() override;
     
-    IPAddress localIP() const override;
+    std::string_view localAddress() const override;
     uint16_t localPort() const override;
 };
 ```
@@ -1082,7 +1082,7 @@ server.cfg().with([](HttpRequest& req, IHttpHandler::InvocationCallback next) {
 
 // Filter requests
 server.cfg().filterRequest([](HttpRequest& req) {
-    return req.remoteIP() != IPAddress(192, 168, 1, 100);  // Block IP
+    return req.remoteAddress() != "192.168.1.100";  // Block IP
 });
 
 // Modify all responses

@@ -27,7 +27,7 @@ The library currently depends directly on Arduino across most layers:
 
 - packaging is Arduino-library oriented via `library.properties`
 - many core and utility headers include `Arduino.h`
-- internal types use Arduino `String`, `IPAddress`, `Stream`, and Arduino-style client/server interfaces
+- internal types use Arduino `String`, Arduino networking value types, `Stream`, and Arduino-style client/server interfaces
 - optional JSON support is currently tied to `ArduinoJson`, but `ArduinoJson` itself is not Arduino-specific and can work with standard C++ strings
 - examples are sketch-first and Arduino-specific
 
@@ -42,7 +42,7 @@ The current `String` coupling is concentrated in a few important clusters:
 
 The stream story is more favorable than the string story. The response pipeline, response-body composition, and many helpers already revolve around `Stream`-shaped contracts such as `available()`, `read()`, `peek()`, `write(uint8_t)`, and `flush()`. Direct use of Arduino `Print` appears minimal to non-existent in library code, which suggests `Print` currently matters mostly through Arduino's `Stream` inheritance chain rather than through separate library-facing APIs.
 
-The other Arduino-specific APIs should follow the same general compatibility rule where practical: alias the real Arduino type when building under `ARDUINO`, and otherwise provide a minimal library-defined type or interface that exposes only the surface the current codebase already consumes. Based on current usage, that applies especially well to `IPAddress`, `FS`, and `File`.
+The other Arduino-specific APIs should follow the same general compatibility rule where practical: alias the real Arduino type when building under `ARDUINO`, and otherwise provide a minimal library-defined type or interface that exposes only the surface the current codebase already consumes. Based on current usage, that applies especially well to filesystem and file-handle abstractions.
 
 ## String Migration Strategy
 
@@ -113,25 +113,25 @@ The dedicated stream plan defines the target interfaces, behavioral semantics, m
 - treat readable byte production as the core abstraction, with Arduino `Stream` retained only through adapter layers where needed
 - treat `Print` as a follow-up adapter concern, because current evidence suggests the code depends on it only indirectly through `Stream`
 
-## IPAddress and File-System Compatibility Strategy
+## Transport Address and File-System Compatibility Strategy
 
-`IPAddress`, `FS`, and `File` should be handled with the same bias toward aliasing under Arduino and narrow shims elsewhere.
+Transport addresses, `FS`, and `File` should be handled with the same bias toward narrow adapter boundaries and minimal core exposure.
 
 See also: filesystem interface planning in [docs/plans/no-arduino/filesystem-interface-plan.md].
 
 ### Working Assumption
 
-- when `ARDUINO` is defined, alias compatibility types directly to Arduino `IPAddress`, `fs::FS`, and `fs::File`
+- when `ARDUINO` is defined, keep filesystem compatibility types aligned with Arduino `fs::FS` and `fs::File`
 - when `ARDUINO` is not defined, define only the smallest library-owned replacement surfaces required by current code
 - avoid speculative cross-platform wrappers that model more of the Arduino APIs than the library actually uses today
 - treat these as compatibility seams around transport and static-file serving, not as reasons to keep Arduino headers in the core
 
-### Observed `IPAddress` Usage Shape
+### Observed Transport Address Usage Shape
 
-- transport and request interfaces mainly pass, store, and return `IPAddress` by value or const reference
-- server setup currently relies on a bind-address default such as `IPAddress(IPADDR_ANY)`
-- client and peer abstractions use `IPAddress` for local and remote endpoint access, packet destinations, and multicast entrypoints
-- current library code does not appear to rely on richer Arduino `IPAddress` helpers such as parsing, string formatting, indexing, or mutation-heavy operations in the core HTTP stack
+- transport and request interfaces historically passed, stored, and returned an Arduino-shaped address value by value or const reference
+- server setup historically relied on a bind-address default rather than textual address ownership
+- client and peer abstractions historically used binary address values for local and remote endpoint access, packet destinations, and multicast entrypoints
+- current library code does not require richer Arduino-only address helpers in the core HTTP stack now that textual address seams are in place
 
 ### Observed `FS` and `File` Usage Shape
 
@@ -143,10 +143,10 @@ See also: filesystem interface planning in [docs/plans/no-arduino/filesystem-int
 
 ### Proposed Shim Layers
 
-1. `IpAddress` compatibility type.
-  - define one library compatibility type for IP addresses
-  - if `ARDUINO` is defined, alias it directly to Arduino `IPAddress`
-  - otherwise provide a small value type sufficient for endpoint transport and bind-address defaults
+1. Textual transport address seam.
+  - keep core transport and request/server contracts on owned text plus `std::string_view`
+  - perform any Arduino address conversions inside transport adapters only
+  - avoid reviving a dedicated compatibility address value unless a new in-tree consumer requires it
 2. `FS` and `File` compatibility types.
   - define one filesystem interface type and one file handle type in the library namespace
   - if `ARDUINO` is defined, alias them directly to Arduino `fs::FS` and `fs::File`
@@ -157,9 +157,6 @@ See also: filesystem interface planning in [docs/plans/no-arduino/filesystem-int
 
 ### Minimal Non-Arduino Surface To Preserve
 
-- `IpAddress`
-  - value semantics for storage, parameter passing, and return values
-  - a library-defined any-address default equivalent to current `IPADDR_ANY` usage
 - `FS`
   - `open(path, mode)` for read-oriented file lookup
 - `File`
@@ -172,7 +169,7 @@ See also: filesystem interface planning in [docs/plans/no-arduino/filesystem-int
 
 ### Compatibility Guidance
 
-- treat `IPAddress` as a narrow transport value type, not as a reason to keep Arduino networking headers in the HTTP core
+- treat transport addresses as textual adapter data, not as a reason to keep Arduino networking headers or binary address shims in the HTTP core
 - treat `FS` and `File` as static-file adapter concerns first, even if file-backed response streaming continues to share the stream compatibility layer
 - prefer aliasing over wrapper layering under Arduino so existing board behavior stays as close as possible to today's implementation
 - keep the non-Arduino shims intentionally incomplete until new use cases justify expanding them
@@ -274,7 +271,6 @@ This is the first step.
 - define core compatibility types in a dedicated namespace, for example:
   - direct `std::string` for owned text
   - `std::string_view` or a library wrapper backed by standard C++ string storage rules
-  - an `IpAddress` compatibility type that aliases Arduino `IPAddress` under `ARDUINO` and otherwise resolves to a small library-owned value type
   - a compatibility stream type that aliases Arduino `Stream` under `ARDUINO` and otherwise resolves to a pure-abstract library interface exposing only used methods
   - filesystem compatibility types that alias Arduino `fs::FS` and `fs::File` under `ARDUINO` and otherwise expose only the file-lookup and file-read operations the library uses
   - clock/time provider abstraction for timeout logic
@@ -314,7 +310,7 @@ This is the first step.
 #### Work
 
 - redesign `pipeline/NetClient.h` so the primary interfaces are platform-neutral
-- remove direct use of Arduino networking headers from transport contracts by routing them through the `IpAddress` compatibility type
+- remove direct use of Arduino networking headers from transport contracts by routing them through textual address adapters
 - extract a smaller transport abstraction directly into HttpServerAdvanced core or a new dedicated adapter-neutral package
 - provide Arduino adapter implementations that wrap Arduino client/server/UDP objects
 - keep the existing Arduino-oriented constructors as thin wrappers during transition

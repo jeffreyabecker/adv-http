@@ -17,7 +17,7 @@ Concrete implementation work remains a later step. This document defines the tar
 
 The stream dependency is deeper than the other Arduino seams.
 
-Unlike `IPAddress` or filesystem handles, `Stream` is not just a parameter or value type. It is one of the library's fundamental composition primitives:
+Unlike transport endpoint values or filesystem handles, `Stream` is not just a parameter or value type. It is one of the library's fundamental composition primitives:
 
 - response bodies are modeled as pull-based streams
 - transform layers such as chunking, concatenation, URI encoding and decoding, and base64 wrappers are expressed as stream adapters

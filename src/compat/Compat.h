@@ -2,7 +2,6 @@
 
 #include "Clock.h"
 #include "FileSystem.h"
-#include "IpAddress.h"
 #include "Stream.h"
 
 namespace HttpServerAdvanced

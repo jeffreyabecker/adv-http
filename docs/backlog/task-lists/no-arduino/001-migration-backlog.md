@@ -1,6 +1,6 @@
 2026-03-21 - Copilot: kept logging example-only via `examples/ExampleRuntime.h`, isolated shared `WifiSetup` serial or delay behavior under `examples/`, and closed the remaining Phase 3 logging-boundary tasks.
 2026-03-21 - Copilot: completed the first production time-seam migration, removed core `F()` literal usage from `HttpUtility.cpp`, and added native regression coverage for the clock seam and HTML encoders.
-2026-03-21 - Copilot: added explicit Phase 4 backlog items to replace `IPAddress` transport exposure with `std::string_view`-based address APIs backed by safe ownership.
+2026-03-21 - Copilot: added explicit Phase 4 backlog items to replace legacy transport address-value exposure with `std::string_view`-based address APIs backed by safe ownership.
 2026-03-21 - Copilot: landed initial Phase 3-5 seam scaffolding for clock, transport, and byte-stream contracts while leaving call-site migration open.
 2026-03-21 - Copilot: created new no-Arduino migration backlog from docs/plans/no-arduino/*.
 2026-03-21 - Copilot: split Phase 0 into a separate detailed backlog and marked the umbrella phase complete.
@@ -75,7 +75,7 @@ This backlog replaces the deleted de-arduinofication task list with a single imp
 - [ ] Reduce `pipeline/NetClient.h` to a platform-neutral transport contract using library-owned endpoint/value types and C++17 primitives.
 - [ ] Ensure `HttpPipeline` and server layers consume transport interfaces only, not Arduino networking classes.
 - [ ] Define the minimum transport address surface the core actually requires and route all address access through that seam.
-- [ ] Replace `IPAddress` exposure in transport and request/server contracts with `std::string_view`-based address accessors, while keeping ports as integer values.
+- [x] Replace legacy transport address-value exposure in transport and request/server contracts with `std::string_view`-based address accessors, while keeping ports as integer values.
 - [ ] Define the ownership model behind those `std::string_view` address accessors so views are backed by stable owned strings rather than temporary conversions.
 - [ ] Keep Arduino transport support as thin adapter implementations and constructors rather than core dependencies.
 - [ ] Document the implementer contract for any out-of-tree concrete transport implementation work and keep in-tree code interface-only where intended by the plan.

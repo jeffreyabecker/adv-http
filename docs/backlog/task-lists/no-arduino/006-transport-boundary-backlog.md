@@ -1,4 +1,10 @@
-2026-03-21 - Copilot: added explicit backlog items to replace `IPAddress` transport exposure with `std::string_view` address APIs and adapter-owned string backing.
+2026-03-22 - Copilot: removed the remaining compatibility-layer network address shim and deleted the old Arduino-style address type from the repo entirely.
+2026-03-22 - Copilot: documented that `connected()` is a boolean liveness gate that must remain true while unread buffered request bytes can still be drained, and updated the core interface return type from `std::uint8_t` to `bool`.
+2026-03-22 - Copilot: documented that `IClient` timeout setters/getters remain in the transport seam as implementation hints rather than moving behind a separate clock-driven timeout control surface.
+2026-03-22 - Copilot: removed the unused `IServer::status()` requirement and deleted `ConnectionStatus` from the core transport seam because neither had in-tree consumers.
+2026-03-22 - Copilot: removed the unused `IClient::status()` requirement from the core transport interface because it had no in-tree consumers.
+2026-03-22 - Copilot: documented that `accept()` must return `nullptr` immediately when no client is pending rather than blocking for a new connection.
+2026-03-21 - Copilot: added explicit backlog items to replace legacy transport address-value exposure with `std::string_view` address APIs and adapter-owned string backing.
 2026-03-21 - Copilot: dropped the `TransportEndpoint` detour and pivoted the seam toward a library-owned IP value type while preserving old-style IP-plus-port APIs.
 2026-03-21 - Copilot: split transport interfaces from Arduino-shaped wrappers and introduced a dedicated endpoint value type without migrating pipeline call sites yet.
 2026-03-21 - Copilot: created detailed Phase 4 transport boundary backlog.
@@ -8,11 +14,11 @@
 
 ## Summary
 
-This phase narrows the transport seam to the actual contracts the HTTP pipeline needs and removes Arduino-shaped wrapper behavior from the core-facing boundary. The repository already has `IClient` and `IServer`, but `NetClient.h` previously mixed interface definitions with template wrappers over Arduino server/client classes and exposed `IPAddress` directly in the contract. The goal of this phase is to keep the useful seam, remove the accidental Arduino-shaped design choices from it, and make the server and pipeline layers depend only on transport interfaces plus library-owned textual address state. The seam split is now in place, and the next address correction has landed: the core contracts now expose `std::string_view` address accessors backed by owned adapter or request storage, while Arduino `::IPAddress` is restricted to adapter-facing conversion points.
+This phase narrows the transport seam to the actual contracts the HTTP pipeline needs and removes Arduino-shaped wrapper behavior from the core-facing boundary. The repository already has `IClient` and `IServer`, but `NetClient.h` previously mixed interface definitions with template wrappers over Arduino server/client classes and exposed an Arduino-shaped network address type directly in the contract. The goal of this phase is to keep the useful seam, remove the accidental Arduino-shaped design choices from it, and make the server and pipeline layers depend only on transport interfaces plus library-owned textual address state. The seam split is now in place, and the next address correction has landed: the core contracts now expose `std::string_view` address accessors backed by owned adapter or request storage, and the old compatibility-layer network address type has been removed entirely.
 
 ## Goal / Acceptance Criteria
 
-- `HttpPipeline`, `HttpRequest`, and server layers depend on transport interfaces and `std::string_view`-based address APIs backed by library-owned text state rather than Arduino `IPAddress`.
+- `HttpPipeline`, `HttpRequest`, and server layers depend on transport interfaces and `std::string_view`-based address APIs backed by library-owned text state rather than Arduino-shaped address value types.
 - Generic Arduino wrapper behavior is removed from the core-facing transport contract.
 - Arduino transport support remains possible through adapter code without shaping the core interface.
 - Transport semantics needed by the pipeline are explicitly documented and testable.
@@ -28,9 +34,9 @@ This phase narrows the transport seam to the actual contracts the HTTP pipeline 
 
 #### Current Interface Inventory
 
-- `IClient` currently exposes `write()`, `available()`, `read()`, `flush()`, `stop()`, `status()`, `connected()`, `remoteAddress()`, `remotePort()`, `localAddress()`, `localPort()`, `setTimeout()`, `getTimeout()`, and the derived `availability()` helper.
-- `IServer` currently exposes `accept()`, `begin()`, `status()`, `port()`, and `end()`.
-- `src/pipeline/NetClient.h` is now only a re-export header over `TransportInterfaces.h` and `NetClientAdapters.h`; the actual interface surface is `TransportInterfaces.h`, while Arduino convenience wrappers live in `NetClientAdapters.h`.
+- `IClient` currently exposes `write()`, `available()`, `read()`, `flush()`, `stop()`, `connected()`, `remoteAddress()`, `remotePort()`, `localAddress()`, `localPort()`, `setTimeout()`, `getTimeout()`, and the derived `availability()` helper.
+- `IServer` currently exposes `accept()`, `begin()`, `port()`, `localAddress()`, and `end()`.
+- `src/pipeline/NetClient.h` is now only a re-export header over `TransportInterfaces.h`; the actual interface surface is `TransportInterfaces.h`, while Arduino-facing transport wrappers have been pushed out of the core contract.
 
 #### Current Consumer Inventory
 
@@ -42,8 +48,10 @@ This phase narrows the transport seam to the actual contracts the HTTP pipeline 
 
 - `accept()` returns `nullptr` when no pending client exists and transfers ownership when a client is available.
 - `available() >= 0` still drives request-read progress in `HttpPipeline`; `available() == 0` remains the current signal that no further request bytes are immediately pending for that cycle.
-- `connected()` remains the pipeline liveness gate checked before each processing pass.
-- `setTimeout()` remains part of steady-state pipeline setup rather than being routed through a separate timeout controller.
+- `connected()` is a boolean liveness gate checked before each processing pass and must remain `true` while unread buffered request bytes can still be drained.
+- `setTimeout()` and `getTimeout()` remain part of the transport contract as implementation hints rather than being routed through a separate clock-driven timeout controller.
+- `IClient::status()` has been removed from the core seam because no in-tree consumer depends on per-client TCP-state reporting.
+- `IServer::status()` and `ConnectionStatus` have also been removed from the core seam because no in-tree consumer depends on listener-state reporting.
 - Endpoint reporting is now textual in the core seam: IPv4 addresses are currently adapter-formatted as dotted-decimal text with owned backing stored in the adapter or request object that returns the view.
 
 ### IP Address Text Cleanup
@@ -53,16 +61,16 @@ This phase narrows the transport seam to the actual contracts the HTTP pipeline 
 - [x] Replace `IClient` address exposure with `std::string_view` accessors while keeping `remotePort()` and `localPort()` as integer APIs.
 - [x] Define where owned address strings live so returned `std::string_view` values remain valid across the request, pipeline, and server lifetimes.
 - [x] Refactor `src/pipeline/IPipelineHandler.h` so address-setting APIs accept the new textual address form without Arduino-specific leakage.
-- [x] Refactor `src/core/HttpRequest.h` to store owned textual address state and expose `std::string_view` accessors instead of `IPAddress`.
-- [x] Update any server-facing APIs in `src/server/HttpServerBase.h` and `src/server/StandardHttpServer.h` that still directly expose Arduino `IPAddress` assumptions so they use the textual address seam instead.
-- [x] Restrict Arduino `::IPAddress` to adapter-only conversion points, including `ClientImpl<T>`, `ServerImpl<T>`, and any WiFi-specific server wrappers.
+- [x] Refactor `src/core/HttpRequest.h` to store owned textual address state and expose `std::string_view` accessors instead of Arduino-style address values.
+- [x] Update any server-facing APIs in `src/server/HttpServerBase.h` and `src/server/StandardHttpServer.h` that still directly expose Arduino-specific address assumptions so they use the textual address seam instead.
+- [x] Remove the remaining compatibility-layer address shim once transport and request/server contracts no longer depend on it.
 
 #### Address Representation Decision
 
 - The canonical core transport representation is now textual address data returned as `std::string_view`.
 - For the currently supported in-tree adapters, IPv4 addresses are emitted as dotted-decimal text using adapter-owned `std::string` backing.
-- No normalization beyond current adapter-produced IPv4 dotted-decimal formatting is attempted in this slice; future IPv6 support should extend the textual seam rather than reintroducing a binary address type into the core contract.
-- Owned address strings currently live in `ClientImpl<T>` for accepted client endpoints, `HttpRequest` for per-request endpoint state, `StandardHttpServer` for configured bind address text, and `WiFiHttpServer` for dynamic local-address reporting.
+- No normalization beyond current adapter-produced IPv4 dotted-decimal formatting is attempted in this slice; future IPv6 support should extend the textual seam rather than reintroducing a legacy binary address shim into the core contract.
+- Owned address strings currently live in transport adapters for accepted client endpoints, `HttpRequest` for per-request endpoint state, `StandardHttpServer` for configured bind address text, and `WiFiHttpServer` for dynamic local-address reporting.
 
 ### `NetClient.h` Separation
 
@@ -80,10 +88,16 @@ This phase narrows the transport seam to the actual contracts the HTTP pipeline 
 
 ### Timeout And Connection Semantics
 
-- [ ] Decide whether timeout setters/getters on `IClient` remain part of the transport contract or are routed differently once the clock seam exists.
-- [ ] Document how `connected()` should behave when buffered unread data remains.
-- [ ] Document how `accept()` should behave when no client is pending.
-- [ ] Document the expected meaning of `status()` and how much of the existing TCP-state enum surface is still justified.
+- [x] Decide whether timeout setters/getters on `IClient` remain part of the transport contract or are routed differently once the clock seam exists.
+- [x] Document how `connected()` should behave when buffered unread data remains.
+- [x] Document how `accept()` should behave when no client is pending.
+- [x] Remove unused transport status reporting from the core seam.
+
+#### Timeout And Connection Semantics Snapshot
+
+- `setTimeout()` and `getTimeout()` stay on `IClient` as hinting APIs to the transport implementation rather than moving behind a separate timeout-routing abstraction.
+- `connected()` returns a boolean and must remain `true` while unread buffered request bytes still exist; returning `false` is a terminal disconnect signal that causes the pipeline to stop before further reads.
+- `accept()` is non-blocking at the transport seam and must return `nullptr` immediately when no client is pending rather than waiting for a new connection.
 
 ### Adapter Strategy
 
@@ -123,5 +137,4 @@ High
 - `src/server/HttpServerBase.cpp`
 - `src/server/StandardHttpServer.h`
 - `src/server/WiFiHttpServer.h`
-- `src/compat/IpAddress.h`
 - `docs/plans/no-arduino/in-tree-transport-plan.md`

@@ -10,7 +10,7 @@ The goal is to eliminate Arduino shims and any reliance on Arduino-specific clas
 
 - Define a C++17 interface contract for the transport seam (`IClient`, `IServer`, and any small supporting types).
 - Specify required method signatures, return semantics, error handling, and threading/callback expectations using STL and standard integer types (`std::unique_ptr`, `std::shared_ptr`, `std::chrono`, `std::size_t`, `std::uint8_t`, etc.).
-- Enumerate behavioral invariants the implementation must preserve (accept semantics, `available()`/EOF semantics, timeouts, `connected()` behavior, `status()` mapping, `flush()` semantics).
+- Enumerate behavioral invariants the implementation must preserve (accept semantics, `available()`/EOF semantics, timeouts, `connected()` behavior, and `flush()` semantics).
 - Provide a clear implementer contract: test vectors, required tests, acceptance criteria, and recommended ownership models.
 
 ### Out of scope (this document)
@@ -26,30 +26,31 @@ This library must depend only on a stable, implementation-agnostic interface. Th
 
 Required methods and return semantics (suggested signatures):
 
-- `virtual std::size_t write(HttpServerAdvanced::span<const std::uint8_t> data) = 0;`
-   - `virtual AvailableResult available() const = 0;`  // readiness + optional count; see stream plan for semantics
-- `virtual int read(HttpServerAdvanced::span<std::uint8_t> buffer) = 0;` // returns bytes read or -1 on error
+- `virtual std::size_t write(const std::uint8_t *buf, std::size_t size) = 0;`
+- `virtual int available() = 0;`
+- `virtual int read(std::uint8_t *buffer, std::size_t size) = 0;` // returns bytes read or -1 on error
 - `virtual void flush() = 0;` // blocks or waits until pending bytes are acknowledged (implementation detail)
 - `virtual void stop() = 0;` // orderly close
-- `virtual ConnectionStatus status() const = 0;` // enum for CLOSED, LISTEN, ESTABLISHED, etc.
-- `virtual bool connected() const = 0;` // true while connection is established or unread buffered data exists
-- `virtual void setTimeout(std::chrono::milliseconds t) = 0;`
-- `virtual std::chrono::milliseconds getTimeout() const = 0;`
-- `virtual EndpointInfo remoteEndpoint() const = 0;` // small POD with IP/port primitives
-- `virtual EndpointInfo localEndpoint() const = 0;`
+- `virtual bool connected() = 0;` // true while connection is established or unread buffered data exists
+- `virtual std::string_view remoteAddress() const = 0;`
+- `virtual std::uint16_t remotePort() = 0;`
+- `virtual std::string_view localAddress() const = 0;`
+- `virtual std::uint16_t localPort() = 0;`
+- `virtual void setTimeout(std::uint32_t timeoutMs) = 0;`
+- `virtual std::uint32_t getTimeout() const = 0;`
 
 Notes:
-- Use plain POD types for IP and port (e.g., `struct EndpointInfo { std::array<std::uint8_t,4> ipv4; std::uint16_t port; }`), or `std::string` for textual IPs when appropriate. Avoid Arduino `IPAddress`.
+- Use textual address accessors in the core seam and keep any binary address conversions inside transport adapters.
 - Document error codes and exceptional behaviors (e.g., `read()` returning 0 vs `-1`), and specify whether implementations may throw exceptions (prefer returning error codes to throwing).
 
 ### `IServer` (interface)
 
 Required methods and return semantics (suggested signatures):
 
-- `virtual void begin(uint16_t port) = 0;`
+- `virtual void begin() = 0;`
 - `virtual std::unique_ptr<IClient> accept() = 0;` // returns nullptr when no client pending
-- `virtual ConnectionStatus status() const = 0;`
 - `virtual uint16_t port() const = 0;`
+- `virtual std::string_view localAddress() const = 0;`
 - `virtual void end() = 0;`
 
 Notes:
@@ -89,7 +90,7 @@ Behavioral notes and implementer guidance:
 - Timeouts are less relevant for pure datagram IO, but implementations should still expose `setTimeout()` / `getTimeout()` when blocking semantics are provided for `parsePacket()` or `endPacket()`.
 
 Mapping to existing platform APIs:
-- The ESP8266 `WiFiUDP` public API is a useful reference for the `IPeer` contract: `begin()`, `beginPacket()`, `endPacket()`, `parsePacket()`, `available()`, `read()`, `remoteIP()`, `remotePort()`, and multicast helpers. Implementers should map their platform methods to the `IPeer` surface and document any semantic differences (e.g., return codes, buffer-size limits).
+- The ESP8266 `WiFiUDP` public API is a useful reference for the `IPeer` contract: `begin()`, `beginPacket()`, `endPacket()`, `parsePacket()`, `available()`, `read()`, remote endpoint reporting, and multicast helpers. Implementers should map their platform methods to the `IPeer` surface and document any semantic differences (e.g., return codes, buffer-size limits).
 
 When to add `IPeer` vs reusing `IClient`/`IServer`:
 - If the transport is stream-oriented (TCP), continue using `IClient` / `IServer`.
@@ -113,7 +114,6 @@ Key implementer responsibilities (contract summary):
 - Implement the `IClient` and `IServer` interfaces with idiomatic C++17 code, avoiding Arduino-specific types in public headers.
 - Ensure `accept()` returns `nullptr` when no pending client exists and returns a `std::unique_ptr<IClient>` transferring ownership when one is available.
 - Preserve `connected()` semantics so that unread buffered data keeps `connected()` true until buffers are drained.
-- Map platform-specific connection states into `ConnectionStatus` using documented rules (e.g., `CLOSE_WAIT`/`CLOSING` treated as `CLOSED` for writability).
 - Implement `flush()` to await send acknowledgment semantics; document any platform-specific time bounds.
 - Manage callback lifetimes so no platform callback can reference freed objects; detach callbacks before object destruction.
 - Use `std::shared_ptr` or other documented ownership model as needed; document the chosen model and rationale.
@@ -198,16 +198,15 @@ The existing server and pipeline layers already define the minimal transport sur
 
 The HTTP stack depends on these behaviors:
 
-+ `write(HttpServerAdvanced::span<const std::uint8_t>)`
++ `write(const std::uint8_t *, std::size_t)`
 + `available()`
-+ `read(HttpServerAdvanced::span<std::uint8_t>)`
-- `flush()`
-- `stop()`
-- `status()`
-- `connected()`
-- `remoteIP()` / `remotePort()`
-- `localIP()` / `localPort()`
-- `setTimeout()` / `getTimeout()`
++ `read(std::uint8_t *, std::size_t)`
++ `flush()`
++ `stop()`
++ `connected()`
++ `remoteAddress()` / `remotePort()`
++ `localAddress()` / `localPort()`
++ `setTimeout()` / `getTimeout()`
 
 ### `IServer`
 
@@ -215,8 +214,8 @@ The HTTP stack depends on these behaviors:
 
 - `accept()` returning `std::unique_ptr<IClient>`
 - `begin()`
-- `status()`
 - `port()`
+- `localAddress()`
 - `end()`
 
 ### How The Pipeline Uses These Interfaces
@@ -253,7 +252,7 @@ Relevant observed behavior:
 - accepted connections are queued internally as unclaimed client contexts
 - `accept()` returns an invalid `WiFiClient` when no pending connection exists
 - `accept()` dequeues one pending connection and applies server-level NoDelay settings to the accepted client
-- `status()` returns the listener PCB state or `CLOSED` if the server is inactive
+- listener state reporting exists in the Arduino implementation but is no longer required by the core seam
 
 ### `WiFiClient`
 
@@ -266,7 +265,6 @@ Relevant observed behavior:
 - `flush()` waits for output to be acknowledged
 - `stop()` flushes then closes
 - `connected()` returns true while the connection is established or unread buffered data still exists
-- `status()` intentionally reports `CLOSED` for states that should be treated as no-longer-writable
 
 ### `ClientContext`
 
@@ -288,7 +286,7 @@ This means the correct in-tree design target is not “replace `WiFiClient` with
 
 Keep the public transport seam in-tree and require all concrete implementations to be provided out-of-tree. The repository will provide:
 
-- `src/pipeline/NetClient.h`: interface-only declarations for `IClient`, `IServer`, `ConnectionStatus`, `EndpointInfo`, and `HttpServerAdvanced::span` compatibility.
+- `src/pipeline/NetClient.h`: interface-only declarations for `IClient`, `IServer`, and `HttpServerAdvanced::span` compatibility.
 - a small `ServerOptions` POD and `AdapterHooks` header describing factory entry points and required symbol names for external transport packages.
 - documentation and example adapter shims under `examples/transport-adapters/` that demonstrate how to build and expose an out-of-tree transport to consumers of the library.
 
@@ -322,7 +320,6 @@ Suggested responsibilities:
 - implement `write()` with partial-send and retry handling
 - implement `flush()` by waiting for unacknowledged bytes to drain
 - implement `close()` and `abort()` with correct callback detachment
-- normalize lwIP connection states into `ConnectionStatus`
 - ensure callbacks cannot outlive the context
 
 Suggested data members:
@@ -343,11 +340,10 @@ Suggested methods:
 - `bool flush(uint32_t maxWaitMs)`
 - `void setTimeout(uint32_t timeoutMs)`
 - `uint32_t getTimeout() const`
-- `ConnectionStatus status() const`
 - `bool connected() const`
-- `IPAddress remoteIP() const`
+- `std::string remoteAddress() const`
 - `uint16_t remotePort() const`
-- `IPAddress localIP() const`
+- `std::string localAddress() const`
 - `uint16_t localPort() const`
 - `void close()`
 - `void abort()`
@@ -405,8 +401,7 @@ Expected methods:
 - `read()` delegates to context
 - `flush()` delegates to context
 - `stop()` closes and releases the context
-- `status()` delegates to context or returns `ConnectionStatus::CLOSED`
-- `connected()` delegates to context or returns `0`
+- `connected()` delegates to context or returns `false`
 
 ### `TcpServer`
 
@@ -414,7 +409,7 @@ Expected methods:
 
 Suggested data:
 
-- `IPAddress bindAddress_`
+- `std::string bindAddress_`
 - `uint16_t port_`
 - `tcp_pcb *listenPcb_`
 - `std::deque<std::shared_ptr<TcpClientContext>> pendingClients_`
@@ -427,15 +422,15 @@ Responsibilities:
 - build a new `TcpClientContext` for each accepted connection
 - queue pending accepted connections until the HTTP server claims them
 - return `std::unique_ptr<IClient>` from `accept()`
-- expose listener status and bound port
+- expose bound address and port
 - cleanly close the listener on `end()`
 
 Suggested methods:
 
-- constructor `(const IPAddress &ip, uint16_t port)`
+- constructor `(std::string bindAddress, uint16_t port)`
 - `void begin() override`
 - `std::unique_ptr<IClient> accept() override`
-- `ConnectionStatus status() override`
+- `std::string_view localAddress() const override`
 - `uint16_t port() const override`
 - `void end() override`
 
@@ -467,7 +462,7 @@ This matches the current `WiFiClient` behavior and prevents premature pipeline t
 
 ### 3. `status()` must reflect writability-oriented closed state
 
-The Pico implementation treats `CLOSE_WAIT` and `CLOSING` effectively as `CLOSED`. The in-tree implementation should preserve that mapping unless the HTTP pipeline is changed to depend on raw TCP states.
+No separate transport status-reporting API remains in the core seam. External transports should expose only the liveness and endpoint surface the pipeline actually consumes.
 
 ### 4. `flush()` must wait for send acknowledgment, not just push bytes to lwIP
 
@@ -615,12 +610,11 @@ The repository currently has limited direct transport coverage, so this work sho
 
 1. state mapping tests
 
-   Verify lwIP state to `ConnectionStatus` translation, especially:
+   Verify liveness behavior, especially:
 
-   - `LISTEN`
-   - `ESTABLISHED`
-   - `CLOSE_WAIT -> CLOSED`
-   - `CLOSING -> CLOSED`
+   - accepted connections are considered connected on entry
+   - `connected()` remains true while unread buffered bytes remain
+   - `connected()` transitions false only when no more request bytes can be drained
 
 2. receive-buffer consumption tests
 
@@ -704,7 +698,7 @@ Write behavior must preserve the retry and backpressure semantics currently inhe
 
 ### EOF and connection-state regressions
 
-The current pipeline is sensitive to `available()`, `connected()`, and `status()` semantics. Any behavior drift there can cause truncated requests, premature disconnect handling, or hung pipelines.
+The current pipeline is sensitive to `available()`, `connected()`, and `flush()` semantics. Any behavior drift there can cause truncated requests, premature disconnect handling, or hung pipelines.
 
 ### Over-generalizing too early
 

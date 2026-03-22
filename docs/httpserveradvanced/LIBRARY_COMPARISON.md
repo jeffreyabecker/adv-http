@@ -410,7 +410,7 @@ server.addHook([](const String& method, const String& url, WiFiClient* client, .
 | Raw Body Access | ✅ Callback-based | ✅ `RawBodyHandler` |
 | JSON Body Parsing | ❌ Manual | ✅ `JsonBodyHandler` (ArduinoJson integration) |
 | Request Header Access | ✅ By name/index | ✅ `HttpHeaderCollection` |
-| Remote IP Access | ✅ `client()` | ✅ `request.remoteIP()` |
+| Remote Address Access | ✅ `client()` | ✅ `request.remoteAddress()` |
 
 ### Response Features
 
