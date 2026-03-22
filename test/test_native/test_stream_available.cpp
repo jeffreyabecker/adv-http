@@ -9,40 +9,6 @@ using namespace HttpServerAdvanced;
 
 namespace
 {
-    class LegacyAvailableStream : public Stream
-    {
-    public:
-        using Stream::write;
-
-        explicit LegacyAvailableStream(int availableValue)
-            : availableValue_(availableValue)
-        {
-        }
-
-        int available() override
-        {
-            return availableValue_;
-        }
-
-        int read() override
-        {
-            return -1;
-        }
-
-        int peek() override
-        {
-            return -1;
-        }
-
-        std::size_t write(uint8_t) override
-        {
-            return 0;
-        }
-
-    private:
-        int availableValue_;
-    };
-
     class FixedAvailableByteSource : public IByteSource
     {
     public:
@@ -56,14 +22,16 @@ namespace
             return result_;
         }
 
-        int read() override
+        size_t read(HttpServerAdvanced::span<uint8_t> buffer) override
         {
-            return -1;
+            (void)buffer;
+            return 0;
         }
 
-        int peek() override
+        size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override
         {
-            return -1;
+            (void)buffer;
+            return 0;
         }
 
     private:
@@ -127,53 +95,63 @@ namespace
         TEST_ASSERT_EQUAL_INT(-2, result.errorCode);
     }
 
-    void test_stream_byte_source_adapter_maps_positive_available_to_has_bytes()
+    void test_legacy_available_from_result_maps_has_bytes()
     {
-        LegacyAvailableStream stream(7);
-        StreamByteSourceAdapter adapter(stream);
-
-        const AvailableResult result = adapter.available();
-        TEST_ASSERT_EQUAL_INT(static_cast<int>(AvailabilityState::HasBytes), static_cast<int>(result.state));
-        TEST_ASSERT_EQUAL_UINT64(7, result.count);
+        TEST_ASSERT_EQUAL_INT(7, LegacyAvailableFromResult(AvailableBytes(7)));
     }
 
-    void test_stream_byte_source_adapter_maps_zero_available_to_exhausted()
+    void test_legacy_available_from_result_maps_exhausted()
     {
-        LegacyAvailableStream stream(0);
-        StreamByteSourceAdapter adapter(stream);
-
-        const AvailableResult result = adapter.available();
-        TEST_ASSERT_EQUAL_INT(static_cast<int>(AvailabilityState::Exhausted), static_cast<int>(result.state));
+        TEST_ASSERT_EQUAL_INT(0, LegacyAvailableFromResult(ExhaustedResult()));
     }
 
-    void test_stream_byte_source_adapter_maps_negative_available_to_temporarily_unavailable()
+    void test_legacy_available_from_result_maps_temporarily_unavailable()
     {
-        LegacyAvailableStream stream(-1);
-        StreamByteSourceAdapter adapter(stream);
-
-        const AvailableResult result = adapter.available();
-        TEST_ASSERT_EQUAL_INT(static_cast<int>(AvailabilityState::TemporarilyUnavailable), static_cast<int>(result.state));
+        TEST_ASSERT_EQUAL_INT(-1, LegacyAvailableFromResult(TemporarilyUnavailableResult()));
     }
 
-    void test_byte_source_stream_adapter_maps_exhausted_to_zero_available()
+    void test_span_byte_source_read_and_peek()
     {
-        ByteSourceStreamAdapter adapter(std::make_unique<FixedAvailableByteSource>(ExhaustedResult()));
+        const std::string text = "hello";
+        SpanByteSource source{std::string_view(text)};
+        uint8_t peekBuffer[2] = {};
+        uint8_t readBuffer[3] = {};
 
-        TEST_ASSERT_EQUAL_INT(0, adapter.available());
+        TEST_ASSERT_EQUAL_UINT64(5, source.available().count);
+        TEST_ASSERT_EQUAL_UINT64(2, source.peek(HttpServerAdvanced::span<uint8_t>(peekBuffer, 2)));
+        TEST_ASSERT_EQUAL_UINT8('h', peekBuffer[0]);
+        TEST_ASSERT_EQUAL_UINT8('e', peekBuffer[1]);
+        TEST_ASSERT_EQUAL_UINT64(3, source.read(HttpServerAdvanced::span<uint8_t>(readBuffer, 3)));
+        TEST_ASSERT_EQUAL_UINT8('h', readBuffer[0]);
+        TEST_ASSERT_EQUAL_UINT8('e', readBuffer[1]);
+        TEST_ASSERT_EQUAL_UINT8('l', readBuffer[2]);
+        TEST_ASSERT_EQUAL_UINT64(2, source.available().count);
     }
 
-    void test_byte_source_stream_adapter_maps_temporarily_unavailable_to_negative_available()
+    void test_concat_byte_source_advances_across_exhausted_sources()
     {
-        ByteSourceStreamAdapter adapter(std::make_unique<FixedAvailableByteSource>(TemporarilyUnavailableResult()));
+        std::vector<std::unique_ptr<IByteSource>> sources;
+        sources.emplace_back(std::make_unique<FixedAvailableByteSource>(ExhaustedResult()));
+        sources.emplace_back(std::make_unique<SpanByteSource>(std::string_view("ok")));
 
-        TEST_ASSERT_EQUAL_INT(-1, adapter.available());
+        ConcatByteSource source(std::move(sources));
+        uint8_t buffer[2] = {};
+
+        TEST_ASSERT_TRUE(source.available().hasBytes());
+        TEST_ASSERT_EQUAL_UINT64(2, source.read(HttpServerAdvanced::span<uint8_t>(buffer, 2)));
+        TEST_ASSERT_EQUAL_UINT8('o', buffer[0]);
+        TEST_ASSERT_EQUAL_UINT8('k', buffer[1]);
+        TEST_ASSERT_TRUE(source.available().isExhausted());
     }
 
-    void test_byte_source_stream_adapter_maps_error_to_negative_available()
+    void test_concat_byte_source_propagates_temporarily_unavailable()
     {
-        ByteSourceStreamAdapter adapter(std::make_unique<FixedAvailableByteSource>(ErrorResult(-9)));
+        std::vector<std::unique_ptr<IByteSource>> sources;
+        sources.emplace_back(std::make_unique<FixedAvailableByteSource>(TemporarilyUnavailableResult()));
 
-        TEST_ASSERT_EQUAL_INT(-1, adapter.available());
+        ConcatByteSource source(std::move(sources));
+
+        TEST_ASSERT_TRUE(source.available().isTemporarilyUnavailable());
     }
 
     int runUnitySuite()
@@ -183,12 +161,12 @@ namespace
         RUN_TEST(test_mapping_exhausted);
         RUN_TEST(test_mapping_temporarily_unavailable);
         RUN_TEST(test_mapping_error);
-        RUN_TEST(test_stream_byte_source_adapter_maps_positive_available_to_has_bytes);
-        RUN_TEST(test_stream_byte_source_adapter_maps_zero_available_to_exhausted);
-        RUN_TEST(test_stream_byte_source_adapter_maps_negative_available_to_temporarily_unavailable);
-        RUN_TEST(test_byte_source_stream_adapter_maps_exhausted_to_zero_available);
-        RUN_TEST(test_byte_source_stream_adapter_maps_temporarily_unavailable_to_negative_available);
-        RUN_TEST(test_byte_source_stream_adapter_maps_error_to_negative_available);
+        RUN_TEST(test_legacy_available_from_result_maps_has_bytes);
+        RUN_TEST(test_legacy_available_from_result_maps_exhausted);
+        RUN_TEST(test_legacy_available_from_result_maps_temporarily_unavailable);
+        RUN_TEST(test_span_byte_source_read_and_peek);
+        RUN_TEST(test_concat_byte_source_advances_across_exhausted_sources);
+        RUN_TEST(test_concat_byte_source_propagates_temporarily_unavailable);
         return UNITY_END();
     }
 }

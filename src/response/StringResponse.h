@@ -8,8 +8,8 @@
 #include "../core/HttpStatus.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
+#include "../streams/ByteStream.h"
 #include "HttpResponse.h"
-#include "../streams/Streams.h"
 #include "../core/HttpContentTypes.h"
 
 class String;

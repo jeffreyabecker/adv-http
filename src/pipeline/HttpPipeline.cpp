@@ -28,7 +28,7 @@ namespace HttpServerAdvanced
             client_->remotePort(),
             client_->localAddress(),
             client_->localPort());
-        handler_->setResponseStreamCallback([this](std::unique_ptr<Stream> stream)
+        handler_->setResponseStreamCallback([this](std::unique_ptr<IByteSource> stream)
                                             { this->setResponseStream(std::move(stream)); });
     }
 
@@ -79,22 +79,12 @@ namespace HttpServerAdvanced
         }
 
         startActivity();
-        // ClientContext.h uses a 256 byte buffer for copying streams so we will do the same here
-        // see: Wifi/src/include/ClientContext.h:379
         uint8_t buffer[HttpServerAdvanced::PIPELINE_STACK_BUFFER_SIZE];
-        int available = 0;
-        while ((available = responseStream_->available()) > 0)
+        AvailableResult available = TemporarilyUnavailableResult();
+        while ((available = responseStream_->available()).hasBytes())
         {
-            size_t bytesRead = 0;
-            for (bytesRead = 0; bytesRead < sizeof(buffer) && responseStream_->available(); bytesRead++)
-            {
-                int byte = responseStream_->read();
-                if (byte == -1)
-                {
-                    break;
-                }
-                buffer[bytesRead] = static_cast<uint8_t>(byte);
-            }
+            const size_t bytesToRead = std::min<std::size_t>(sizeof(buffer), available.count);
+            const size_t bytesRead = responseStream_->read(HttpServerAdvanced::span<uint8_t>(buffer, bytesToRead));
             if (bytesRead > 0)
             {
                 auto written = client_->write(buffer, bytesRead);
@@ -113,7 +103,7 @@ namespace HttpServerAdvanced
                 return;
             }
         }
-        if (available <= 0)
+        if (available.isExhausted())
         {
             markResponseWriteCompleted();
         }
@@ -240,7 +230,7 @@ namespace HttpServerAdvanced
         return requestParser_.shouldKeepAlive();
     }
 
-    void HttpPipeline::setResponseStream(std::unique_ptr<Stream> responseStream)
+    void HttpPipeline::setResponseStream(std::unique_ptr<IByteSource> responseStream)
     {
         if (haveStartedWritingResponse_)
         {

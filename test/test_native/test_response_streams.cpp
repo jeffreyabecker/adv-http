@@ -14,6 +14,27 @@ using namespace HttpServerAdvanced;
 
 namespace
 {
+    String ReadByteSourceAsString(IByteSource &source)
+    {
+        String result;
+        uint8_t buffer[16] = {};
+        while (true)
+        {
+            const size_t bytesRead = source.read(HttpServerAdvanced::span<uint8_t>(buffer, sizeof(buffer)));
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            for (size_t index = 0; index < bytesRead; ++index)
+            {
+                result += static_cast<char>(buffer[index]);
+            }
+        }
+
+        return result;
+    }
+
     class VectorByteSource : public IByteSource
     {
     public:
@@ -38,24 +59,27 @@ namespace
             return ExhaustedResult();
         }
 
-        int read() override
+        size_t read(HttpServerAdvanced::span<uint8_t> buffer) override
         {
-            if (position_ >= bytes_.size())
+            size_t totalRead = 0;
+            while (totalRead < buffer.size() && position_ < bytes_.size())
             {
-                return -1;
+                buffer[totalRead++] = static_cast<uint8_t>(bytes_[position_++]);
             }
 
-            return static_cast<unsigned char>(bytes_[position_++]);
+            return totalRead;
         }
 
-        int peek() override
+        size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override
         {
-            if (position_ >= bytes_.size())
+            size_t totalRead = 0;
+            while (totalRead < buffer.size() && (position_ + totalRead) < bytes_.size())
             {
-                return -1;
+                buffer[totalRead] = static_cast<uint8_t>(bytes_[position_ + totalRead]);
+                ++totalRead;
             }
 
-            return static_cast<unsigned char>(bytes_[position_]);
+            return totalRead;
         }
 
     private:
@@ -77,22 +101,22 @@ namespace
     {
         auto body = HttpResponseBodyStream::create(std::make_unique<VectorByteSource>("ok"));
 
-        const String content = ReadAsString(*body);
+        const String content = ReadByteSourceAsString(*body);
         TEST_ASSERT_TRUE(content == String("ok"));
     }
 
-    void test_http_response_body_stream_maps_temporarily_unavailable_to_legacy_contract()
+    void test_http_response_body_stream_reports_temporarily_unavailable()
     {
         auto body = HttpResponseBodyStream::create(std::make_unique<VectorByteSource>("", true));
 
-        TEST_ASSERT_EQUAL_INT(-1, body->available());
+        TEST_ASSERT_TRUE(body->available().isTemporarilyUnavailable());
     }
 
     void test_chunked_response_body_stream_reads_from_byte_source()
     {
         auto body = ChunkedHttpResponseBodyStream::create(std::make_unique<VectorByteSource>("Hi"));
 
-        const String content = ReadAsString(*body);
+        const String content = ReadByteSourceAsString(*body);
         TEST_ASSERT_TRUE(content == String("2\r\nHi\r\n0\r\n\r\n"));
     }
 
@@ -102,7 +126,7 @@ namespace
         HttpResponse response(HttpStatus::Ok(), std::make_unique<VectorByteSource>("body"), std::move(headers));
 
         auto body = response.getBody();
-        const String content = ReadAsString(*body);
+        const String content = ReadByteSourceAsString(*body);
         TEST_ASSERT_TRUE(content == String("body"));
     }
 
@@ -110,7 +134,7 @@ namespace
     {
         UNITY_BEGIN();
         RUN_TEST(test_http_response_body_stream_reads_from_byte_source);
-        RUN_TEST(test_http_response_body_stream_maps_temporarily_unavailable_to_legacy_contract);
+        RUN_TEST(test_http_response_body_stream_reports_temporarily_unavailable);
         RUN_TEST(test_chunked_response_body_stream_reads_from_byte_source);
         RUN_TEST(test_http_response_accepts_byte_source_body);
         return UNITY_END();

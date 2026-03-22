@@ -3,7 +3,7 @@
 #include "JsonResponse.h"
 #include "../core/HttpHeaderCollection.h"
 #include "HttpResponse.h"
-#include "../streams/Streams.h"
+#include "../streams/ByteStream.h"
 #include "../core/HttpContentTypes.h"
 
 namespace HttpServerAdvanced
@@ -22,7 +22,7 @@ namespace HttpServerAdvanced
         }
         if (!headersCollection.exists(HttpHeaderNames::ContentLength))
         {
-            headersCollection.set(HttpHeader(HttpHeaderNames::ContentLength, String(contentLength)));
+            headersCollection.set(HttpHeader(HttpHeaderNames::ContentLength, std::to_string(contentLength)));
         }
         return headersCollection;
     }
@@ -35,8 +35,8 @@ namespace HttpServerAdvanced
         body.reserve(measureJson(doc) + 1); // +1 for null terminator
         serializeJson(doc, body);
         auto headersCollection = buildHeaders(headers, body.length());
-        auto bodyStream = std::make_unique<StringStream>(body);
-        return std::make_unique<HttpResponse>(status, std::move(bodyStream), std::move(headersCollection));
+        auto bodySource = std::make_unique<StdStringByteSource>(std::string(body.c_str(), body.length()));
+        return std::make_unique<HttpResponse>(status, std::move(bodySource), std::move(headersCollection));
     }
 
     std::unique_ptr<IHttpResponse> JsonResponse::create(HttpStatus status, const JsonDocument &doc)

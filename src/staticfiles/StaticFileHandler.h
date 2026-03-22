@@ -1,5 +1,6 @@
 #pragma once
 #include "../compat/FileSystem.h"
+#include "../streams/ByteStream.h"
 #include <Arduino.h>
 
 #include "FileLocator.h"
@@ -17,19 +18,16 @@ namespace HttpServerAdvanced
         HttpServerAdvanced::HttpContentTypes &contentTypes_;
         FileLocator &fileLocator_;
 
-        class FileStreamWrapper : public Stream
+        class FileByteSource : public IByteSource
         {
         private:
             File file_;
 
         public:
-            using Stream::write;
-
-            FileStreamWrapper(File file);
-            virtual int available() override;
-            virtual int read() override;
-            virtual int peek() override;
-            virtual size_t write(uint8_t b) override;
+            explicit FileByteSource(File file);
+            AvailableResult available() override;
+            size_t read(HttpServerAdvanced::span<uint8_t> buffer) override;
+            size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override;
             File &getFile();
         };
 

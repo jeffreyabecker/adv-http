@@ -6,9 +6,9 @@ namespace HttpServerAdvanced
 {
 
     ChunkedHttpResponseBodyStream::ChunkedHttpResponseBodyStream(std::unique_ptr<IByteSource> innerSource)
-        : HttpResponseBodyStream(std::move(innerSource)) {}
+        : innerSource_(std::move(innerSource)) {}
 
-    std::unique_ptr<HttpResponseBodyStream> ChunkedHttpResponseBodyStream::create(std::unique_ptr<IByteSource> innerSource)
+    std::unique_ptr<IByteSource> ChunkedHttpResponseBodyStream::create(std::unique_ptr<IByteSource> innerSource)
     {
         return std::make_unique<ChunkedHttpResponseBodyStream>(std::move(innerSource));
     }
@@ -38,11 +38,10 @@ namespace HttpServerAdvanced
 
     int ChunkedHttpResponseBodyStream::peekInner() const
     {
-        uint8_t buffer[1] = {};
-        return innerSource_->peek(buffer) == 0 ? -1 : buffer[0];
+        return innerSource_ ? PeekByte(*innerSource_) : -1;
     }
 
-    int ChunkedHttpResponseBodyStream::available()
+    AvailableResult ChunkedHttpResponseBodyStream::available()
     {
         switch (state_)
         {
@@ -53,27 +52,26 @@ namespace HttpServerAdvanced
             }
             if (state_ == State::Final)
             {
-                return static_cast<int>(sizeof(finalChunk_) - 1 - finalPos_);
+                return AvailableBytes(sizeof(finalChunk_) - 1 - finalPos_);
             }
             if (headerLen_ == 0)
             {
-                // Inner stream returned -1 (awaiting)
-                return -1;
+                return TemporarilyUnavailableResult();
             }
-            return static_cast<int>((headerLen_ - headerPos_) + chunkRemaining_ + (sizeof(trailer_) - 1) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
+            return AvailableBytes((headerLen_ - headerPos_) + chunkRemaining_ + (sizeof(trailer_) - 1) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Body:
-            return static_cast<int>(chunkRemaining_ + (sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
+            return AvailableBytes(chunkRemaining_ + (sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Trailer:
-            return static_cast<int>((sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
+            return AvailableBytes((sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Final:
-            return static_cast<int>(sizeof(finalChunk_) - 1 - finalPos_);
+            return AvailableBytes(sizeof(finalChunk_) - 1 - finalPos_);
         case State::Done:
         default:
-            return 0;
+            return ExhaustedResult();
         }
     }
 
-    int ChunkedHttpResponseBodyStream::peek()
+    int ChunkedHttpResponseBodyStream::peekSingleByte()
     {
         switch (state_)
         {
@@ -103,7 +101,7 @@ namespace HttpServerAdvanced
         }
     }
 
-    int ChunkedHttpResponseBodyStream::read()
+    int ChunkedHttpResponseBodyStream::readSingleByte()
     {
         switch (state_)
         {
@@ -114,7 +112,7 @@ namespace HttpServerAdvanced
             }
             if (state_ == State::Final)
             {
-                return read(); // recurse into Final state
+                return readSingleByte();
             }
             if (headerLen_ == 0)
             {
@@ -130,9 +128,7 @@ namespace HttpServerAdvanced
             }
         case State::Body:
         {
-            uint8_t buffer[1] = {};
-            const size_t bytesRead = innerSource_->read(buffer);
-            int c = bytesRead == 0 ? -1 : buffer[0];
+            const int c = innerSource_ ? ReadByte(*innerSource_) : -1;
             if (c >= 0 && chunkRemaining_ > 0)
             {
                 --chunkRemaining_;
@@ -171,10 +167,38 @@ namespace HttpServerAdvanced
         }
     }
 
-    size_t ChunkedHttpResponseBodyStream::write(uint8_t b)
+    size_t ChunkedHttpResponseBodyStream::read(HttpServerAdvanced::span<uint8_t> buffer)
     {
-        (void)b;
-        return 0;
+        size_t totalRead = 0;
+        while (totalRead < buffer.size())
+        {
+            const int value = readSingleByte();
+            if (value < 0)
+            {
+                break;
+            }
+
+            buffer[totalRead++] = static_cast<uint8_t>(value);
+        }
+
+        return totalRead;
+    }
+
+    size_t ChunkedHttpResponseBodyStream::peek(HttpServerAdvanced::span<uint8_t> buffer)
+    {
+        if (buffer.empty())
+        {
+            return 0;
+        }
+
+        const int value = peekSingleByte();
+        if (value < 0)
+        {
+            return 0;
+        }
+
+        buffer[0] = static_cast<uint8_t>(value);
+        return 1;
     }
 
 } // namespace HttpServerAdvanced

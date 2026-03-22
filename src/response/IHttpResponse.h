@@ -4,12 +4,10 @@
 #include "../core/HttpStatus.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
+#include "../streams/ByteStream.h"
 
 namespace HttpServerAdvanced
 {
-  // Forward declarations
-  class HttpResponseBodyStream;
-
   class IHttpResponse
   {
   public:
@@ -17,7 +15,7 @@ namespace HttpServerAdvanced
     virtual ~IHttpResponse() = default;
     virtual HttpStatus status() const = 0;
     virtual HttpHeaderCollection &headers() = 0;
-    virtual std::unique_ptr<HttpResponseBodyStream> getBody() = 0;
+    virtual std::unique_ptr<IByteSource> getBody() = 0;
   };
 
 } // namespace HttpServerAdvanced

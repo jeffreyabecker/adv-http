@@ -5,33 +5,58 @@
 
 namespace HttpServerAdvanced
 {
-    // FileStreamWrapper implementation
-    StaticFileHandlerFactory::FileStreamWrapper::FileStreamWrapper(File file)
+    // FileByteSource implementation
+    StaticFileHandlerFactory::FileByteSource::FileByteSource(File file)
         : file_(std::move(file))
     {
     }
 
-    int StaticFileHandlerFactory::FileStreamWrapper::available()
+    AvailableResult StaticFileHandlerFactory::FileByteSource::available()
     {
-        return file_.available();
+        const int count = file_.available();
+        if (count > 0)
+        {
+            return AvailableBytes(static_cast<size_t>(count));
+        }
+
+        return count == 0 ? ExhaustedResult() : TemporarilyUnavailableResult();
     }
 
-    int StaticFileHandlerFactory::FileStreamWrapper::read()
+    size_t StaticFileHandlerFactory::FileByteSource::read(HttpServerAdvanced::span<uint8_t> buffer)
     {
-        return file_.read();
+        size_t totalRead = 0;
+        while (totalRead < buffer.size())
+        {
+            const int value = file_.read();
+            if (value < 0)
+            {
+                break;
+            }
+
+            buffer[totalRead++] = static_cast<uint8_t>(value);
+        }
+
+        return totalRead;
     }
 
-    int StaticFileHandlerFactory::FileStreamWrapper::peek()
+    size_t StaticFileHandlerFactory::FileByteSource::peek(HttpServerAdvanced::span<uint8_t> buffer)
     {
-        return file_.peek();
+        if (buffer.empty())
+        {
+            return 0;
+        }
+
+        const int value = file_.peek();
+        if (value < 0)
+        {
+            return 0;
+        }
+
+        buffer[0] = static_cast<uint8_t>(value);
+        return 1;
     }
 
-    size_t StaticFileHandlerFactory::FileStreamWrapper::write(uint8_t b)
-    {
-        return 0;
-    }
-
-    File &StaticFileHandlerFactory::FileStreamWrapper::getFile()
+    File &StaticFileHandlerFactory::FileByteSource::getFile()
     {
         return file_;
     }
@@ -148,7 +173,7 @@ namespace HttpServerAdvanced
         return HttpHandler::create(
             std::make_unique<HttpResponse>(
                 HttpStatus::Ok(),
-                std::make_unique<FileStreamWrapper>(file),
+                std::make_unique<FileByteSource>(file),
                 std::move(headers)));
     }
 

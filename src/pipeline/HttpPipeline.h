@@ -3,8 +3,8 @@
 #include <functional>
 
 #include "../compat/Clock.h"
-#include "../compat/Stream.h"
 #include "../core/HttpTimeouts.h"
+#include "../streams/ByteStream.h"
 #include "IPipelineHandler.h"
 #include "RequestParser.h"
 #include "PipelineHandleClientResult.h"
@@ -29,7 +29,7 @@ namespace HttpServerAdvanced
         std::unique_ptr<HttpServerAdvanced::IClient> client_;
         HttpServerBase &server_;
         const Compat::Clock &clock_;
-        std::unique_ptr<Stream> responseStream_;
+        std::unique_ptr<IByteSource> responseStream_;
         PipelineHandlerPtr handler_;
         bool completedRequestRead_ = false;
         bool completedResponseWrite_ = false;
@@ -78,7 +78,7 @@ namespace HttpServerAdvanced
 
         bool isFinished() const;
         bool shouldKeepAlive() const;
-        void setResponseStream(std::unique_ptr<Stream> responseStream);
+        void setResponseStream(std::unique_ptr<IByteSource> responseStream);
         PipelineHandleClientResult handleClient();
         void abort();
         void abortReadingRequest();

@@ -10,6 +10,64 @@ namespace HttpServerAdvanced
 {
     namespace
     {
+        bool isUnreservedFormChar(unsigned char value)
+        {
+            return (value >= 'A' && value <= 'Z') ||
+                   (value >= 'a' && value <= 'z') ||
+                   (value >= '0' && value <= '9') ||
+                   value == '-' || value == '_' || value == '.' || value == '*';
+        }
+
+        std::string encodeFormComponent(std::string_view value)
+        {
+            static constexpr char Hex[] = "0123456789ABCDEF";
+
+            std::string encoded;
+            encoded.reserve(value.size());
+            for (unsigned char ch : value)
+            {
+                if (isUnreservedFormChar(ch))
+                {
+                    encoded.push_back(static_cast<char>(ch));
+                }
+                else if (ch == ' ')
+                {
+                    encoded.push_back('+');
+                }
+                else
+                {
+                    encoded.push_back('%');
+                    encoded.push_back(Hex[(ch >> 4) & 0x0F]);
+                    encoded.push_back(Hex[ch & 0x0F]);
+                }
+            }
+
+            return encoded;
+        }
+
+        std::string buildFormBody(const FormResponse::FieldCollection &data)
+        {
+            std::string body;
+            bool first = true;
+            for (const auto &pair : data)
+            {
+                if (!first)
+                {
+                    body.push_back('&');
+                }
+                first = false;
+
+                body.append(encodeFormComponent(pair.first));
+                if (!pair.second.empty())
+                {
+                    body.push_back('=');
+                    body.append(encodeFormComponent(pair.second));
+                }
+            }
+
+            return body;
+        }
+
         FormResponse::FieldCollection toOwnedFields(const std::vector<std::pair<String, String>> &data)
         {
             FormResponse::FieldCollection owned;
@@ -60,11 +118,10 @@ namespace HttpServerAdvanced
         FieldCollection &&data,
         std::initializer_list<HttpHeader> headers)
     {
-        // Create the form encoding stream; it will calculate total length internally
-        auto formStream = std::make_unique<FormEncodingStream>(std::move(data));
-        size_t contentLength = formStream->available();
+        std::string body = buildFormBody(data);
+        size_t contentLength = body.size();
         auto headersCollection = buildFormHeaders(headers, contentLength);
-        return std::make_unique<HttpResponse>(status, std::move(formStream), std::move(headersCollection));
+        return std::make_unique<HttpResponse>(status, std::make_unique<StdStringByteSource>(std::move(body)), std::move(headersCollection));
     }
 
     std::unique_ptr<IHttpResponse> FormResponse::create(

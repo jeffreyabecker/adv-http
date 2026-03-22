@@ -3,7 +3,7 @@
 #include <functional>
 
 #include "../core/HttpTimeouts.h"
-#include "../compat/Stream.h"
+#include "../streams/ByteStream.h"
 #include "PipelineError.h"
 
 #include <cstddef>
@@ -25,7 +25,7 @@ namespace HttpServerAdvanced
         virtual ~IPipelineHandler() = default;
         virtual int onMessageBegin(const char* method, uint16_t versionMajor, uint16_t versionMinor, String&& url) = 0;
         virtual void setAddresses(std::string_view remoteAddress, uint16_t remotePort, std::string_view localAddress, uint16_t localPort) = 0;
-        virtual void setResponseStreamCallback(std::function<void(std::unique_ptr<Stream>)> onStreamReady) = 0;
+        virtual void setResponseStreamCallback(std::function<void(std::unique_ptr<IByteSource>)> onStreamReady) = 0;
         virtual int onHeader(String&& field, String&& value) = 0;
         virtual int onHeadersComplete() = 0;
         virtual int onBody(const uint8_t *at, std::size_t length) = 0;

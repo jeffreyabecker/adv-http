@@ -20,7 +20,7 @@ namespace HttpServerAdvanced
    *   Final   -> emitting "0\r\n\r\n"
    *   Done    -> available() == 0
    */
-  class ChunkedHttpResponseBodyStream : public HttpResponseBodyStream
+  class ChunkedHttpResponseBodyStream : public IByteSource
   {
   private:
     enum class State { Header, Body, Trailer, Final, Done };
@@ -40,16 +40,18 @@ namespace HttpServerAdvanced
 
     void prepareHeader();
     int peekInner() const;
+    int readSingleByte();
+    int peekSingleByte();
+
+  protected:
+    std::unique_ptr<IByteSource> innerSource_;
 
   public:
-    using HttpResponseBodyStream::write;
-
     explicit ChunkedHttpResponseBodyStream(std::unique_ptr<IByteSource> innerSource);
-    static std::unique_ptr<HttpResponseBodyStream> create(std::unique_ptr<IByteSource> innerSource);
-    virtual int available() override;
-    virtual int read() override;
-    virtual int peek() override;
-    virtual size_t write(uint8_t b) override;
+    static std::unique_ptr<IByteSource> create(std::unique_ptr<IByteSource> innerSource);
+    AvailableResult available() override;
+    size_t read(HttpServerAdvanced::span<uint8_t> buffer) override;
+    size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override;
   };
 
 } // namespace HttpServerAdvanced

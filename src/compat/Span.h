@@ -6,7 +6,7 @@
 #include <type_traits>
 
 #if defined(__has_include)
-#  if __has_include(<span>)
+#  if ((defined(__cpp_lib_span) && (__cpp_lib_span >= 202002L)) || (__cplusplus >= 202002L)) && __has_include(<span>)
 #    include <span>
 #    define HSA_USE_STD_SPAN 1
 #  elif __has_include("span.hpp")

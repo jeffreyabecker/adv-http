@@ -36,8 +36,8 @@ namespace HttpServerAdvanced
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, std::string body, std::initializer_list<HttpHeader> headers)
     {
         auto headersCollection = buildHeaders(headers, body.size());
-        auto bodyStream = std::make_unique<StdStringStream>(std::move(body));
-        return std::make_unique<HttpResponse>(status, std::move(bodyStream), std::move(headersCollection));
+        auto bodySource = std::make_unique<StdStringByteSource>(std::move(body));
+        return std::make_unique<HttpResponse>(status, std::move(bodySource), std::move(headersCollection));
     }
 
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, std::string_view body, std::initializer_list<HttpHeader> headers)
@@ -79,8 +79,8 @@ namespace HttpServerAdvanced
     {
         size_t len = strlen(body);
         auto headersCollection = buildHeaders(headers, len);
-        auto bodyStream = std::make_unique<StringStream>(body);
-        return std::make_unique<HttpResponse>(status, std::move(bodyStream), std::move(headersCollection));
+        auto bodySource = std::make_unique<StdStringByteSource>(std::string(body, len));
+        return std::make_unique<HttpResponse>(status, std::move(bodySource), std::move(headersCollection));
     }
 
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const char *body)
@@ -91,8 +91,8 @@ namespace HttpServerAdvanced
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const uint8_t *body, size_t length, std::initializer_list<HttpHeader> headers)
     {
         auto headersCollection = buildHeaders(headers, length);
-        auto bodyStream = std::make_unique<OctetsStream>(body, length, false);
-        return std::make_unique<HttpResponse>(status, std::move(bodyStream), std::move(headersCollection));
+        auto bodySource = std::make_unique<VectorByteSource>(std::vector<uint8_t>(body, body + length));
+        return std::make_unique<HttpResponse>(status, std::move(bodySource), std::move(headersCollection));
     }
 
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, std::string_view contentType, std::string body)

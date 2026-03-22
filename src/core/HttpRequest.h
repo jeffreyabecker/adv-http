@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../compat/Stream.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
 #include "../server/HttpServerBase.h"
@@ -8,6 +7,7 @@
 #include "../core/HttpRequestPhase.h"
 #include "../handlers/IHttpHandler.h"
 #include "../pipeline/PipelineError.h"
+#include "../streams/ByteStream.h"
 #include "../util/UriView.h"
 #include "IHttpRequestHandlerFactory.h"
 
@@ -31,7 +31,7 @@ namespace HttpServerAdvanced
         HttpServerAdvanced::HttpServerBase &server_;
         size_t bodyBytesReceived_ = 0;
         HttpRequestPhaseFlags completedPhases_ = 0;
-        std::function<void(std::unique_ptr<Stream>)> onStreamReady_;
+        std::function<void(std::unique_ptr<IByteSource>)> onStreamReady_;
         mutable std::map<std::string, std::any> items_;
 
         // Merged from HttpRequest
@@ -168,7 +168,7 @@ namespace HttpServerAdvanced
         {
             completedWritingResponse();
         }
-        void setResponseStreamCallback(std::function<void(std::unique_ptr<Stream>)> onStreamReady) override
+        void setResponseStreamCallback(std::function<void(std::unique_ptr<IByteSource>)> onStreamReady) override
         {
             onStreamReady_ = onStreamReady;
         }
