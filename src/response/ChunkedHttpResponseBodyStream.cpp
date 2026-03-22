@@ -5,8 +5,16 @@
 namespace HttpServerAdvanced
 {
 
+    ChunkedHttpResponseBodyStream::ChunkedHttpResponseBodyStream(std::unique_ptr<IByteSource> innerSource)
+        : HttpResponseBodyStream(std::move(innerSource)) {}
+
     ChunkedHttpResponseBodyStream::ChunkedHttpResponseBodyStream(std::unique_ptr<Stream> innerStream)
         : HttpResponseBodyStream(std::move(innerStream)) {}
+
+    std::unique_ptr<HttpResponseBodyStream> ChunkedHttpResponseBodyStream::create(std::unique_ptr<IByteSource> innerSource)
+    {
+        return std::make_unique<ChunkedHttpResponseBodyStream>(std::move(innerSource));
+    }
 
     std::unique_ptr<HttpResponseBodyStream> ChunkedHttpResponseBodyStream::create(std::unique_ptr<Stream> innerStream)
     {
@@ -16,19 +24,19 @@ namespace HttpServerAdvanced
     void ChunkedHttpResponseBodyStream::prepareHeader()
     {
         // Determine how many bytes we can promise from the inner stream (up to chunkDataSize_)
-        int innerAvail = innerStream_->available();
+        const AvailableResult innerAvail = innerSource_->available();
         if (innerAvail <= 0)
         {
             // No data or awaiting more; transition to final chunk if truly ended
-            if (innerAvail == 0)
+            if (innerAvail.isExhausted())
             {
                 state_ = State::Final;
                 finalPos_ = 0;
             }
-            // If -1 (awaiting), we stay in Header and available() will return -1
+            // If temporarily unavailable or errored, we stay in Header and available() will return -1.
             return;
         }
-        chunkRemaining_ = std::min(static_cast<size_t>(innerAvail), chunkDataSize_);
+        chunkRemaining_ = std::min(innerAvail.count, chunkDataSize_);
         headerLen_ = static_cast<size_t>(std::snprintf(headerBuf_, sizeof(headerBuf_), "%zx\r\n", chunkRemaining_));
         headerPos_ = 0;
         state_ = State::Header;
@@ -36,7 +44,7 @@ namespace HttpServerAdvanced
 
     int ChunkedHttpResponseBodyStream::peekInner() const
     {
-        return innerStream_->peek();
+        return innerSource_->peek();
     }
 
     int ChunkedHttpResponseBodyStream::available()
@@ -127,7 +135,7 @@ namespace HttpServerAdvanced
             }
         case State::Body:
         {
-            int c = innerStream_->read();
+            int c = innerSource_->read();
             if (c >= 0 && chunkRemaining_ > 0)
             {
                 --chunkRemaining_;

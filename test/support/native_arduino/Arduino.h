@@ -124,6 +124,11 @@ private:
     std::string value_;
 };
 
+namespace arduino
+{
+    using String = ::String;
+}
+
 #ifndef F
 #define F(x) x
 #endif

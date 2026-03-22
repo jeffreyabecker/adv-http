@@ -7,6 +7,7 @@
 #include <functional>
 #include <optional>
 #include <algorithm>
+#include <string>
 
 namespace HttpServerAdvanced
 {
@@ -14,12 +15,12 @@ namespace HttpServerAdvanced
   class HttpStatus
   {
   public:
-    HttpStatus() : value_(0), description_() {} 
+    HttpStatus() : value_(0), description_() {}
     HttpStatus(uint16_t v) : value_(v), description_() {}
 
-    HttpStatus(uint16_t v, const char *desc) : value_(v), description_(desc) {}
-    HttpStatus(uint16_t v, arduino::String &&desc) : value_(v), description_(std::move(desc)) {}
-    HttpStatus(uint16_t v, const arduino::String &desc = "") : value_(v), description_(desc) {}
+    HttpStatus(uint16_t v, const char *desc) : value_(v), description_(desc ? desc : "") {}
+    HttpStatus(uint16_t v, std::string &&desc) : value_(v), description_(std::move(desc)) {}
+    HttpStatus(uint16_t v, const std::string &desc = std::string()) : value_(v), description_(desc) {}
 
     // Copy constructor
     HttpStatus(const HttpStatus &other) = default;
@@ -109,8 +110,6 @@ namespace HttpServerAdvanced
       return value_ >= v;
     }
 
-
-
     uint16_t code() const
     {
       return value_;
@@ -118,78 +117,78 @@ namespace HttpServerAdvanced
 
     const char* toString() const
     {
-      if(description_.isEmpty()){
+      if(description_.empty()){
         return llhttp_status_name(static_cast<llhttp_status_t>(value_));
       }
       return description_.c_str();
     }
     
     // Static methods for common HTTP status codes (PascalCase)
-    static HttpStatus Continue(const arduino::String &desc = "") { return HttpStatus(100, desc); }
-    static HttpStatus SwitchingProtocols(const arduino::String &desc = "") { return HttpStatus(101, desc); }
-    static HttpStatus Processing(const arduino::String &desc = "") { return HttpStatus(102, desc); }
-    static HttpStatus Ok(const arduino::String &desc = "") { return HttpStatus(200, desc); }
-    static HttpStatus Created(const arduino::String &desc = "") { return HttpStatus(201, desc); }
-    static HttpStatus Accepted(const arduino::String &desc = "") { return HttpStatus(202, desc); }
-    static HttpStatus NonAuthoritativeInformation(const arduino::String &desc = "") { return HttpStatus(203, desc); }
-    static HttpStatus NoContent(const arduino::String &desc = "") { return HttpStatus(204, desc); }
-    static HttpStatus ResetContent(const arduino::String &desc = "") { return HttpStatus(205, desc); }
-    static HttpStatus PartialContent(const arduino::String &desc = "") { return HttpStatus(206, desc); }
-    static HttpStatus MultiStatus(const arduino::String &desc = "") { return HttpStatus(207, desc); }
-    static HttpStatus AlreadyReported(const arduino::String &desc = "") { return HttpStatus(208, desc); }
-    static HttpStatus ImUsed(const arduino::String &desc = "") { return HttpStatus(226, desc); }
-    static HttpStatus MultipleChoices(const arduino::String &desc = "") { return HttpStatus(300, desc); }
-    static HttpStatus MovedPermanently(const arduino::String &desc = "") { return HttpStatus(301, desc); }
-    static HttpStatus Found(const arduino::String &desc = "") { return HttpStatus(302, desc); }
-    static HttpStatus SeeOther(const arduino::String &desc = "") { return HttpStatus(303, desc); }
-    static HttpStatus NotModified(const arduino::String &desc = "") { return HttpStatus(304, desc); }
-    static HttpStatus UseProxy(const arduino::String &desc = "") { return HttpStatus(305, desc); }
-    static HttpStatus TemporaryRedirect(const arduino::String &desc = "") { return HttpStatus(307, desc); }
-    static HttpStatus PermanentRedirect(const arduino::String &desc = "") { return HttpStatus(308, desc); }
-    static HttpStatus BadRequest(const arduino::String &desc = "") { return HttpStatus(400, desc); }
-    static HttpStatus Unauthorized(const arduino::String &desc = "") { return HttpStatus(401, desc); }
-    static HttpStatus PaymentRequired(const arduino::String &desc = "") { return HttpStatus(402, desc); }
-    static HttpStatus Forbidden(const arduino::String &desc = "") { return HttpStatus(403, desc); }
-    static HttpStatus NotFound(const arduino::String &desc = "") { return HttpStatus(404, desc); }
-    static HttpStatus MethodNotAllowed(const arduino::String &desc = "") { return HttpStatus(405, desc); }
-    static HttpStatus NotAcceptable(const arduino::String &desc = "") { return HttpStatus(406, desc); }
-    static HttpStatus ProxyAuthenticationRequired(const arduino::String &desc = "") { return HttpStatus(407, desc); }
-    static HttpStatus RequestTimeout(const arduino::String &desc = "") { return HttpStatus(408, desc); }
-    static HttpStatus Conflict(const arduino::String &desc = "") { return HttpStatus(409, desc); }
-    static HttpStatus Gone(const arduino::String &desc = "") { return HttpStatus(410, desc); }
-    static HttpStatus LengthRequired(const arduino::String &desc = "") { return HttpStatus(411, desc); }
-    static HttpStatus PreconditionFailed(const arduino::String &desc = "") { return HttpStatus(412, desc); }
-    static HttpStatus PayloadTooLarge(const arduino::String &desc = "") { return HttpStatus(413, desc); }
-    static HttpStatus UriTooLong(const arduino::String &desc = "") { return HttpStatus(414, desc); }
-    static HttpStatus UnsupportedMediaType(const arduino::String &desc = "") { return HttpStatus(415, desc); }
-    static HttpStatus RangeNotSatisfiable(const arduino::String &desc = "") { return HttpStatus(416, desc); }
-    static HttpStatus ExpectationFailed(const arduino::String &desc = "") { return HttpStatus(417, desc); }
-    static HttpStatus ImATeapot(const arduino::String &desc = "") { return HttpStatus(418, desc); }
-    static HttpStatus MisdirectedRequest(const arduino::String &desc = "") { return HttpStatus(421, desc); }
-    static HttpStatus UnprocessableEntity(const arduino::String &desc = "") { return HttpStatus(422, desc); }
-    static HttpStatus Locked(const arduino::String &desc = "") { return HttpStatus(423, desc); }
-    static HttpStatus FailedDependency(const arduino::String &desc = "") { return HttpStatus(424, desc); }
-    static HttpStatus TooEarly(const arduino::String &desc = "") { return HttpStatus(425, desc); }
-    static HttpStatus UpgradeRequired(const arduino::String &desc = "") { return HttpStatus(426, desc); }
-    static HttpStatus PreconditionRequired(const arduino::String &desc = "") { return HttpStatus(428, desc); }
-    static HttpStatus TooManyRequests(const arduino::String &desc = "") { return HttpStatus(429, desc); }
-    static HttpStatus RequestHeaderFieldsTooLarge(const arduino::String &desc = "") { return HttpStatus(431, desc); }
-    static HttpStatus UnavailableForLegalReasons(const arduino::String &desc = "") { return HttpStatus(451, desc); }
-    static HttpStatus InternalServerError(const arduino::String &desc = "") { return HttpStatus(500, desc); }
-    static HttpStatus NotImplemented(const arduino::String &desc = "") { return HttpStatus(501, desc); }
-    static HttpStatus BadGateway(const arduino::String &desc = "") { return HttpStatus(502, desc); }
-    static HttpStatus ServiceUnavailable(const arduino::String &desc = "") { return HttpStatus(503, desc); }
-    static HttpStatus GatewayTimeout(const arduino::String &desc = "") { return HttpStatus(504, desc); }
-    static HttpStatus HttpVersionNotSupported(const arduino::String &desc = "") { return HttpStatus(505, desc); }
-    static HttpStatus VariantAlsoNegotiates(const arduino::String &desc = "") { return HttpStatus(506, desc); }
-    static HttpStatus InsufficientStorage(const arduino::String &desc = "") { return HttpStatus(507, desc); }
-    static HttpStatus LoopDetected(const arduino::String &desc = "") { return HttpStatus(508, desc); }
-    static HttpStatus NotExtended(const arduino::String &desc = "") { return HttpStatus(510, desc); }
-    static HttpStatus NetworkAuthenticationRequired(const arduino::String &desc = "") { return HttpStatus(511, desc); }
+    static HttpStatus Continue(const std::string &desc = std::string()) { return HttpStatus(100, desc); }
+    static HttpStatus SwitchingProtocols(const std::string &desc = std::string()) { return HttpStatus(101, desc); }
+    static HttpStatus Processing(const std::string &desc = std::string()) { return HttpStatus(102, desc); }
+    static HttpStatus Ok(const std::string &desc = std::string()) { return HttpStatus(200, desc); }
+    static HttpStatus Created(const std::string &desc = std::string()) { return HttpStatus(201, desc); }
+    static HttpStatus Accepted(const std::string &desc = std::string()) { return HttpStatus(202, desc); }
+    static HttpStatus NonAuthoritativeInformation(const std::string &desc = std::string()) { return HttpStatus(203, desc); }
+    static HttpStatus NoContent(const std::string &desc = std::string()) { return HttpStatus(204, desc); }
+    static HttpStatus ResetContent(const std::string &desc = std::string()) { return HttpStatus(205, desc); }
+    static HttpStatus PartialContent(const std::string &desc = std::string()) { return HttpStatus(206, desc); }
+    static HttpStatus MultiStatus(const std::string &desc = std::string()) { return HttpStatus(207, desc); }
+    static HttpStatus AlreadyReported(const std::string &desc = std::string()) { return HttpStatus(208, desc); }
+    static HttpStatus ImUsed(const std::string &desc = std::string()) { return HttpStatus(226, desc); }
+    static HttpStatus MultipleChoices(const std::string &desc = std::string()) { return HttpStatus(300, desc); }
+    static HttpStatus MovedPermanently(const std::string &desc = std::string()) { return HttpStatus(301, desc); }
+    static HttpStatus Found(const std::string &desc = std::string()) { return HttpStatus(302, desc); }
+    static HttpStatus SeeOther(const std::string &desc = std::string()) { return HttpStatus(303, desc); }
+    static HttpStatus NotModified(const std::string &desc = std::string()) { return HttpStatus(304, desc); }
+    static HttpStatus UseProxy(const std::string &desc = std::string()) { return HttpStatus(305, desc); }
+    static HttpStatus TemporaryRedirect(const std::string &desc = std::string()) { return HttpStatus(307, desc); }
+    static HttpStatus PermanentRedirect(const std::string &desc = std::string()) { return HttpStatus(308, desc); }
+    static HttpStatus BadRequest(const std::string &desc = std::string()) { return HttpStatus(400, desc); }
+    static HttpStatus Unauthorized(const std::string &desc = std::string()) { return HttpStatus(401, desc); }
+    static HttpStatus PaymentRequired(const std::string &desc = std::string()) { return HttpStatus(402, desc); }
+    static HttpStatus Forbidden(const std::string &desc = std::string()) { return HttpStatus(403, desc); }
+    static HttpStatus NotFound(const std::string &desc = std::string()) { return HttpStatus(404, desc); }
+    static HttpStatus MethodNotAllowed(const std::string &desc = std::string()) { return HttpStatus(405, desc); }
+    static HttpStatus NotAcceptable(const std::string &desc = std::string()) { return HttpStatus(406, desc); }
+    static HttpStatus ProxyAuthenticationRequired(const std::string &desc = std::string()) { return HttpStatus(407, desc); }
+    static HttpStatus RequestTimeout(const std::string &desc = std::string()) { return HttpStatus(408, desc); }
+    static HttpStatus Conflict(const std::string &desc = std::string()) { return HttpStatus(409, desc); }
+    static HttpStatus Gone(const std::string &desc = std::string()) { return HttpStatus(410, desc); }
+    static HttpStatus LengthRequired(const std::string &desc = std::string()) { return HttpStatus(411, desc); }
+    static HttpStatus PreconditionFailed(const std::string &desc = std::string()) { return HttpStatus(412, desc); }
+    static HttpStatus PayloadTooLarge(const std::string &desc = std::string()) { return HttpStatus(413, desc); }
+    static HttpStatus UriTooLong(const std::string &desc = std::string()) { return HttpStatus(414, desc); }
+    static HttpStatus UnsupportedMediaType(const std::string &desc = std::string()) { return HttpStatus(415, desc); }
+    static HttpStatus RangeNotSatisfiable(const std::string &desc = std::string()) { return HttpStatus(416, desc); }
+    static HttpStatus ExpectationFailed(const std::string &desc = std::string()) { return HttpStatus(417, desc); }
+    static HttpStatus ImATeapot(const std::string &desc = std::string()) { return HttpStatus(418, desc); }
+    static HttpStatus MisdirectedRequest(const std::string &desc = std::string()) { return HttpStatus(421, desc); }
+    static HttpStatus UnprocessableEntity(const std::string &desc = std::string()) { return HttpStatus(422, desc); }
+    static HttpStatus Locked(const std::string &desc = std::string()) { return HttpStatus(423, desc); }
+    static HttpStatus FailedDependency(const std::string &desc = std::string()) { return HttpStatus(424, desc); }
+    static HttpStatus TooEarly(const std::string &desc = std::string()) { return HttpStatus(425, desc); }
+    static HttpStatus UpgradeRequired(const std::string &desc = std::string()) { return HttpStatus(426, desc); }
+    static HttpStatus PreconditionRequired(const std::string &desc = std::string()) { return HttpStatus(428, desc); }
+    static HttpStatus TooManyRequests(const std::string &desc = std::string()) { return HttpStatus(429, desc); }
+    static HttpStatus RequestHeaderFieldsTooLarge(const std::string &desc = std::string()) { return HttpStatus(431, desc); }
+    static HttpStatus UnavailableForLegalReasons(const std::string &desc = std::string()) { return HttpStatus(451, desc); }
+    static HttpStatus InternalServerError(const std::string &desc = std::string()) { return HttpStatus(500, desc); }
+    static HttpStatus NotImplemented(const std::string &desc = std::string()) { return HttpStatus(501, desc); }
+    static HttpStatus BadGateway(const std::string &desc = std::string()) { return HttpStatus(502, desc); }
+    static HttpStatus ServiceUnavailable(const std::string &desc = std::string()) { return HttpStatus(503, desc); }
+    static HttpStatus GatewayTimeout(const std::string &desc = std::string()) { return HttpStatus(504, desc); }
+    static HttpStatus HttpVersionNotSupported(const std::string &desc = std::string()) { return HttpStatus(505, desc); }
+    static HttpStatus VariantAlsoNegotiates(const std::string &desc = std::string()) { return HttpStatus(506, desc); }
+    static HttpStatus InsufficientStorage(const std::string &desc = std::string()) { return HttpStatus(507, desc); }
+    static HttpStatus LoopDetected(const std::string &desc = std::string()) { return HttpStatus(508, desc); }
+    static HttpStatus NotExtended(const std::string &desc = std::string()) { return HttpStatus(510, desc); }
+    static HttpStatus NetworkAuthenticationRequired(const std::string &desc = std::string()) { return HttpStatus(511, desc); }
 
   private:
     uint16_t value_;
-    arduino::String description_;
+    std::string description_;
   };
 
 } // namespace HttpServerAdvanced

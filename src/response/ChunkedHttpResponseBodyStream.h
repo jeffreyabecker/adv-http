@@ -43,7 +43,9 @@ namespace HttpServerAdvanced
   public:
     using HttpResponseBodyStream::write;
 
+    explicit ChunkedHttpResponseBodyStream(std::unique_ptr<IByteSource> innerSource);
     explicit ChunkedHttpResponseBodyStream(std::unique_ptr<Stream> innerStream);
+    static std::unique_ptr<HttpResponseBodyStream> create(std::unique_ptr<IByteSource> innerSource);
     static std::unique_ptr<HttpResponseBodyStream> create(std::unique_ptr<Stream> innerStream);
     virtual int available() override;
     virtual int read() override;

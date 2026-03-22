@@ -4,10 +4,15 @@
 namespace HttpServerAdvanced
 {
 
+    HttpResponse::HttpResponse(HttpStatus status, std::unique_ptr<IByteSource> body, HttpHeaderCollection &&headers)
+        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(std::move(body)))
+    {
+    }
+
 
 
     HttpResponse::HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeaderCollection &&headers)
-        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(std::move(body)))
+        : HttpResponse(status, std::make_unique<OwningStreamByteSourceAdapter>(std::move(body)), std::move(headers))
     {
     }
 

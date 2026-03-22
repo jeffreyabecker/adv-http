@@ -1,6 +1,7 @@
 #pragma once
 #include <initializer_list>
 #include <cstring>
+#include "../streams/ByteStream.h"
 #include "../compat/Stream.h"
 #include "../core/HttpStatus.h"
 #include "../core/HttpHeader.h"
@@ -24,6 +25,7 @@ namespace HttpServerAdvanced
     std::unique_ptr<HttpResponseBodyStream> body_;
 
   public:
+    HttpResponse(HttpStatus status, std::unique_ptr<IByteSource> body, HttpHeaderCollection &&headers);
     HttpResponse(HttpStatus status, std::unique_ptr<Stream> body, HttpHeaderCollection &&headers);
 
     ~HttpResponse() override = default;

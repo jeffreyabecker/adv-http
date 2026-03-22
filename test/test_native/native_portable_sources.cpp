@@ -1,6 +1,8 @@
 #include "../../src/streams/Streams.cpp"
 #include "../../src/streams/Base64Stream.cpp"
 #include "../../src/streams/UriStream.cpp"
+#include "../../src/response/HttpResponse.cpp"
+#include "../../src/response/ChunkedHttpResponseBodyStream.cpp"
 #include "../../src/core/HttpHeaderCollection.cpp"
 #include "../../src/util/HttpUtility.cpp"
 #include "../../src/util/StringUtility.cpp"

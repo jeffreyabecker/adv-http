@@ -12,6 +12,23 @@
 
 namespace HttpServerAdvanced
 {
+    inline int LegacyAvailableFromResult(const AvailableResult &result)
+    {
+        switch (result.state)
+        {
+        case AvailabilityState::HasBytes:
+            return static_cast<int>(std::min<std::size_t>(result.count, static_cast<std::size_t>(std::numeric_limits<int>::max())));
+
+        case AvailabilityState::Exhausted:
+            return 0;
+
+        case AvailabilityState::TemporarilyUnavailable:
+        case AvailabilityState::Error:
+        default:
+            return -1;
+        }
+    }
+
     class IByteSource
     {
     public:
@@ -197,20 +214,7 @@ namespace HttpServerAdvanced
                 return 0;
             }
 
-            const AvailableResult result = source_->available();
-            switch (result.state)
-            {
-            case AvailabilityState::HasBytes:
-                return static_cast<int>(std::min<std::size_t>(result.count, static_cast<std::size_t>(std::numeric_limits<int>::max())));
-
-            case AvailabilityState::Exhausted:
-                return 0;
-
-            case AvailabilityState::TemporarilyUnavailable:
-            case AvailabilityState::Error:
-            default:
-                return -1;
-            }
+            return LegacyAvailableFromResult(source_->available());
         }
 
         int read() override

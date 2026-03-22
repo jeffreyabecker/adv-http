@@ -1,3 +1,4 @@
+2026-03-21 - Copilot: migrated `HttpResponseBodyStream` and `ChunkedHttpResponseBodyStream` to own `IByteSource` internally while retaining legacy `Stream` entrypoints, and added native response-stream bridge coverage.
 2026-03-21 - Copilot: introduced byte-source and byte-sink contracts plus legacy Stream bridge adapters while leaving response-path migration open.
 2026-03-21 - Copilot: created detailed Phase 5 stream and response backlog.
 
@@ -5,7 +6,7 @@
 
 ## Summary
 
-This phase is the architectural seam change for the response path. The repository currently models response production, transform layers, file-backed output, and pipeline response callbacks around `std::unique_ptr<Stream>`, with a compat fallback that still mirrors Arduino `Stream` semantics. The goal of this phase is to introduce library-owned read and write contracts, migrate the read-only response types first, and stop letting duplex Arduino inheritance shape the entire response pipeline. The initial contract layer now exists in `src/streams/ByteStream.h`, backed by explicit availability semantics and bridge adapters to the current compat `Stream`, but no response or pipeline type consumes it yet.
+This phase is the architectural seam change for the response path. The repository currently models response production, transform layers, file-backed output, and pipeline response callbacks around `std::unique_ptr<Stream>`, with a compat fallback that still mirrors Arduino `Stream` semantics. The goal of this phase is to introduce library-owned read and write contracts, migrate the read-only response types first, and stop letting duplex Arduino inheritance shape the entire response pipeline. The initial contract layer now exists in `src/streams/ByteStream.h`, backed by explicit availability semantics and bridge adapters to the current compat `Stream`, and the first response-body slice now consumes `IByteSource` internally while keeping legacy `Stream` entrypoints alive.
 
 ## Goal / Acceptance Criteria
 
@@ -39,8 +40,8 @@ This phase is the architectural seam change for the response path. The repositor
 
 ### Response Layer Migration
 
-- [ ] Update `src/response/HttpResponse.h` and `src/response/HttpResponse.cpp` so response bodies are typed against the new readable contract.
-- [ ] Update `src/response/HttpResponseBodyStream.h` and `src/response/ChunkedHttpResponseBodyStream.*` to wrap the new readable contract rather than `Stream` directly.
+- [x] Update `src/response/HttpResponse.h` and `src/response/HttpResponse.cpp` so response bodies are typed against the new readable contract.
+- [x] Update `src/response/HttpResponseBodyStream.h` and `src/response/ChunkedHttpResponseBodyStream.*` to wrap the new readable contract rather than `Stream` directly.
 - [ ] Update `src/response/HttpResponseIterators.h` and related response composition helpers to emit the new source type.
 - [ ] Preserve the current direct-response and chunked-response behavior byte-for-byte where practical.
 
@@ -63,7 +64,7 @@ This phase is the architectural seam change for the response path. The repositor
 
 ### Validation
 
-- [ ] Extend native tests to cover the new source contract and bridge behavior.
+- [x] Extend native tests to cover the new source contract and bridge behavior.
 - [ ] Add regression tests for concat ordering, lazy generation, chunk framing, and end-of-stream signaling.
 - [ ] Record any semantic changes that would force example or response API compatibility work later.
 
