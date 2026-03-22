@@ -332,6 +332,13 @@ namespace HttpServerAdvanced
         return ReadAsVector(base64Stream);
     }
 
+    std::string WebUtility::Base64DecodeToStdString(std::string_view input, bool urlCompatible)
+    {
+        Base64DecoderStream base64Stream = Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(input.data()), input.size(), urlCompatible);
+        const String decoded = ReadAsString(base64Stream);
+        return std::string(decoded.c_str(), decoded.length());
+    }
+
     String WebUtility::Base64Encode(std::string_view input, bool urlCompatible)
     {
         return Base64Encode(reinterpret_cast<const uint8_t *>(input.data()), input.size(), urlCompatible);

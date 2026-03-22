@@ -1,53 +1,76 @@
 #pragma once
 #include <Arduino.h>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <string>
+#include <string_view>
 #include "../response/HttpResponse.h"
 namespace HttpServerAdvanced
 {
 
-    inline HttpResponse::ResponseFilter CrossOriginRequestSharing(const String &allowedOrigins = "*", const String &allowedMethods = "*", const String &allowedHeaders = "*",
-                                                                  const String &allowedCredentials = "", const String &exposeHeaders = "", const int maxAge = -1, const String &requestHeaders = "", const String &requestMethods = "")
+    inline HttpResponse::ResponseFilter CrossOriginRequestSharing(std::string_view allowedOrigins = "*", std::string_view allowedMethods = "*", std::string_view allowedHeaders = "*",
+                                                                  std::string_view allowedCredentials = "", std::string_view exposeHeaders = "", const int maxAge = -1, std::string_view requestHeaders = "", std::string_view requestMethods = "")
     {
-        return [=](std::unique_ptr<IHttpResponse> resp) -> std::unique_ptr<IHttpResponse>
+        const std::string allowedOriginsValue(allowedOrigins);
+        const std::string allowedMethodsValue(allowedMethods);
+        const std::string allowedHeadersValue(allowedHeaders);
+        const std::string allowedCredentialsValue(allowedCredentials);
+        const std::string exposeHeadersValue(exposeHeaders);
+        const std::string requestHeadersValue(requestHeaders);
+        const std::string requestMethodsValue(requestMethods);
+
+        return [allowedOriginsValue, allowedMethodsValue, allowedHeadersValue, allowedCredentialsValue, exposeHeadersValue, maxAge, requestHeadersValue, requestMethodsValue](std::unique_ptr<IHttpResponse> resp) -> std::unique_ptr<IHttpResponse>
         {
             if (!resp)
             {
                 return resp;
             }
             auto& headers = resp->headers();
-            if (!headers.exists(HttpHeaderNames::AccessControlAllowOrigin) && !allowedOrigins.isEmpty())
-                headers.set(HttpHeaderNames::AccessControlAllowOrigin, allowedOrigins);
-            if (!headers.exists(HttpHeaderNames::AccessControlAllowMethods) && !allowedMethods.isEmpty())
-                headers.set(HttpHeaderNames::AccessControlAllowMethods, allowedMethods);
-            if (!headers.exists(HttpHeaderNames::AccessControlAllowHeaders) && !allowedHeaders.isEmpty())
-                headers.set(HttpHeaderNames::AccessControlAllowHeaders, allowedHeaders);
-            if (!headers.exists(HttpHeaderNames::AccessControlAllowCredentials) && !allowedCredentials.isEmpty())
-                headers.set(HttpHeaderNames::AccessControlAllowCredentials, allowedCredentials);
-            if (!headers.exists(HttpHeaderNames::AccessControlExposeHeaders) && !exposeHeaders.isEmpty())
-                headers.set(HttpHeaderNames::AccessControlExposeHeaders, exposeHeaders);
+            if (!headers.exists(HttpHeaderNames::AccessControlAllowOrigin) && !allowedOriginsValue.empty())
+                headers.set(HttpHeaderNames::AccessControlAllowOrigin, allowedOriginsValue.c_str());
+            if (!headers.exists(HttpHeaderNames::AccessControlAllowMethods) && !allowedMethodsValue.empty())
+                headers.set(HttpHeaderNames::AccessControlAllowMethods, allowedMethodsValue.c_str());
+            if (!headers.exists(HttpHeaderNames::AccessControlAllowHeaders) && !allowedHeadersValue.empty())
+                headers.set(HttpHeaderNames::AccessControlAllowHeaders, allowedHeadersValue.c_str());
+            if (!headers.exists(HttpHeaderNames::AccessControlAllowCredentials) && !allowedCredentialsValue.empty())
+                headers.set(HttpHeaderNames::AccessControlAllowCredentials, allowedCredentialsValue.c_str());
+            if (!headers.exists(HttpHeaderNames::AccessControlExposeHeaders) && !exposeHeadersValue.empty())
+                headers.set(HttpHeaderNames::AccessControlExposeHeaders, exposeHeadersValue.c_str());
             if (!headers.exists(HttpHeaderNames::AccessControlMaxAge) && maxAge >= 0)
-                headers.set(HttpHeaderNames::AccessControlMaxAge, String(maxAge));
-            if (!headers.exists(HttpHeaderNames::AccessControlRequestHeaders) && !requestHeaders.isEmpty())
-                headers.set(HttpHeaderNames::AccessControlRequestHeaders, requestHeaders);
-            if (!headers.exists(HttpHeaderNames::AccessControlRequestMethod) && !requestMethods.isEmpty())
-                headers.set(HttpHeaderNames::AccessControlRequestMethod, requestMethods);
+                headers.set(std::string_view(HttpHeaderNames::AccessControlMaxAge), std::to_string(maxAge));
+            if (!headers.exists(HttpHeaderNames::AccessControlRequestHeaders) && !requestHeadersValue.empty())
+                headers.set(HttpHeaderNames::AccessControlRequestHeaders, requestHeadersValue.c_str());
+            if (!headers.exists(HttpHeaderNames::AccessControlRequestMethod) && !requestMethodsValue.empty())
+                headers.set(HttpHeaderNames::AccessControlRequestMethod, requestMethodsValue.c_str());
             return resp;
         };
+    }
+
+    inline HttpResponse::ResponseFilter CrossOriginRequestSharing(const String &allowedOrigins, const String &allowedMethods, const String &allowedHeaders,
+                                                                  const String &allowedCredentials = "", const String &exposeHeaders = "", const int maxAge = -1, const String &requestHeaders = "", const String &requestMethods = "")
+    {
+        return CrossOriginRequestSharing(std::string_view(allowedOrigins.c_str(), allowedOrigins.length()),
+                                         std::string_view(allowedMethods.c_str(), allowedMethods.length()),
+                                         std::string_view(allowedHeaders.c_str(), allowedHeaders.length()),
+                                         std::string_view(allowedCredentials.c_str(), allowedCredentials.length()),
+                                         std::string_view(exposeHeaders.c_str(), exposeHeaders.length()),
+                                         maxAge,
+                                         std::string_view(requestHeaders.c_str(), requestHeaders.length()),
+                                         std::string_view(requestMethods.c_str(), requestMethods.length()));
     }
 
     inline HttpResponse::ResponseFilter CrossOriginRequestSharing(const char *allowedOrigins, const char *allowedMethods, const char *allowedHeaders,
                                                                   const char *allowedCredentials = "", const char *exposeHeaders = "", const int maxAge = -1,
                                                                   const char *requestHeaders = "", const char *requestMethods = "")
     {
-        return CrossOriginRequestSharing(String(allowedOrigins != nullptr ? allowedOrigins : ""),
-                                         String(allowedMethods != nullptr ? allowedMethods : ""),
-                                         String(allowedHeaders != nullptr ? allowedHeaders : ""),
-                                         String(allowedCredentials != nullptr ? allowedCredentials : ""),
-                                         String(exposeHeaders != nullptr ? exposeHeaders : ""),
+        return CrossOriginRequestSharing(std::string_view(allowedOrigins != nullptr ? allowedOrigins : ""),
+                                         std::string_view(allowedMethods != nullptr ? allowedMethods : ""),
+                                         std::string_view(allowedHeaders != nullptr ? allowedHeaders : ""),
+                                         std::string_view(allowedCredentials != nullptr ? allowedCredentials : ""),
+                                         std::string_view(exposeHeaders != nullptr ? exposeHeaders : ""),
                                          maxAge,
-                                         String(requestHeaders != nullptr ? requestHeaders : ""),
-                                         String(requestMethods != nullptr ? requestMethods : ""));
+                                         std::string_view(requestHeaders != nullptr ? requestHeaders : ""),
+                                         std::string_view(requestMethods != nullptr ? requestMethods : ""));
     }
 
 } // namespace HttpServerAdvanced

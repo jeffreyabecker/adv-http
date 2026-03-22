@@ -2,11 +2,15 @@
 
 #include <Arduino.h>
 #include <cstring>
+#include <string_view>
 #include <unity.h>
 
+#include "../../src/core/IHttpRequestHandlerFactory.h"
 #include "../../src/util/HttpUtility.h"
 #include "../../src/util/StringUtility.h"
 #include "../../src/core/HttpHeaderCollection.h"
+#include "../../src/routing/CrossOriginRequestSharing.h"
+#include "../../src/response/StringResponse.h"
 #include "../../src/util/UriView.h"
 
 using namespace HttpServerAdvanced::StringUtil;
@@ -88,6 +92,13 @@ namespace
         TEST_ASSERT_TRUE(decoded == String("Jane Doe"));
     }
 
+    void test_web_utility_base64_decode_to_std_string()
+    {
+        const std::string decoded = HttpServerAdvanced::WebUtility::Base64DecodeToStdString(std::string_view("SmFuZSBEb2U="));
+
+        TEST_ASSERT_EQUAL_STRING("Jane Doe", decoded.c_str());
+    }
+
     void test_uri_view_exposes_string_view_segments_and_query_payload()
     {
         const HttpServerAdvanced::UriView uri("https://user@example.com:8443/path/to/resource?first=one&second=two#frag");
@@ -148,6 +159,68 @@ namespace
         TEST_ASSERT_TRUE(encoded == String("&lt;&amp;&gt;&quot;&#39;"));
     }
 
+    void test_cors_string_view_overload_sets_headers()
+    {
+        std::string body("ok");
+        auto response = HttpServerAdvanced::StringResponse::create(
+            HttpServerAdvanced::HttpStatus::Ok(),
+            std::move(body),
+            std::initializer_list<HttpServerAdvanced::HttpHeader>{});
+        auto filter = HttpServerAdvanced::CrossOriginRequestSharing(
+            std::string_view("https://example.com"),
+            std::string_view("GET,POST"),
+            std::string_view("X-Test"),
+            std::string_view("true"),
+            std::string_view("X-Expose"),
+            60,
+            std::string_view("X-Requested-With"),
+            std::string_view("OPTIONS"));
+
+        response = filter(std::move(response));
+
+        const auto allowOrigin = response->headers().find(std::string_view(HttpServerAdvanced::HttpHeaderNames::AccessControlAllowOrigin));
+        TEST_ASSERT_TRUE(allowOrigin.has_value());
+        TEST_ASSERT_EQUAL_STRING("https://example.com", std::string(allowOrigin->valueView()).c_str());
+
+        const auto maxAge = response->headers().find(std::string_view(HttpServerAdvanced::HttpHeaderNames::AccessControlMaxAge));
+        TEST_ASSERT_TRUE(maxAge.has_value());
+        TEST_ASSERT_EQUAL_STRING("60", std::string(maxAge->valueView()).c_str());
+    }
+
+    class RecordingRequestHandlerFactory : public HttpServerAdvanced::IHttpRequestHandlerFactory
+    {
+    public:
+        using HttpServerAdvanced::IHttpRequestHandlerFactory::createResponse;
+
+        std::string lastBody;
+
+        std::unique_ptr<HttpServerAdvanced::IHttpHandler> create(HttpServerAdvanced::HttpRequest &) override
+        {
+            return nullptr;
+        }
+
+        std::unique_ptr<HttpServerAdvanced::IHttpResponse> createResponse(HttpServerAdvanced::HttpStatus, std::string body) override
+        {
+            lastBody = std::move(body);
+            return nullptr;
+        }
+    };
+
+    void test_request_handler_factory_string_adapters_delegate_to_std_string()
+    {
+        RecordingRequestHandlerFactory factory;
+
+        factory.createResponse(HttpServerAdvanced::HttpStatus::Ok(), std::string_view("first"));
+        TEST_ASSERT_EQUAL_STRING("first", factory.lastBody.c_str());
+
+        const String second("second");
+        factory.createResponse(HttpServerAdvanced::HttpStatus::Ok(), second);
+        TEST_ASSERT_EQUAL_STRING("second", factory.lastBody.c_str());
+
+        factory.createResponse(HttpServerAdvanced::HttpStatus::Ok(), "third");
+        TEST_ASSERT_EQUAL_STRING("third", factory.lastBody.c_str());
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -157,11 +230,14 @@ namespace
         RUN_TEST(test_string_utility_string_view_overloads);
         RUN_TEST(test_parse_query_parameters_uses_std_string_payloads);
         RUN_TEST(test_web_utility_std_string_view_overloads_remain_available);
+        RUN_TEST(test_web_utility_base64_decode_to_std_string);
         RUN_TEST(test_uri_view_exposes_string_view_segments_and_query_payload);
         RUN_TEST(test_header_collection_supports_string_view_lookups);
         RUN_TEST(test_http_header_preserves_standard_text_storage_with_arduino_adapters);
         RUN_TEST(test_html_encode_preserves_expected_entities_without_progmem_helpers);
         RUN_TEST(test_html_attribute_encode_preserves_expected_entities_without_progmem_helpers);
+        RUN_TEST(test_cors_string_view_overload_sets_headers);
+        RUN_TEST(test_request_handler_factory_string_adapters_delegate_to_std_string);
         return UNITY_END();
     }
 }

@@ -55,6 +55,7 @@ namespace HttpServerAdvanced
     static String Base64Encode(std::string_view input, bool urlCompatible = false);
         static std::vector<uint8_t> Base64Decode(const String &input, bool urlCompatible = false);
     static std::vector<uint8_t> Base64Decode(std::string_view input, bool urlCompatible = false);
+        static std::string Base64DecodeToStdString(std::string_view input, bool urlCompatible = false);
         static String Base64DecodeToString(const String &input, bool urlCompatible = false);
         static String Base64DecodeToString(const char *data, std::size_t length, bool urlCompatible = false);
     static String Base64DecodeToString(std::string_view input, bool urlCompatible = false);
