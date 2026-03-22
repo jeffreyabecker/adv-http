@@ -108,6 +108,20 @@ namespace
         TEST_ASSERT_FALSE(headers.exists(std::string_view("content-type")));
     }
 
+    void test_html_encode_preserves_expected_entities_without_progmem_helpers()
+    {
+        const String encoded = HttpServerAdvanced::WebUtility::HtmlEncode("<&>\"'", 5);
+
+        TEST_ASSERT_TRUE(encoded == String("&lt;&amp;&gt;&quot;&#39;"));
+    }
+
+    void test_html_attribute_encode_preserves_expected_entities_without_progmem_helpers()
+    {
+        const String encoded = HttpServerAdvanced::WebUtility::HtmlAttributeEncode("<&>\"'", 5);
+
+        TEST_ASSERT_TRUE(encoded == String("&lt;&amp;&gt;&quot;&#39;"));
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -118,6 +132,8 @@ namespace
         RUN_TEST(test_parse_query_parameters_uses_std_string_payloads);
         RUN_TEST(test_uri_view_exposes_string_view_segments_and_query_payload);
         RUN_TEST(test_header_collection_supports_string_view_lookups);
+        RUN_TEST(test_html_encode_preserves_expected_entities_without_progmem_helpers);
+        RUN_TEST(test_html_attribute_encode_preserves_expected_entities_without_progmem_helpers);
         return UNITY_END();
     }
 }

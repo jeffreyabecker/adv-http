@@ -57,6 +57,7 @@ void tearDown()
 int run_test_filesystem_compat();
 int run_test_filesystem_posix();
 int run_test_native_smoke();
+int run_test_clock();
 int run_test_stream_available();
 int run_test_stream_utilities();
 int run_test_utilities();
@@ -66,6 +67,7 @@ int main(int, char **)
     int failureCount = 0;
 
     failureCount += run_test_native_smoke();
+    failureCount += run_test_clock();
     failureCount += run_test_stream_available();
     failureCount += run_test_stream_utilities();
     failureCount += run_test_filesystem_compat();

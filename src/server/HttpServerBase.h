@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../compat/Clock.h"
 #include "../compat/IpAddress.h"
 #include "../pipeline/HttpPipeline.h"
 #include "../pipeline/IPipelineHandler.h"
@@ -29,6 +30,8 @@ namespace HttpServerAdvanced
 
         HttpTimeouts &timeouts();
         void setTimeouts(const HttpTimeouts &timeouts);
+        void setClock(const Compat::Clock &clock);
+        const Compat::Clock &clock() const;
 
 
         void setPipelineHandlerFactory(std::function<PipelineHandlerPtr(HttpServerBase &)> factory);
@@ -45,6 +48,7 @@ namespace HttpServerAdvanced
         // Multiple concurrent pipelines (one per accepted client)
         std::vector<std::unique_ptr<HttpPipeline>> pipelines_;
         HttpTimeouts timeouts_;
+        const Compat::Clock *clock_;
         mutable std::map<String, std::any> items_;
 
         virtual std::unique_ptr<IClient> accept() = 0;

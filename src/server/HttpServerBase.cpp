@@ -2,7 +2,7 @@
 
 namespace HttpServerAdvanced {
 
-HttpServerBase::HttpServerBase() : pipelineHandlerFactory_(nullptr) {}
+HttpServerBase::HttpServerBase() : pipelineHandlerFactory_(nullptr), clock_(&Compat::DefaultClock()) {}
 
 HttpServerBase::~HttpServerBase() {
     end();
@@ -21,7 +21,7 @@ void HttpServerBase::handleClient() {
             break;
         }
         PipelineHandlerPtr handler = pipelineHandlerFactory_(*this);
-        pipelines_.emplace_back(std::make_unique<HttpPipeline>(std::move(accepted), *this, timeouts_, std::move(handler)));
+        pipelines_.emplace_back(std::make_unique<HttpPipeline>(std::move(accepted), *this, timeouts_, std::move(handler), clock()));
     }
 
     // Service existing pipelines. Remove finished ones.
@@ -50,6 +50,14 @@ HttpTimeouts &HttpServerBase::timeouts() {
 
 void HttpServerBase::setTimeouts(const HttpTimeouts &timeouts) {
     timeouts_ = timeouts;
+}
+
+void HttpServerBase::setClock(const Compat::Clock &clock) {
+    clock_ = &clock;
+}
+
+const Compat::Clock &HttpServerBase::clock() const {
+    return *clock_;
 }
 
 // std::map<String, std::any> &HttpServerBase::items() const {

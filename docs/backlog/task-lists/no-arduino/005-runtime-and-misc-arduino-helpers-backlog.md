@@ -1,3 +1,4 @@
+2026-03-21 - Copilot: migrated `HttpPipeline` timekeeping onto the injected clock seam, removed core `F()` literal usage from `HttpUtility.cpp`, and added native seam regression tests.
 2026-03-21 - Copilot: added a concrete header-only clock seam with system and manual clocks while leaving pipeline time migration open.
 2026-03-21 - Copilot: created detailed Phase 3 runtime and miscellaneous Arduino helpers backlog.
 
@@ -5,7 +6,7 @@
 
 ## Summary
 
-This phase cleans up the Arduino runtime dependencies that are not the main transport, stream, or filesystem seams but still prevent a clean platform-neutral core. The current repository still calls `millis()` directly in the pipeline, uses `F()` macro literals in `HttpUtility.cpp`, and leaves example/runtime concerns such as `Serial` logging conceptually mixed into the broader Arduino-centric surface. The goal of this phase is to move timekeeping and any residual runtime helpers behind explicit seams and stop core code from depending on Arduino runtime macros or functions. A concrete clock seam now exists in `src/compat/Clock.h` with both system and manual implementations, but no production timeout path consumes it yet.
+This phase cleans up the Arduino runtime dependencies that are not the main transport, stream, or filesystem seams but still prevent a clean platform-neutral core. The repository now routes pipeline timing through the library-owned clock seam and no longer uses `F()` macro literals in `HttpUtility.cpp`, but example/runtime concerns such as `Serial` logging remain conceptually mixed into the broader Arduino-centric surface. The goal of this phase is to finish the remaining runtime cleanup, verify timeout behavior more deeply, and keep Arduino runtime helpers confined to compatibility layers and examples.
 
 ## Goal / Acceptance Criteria
 
@@ -25,23 +26,23 @@ This phase cleans up the Arduino runtime dependencies that are not the main tran
 
 ### Pipeline Time Migration
 
-- [ ] Refactor `src/pipeline/HttpPipeline.cpp` to remove direct `millis()` calls.
-- [ ] Thread the new clock seam through pipeline construction or configuration without creating brittle global dependencies.
+- [x] Refactor `src/pipeline/HttpPipeline.cpp` to remove direct `millis()` calls.
+- [x] Thread the new clock seam through pipeline construction or configuration without creating brittle global dependencies.
 - [ ] Review `src/core/HttpTimeouts.h` and any related timeout configuration code so naming and types align with the new seam.
 - [ ] Verify that timeout state transitions and activity tracking semantics remain unchanged after the clock swap.
 
 ### Deterministic Test Support
 
-- [ ] Add a fake or test clock implementation suitable for future pipeline fixture tests.
-- [ ] Decide where the fake clock should live so it can be reused by later transport-loop tests.
-- [ ] Add at least one focused native test proving timeout arithmetic or activity-reset logic through the new seam.
+- [x] Add a fake or test clock implementation suitable for future pipeline fixture tests.
+- [x] Decide where the fake clock should live so it can be reused by later transport-loop tests.
+- [x] Add at least one focused native test proving timeout arithmetic or activity-reset logic through the new seam.
 
 ### `F()` And Literal Storage Cleanup
 
-- [ ] Audit `src/util/HttpUtility.cpp` for every `F()` macro use.
-- [ ] Replace `F()` macro literals in core code with portable compile-time literals or a narrowly scoped compatibility helper.
-- [ ] Decide whether a compatibility macro is warranted at all or whether standard literals are sufficient for the current code paths.
-- [ ] Verify that HTML-encoding and attribute-encoding output is unchanged after the replacement.
+- [x] Audit `src/util/HttpUtility.cpp` for every `F()` macro use.
+- [x] Replace `F()` macro literals in core code with portable compile-time literals or a narrowly scoped compatibility helper.
+- [x] Decide whether a compatibility macro is warranted at all or whether standard literals are sufficient for the current code paths.
+- [x] Verify that HTML-encoding and attribute-encoding output is unchanged after the replacement.
 
 ### Residual Runtime Helper Audit
 

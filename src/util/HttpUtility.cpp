@@ -12,6 +12,12 @@ namespace HttpServerAdvanced
 {
     namespace
     {
+        static constexpr const char *HtmlAmp = "&amp;";
+        static constexpr const char *HtmlLt = "&lt;";
+        static constexpr const char *HtmlGt = "&gt;";
+        static constexpr const char *HtmlQuot = "&quot;";
+        static constexpr const char *HtmlApos = "&#39;";
+
         std::vector<std::pair<String, String>> toArduinoQueryPairs(const WebUtility::QueryParameters &params)
         {
             std::vector<std::pair<String, String>> converted;
@@ -152,23 +158,23 @@ namespace HttpServerAdvanced
             // Encode special HTML characters
             if (c == '&')
             {
-                output += F("&amp;");
+                output += HtmlAmp;
             }
             else if (c == '<')
             {
-                output += F("&lt;");
+                output += HtmlLt;
             }
             else if (c == '>')
             {
-                output += F("&gt;");
+                output += HtmlGt;
             }
             else if (c == '"')
             {
-                output += F("&quot;");
+                output += HtmlQuot;
             }
             else if (c == '\'')
             {
-                output += F("&#39;");
+                output += HtmlApos;
             }
             else
             {
@@ -206,23 +212,23 @@ namespace HttpServerAdvanced
             // Encode special HTML attribute characters
             if (c == '&')
             {
-                output += F("&amp;");
+                output += HtmlAmp;
             }
             else if (c == '"')
             {
-                output += F("&quot;");
+                output += HtmlQuot;
             }
             else if (c == '\'')
             {
-                output += F("&#39;");
+                output += HtmlApos;
             }
             else if (c == '<')
             {
-                output += F("&lt;");
+                output += HtmlLt;
             }
             else if (c == '>')
             {
-                output += F("&gt;");
+                output += HtmlGt;
             }
             else
             {

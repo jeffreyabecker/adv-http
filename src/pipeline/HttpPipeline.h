@@ -2,6 +2,7 @@
 #include <memory>
 #include <functional>
 
+#include "../compat/Clock.h"
 #include "../compat/Stream.h"
 #include "../core/HttpTimeouts.h"
 #include "IPipelineHandler.h"
@@ -27,6 +28,7 @@ namespace HttpServerAdvanced
         // Pipeline members
         std::unique_ptr<HttpServerAdvanced::IClient> client_;
         HttpServerBase &server_;
+        const Compat::Clock &clock_;
         std::unique_ptr<Stream> responseStream_;
         PipelineHandlerPtr handler_;
         bool completedRequestRead_ = false;
@@ -36,9 +38,9 @@ namespace HttpServerAdvanced
         bool erroredUnrecoverably_ = false;
         bool timedOutUnrecoverably_ = false;
 
-        uint32_t lastActivityMillis_;
-        uint32_t startMillis_;
-        uint32_t loopCount_;
+        Compat::ClockMillis lastActivityMillis_;
+        Compat::ClockMillis startMillis_;
+        std::uint32_t loopCount_;
         HttpTimeouts timeouts_;
 
         enum class PipelineState
@@ -64,11 +66,13 @@ namespace HttpServerAdvanced
         void setErroredUnrecoverably();
         void markRequestReadCompleted();
         void markResponseWriteCompleted();
+        Compat::ClockMillis currentMillis() const;
 
 
     public:
         HttpPipeline(std::unique_ptr<HttpServerAdvanced::IClient> client, HttpServerBase &server,
-                     const HttpTimeouts &timeouts, PipelineHandlerPtr parserEventHandler);
+                     const HttpTimeouts &timeouts, PipelineHandlerPtr parserEventHandler,
+                     const Compat::Clock &clock);
 
         ~HttpPipeline() = default;
 
@@ -79,7 +83,7 @@ namespace HttpServerAdvanced
         void abort();
         void abortReadingRequest();
         void abortWritingResponse();
-        uint32_t startedAt() const;
+        Compat::ClockMillis startedAt() const;
         HttpServerAdvanced::IClient &client();
     };
 

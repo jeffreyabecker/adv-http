@@ -1,3 +1,4 @@
+2026-03-21 - Copilot: completed the first production time-seam migration, removed core `F()` literal usage from `HttpUtility.cpp`, and added native regression coverage for the clock seam and HTML encoders.
 2026-03-21 - Copilot: added explicit Phase 4 backlog items to replace `IPAddress` transport exposure with `std::string_view`-based address APIs backed by safe ownership.
 2026-03-21 - Copilot: landed initial Phase 3-5 seam scaffolding for clock, transport, and byte-stream contracts while leaving call-site migration open.
 2026-03-21 - Copilot: created new no-Arduino migration backlog from docs/plans/no-arduino/*.
@@ -62,10 +63,10 @@ This backlog replaces the deleted de-arduinofication task list with a single imp
 
 ### Phase 3: Runtime And Miscellaneous Arduino Helpers
 
-- [ ] Introduce a library-owned clock/time seam in `src/compat/` and retarget timeout-sensitive code to it.
-- [ ] Replace direct core usage of Arduino runtime helpers such as `millis()` and any similar calls with compatibility wrappers.
+- [x] Introduce a library-owned clock/time seam in `src/compat/` and retarget timeout-sensitive code to it.
+- [x] Replace direct core usage of Arduino runtime helpers such as `millis()` and any similar calls with compatibility wrappers.
 - [ ] Isolate logging so examples can still use `Serial`, but core code does not depend on Arduino logging APIs.
-- [ ] Replace PROGMEM/`F()` usage in core code with a portable wrapper or plain compile-time literals where the memory tradeoff is acceptable.
+- [x] Replace PROGMEM/`F()` usage in core code with a portable wrapper or plain compile-time literals where the memory tradeoff is acceptable.
 - [ ] Move example-only hardware IO and similar sketch concerns out of any library-core code paths.
 
 ### Phase 4: Transport Boundary

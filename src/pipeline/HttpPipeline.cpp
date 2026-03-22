@@ -4,11 +4,15 @@
 namespace HttpServerAdvanced
 {
     HttpPipeline::HttpPipeline(std::unique_ptr<HttpServerAdvanced::IClient> client, HttpServerBase &server,
-                               const HttpTimeouts &timeouts, PipelineHandlerPtr parserEventHandler)
-        : client_(std::move(client)),
-          server_(server),
+                                                             const HttpTimeouts &timeouts, PipelineHandlerPtr parserEventHandler,
+                                                             const Compat::Clock &clock)
+                : requestParser_(*parserEventHandler),
+                    client_(std::move(client)),
+                    server_(server),
+                    clock_(clock),
+                    responseStream_(nullptr),
+                    handler_(std::move(parserEventHandler)),
           timeouts_(timeouts),
-          responseStream_(nullptr),
           completedRequestRead_(false),
           completedResponseWrite_(false),
           haveStartedWritingResponse_(false),
@@ -17,9 +21,7 @@ namespace HttpServerAdvanced
           timedOutUnrecoverably_(false),
           lastActivityMillis_(0),
           loopCount_(0),
-          startMillis_(0),
-          requestParser_(*handler_),
-          handler_(std::move(parserEventHandler))
+          startMillis_(0)
     {
         handler_->setIPAddress(
             client_->remoteIP(),
@@ -119,13 +121,13 @@ namespace HttpServerAdvanced
 
     void HttpPipeline::setupPipeline()
     {
-        startMillis_ = millis();
+        startMillis_ = currentMillis();
         client_->setTimeout(timeouts_.getActivityTimeout());
     }
 
     PipelineHandleClientResult HttpPipeline::_checkStateInHandleClient()
     {
-        uint32_t currentMillis = millis();
+        const Compat::ClockMillis currentMillis = this->currentMillis();
         if (!client_->connected())
         {
             if (handler_)
@@ -179,12 +181,12 @@ namespace HttpServerAdvanced
 
     void HttpPipeline::startActivity()
     {
-        lastActivityMillis_ = millis();
+        lastActivityMillis_ = currentMillis();
     }
 
     bool HttpPipeline::checkActivityTimeout()
     {
-        uint32_t currentMillis = millis();
+        const Compat::ClockMillis currentMillis = this->currentMillis();
         if (currentMillis - lastActivityMillis_ > timeouts_.getActivityTimeout())
         {
             // Activity timeout: notify handler and mark pipeline as timed out
@@ -221,6 +223,11 @@ namespace HttpServerAdvanced
     {
         completedResponseWrite_ = true;
         responseStream_ = nullptr;
+    }
+
+    Compat::ClockMillis HttpPipeline::currentMillis() const
+    {
+        return clock_.nowMillis();
     }
 
     bool HttpPipeline::isFinished() const
@@ -277,7 +284,7 @@ namespace HttpServerAdvanced
         markResponseWriteCompleted();
     }
 
-    uint32_t HttpPipeline::startedAt() const
+    Compat::ClockMillis HttpPipeline::startedAt() const
     {
         return startMillis_;
     }
