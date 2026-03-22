@@ -23,10 +23,10 @@ namespace HttpServerAdvanced
           loopCount_(0),
           startMillis_(0)
     {
-        handler_->setIPAddress(
-            client_->remoteIP(),
+        handler_->setAddresses(
+            client_->remoteAddress(),
             client_->remotePort(),
-            client_->localIP(),
+            client_->localAddress(),
             client_->localPort());
         handler_->setResponseStreamCallback([this](std::unique_ptr<Stream> stream)
                                             { this->setResponseStream(std::move(stream)); });

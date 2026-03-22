@@ -4,6 +4,7 @@
 #include <cstring>
 #include <unity.h>
 
+#include "../../src/compat/IpAddress.h"
 #include "../../src/util/HttpUtility.h"
 #include "../../src/util/StringUtility.h"
 #include "../../src/core/HttpHeaderCollection.h"
@@ -118,6 +119,22 @@ namespace
         TEST_ASSERT_TRUE(header.value() == String("native"));
     }
 
+    void test_ip_address_formats_and_parses_ipv4_text()
+    {
+        const HttpServerAdvanced::IPAddress address(192, 168, 4, 1);
+        TEST_ASSERT_EQUAL_STRING("192.168.4.1", address.toString().c_str());
+
+        const auto parsed = HttpServerAdvanced::IPAddress::tryParse("10.0.0.42");
+        TEST_ASSERT_TRUE(parsed.has_value());
+        TEST_ASSERT_EQUAL_UINT8(10, (*parsed)[0]);
+        TEST_ASSERT_EQUAL_UINT8(0, (*parsed)[1]);
+        TEST_ASSERT_EQUAL_UINT8(0, (*parsed)[2]);
+        TEST_ASSERT_EQUAL_UINT8(42, (*parsed)[3]);
+
+        TEST_ASSERT_FALSE(HttpServerAdvanced::IPAddress::tryParse("10.0.0").has_value());
+        TEST_ASSERT_FALSE(HttpServerAdvanced::IPAddress::tryParse("10.0.0.999").has_value());
+    }
+
     void test_html_encode_preserves_expected_entities_without_progmem_helpers()
     {
         const String encoded = HttpServerAdvanced::WebUtility::HtmlEncode("<&>\"'", 5);
@@ -143,6 +160,7 @@ namespace
         RUN_TEST(test_uri_view_exposes_string_view_segments_and_query_payload);
         RUN_TEST(test_header_collection_supports_string_view_lookups);
         RUN_TEST(test_http_header_preserves_standard_text_storage_with_arduino_adapters);
+        RUN_TEST(test_ip_address_formats_and_parses_ipv4_text);
         RUN_TEST(test_html_encode_preserves_expected_entities_without_progmem_helpers);
         RUN_TEST(test_html_attribute_encode_preserves_expected_entities_without_progmem_helpers);
         return UNITY_END();

@@ -1,7 +1,11 @@
 #pragma once
 
 #include <array>
+#include <charconv>
 #include <cstdint>
+#include <optional>
+#include <string>
+#include <string_view>
 
 #ifdef ARDUINO
 #include <IPAddress.h>
@@ -70,6 +74,55 @@ namespace HttpServerAdvanced
             constexpr bool operator!=(const IpAddress &other) const
             {
                 return !(*this == other);
+            }
+
+            std::string toString() const
+            {
+                return std::to_string(octets_[0]) + "." +
+                       std::to_string(octets_[1]) + "." +
+                       std::to_string(octets_[2]) + "." +
+                       std::to_string(octets_[3]);
+            }
+
+            static std::optional<IpAddress> tryParse(std::string_view text)
+            {
+                std::array<uint8_t, 4> octets{};
+                std::size_t octetIndex = 0;
+                std::size_t start = 0;
+
+                while (start <= text.size() && octetIndex < octets.size())
+                {
+                    const std::size_t end = text.find('.', start);
+                    const std::size_t length = (end == std::string_view::npos ? text.size() : end) - start;
+                    if (length == 0)
+                    {
+                        return std::nullopt;
+                    }
+
+                    unsigned value = 0;
+                    const char *begin = text.data() + start;
+                    const char *finish = begin + length;
+                    const auto result = std::from_chars(begin, finish, value);
+                    if (result.ec != std::errc() || result.ptr != finish || value > 255U)
+                    {
+                        return std::nullopt;
+                    }
+
+                    octets[octetIndex++] = static_cast<uint8_t>(value);
+                    if (end == std::string_view::npos)
+                    {
+                        break;
+                    }
+
+                    start = end + 1;
+                }
+
+                if (octetIndex != octets.size())
+                {
+                    return std::nullopt;
+                }
+
+                return IpAddress(octets[0], octets[1], octets[2], octets[3]);
             }
 
         private:

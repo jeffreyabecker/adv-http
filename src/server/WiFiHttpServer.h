@@ -18,10 +18,14 @@ namespace HttpServerAdvanced
     public:
         using Base::Base;
 
-        IPAddress localIP() const override
+        std::string_view localAddress() const override
         {
-            return WiFi.localIP();
+            localAddressCache_ = HttpServerAdvanced::IPAddress(WiFi.localIP()).toString();
+            return localAddressCache_;
         }
+
+    private:
+        mutable std::string localAddressCache_;
     };
 }
 

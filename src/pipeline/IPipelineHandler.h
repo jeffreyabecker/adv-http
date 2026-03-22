@@ -2,7 +2,6 @@
 #include <memory>
 #include <functional>
 
-#include "../compat/IpAddress.h"
 #include "../core/HttpTimeouts.h"
 #include "../compat/Stream.h"
 #include "PipelineError.h"
@@ -11,6 +10,7 @@
 #include <cstdint>
 #include <optional>
 #include <algorithm>
+#include <string_view>
 
 namespace HttpServerAdvanced
 {
@@ -24,7 +24,7 @@ namespace HttpServerAdvanced
     public:
         virtual ~IPipelineHandler() = default;
         virtual int onMessageBegin(const char* method, uint16_t versionMajor, uint16_t versionMinor, String&& url) = 0;
-        virtual void setIPAddress(IPAddress remoteIP, uint16_t remotePort, IPAddress localIP, uint16_t localPort) = 0;
+        virtual void setAddresses(std::string_view remoteAddress, uint16_t remotePort, std::string_view localAddress, uint16_t localPort) = 0;
         virtual void setResponseStreamCallback(std::function<void(std::unique_ptr<Stream>)> onStreamReady) = 0;
         virtual int onHeader(String&& field, String&& value) = 0;
         virtual int onHeadersComplete() = 0;

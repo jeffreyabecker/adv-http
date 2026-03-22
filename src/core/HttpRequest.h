@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../compat/IpAddress.h"
 #include "../compat/Stream.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
@@ -42,9 +41,9 @@ namespace HttpServerAdvanced
         mutable bool versionCacheValid_ = false;
         mutable bool urlCacheValid_ = false;
         HttpHeaderCollection headers_;
-        IPAddress remoteIP_;
+        std::string remoteAddress_;
         uint16_t remotePort_;
-        IPAddress localIP_;
+        std::string localAddress_;
         uint16_t localPort_;
         IHttpRequestHandlerFactory& handlerFactory_;
 
@@ -125,11 +124,11 @@ namespace HttpServerAdvanced
             completedStartingLine();
             return 0;
         }
-        virtual void setIPAddress(IPAddress remoteIP, uint16_t remotePort, IPAddress localIP, uint16_t localPort) override
+        virtual void setAddresses(std::string_view remoteAddress, uint16_t remotePort, std::string_view localAddress, uint16_t localPort) override
         {
-            remoteIP_ = remoteIP;
+            remoteAddress_.assign(remoteAddress.data(), remoteAddress.size());
             remotePort_ = remotePort;
-            localIP_ = localIP;
+            localAddress_.assign(localAddress.data(), localAddress.size());
             localPort_ = localPort;
         }
 
@@ -174,7 +173,7 @@ namespace HttpServerAdvanced
         HttpRequest(HttpServerAdvanced::HttpServerBase &server, IHttpRequestHandlerFactory& handlerFactory)
             : server_(server), handlerFactory_(handlerFactory), handler_(nullptr), completedPhases_(0),
               method_(), version_(), url_(), headers_(),
-              remoteIP_(), remotePort_(0), localIP_(), localPort_(0) {}
+              remoteAddress_(), remotePort_(0), localAddress_(), localPort_(0) {}
         mutable std::unique_ptr<UriView> cachedUriView_;
 
     public:
@@ -191,9 +190,9 @@ namespace HttpServerAdvanced
         inline const String &url() const { return urlAdapter(); }
         inline std::string_view urlView() const { return std::string_view(url_.data(), url_.size()); }
         inline const HttpHeaderCollection &headers() const { return headers_; }
-        inline IPAddress remoteIP() { return remoteIP_; }
+        inline std::string_view remoteAddress() const { return std::string_view(remoteAddress_.data(), remoteAddress_.size()); }
         inline uint16_t remotePort() { return remotePort_; }
-        inline IPAddress localIP() { return localIP_; }
+        inline std::string_view localAddress() const { return std::string_view(localAddress_.data(), localAddress_.size()); }
         inline uint16_t localPort() { return localPort_; }
         inline std::map<String, std::any> &items() const{
             return items_;

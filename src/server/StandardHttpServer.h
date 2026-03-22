@@ -3,18 +3,21 @@
 #include "../compat/IpAddress.h"
 #include "HttpServerBase.h"
 
+#include <string>
+#include <string_view>
+
 namespace HttpServerAdvanced
 {
     template <typename TServer, uint16_t DEFAULT_PORT = 80>
     class StandardHttpServer : public HttpServerAdvanced::HttpServerBase
     {
     protected:
-        IPAddress bindAddress_;
+        std::string bindAddress_;
 
     public:
         static constexpr uint16_t DefaultPort = DEFAULT_PORT;
         StandardHttpServer(uint16_t port = DefaultPort, const IPAddress &ip = IPAddress(HttpServerAdvanced::Compat::IpAddressAny))
-            : bindAddress_(ip), server_(ip, port)
+            : bindAddress_(ip.toString()), server_(ip, port)
         {
         }
 
@@ -31,7 +34,7 @@ namespace HttpServerAdvanced
         {
             server_.configureConnection(callback);
         }
-        virtual IPAddress localIP() const override
+        virtual std::string_view localAddress() const override
         {
             return bindAddress_;
         }

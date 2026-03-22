@@ -2,8 +2,11 @@
 
 #include "TransportInterfaces.h"
 
+#include "../compat/IpAddress.h"
+
 #include <functional>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -61,9 +64,10 @@ namespace HttpServerAdvanced
             return connection_.connected();
         }
 
-        IPAddress remoteIP() override
+        std::string_view remoteAddress() const override
         {
-            return connection_.remoteIP();
+            remoteAddress_ = HttpServerAdvanced::IPAddress(connection_.remoteIP()).toString();
+            return remoteAddress_;
         }
 
         std::uint16_t remotePort() override
@@ -71,9 +75,10 @@ namespace HttpServerAdvanced
             return connection_.remotePort();
         }
 
-        IPAddress localIP() override
+        std::string_view localAddress() const override
         {
-            return connection_.localIP();
+            localAddress_ = HttpServerAdvanced::IPAddress(connection_.localIP()).toString();
+            return localAddress_;
         }
 
         std::uint16_t localPort() override
@@ -101,6 +106,8 @@ namespace HttpServerAdvanced
 
     private:
         T connection_;
+        mutable std::string remoteAddress_;
+        mutable std::string localAddress_;
     };
 
     template <typename T>

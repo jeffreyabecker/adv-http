@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../compat/Clock.h"
-#include "../compat/IpAddress.h"
 #include "../pipeline/HttpPipeline.h"
 #include "../pipeline/IPipelineHandler.h"
 #include "../pipeline/PipelineHandleClientResult.h"
@@ -13,6 +12,7 @@
 #include <map>
 #include <functional>
 #include <any>
+#include <string_view>
 
 namespace HttpServerAdvanced
 {
@@ -40,7 +40,7 @@ namespace HttpServerAdvanced
         size_t activeConnections() const { return pipelines_.size(); }
         static constexpr size_t maxConcurrentConnections() { return MAX_CONCURRENT_CONNECTIONS; }
 
-        virtual IPAddress localIP() const = 0;
+        virtual std::string_view localAddress() const = 0;
         virtual uint16_t localPort() const = 0;
 
     protected:

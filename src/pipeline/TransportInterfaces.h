@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../compat/IpAddress.h"
 #include "../compat/Availability.h"
 #include "../core/Defines.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string_view>
 
 namespace HttpServerAdvanced
 {
@@ -37,9 +37,9 @@ namespace HttpServerAdvanced
         virtual void stop() = 0;
         virtual ConnectionStatus status() = 0;
         virtual std::uint8_t connected() = 0;
-        virtual IPAddress remoteIP() = 0;
+        virtual std::string_view remoteAddress() const = 0;
         virtual std::uint16_t remotePort() = 0;
-        virtual IPAddress localIP() = 0;
+        virtual std::string_view localAddress() const = 0;
         virtual std::uint16_t localPort() = 0;
         virtual void setTimeout(std::uint32_t timeoutMs) = 0;
         virtual std::uint32_t getTimeout() const = 0;
@@ -70,12 +70,6 @@ namespace HttpServerAdvanced
         virtual ~IServer() = default;
 
         IServer() = default;
-
-        IServer(const IPAddress &ip, std::uint16_t port)
-        {
-            (void)ip;
-            (void)port;
-        }
 
         virtual std::unique_ptr<IClient> accept() = 0;
         virtual void begin() = 0;

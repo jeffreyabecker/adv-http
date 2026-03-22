@@ -10,7 +10,7 @@ Response configGetHandler(HttpRequest &request)
 {
     JsonDocument doc;
     doc["wifi"] = "enabled";
-    doc["localIp"] = request.localIP().toString();
+    doc["localIp"] = request.localAddress().data();
     doc["localPort"] = request.localPort();
     doc["debug"] = true;
     // Return current configuration as JSON
