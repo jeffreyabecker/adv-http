@@ -801,39 +801,15 @@ Helper classes and functions.
 | `KeyValuePairView<K,V>` | Immutable key-value collection |
 | `UriView` | Parsed URI with scheme, host, path, query, fragment |
 | `WebUtility` | URL/HTML encoding, Base64 utilities |
-| `StringUtil` | String comparison, search, manipulation |
+| `StringUtil` | Minimal standard-text helper namespace kept for compatibility during migration |
 
 #### StringView
 
-Lightweight non-owning string reference:
+Compatibility aliases for STL text views and ownership:
 
 ```cpp
-class StringView {
-public:
-    StringView();
-    StringView(const char* cstr);
-    StringView(const char* cstr, size_t length);
-    StringView(const String& str);
-    
-    // Comparison
-    int compareTo(const StringView& other, bool ignoreCase = false) const;
-    bool equals(const StringView& other, bool ignoreCase = false) const;
-    
-    // Search
-    bool startsWith(const char* prefix, bool ignoreCase = false) const;
-    bool endsWith(const char* suffix, bool ignoreCase = false) const;
-    std::ptrdiff_t indexOf(const char* needle, bool ignoreCase = false) const;
-    
-    // Access
-    size_t length() const;
-    const char* c_str() const;
-    char charAt(size_t index) const;
-    bool isEmpty() const;
-    
-    // Conversion
-    String toString() const;
-    StringView substring(size_t start, size_t length) const;
-};
+using StringView = std::string_view;
+using OwningStringView = std::string;
 ```
 
 #### UriView
@@ -845,16 +821,16 @@ class UriView {
 public:
     UriView(const String& uri);
     
-    const StringView& scheme() const;    // "https"
-    const StringView& userinfo() const;  // "user:pass"
-    const StringView& host() const;      // "example.com"
-    const StringView& port() const;      // "8080"
-    const StringView& path() const;      // "/api/users"
-    const StringView& query() const;     // "id=123&name=test"
-    const StringView& fragment() const;  // "section1"
+    std::string_view scheme() const;     // "https"
+    std::string_view userinfo() const;   // "user:pass"
+    std::string_view host() const;       // "example.com"
+    std::string_view port() const;       // "8080"
+    std::string_view path() const;       // "/api/users"
+    std::string_view query() const;      // "id=123&name=test"
+    std::string_view fragment() const;   // "section1"
     
     // Parsed query parameters
-    const KeyValuePairView<String, String>& queryView() const;
+    const KeyValuePairView<std::string, std::string>& queryView() const;
 };
 ```
 

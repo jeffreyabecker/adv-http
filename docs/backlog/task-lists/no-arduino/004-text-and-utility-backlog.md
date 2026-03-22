@@ -1,3 +1,6 @@
+2026-03-22 - Copilot: removed `StringUtility` from remaining core call sites, dropped Arduino-`String` overloads from `StringUtility`, and widened native validation to compile `HandlerMatcher.cpp`.
+2026-03-22 - Copilot: migrated the remaining production `StringView` call sites in `HttpUtility` to `std::string_view`, reduced `StringView.h` to compatibility aliases, and validated the native test lane.
+2026-03-22 - Copilot: migrated handler route params to standard-text plumbing, moved multipart metadata ownership to std::string-backed internals, audited matcher/auth/CORS borrowed-input paths, and validated the slice in the native lane.
 2026-03-21 - Copilot: created detailed Phase 2 text and utility backlog.
 2026-03-21 - Copilot: reordered Phase 2 so URI and query parsing lands before `StringUtility` and `StringView` cleanup to reduce churn.
 2026-03-21 - Copilot: implemented the first URI/query parsing migration slice and validated it through the native PlatformIO test lane.
@@ -32,10 +35,10 @@ This phase attacks the deepest and widest coupling point in the repository: Ardu
 #### Current Inventory Snapshot
 
 - `src/core/HttpHeader.*`, `src/core/HttpHeaderCollection.*`, and `src/core/HttpRequest.*`: now migrated to `std::string` internal ownership with Arduino `String` adapters retained at the boundary. Classification: owned internal state. Preferred replacement: keep `std::string` internally and leave compatibility adapters temporary.
-- `src/core/HttpMethod.h` and `src/routing/HandlerMatcher.*`: still depend on `StringUtility` for compare/prefix/search behavior while matcher configuration and extracted params remain Arduino-owned. Classification: owned internal state plus compatibility-heavy matcher APIs. Preferred replacement: `std::string` for configured text, `std::vector<std::string>` for extracted params, direct STL calls where possible.
-- `src/util/StringUtility.*`: current surface is a mix of low-level `const char *` helpers, `std::string_view` helpers, Arduino `String` overloads, and one remaining `replace()` that still returns Arduino `String`. Classification: mostly small standard helper plus compatibility shim. Preferred replacement: keep `const char *` and `std::string_view` helpers only where call sites still need a shared helper, remove Arduino `String` overloads from core paths, and revisit whether `replace()` should become a `std::string` helper or disappear into call sites.
-- `src/util/StringView.h`: still provides parser/view/member-helper behavior plus `OwningStringView`. Classification: non-owning parsed view and optional ownership wrapper. Preferred replacement: `std::string_view` for borrowed slices, `std::string` for retained ownership, and local free functions where member helpers are still needed.
-- `src/util/HttpUtility.*`: URI/query parsing is already standard-text-based internally, but public overloads still take `StringView` and several encode/decode helpers still return Arduino `String`. Classification: compatibility overloads around an already-modernized core. Preferred replacement: keep `const char *` and `std::string_view` front doors for the core path, defer Arduino `String` convenience overloads to adapter status.
+- `src/core/HttpMethod.h` and `src/routing/HandlerMatcher.*`: `HttpMethod.h` no longer needs `StringUtility`, and `HandlerMatcher.*` now uses direct standard-library operations plus small local ASCII helpers for case-insensitive prefix checks. Classification: owned internal state plus compatibility-heavy matcher APIs. Preferred replacement: continue moving matcher configuration and extracted params to `std::string` / `std::vector<std::string>`.
+- `src/util/StringUtility.*`: now reduced to a minimal standard-library-backed helper layer for compare/prefix/suffix/search operations, with `replace()` returning `std::string`; Arduino `String` overloads have been removed. Classification: reduced compatibility helper. Preferred replacement: keep only while downstream compatibility still benefits, then delete once no callers remain.
+- `src/util/StringView.h`: now reduced to a short-lived compatibility header that aliases `StringView` to `std::string_view` and `OwningStringView` to `std::string`, with no `Arduino.h` dependency. Classification: compatibility-only surface. Preferred replacement: use `std::string_view` for borrowed slices and `std::string` for retained ownership directly at call sites.
+- `src/util/HttpUtility.*`: query parsing, encode/decode, and Base64 helpers now take `std::string_view` on the standard-text path, leaving `String` overloads as compatibility adapters. Classification: compatibility overloads around a standard-text core. Preferred replacement: keep `const char *` and `std::string_view` front doors for the core path and continue reducing Arduino-facing wrappers later.
 - `src/handlers/HandlerRestrictions.h` and `src/handlers/HandlerTypes.h`: handler plumbing still hard-wires extracted route params as `std::vector<String>`. Classification: owned internal state flowing through core-ish plumbing. Preferred replacement: `std::vector<std::string>` internally, with adapter lambdas only where Arduino-facing handler ergonomics still need `String`.
 - `src/handlers/BufferedStringBodyHandler.*`, `src/handlers/FormBodyHandler.*`, `src/handlers/RawBodyHandler.*`, `src/handlers/JsonBodyHandler.*`, and `src/handlers/MultipartFormDataHandler.*`: body handlers still carry `std::vector<String>` params and, depending on handler type, Arduino `String` payloads or multipart metadata. Classification: mixed owned internal state and compatibility surfaces. Preferred replacement: `std::vector<std::string>` for params, `std::string` for buffered body and multipart metadata, leave Arduino `String` payload adapters only where a public handler contract still expects them.
 - `src/routing/HandlerBuilder.h`: the builder still seeds empty params as `std::vector<String>` and depends on handler restriction types. Classification: owned internal routing state. Preferred replacement: align with `std::vector<std::string>` once handler plumbing moves.
@@ -63,21 +66,46 @@ This phase attacks the deepest and widest coupling point in the repository: Ardu
 
 ### `StringUtility` Refactor
 
-- [ ] Inventory every function in `src/util/StringUtility.h` and classify it as `replace with STL call site`, `replace with small standard helper`, or `delete`.
-- [ ] Replace uses of `StringUtility` in core code with direct STL equivalents where those already exist, such as comparisons, prefix/suffix checks, search, substring handling, and character classification, after the URI/query transition has established the target text model.
-- [ ] For behaviors not covered cleanly by direct STL calls, introduce narrowly scoped standard-library-backed helpers instead of preserving the current `StringUtility` surface wholesale.
-- [ ] Remove Arduino-`String`-centric overloads from the core path rather than carrying them forward as the canonical API.
-- [ ] Decide whether `src/util/StringUtility.*` becomes a temporary compatibility shim, is reduced to a minimal adapter-only layer, or is deleted entirely once call sites are migrated.
-- [ ] Add or extend native tests in `test/test_native/test_utilities.cpp` for the STL-equivalent behaviors that replace current `StringUtility` call sites.
+- [x] Inventory every function in `src/util/StringUtility.h` and classify it as `replace with STL call site`, `replace with small standard helper`, or `delete`.
+- [x] Replace uses of `StringUtility` in core code with direct STL equivalents where those already exist, such as comparisons, prefix/suffix checks, search, substring handling, and character classification, after the URI/query transition has established the target text model.
+- [x] For behaviors not covered cleanly by direct STL calls, introduce narrowly scoped standard-library-backed helpers instead of preserving the current `StringUtility` surface wholesale.
+- [x] Remove Arduino-`String`-centric overloads from the core path rather than carrying them forward as the canonical API.
+- [x] Decide whether `src/util/StringUtility.*` becomes a temporary compatibility shim, is reduced to a minimal adapter-only layer, or is deleted entirely once call sites are migrated.
+- [x] Add or extend native tests in `test/test_native/test_utilities.cpp` for the STL-equivalent behaviors that replace current `StringUtility` call sites.
+
+#### `StringUtility` Function Inventory After Audit
+
+- `compareTo(const char *, size_t, const char *, size_t, bool)`: replace with small standard helper. Reason: case-insensitive lexicographic compare still needs a compact shared implementation where direct STL calls are awkward.
+- `startsWith(const char *, size_t, const char *, size_t, bool)`: replace with STL call site. Reason: core callers now use `std::string_view` size checks plus direct comparison or small file-local helpers.
+- `endsWith(const char *, size_t, const char *, size_t, bool)`: replace with STL call site. Reason: direct suffix comparison is straightforward at call sites.
+- `indexOf(const char *, size_t, const char *, size_t, size_t, bool)`: replace with STL call site. Reason: core callers now use `std::string_view::find()` or local parsing scans.
+- `lastIndexOf(const char *, size_t, const char *, size_t, size_t, bool)`: replace with STL call site. Reason: direct reverse search is straightforward where still needed.
+- `compareTo(std::string_view, std::string_view, bool)`: replace with small standard helper. Reason: it remains the smallest shared entry point for compatibility callers that still need case-insensitive compare.
+- `startsWith(std::string_view, std::string_view, bool)`: replace with STL call site. Reason: core callers now use direct `std::string_view` logic or local ASCII helpers.
+- `endsWith(std::string_view, std::string_view, bool)`: replace with STL call site. Reason: no core callers remain.
+- `indexOf(std::string_view, std::string_view, size_t, bool)`: replace with STL call site. Reason: no core callers remain.
+- `lastIndexOf(std::string_view, std::string_view, size_t, bool)`: replace with STL call site. Reason: no core callers remain.
+- Former Arduino `String` overloads for compare/prefix/suffix/search: delete. Reason: no core callers remain and the no-Arduino migration should not carry them forward.
+- `replace(...)`: replace with small standard helper. Reason: shared replacement logic still exists as a convenience surface, but now returns `std::string` instead of Arduino `String`.
+
+#### Outcome
+
+- Core code no longer depends on `src/util/StringUtility.h` for header lookup, auth prefix parsing, or URI-pattern wildcard detection.
+- `src/util/StringUtility.*` is now a reduced minimal compatibility layer built only on standard-library text types and helpers.
 
 ### `StringView` And Owning Text Views
 
-- [ ] Inventory every direct use of `src/util/StringView.h` and classify whether it should become `std::string_view`, `std::string`, `const char *`, or a local parser slice type.
-- [ ] Replace core call sites so `StringView` is no longer required for parsing, comparison, or URI decomposition, with URI/query users already migrated first.
-- [ ] Replace `OwningStringView` usage with explicit `std::string` ownership where retained ownership is actually needed.
-- [ ] Migrate member-style helper behavior currently hanging off `StringView` into direct STL call sites or small free functions as appropriate.
-- [ ] Decide whether `src/util/StringView.h` survives only as a short-lived compatibility header or is removed once migration call sites are updated.
-- [ ] Remove `Arduino.h` from `src/util/StringView.h` and stop treating it as a core dependency.
+- [x] Inventory every direct use of `src/util/StringView.h` and classify whether it should become `std::string_view`, `std::string`, `const char *`, or a local parser slice type.
+- [x] Replace core call sites so `StringView` is no longer required for parsing, comparison, or URI decomposition, with URI/query users already migrated first.
+- [x] Replace `OwningStringView` usage with explicit `std::string` ownership where retained ownership is actually needed.
+- [x] Migrate member-style helper behavior currently hanging off `StringView` into direct STL call sites or small free functions as appropriate.
+- [x] Decide whether `src/util/StringView.h` survives only as a short-lived compatibility header or is removed once migration call sites are updated.
+- [x] Remove `Arduino.h` from `src/util/StringView.h` and stop treating it as a core dependency.
+
+#### Direct Use Inventory After Audit
+
+- `src/util/HttpUtility.*`: direct parameter and implementation dependency. Replacement: `std::string_view` overloads for borrowed standard-text inputs, with existing `const char *` and Arduino `String` entry points kept as adapters.
+- `src/HttpServerAdvanced.h`: umbrella compatibility include only. Replacement: keep the header present as a short-lived alias surface for now; revisit umbrella export cleanup after handler/routing migration lands.
 
 ### Core Request And Header Models
 
@@ -89,10 +117,10 @@ This phase attacks the deepest and widest coupling point in the repository: Ardu
 
 ### Handler And Routing Plumbing
 
-- [ ] Refactor `src/handlers/HandlerRestrictions.h` and `src/handlers/HandlerTypes.h` so extracted route params are no longer typed as `std::vector<String>` internally.
-- [ ] Update `src/handlers/FormBodyHandler.*`, `src/handlers/RawBodyHandler.*`, and `src/handlers/MultipartFormDataHandler.*` to reduce `String` dependence in internal plumbing.
-- [ ] Decide how multipart metadata such as filename, content type, and part name should be represented internally once Arduino `String` is no longer the default ownership type.
-- [ ] Audit `src/routing/HandlerBuilder.h`, `src/routing/HandlerMatcher.h`, `src/routing/BasicAuthentication.h`, and `src/routing/CrossOriginRequestSharing.h` for borrowed-input APIs that should prefer `const char *` or standard text internally.
+- [x] Refactor `src/handlers/HandlerRestrictions.h` and `src/handlers/HandlerTypes.h` so extracted route params are no longer typed as `std::vector<String>` internally.
+- [x] Update `src/handlers/FormBodyHandler.*`, `src/handlers/RawBodyHandler.*`, and `src/handlers/MultipartFormDataHandler.*` to reduce `String` dependence in internal plumbing.
+- [x] Decide how multipart metadata such as filename, content type, and part name should be represented internally once Arduino `String` is no longer the default ownership type.
+- [x] Audit `src/routing/HandlerBuilder.h`, `src/routing/HandlerMatcher.h`, `src/routing/BasicAuthentication.h`, and `src/routing/CrossOriginRequestSharing.h` for borrowed-input APIs that should prefer `const char *` or standard text internally.
 
 ### Response And Umbrella Compatibility Review
 

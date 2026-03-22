@@ -3,83 +3,100 @@
 
 namespace HttpServerAdvanced
 {
-    void MultipartFormDataHandler::extractBoundary(const String &contentType)
+    namespace
     {
-        const char *str = contentType.c_str();
-        const char *boundaryPos = strstr(str, "boundary=");
-        if (boundaryPos)
+        std::string_view trimAscii(std::string_view value)
         {
-            boundaryPos += 9; // strlen("boundary=")
-            const char *endPos = strchr(boundaryPos, ';');
-            if (!endPos)
-                endPos = boundaryPos + strlen(boundaryPos);
-            boundary_ = String(boundaryPos, endPos - boundaryPos);
-            boundary_.trim();
+            const auto start = value.find_first_not_of(" \t\r\n");
+            if (start == std::string_view::npos)
+            {
+                return std::string_view();
+            }
+
+            const auto end = value.find_last_not_of(" \t\r\n");
+            return value.substr(start, end - start + 1);
+        }
+    }
+
+    void MultipartFormDataHandler::extractBoundary(std::string_view contentType)
+    {
+        const std::size_t boundaryPos = contentType.find("boundary=");
+        if (boundaryPos != std::string_view::npos)
+        {
+            const std::size_t valueStart = boundaryPos + 9;
+            const std::size_t valueEnd = contentType.find(';', valueStart);
+            const std::string_view rawBoundary = valueEnd == std::string_view::npos
+                                                     ? contentType.substr(valueStart)
+                                                     : contentType.substr(valueStart, valueEnd - valueStart);
+            const std::string_view trimmedBoundary = trimAscii(rawBoundary);
+            boundary_.assign(trimmedBoundary.data(), trimmedBoundary.size());
         }
     }
 
     void MultipartFormDataHandler::parsePartHeaders()
     {
-        const char *headerEnd = strstr((const char *)buffer_, "\r\n\r\n");
-        if (!headerEnd)
+        static constexpr uint8_t HeaderTerminator[] = {'\r', '\n', '\r', '\n'};
+        const uint8_t *bufferBegin = buffer_;
+        const uint8_t *bufferEnd = buffer_ + bufferLength_;
+        const uint8_t *headerEnd = std::search(bufferBegin, bufferEnd, HeaderTerminator, HeaderTerminator + 4);
+        if (headerEnd == bufferEnd)
             return; // Not enough data yet
 
-        String headerStr((const char *)buffer_, headerEnd - (const char *)buffer_);
+        const std::string_view headerStr(reinterpret_cast<const char *>(buffer_), static_cast<std::size_t>(headerEnd - buffer_));
+        filename_.clear();
+        contentType_.clear();
+        partName_.clear();
 
         // Parse Content-Disposition header
-        int dispPos = headerStr.indexOf("Content-Disposition:");
-        if (dispPos >= 0)
+        const std::size_t dispPos = headerStr.find("Content-Disposition:");
+        if (dispPos != std::string_view::npos)
         {
-            int nameStart = headerStr.indexOf("name=\"", dispPos);
-            if (nameStart >= 0)
+            const std::size_t nameStartMarker = headerStr.find("name=\"", dispPos);
+            if (nameStartMarker != std::string_view::npos)
             {
-                nameStart += 6;
-                int nameEnd = headerStr.indexOf("\"", nameStart);
-                if (nameEnd > nameStart)
+                const std::size_t nameStart = nameStartMarker + 6;
+                const std::size_t nameEnd = headerStr.find('"', nameStart);
+                if (nameEnd != std::string_view::npos && nameEnd > nameStart)
                 {
-                    partName_ = headerStr.substring(nameStart, nameEnd);
+                    partName_.assign(headerStr.data() + nameStart, nameEnd - nameStart);
                 }
             }
 
-            int filenameStart = headerStr.indexOf("filename=\"", dispPos);
-            if (filenameStart >= 0)
+            const std::size_t filenameStartMarker = headerStr.find("filename=\"", dispPos);
+            if (filenameStartMarker != std::string_view::npos)
             {
-                filenameStart += 10;
-                int filenameEnd = headerStr.indexOf("\"", filenameStart);
-                if (filenameEnd > filenameStart)
+                const std::size_t filenameStart = filenameStartMarker + 10;
+                const std::size_t filenameEnd = headerStr.find('"', filenameStart);
+                if (filenameEnd != std::string_view::npos && filenameEnd > filenameStart)
                 {
-                    filename_ = headerStr.substring(filenameStart, filenameEnd);
+                    filename_.assign(headerStr.data() + filenameStart, filenameEnd - filenameStart);
                 }
             }
         }
 
         // Parse Content-Type header
-        int typePos = headerStr.indexOf("Content-Type:");
-        if (typePos >= 0)
+        const std::size_t typePos = headerStr.find("Content-Type:");
+        if (typePos != std::string_view::npos)
         {
-            int typeStart = typePos + 13; // strlen("Content-Type:")
-            while (typeStart < (int)headerStr.length() && headerStr[typeStart] == ' ')
+            std::size_t typeStart = typePos + 13; // strlen("Content-Type:")
+            while (typeStart < headerStr.size() && headerStr[typeStart] == ' ')
                 typeStart++;
-            int typeEnd = headerStr.indexOf("\r\n", typeStart);
-            if (typeEnd < 0)
-                typeEnd = headerStr.length();
-            contentType_ = headerStr.substring(typeStart, typeEnd);
-        }
-        else
-        {
-            contentType_ = ""; // Empty if not specified
+            std::size_t typeEnd = headerStr.find("\r\n", typeStart);
+            if (typeEnd == std::string_view::npos)
+                typeEnd = headerStr.size();
+            contentType_.assign(headerStr.data() + typeStart, typeEnd - typeStart);
         }
 
         parsingHeaders_ = false;
-        size_t headerSize = (headerEnd - (const char *)buffer_) + 4; // +4 for \r\n\r\n
+        size_t headerSize = static_cast<size_t>(headerEnd - buffer_) + 4; // +4 for \r\n\r\n
         memmove(buffer_, buffer_ + headerSize, bufferLength_ - headerSize);
         bufferLength_ -= headerSize;
     }
 
     const uint8_t *MultipartFormDataHandler::findBoundary(const uint8_t *start, size_t len)
     {
-        const char *boundaryStr = boundary_.c_str();
-        size_t boundaryLen = boundary_.length();
+        const char *boundaryStr = boundary_.data();
+        size_t boundaryLen = boundary_.size();
         for (size_t i = 0; i + boundaryLen + 2 <= len; ++i)
         {
             if (start[i] == '\r' && start[i + 1] == '\n' &&

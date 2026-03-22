@@ -6,6 +6,7 @@
 #include "../core/HttpHeaderCollection.h"
 #include "../core/Buffer.h"
 #include "HandlerRestrictions.h"
+#include "../routing/HandlerMatcher.h"
 
 namespace HttpServerAdvanced
 {
@@ -25,18 +26,18 @@ namespace HttpServerAdvanced
     class RawBodyHandler : public IHttpHandler
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, RawBodyBuffer)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &, RawBodyBuffer)> handler_;
         ExtractArgsFromRequest extractor_;
         HandlerResult response_;
-        std::vector<String> params_;
+        RouteParameters params_;
         size_t receivedLength_{0};
         size_t contentLength_{0};
 
     public:
-        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
         RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequest &context, std::vector<String> &, RawBodyBuffer buffer)
+            : handler_([handler](HttpRequest &context, RouteParameters &, RawBodyBuffer buffer)
                        { return handler(context, buffer); }),
               extractor_(extractor) {}
 
@@ -47,7 +48,7 @@ namespace HttpServerAdvanced
     {
     public:
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, RawBodyBuffer)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &, RawBodyBuffer)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &, RawBodyBuffer)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 

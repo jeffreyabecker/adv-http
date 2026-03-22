@@ -14,7 +14,7 @@ namespace HttpServerAdvanced
 
     Json::Invocation Json::curryWithoutParams(InvocationWithoutParams handler)
     {
-        return [handler](HttpRequest &context, std::vector<String> &&, JsonDocument &&jsonData)
+        return [handler](HttpRequest &context, RouteParameters &&, JsonDocument &&jsonData)
         {
             return handler(context, std::move(jsonData));
         };
@@ -32,7 +32,7 @@ namespace HttpServerAdvanced
 
     Json::Invocation Json::curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](HttpRequest &context, std::vector<String> &&params, JsonDocument &&jsonData)
+        return [interceptor, handler](HttpRequest &context, RouteParameters &&params, JsonDocument &&jsonData)
         {
             return interceptor(context, [handler, params = std::move(params), jsonData = std::move(jsonData)](HttpRequest &context) mutable
                                { return handler(context, std::move(params), std::move(jsonData)); });
@@ -41,7 +41,7 @@ namespace HttpServerAdvanced
 
     Json::Invocation Json::applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](HttpRequest &context, std::vector<String> &&params, JsonDocument &&jsonData)
+        return [interceptor, handler](HttpRequest &context, RouteParameters &&params, JsonDocument &&jsonData)
         {
             return interceptor(context, [handler, params = std::move(params), jsonData = std::move(jsonData)](HttpRequest &context) mutable
                                { return handler(context, std::move(params), std::move(jsonData)); });
@@ -50,7 +50,7 @@ namespace HttpServerAdvanced
 
     Json::Invocation Json::applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
     {
-        return [filter, handler](HttpRequest &context, std::vector<String> &&params, JsonDocument &&jsonData)
+        return [filter, handler](HttpRequest &context, RouteParameters &&params, JsonDocument &&jsonData)
         {
             auto response = handler(context, std::move(params), std::move(jsonData));
             return filter(std::move(response));

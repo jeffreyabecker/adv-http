@@ -4,8 +4,6 @@
 #include <string>
 #include <string_view>
 
-class String;
-
 namespace HttpServerAdvanced
 {
     namespace StringUtil
@@ -32,18 +30,9 @@ namespace HttpServerAdvanced
 
         std::ptrdiff_t lastIndexOf(std::string_view haystack, std::string_view needle, size_t fromIndex = 0, bool ignoreCase = false);
 
-        // Overloads for Arduino String
-        int compareTo(const String& a, const String& b, bool ignoreCase);
-        
-        bool startsWith(const String& haystack, const String& needle, bool ignoreCase);
-        
-        bool endsWith(const String& haystack, const String& needle, bool ignoreCase);
-        
-        std::ptrdiff_t indexOf(const String& haystack, const String& needle, size_t fromIndex = 0, bool ignoreCase = false);
-        
-        std::ptrdiff_t lastIndexOf(const String& haystack, const String& needle, size_t fromIndex = 0, bool ignoreCase = false);
+        std::string replace(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, const char* replacement, size_t replacementLength, bool ignoreCase);
 
-        String replace(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, const char* replacement, size_t replacementLength, bool ignoreCase);
+        std::string replace(std::string_view haystack, std::string_view needle, std::string_view replacement, bool ignoreCase = false);
     }
 
 }

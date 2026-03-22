@@ -4,12 +4,23 @@
 #include "../core/Defines.h"
 #include "../core/HttpRequestPhase.h"
 #include "../core/HttpHeader.h"
+#include <charconv>
 #include <limits>
 #include <algorithm>
 #include <optional>
+#include <string_view>
 
 namespace HttpServerAdvanced
 {
+    inline bool tryParseHeaderLength(std::string_view value, size_t &parsedLength)
+    {
+        parsedLength = 0;
+        const char *begin = value.data();
+        const char *end = begin + value.size();
+        auto result = std::from_chars(begin, end, parsedLength);
+        return result.ec == std::errc() && result.ptr == end;
+    }
+
     // Forward declaration
     class HttpRequest;
 
@@ -59,11 +70,10 @@ namespace HttpServerAdvanced
                 std::optional<HttpHeader> contentLengthHeader = context.headers().find("Content-Length");
                 if (contentLengthHeader.has_value())
                 {
-                    const long headerLength = contentLengthHeader->value().toInt();
-                    if (headerLength > 0)
+                    size_t headerLength = 0;
+                    if (tryParseHeaderLength(contentLengthHeader->valueView(), headerLength) && headerLength > 0)
                     {
-                        const size_t announcedLength = static_cast<size_t>(headerLength);
-                        contentLength_ = std::min(announcedLength, maxBuffered);
+                        contentLength_ = std::min(headerLength, maxBuffered);
                         bodyBuffer_.reserve(contentLength_);
                     }
                 }

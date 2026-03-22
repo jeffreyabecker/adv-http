@@ -1,10 +1,11 @@
 #pragma once
 #include <Arduino.h>
 #include "../core/Defines.h"
-#include "../util/StringUtility.h"
 #include "../util/UriView.h"
+#include "../handlers/HandlerRestrictions.h"
 #include <initializer_list>
 #include <functional>
+#include <string_view>
 namespace HttpServerAdvanced
 {
     // Forward declaration
@@ -13,10 +14,10 @@ namespace HttpServerAdvanced
     class HandlerMatcher
     {
     public:
-        using MethodChecker = std::function<bool(const String &method, const String &allowedMethods)>;
-        using UriPatternChecker = std::function<bool(const String &uri, const String &uriPattern)>;
+        using MethodChecker = std::function<bool(std::string_view method, std::string_view allowedMethods)>;
+        using UriPatternChecker = std::function<bool(std::string_view uri, std::string_view uriPattern)>;
         using ContentTypeChecker = std::function<bool(HttpRequest &context, const std::vector<String> &allowedContentTypes)>;
-        using ArgsExtractor = std::function<std::vector<String>(HttpRequest &context, const String &uriPattern)>;
+        using ArgsExtractor = std::function<RouteParameters(HttpRequest &context, std::string_view uriPattern)>;
 
     protected:
         String uriPattern_;
@@ -46,8 +47,13 @@ namespace HttpServerAdvanced
         void setContentTypeChecker(ContentTypeChecker checker);
         void setArgsExtractor(ArgsExtractor extractor);
         void setUriPattern(const String &uriPattern);
+        void setUriPattern(const char *uriPattern);
+        void setUriPattern(std::string_view uriPattern);
         void setAllowedMethods(const String &methods);
+        void setAllowedMethods(const char *methods);
+        void setAllowedMethods(std::string_view methods);
         void setAllowedContentTypes(const std::initializer_list<String> &contentTypes);
+        void setAllowedContentTypes(const std::initializer_list<const char *> &contentTypes);
 
         // Getters
         const String &getUriPattern() const;
@@ -66,7 +72,7 @@ namespace HttpServerAdvanced
         }
 
         bool canHandle(HttpRequest &context) const;
-        std::vector<String> extractParameters(HttpRequest &context) const;
+        RouteParameters extractParameters(HttpRequest &context) const;
     };
     class ParameterizedUri : public HandlerMatcher
     {
@@ -77,13 +83,13 @@ namespace HttpServerAdvanced
     // ========== Implementations ==========
 
     // Default implementations
-    bool defaultCheckMethod(const String &allowedMethods, const String &method);
+    bool defaultCheckMethod(std::string_view allowedMethods, std::string_view method);
 
     bool defaultCheckContentType(HttpRequest &context, const std::vector<String> &allowedContentTypes);
 
-    bool defaultCheckUriPattern(const String &uri, const String &uriPattern);
+    bool defaultCheckUriPattern(std::string_view uri, std::string_view uriPattern);
 
-    std::vector<String> defaultExtractParameters(HttpRequest &context, const String &uriPattern);
+    RouteParameters defaultExtractParameters(HttpRequest &context, std::string_view uriPattern);
 
 } // namespace HttpServerAdvanced
 

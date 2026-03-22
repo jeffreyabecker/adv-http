@@ -19,11 +19,11 @@ namespace HttpServerAdvanced
     {
     public:
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler)
         {
-            return [handler](HttpRequest &context, std::vector<String> &&)
+            return [handler](HttpRequest &context, RouteParameters &&)
             {
                 return handler(context);
             };
@@ -43,7 +43,7 @@ namespace HttpServerAdvanced
 
         static Invocation curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpRequest &context, std::vector<String> &&params)
+            return [interceptor, handler](HttpRequest &context, RouteParameters &&params)
             {
                 return interceptor(context, [handler, params = std::move(params)](HttpRequest &context) mutable
                                    { return handler(context, std::move(params)); });
@@ -52,7 +52,7 @@ namespace HttpServerAdvanced
 
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpRequest &context, std::vector<String> &&params)
+            return [interceptor, handler](HttpRequest &context, RouteParameters &&params)
             {
                 return interceptor(context, [handler, params = std::move(params)](HttpRequest &context) mutable
                                    { return handler(context, std::move(params)); });
@@ -61,7 +61,7 @@ namespace HttpServerAdvanced
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
         {
-            return [filter, handler](HttpRequest &context, std::vector<String> &&params)
+            return [filter, handler](HttpRequest &context, RouteParameters &&params)
             {
                 auto response = handler(context, std::move(params));
                 return filter(std::move(response));

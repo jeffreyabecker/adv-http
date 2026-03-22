@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "BufferingHttpHandlerBase.h"
 #include "HandlerRestrictions.h"
+#include "../routing/HandlerMatcher.h"
 #include "../util/KeyValuePairView.h"
 #include "../util/HttpUtility.h"
 
@@ -15,16 +16,16 @@ namespace HttpServerAdvanced
     class JsonBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_JSON_BODY_LENGTH>
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, JsonDocument &&)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, JsonDocument &&)> handler_;
         ExtractArgsFromRequest extractor_;
 
         std::vector<uint8_t> bodyBuffer_;
 
     public:
-        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
+        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
         JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequest &context, std::vector<String> &&, JsonDocument &&postData)
+            : handler_([handler](HttpRequest &context, RouteParameters &&, JsonDocument &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
 
@@ -34,7 +35,7 @@ namespace HttpServerAdvanced
     {
     public:
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, JsonDocument &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, JsonDocument &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, JsonDocument &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 

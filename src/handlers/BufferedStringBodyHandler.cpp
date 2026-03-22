@@ -12,7 +12,7 @@ namespace HttpServerAdvanced
 
     Buffered::Invocation Buffered::curryWithoutParams(InvocationWithoutParams handler)
     {
-        return [handler](HttpRequest &context, std::vector<String> &&, BodyData &&postData)
+        return [handler](HttpRequest &context, RouteParameters &&, BodyData &&postData)
         {
             return handler(context, std::move(postData));
         };
@@ -30,7 +30,7 @@ namespace HttpServerAdvanced
 
     Buffered::Invocation Buffered::curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](HttpRequest &context, std::vector<String> &&params, BodyData &&postData)
+        return [interceptor, handler](HttpRequest &context, RouteParameters &&params, BodyData &&postData)
         {
             return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpRequest &context) mutable
                                { return handler(context, std::move(params), std::move(postData)); });
@@ -39,7 +39,7 @@ namespace HttpServerAdvanced
 
     Buffered::Invocation Buffered::applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](HttpRequest &context, std::vector<String> &&params, BodyData &&postData)
+        return [interceptor, handler](HttpRequest &context, RouteParameters &&params, BodyData &&postData)
         {
             return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpRequest &context) mutable
                                { return handler(context, std::move(params), std::move(postData)); });
@@ -48,7 +48,7 @@ namespace HttpServerAdvanced
 
     Buffered::Invocation Buffered::applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
     {
-        return [filter, handler](HttpRequest &context, std::vector<String> &&params, BodyData &&postData)
+        return [filter, handler](HttpRequest &context, RouteParameters &&params, BodyData &&postData)
         {
             auto response = handler(context, std::move(params), std::move(postData));
             return filter(std::move(response));

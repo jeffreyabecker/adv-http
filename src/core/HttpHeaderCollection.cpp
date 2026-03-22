@@ -1,6 +1,5 @@
 #include "HttpHeaderCollection.h"
 #include "HttpHeader.h"
-#include "../util/StringUtility.h"
 
 namespace HttpServerAdvanced
 {
@@ -15,11 +14,11 @@ namespace HttpServerAdvanced
         const std::string_view value = header.valueView();
 
         auto it = std::find_if(begin(), end(), [&](const HttpHeader &h)
-                               { return StringUtil::compareTo(h.nameView(), header.nameView(), true) == 0; });
+                               { return HttpHeaderCollectionDetail::EqualsIgnoreCase(h.nameView(), header.nameView()); });
 
         if (it != end())
         {
-            if (StringUtil::compareTo(header.nameView(), HttpHeaderNames::SetCookie, true) == 0)
+            if (HttpHeaderCollectionDetail::EqualsIgnoreCase(header.nameView(), HttpHeaderNames::SetCookie))
             {
                 if (forceOverwrite)
                 {

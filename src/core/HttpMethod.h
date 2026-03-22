@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../util/StringUtility.h"
 #include <cstring>
 namespace HttpServerAdvanced
 {

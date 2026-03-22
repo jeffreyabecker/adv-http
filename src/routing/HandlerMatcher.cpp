@@ -1,18 +1,39 @@
 #include "HandlerMatcher.h"
 
+#include <algorithm>
+#include <cctype>
 #include <string>
 #include <string_view>
 
 #include "../core/HttpRequest.h"
-#include "../util/StringUtility.h"
 #include "../util/UriView.h"
 
 namespace HttpServerAdvanced
 {
-    // Default implementations
-    bool defaultCheckMethod(const String &allowedMethods, const String &method)
+    namespace
     {
-        if (allowedMethods.isEmpty() || allowedMethods.indexOf(method) != -1)
+        std::string_view toStringView(const String &value)
+        {
+            return std::string_view(value.c_str(), value.length());
+        }
+
+        char toLowerAscii(char value)
+        {
+            return static_cast<char>(std::tolower(static_cast<unsigned char>(value)));
+        }
+
+        bool startsWithIgnoreCase(std::string_view value, std::string_view prefix)
+        {
+            return value.size() >= prefix.size() &&
+                   std::equal(prefix.begin(), prefix.end(), value.begin(), [](char lhs, char rhs)
+                              { return toLowerAscii(lhs) == toLowerAscii(rhs); });
+        }
+    }
+
+    // Default implementations
+    bool defaultCheckMethod(std::string_view allowedMethods, std::string_view method)
+    {
+        if (allowedMethods.empty() || allowedMethods.find(method) != std::string_view::npos)
         {
             return true;
         }
@@ -30,7 +51,7 @@ namespace HttpServerAdvanced
         bool matchFound = false;
         for (const auto &allowedCT : allowedContentTypes)
         {
-            if (StringUtil::startsWith(contentType->value(), allowedCT, true))
+            if (startsWithIgnoreCase(contentType->valueView(), toStringView(allowedCT)))
             {
                 matchFound = true;
                 break;
@@ -43,7 +64,7 @@ namespace HttpServerAdvanced
         return true;
     }
 
-    bool defaultCheckUriPattern(const String &uri, const String &uriPattern)
+    bool defaultCheckUriPattern(std::string_view uri, std::string_view uriPattern)
     {
         auto v = UriView(uri);
         auto path = v.path();
@@ -82,28 +103,28 @@ namespace HttpServerAdvanced
         return p == pEnd;
     }
 
-    std::vector<String> defaultExtractParameters(HttpRequest &context, const String &uriPattern)
+    RouteParameters defaultExtractParameters(HttpRequest &context, std::string_view uriPattern)
     {
-        std::vector<String> params;
+        RouteParameters params;
         auto v = UriView(context.url());
         auto path = v.path();
-        if (StringUtil::indexOf(uriPattern, "*") == -1)
+        if (uriPattern.find('*') == std::string_view::npos)
         {
             return params;
         }
 
         const char *t = path.data();
         const char *tEnd = t + path.size();
-        const char *p = uriPattern.begin();
-        const char *pEnd = p + uriPattern.length();
-        String currentParam;
+        const char *p = uriPattern.data();
+        const char *pEnd = p + uriPattern.size();
+        std::string currentParam;
 
         while (t != tEnd && p != pEnd)
         {
             if (*p == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
             {
                 // Wildcard: capture until next REQUEST_MATCHER_PATH_DELIMITER or end of string
-                currentParam = String();
+                currentParam.clear();
                 ++p; // Move past the REQUEST_MATCHER_PATH_WILDCARD_CHAR
 
                 // Capture characters until we hit the next REQUEST_MATCHER_PATH_DELIMITER in pattern or end of text
@@ -113,11 +134,11 @@ namespace HttpServerAdvanced
                     {
                         break;
                     }
-                    currentParam += *t;
+                    currentParam.push_back(*t);
                     ++t;
                 }
 
-                if (!currentParam.isEmpty())
+                if (!currentParam.empty())
                 {
                     params.push_back(currentParam);
                 }
@@ -144,14 +165,14 @@ namespace HttpServerAdvanced
         // Handle trailing wildcards
         while (p != pEnd && *p == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
         {
-            currentParam = String();
+            currentParam.clear();
             ++p;
             while (t != tEnd && *t != REQUEST_MATCHER_PATH_DELIMITER)
             {
-                currentParam += *t;
+                currentParam.push_back(*t);
                 ++t;
             }
-            if (!currentParam.isEmpty())
+            if (!currentParam.empty())
             {
                 params.push_back(currentParam);
             }
@@ -229,9 +250,31 @@ namespace HttpServerAdvanced
         uriPattern_ = uriPattern;
     }
 
+    void HandlerMatcher::setUriPattern(const char *uriPattern)
+    {
+        uriPattern_ = uriPattern != nullptr ? uriPattern : "";
+    }
+
+    void HandlerMatcher::setUriPattern(std::string_view uriPattern)
+    {
+        uriPattern_ = String(uriPattern.data(), uriPattern.size());
+    }
+
     void HandlerMatcher::setAllowedMethods(const String &methods)
     {
         allowedMethods_ = methods;
+        allowedMethods_.toUpperCase();
+    }
+
+    void HandlerMatcher::setAllowedMethods(const char *methods)
+    {
+        allowedMethods_ = methods != nullptr ? methods : "";
+        allowedMethods_.toUpperCase();
+    }
+
+    void HandlerMatcher::setAllowedMethods(std::string_view methods)
+    {
+        allowedMethods_ = String(methods.data(), methods.size());
         allowedMethods_.toUpperCase();
     }
 
@@ -241,6 +284,17 @@ namespace HttpServerAdvanced
         for (auto &ct : contentTypes)
         {
             String loweredCT = ct;
+            loweredCT.toLowerCase();
+            allowedContentTypes_.emplace_back(loweredCT);
+        }
+    }
+
+    void HandlerMatcher::setAllowedContentTypes(const std::initializer_list<const char *> &contentTypes)
+    {
+        allowedContentTypes_.clear();
+        for (const char *contentType : contentTypes)
+        {
+            String loweredCT = contentType != nullptr ? contentType : "";
             loweredCT.toLowerCase();
             allowedContentTypes_.emplace_back(loweredCT);
         }
@@ -285,13 +339,12 @@ namespace HttpServerAdvanced
     // Public methods
     bool HandlerMatcher::canHandle(HttpRequest &context) const
     {
-        if (!allowedMethods_.isEmpty() && !methodChecker_(context.method(), allowedMethods_))
+        if (!allowedMethods_.isEmpty() && !methodChecker_(context.methodView(), toStringView(allowedMethods_)))
         {
             return false;
         }
 
-        auto requestUri = context.url();
-        if (!uriPatternChecker_(requestUri, uriPattern_))
+        if (!uriPatternChecker_(context.urlView(), toStringView(uriPattern_)))
         {
             return false;
         }
@@ -306,9 +359,9 @@ namespace HttpServerAdvanced
         return true;
     }
 
-    std::vector<String> HandlerMatcher::extractParameters(HttpRequest &context) const
+    RouteParameters HandlerMatcher::extractParameters(HttpRequest &context) const
     {
-        return argsExtractor_(context, uriPattern_);
+        return argsExtractor_(context, toStringView(uriPattern_));
     }
 
     // ParameterizedUri implementation

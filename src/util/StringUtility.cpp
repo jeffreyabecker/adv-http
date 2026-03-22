@@ -1,6 +1,5 @@
 #include "StringUtility.h"
 
-#include <Arduino.h>
 #include <algorithm>
 #include <cctype>
 
@@ -169,53 +168,33 @@ namespace HttpServerAdvanced
             return lastIndexOf(haystack.data(), haystack.size(), needle.data(), needle.size(), fromIndex, ignoreCase);
         }
 
-        int compareTo(const String& a, const String& b, bool ignoreCase)
-        {
-            return compareTo(a.c_str(), a.length(), b.c_str(), b.length(), ignoreCase);
-        }
-
-        bool startsWith(const String& haystack, const String& needle, bool ignoreCase)
-        {
-            return startsWith(haystack.c_str(), haystack.length(), needle.c_str(), needle.length(), ignoreCase);
-        }
-
-        bool endsWith(const String& haystack, const String& needle, bool ignoreCase)
-        {
-            return endsWith(haystack.c_str(), haystack.length(), needle.c_str(), needle.length(), ignoreCase);
-        }
-
-        std::ptrdiff_t indexOf(const String& haystack, const String& needle, size_t fromIndex, bool ignoreCase)
-        {
-            return indexOf(haystack.c_str(), haystack.length(), needle.c_str(), needle.length(), fromIndex, ignoreCase);
-        }
-
-        std::ptrdiff_t lastIndexOf(const String& haystack, const String& needle, size_t fromIndex, bool ignoreCase)
-        {
-            return lastIndexOf(haystack.c_str(), haystack.length(), needle.c_str(), needle.length(), fromIndex, ignoreCase);
-        }
-
-        String replace(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, const char* replacement, size_t replacementLength, bool ignoreCase)
+        std::string replace(const char* haystack, size_t haystackLength, const char* needle, size_t needleLength, const char* replacement, size_t replacementLength, bool ignoreCase)
         {
             if (!haystack || !needle || !replacement)
-                return String();
+                return std::string();
             if (haystackLength == 0 || needleLength == 0)
-                return String(haystack, haystackLength);
+                return std::string(haystack, haystackLength);
 
-            String result;
+            std::string result;
             size_t pos = 0;
             while (pos < haystackLength)
             {
                 std::ptrdiff_t index = indexOf(haystack, haystackLength, needle, needleLength, pos, ignoreCase);
                 if (index == -1)
                 {
-                    result += String(haystack + pos, haystackLength - pos);
+                    result.append(haystack + pos, haystackLength - pos);
                     break;
                 }
-                result += String(haystack + pos, index - pos);
-                result += String(replacement, replacementLength);
-                pos = index + needleLength;
+                result.append(haystack + pos, static_cast<size_t>(index) - pos);
+                result.append(replacement, replacementLength);
+                pos = static_cast<size_t>(index) + needleLength;
             }
             return result;
+        }
+
+        std::string replace(std::string_view haystack, std::string_view needle, std::string_view replacement, bool ignoreCase)
+        {
+            return replace(haystack.data(), haystack.size(), needle.data(), needle.size(), replacement.data(), replacement.size(), ignoreCase);
         }
     }
 }

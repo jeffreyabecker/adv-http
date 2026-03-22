@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include "BufferingHttpHandlerBase.h"
 #include "HandlerRestrictions.h"
+#include "../routing/HandlerMatcher.h"
 #include "../util/KeyValuePairView.h"
 #include "../util/HttpUtility.h"
 
@@ -10,14 +11,14 @@ namespace HttpServerAdvanced
     class BufferedStringBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_FORM_BODY_LENGTH>
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, String &&)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, String &&)> handler_;
         ExtractArgsFromRequest extractor_;
 
     public:
-        BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, String &&)> handler, ExtractArgsFromRequest extractor)
+        BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, String &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
         BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, String &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequest &context, std::vector<String> &&, String &&postData)
+            : handler_([handler](HttpRequest &context, RouteParameters &&, String &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
 
@@ -29,7 +30,7 @@ namespace HttpServerAdvanced
     public:
         using BodyData = arduino::String;
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, BodyData &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, BodyData &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, BodyData &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 

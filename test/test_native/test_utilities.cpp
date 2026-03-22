@@ -40,8 +40,8 @@ namespace
     void test_replace()
     {
         const char *hay = "aabbaabb";
-        String replaced = replace(hay, strlen(hay), "bb", 2, "X", 1, false);
-        TEST_ASSERT_TRUE(replaced == String("aaXaaX"));
+        const std::string replaced = replace(hay, strlen(hay), "bb", 2, "X", 1, false);
+        TEST_ASSERT_EQUAL_STRING("aaXaaX", replaced.c_str());
     }
 
     void test_string_utility_string_view_overloads()
@@ -70,6 +70,22 @@ namespace
         const auto empty = params.get("empty");
         TEST_ASSERT_TRUE(empty.has_value());
         TEST_ASSERT_TRUE(empty->empty());
+    }
+
+    void test_web_utility_std_string_view_overloads_remain_available()
+    {
+        const std::string_view query = "first=one&second=two";
+        const auto pairs = HttpServerAdvanced::WebUtility::ParseQueryString(query);
+
+        TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(pairs.size()));
+        TEST_ASSERT_TRUE(pairs[0].first == String("first"));
+        TEST_ASSERT_TRUE(pairs[0].second == String("one"));
+
+        const String encoded = HttpServerAdvanced::WebUtility::HtmlEncode(std::string_view("<&>\"'"));
+        TEST_ASSERT_TRUE(encoded == String("&lt;&amp;&gt;&quot;&#39;"));
+
+        const String decoded = HttpServerAdvanced::WebUtility::DecodeURIComponent(std::string_view("Jane%20Doe"));
+        TEST_ASSERT_TRUE(decoded == String("Jane Doe"));
     }
 
     void test_uri_view_exposes_string_view_segments_and_query_payload()
@@ -140,6 +156,7 @@ namespace
         RUN_TEST(test_replace);
         RUN_TEST(test_string_utility_string_view_overloads);
         RUN_TEST(test_parse_query_parameters_uses_std_string_payloads);
+        RUN_TEST(test_web_utility_std_string_view_overloads_remain_available);
         RUN_TEST(test_uri_view_exposes_string_view_segments_and_query_payload);
         RUN_TEST(test_header_collection_supports_string_view_lookups);
         RUN_TEST(test_http_header_preserves_standard_text_storage_with_arduino_adapters);

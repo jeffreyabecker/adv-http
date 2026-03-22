@@ -2,7 +2,8 @@ param()
 
 Write-Host "Running consolidated native PlatformIO tests..."
 
-$projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$projectRoot = Split-Path -Parent $scriptDirectory
 Push-Location $projectRoot
 
 try {

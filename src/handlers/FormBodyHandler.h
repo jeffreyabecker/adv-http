@@ -11,14 +11,14 @@ namespace HttpServerAdvanced
     class FormBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_FORM_BODY_LENGTH>
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, WebUtility::QueryParameters &&)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, WebUtility::QueryParameters &&)> handler_;
         ExtractArgsFromRequest extractor_;
 
     public:
-        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
+        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
         FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequest &context, std::vector<String> &&, WebUtility::QueryParameters &&postData)
+            : handler_([handler](HttpRequest &context, RouteParameters &&, WebUtility::QueryParameters &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
 
@@ -31,7 +31,7 @@ class Form
     public:
         using PostBodyData = WebUtility::QueryParameters;
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, PostBodyData &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, std::vector<String> &&, PostBodyData &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, PostBodyData &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 

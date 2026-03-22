@@ -3,12 +3,27 @@
 #include <vector>
 #include <optional>
 #include <algorithm>
+#include <cctype>
 #include <string_view>
 #include "HttpHeader.h"
-#include "../util/StringUtility.h"
 
 namespace HttpServerAdvanced
 {
+  namespace HttpHeaderCollectionDetail
+  {
+    inline char ToLowerAscii(char value)
+    {
+      return static_cast<char>(std::tolower(static_cast<unsigned char>(value)));
+    }
+
+    inline bool EqualsIgnoreCase(std::string_view left, std::string_view right)
+    {
+      return left.size() == right.size() &&
+             std::equal(left.begin(), left.end(), right.begin(), [](char lhs, char rhs)
+                        { return ToLowerAscii(lhs) == ToLowerAscii(rhs); });
+    }
+  }
+
   class HttpHeaderCollection : public std::vector<HttpHeader>
   {
 
@@ -46,10 +61,15 @@ namespace HttpServerAdvanced
       return find(std::string_view(name.c_str(), name.length()));
     }
 
+    std::optional<HttpHeader> find(const char *name) const
+    {
+      return find(std::string_view(name != nullptr ? name : ""));
+    }
+
     std::optional<HttpHeader> find(std::string_view name) const
     {
       auto it = std::find_if(begin(), end(), [name](const HttpHeader &header)
-                             { return StringUtil::compareTo(header.nameView(), name, true) == 0; });
+                             { return HttpHeaderCollectionDetail::EqualsIgnoreCase(header.nameView(), name); });
       if (it != end())
       {
         return *it;
@@ -87,7 +107,7 @@ namespace HttpServerAdvanced
     {
       auto it = std::find_if(begin(), end(), [name, value](const HttpHeader &header)
                              {
-                               return StringUtil::compareTo(header.nameView(), name, true) == 0 &&
+                               return HttpHeaderCollectionDetail::EqualsIgnoreCase(header.nameView(), name) &&
                                       header.valueView() == value;
                              });
       return it != end();
@@ -119,7 +139,7 @@ namespace HttpServerAdvanced
     void remove(std::string_view name)
     {
       erase(std::remove_if(begin(), end(), [name](const HttpHeader &h)
-                           { return StringUtil::compareTo(h.nameView(), name, true) == 0; }),
+                           { return HttpHeaderCollectionDetail::EqualsIgnoreCase(h.nameView(), name); }),
             end());
     }
 
@@ -134,7 +154,7 @@ namespace HttpServerAdvanced
     {
       erase(std::remove_if(begin(), end(), [name, value](const HttpHeader &h)
                            {
-                             return StringUtil::compareTo(h.nameView(), name, true) == 0 &&
+                             return HttpHeaderCollectionDetail::EqualsIgnoreCase(h.nameView(), name) &&
                                     h.valueView() == value;
                            }),
             end());

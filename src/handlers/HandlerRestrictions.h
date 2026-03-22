@@ -1,16 +1,19 @@
 #pragma once
-#include <Arduino.h>
 #include <functional>
+#include <string>
+#include <vector>
 #include "../core/Defines.h"
 #include "IHttpHandler.h"
-#include "../routing/HandlerMatcher.h"
 namespace HttpServerAdvanced
 {
     class HandlerProviderRegistry;
     class IHttpResponse;
+    class HandlerMatcher;
     
     // Forward declare for trait checking
-    using ExtractArgsFromRequest = std::function<std::vector<String>(class HttpRequest &context)>;
+    using RouteParameter = std::string;
+    using RouteParameters = std::vector<RouteParameter>;
+    using ExtractArgsFromRequest = std::function<RouteParameters(class HttpRequest &context)>;
 
     namespace HandlerRestrictions
     {

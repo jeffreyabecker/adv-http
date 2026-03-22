@@ -3,7 +3,6 @@
 #include <Arduino.h>
 #include <string_view>
 
-#include "StringView.h"
 #include "../streams/Base64Stream.h"
 #include "../streams/Streams.h"
 #include "../streams/UriStream.h"
@@ -85,9 +84,9 @@ namespace HttpServerAdvanced
         return ParseQueryString(query.c_str(), query.length());
     }
 
-    std::vector<std::pair<String, String>> WebUtility::ParseQueryString(const StringView &query)
+    std::vector<std::pair<String, String>> WebUtility::ParseQueryString(std::string_view query)
     {
-        return ParseQueryString(query.begin(), query.length());
+        return ParseQueryString(query.data(), query.size());
     }
 
     std::string WebUtility::DecodeURIComponentToString(const char *str, std::size_t length)
@@ -107,9 +106,9 @@ namespace HttpServerAdvanced
         return DecodeURIComponent(str.c_str(), str.length());
     }
 
-    String WebUtility::DecodeURIComponent(const StringView &str)
+    String WebUtility::DecodeURIComponent(std::string_view str)
     {
-        return DecodeURIComponent(str.begin(), str.length());
+        return DecodeURIComponent(str.data(), str.size());
     }
 
     String WebUtility::DecodeURIComponent(const char *str, std::size_t length)
@@ -141,9 +140,9 @@ namespace HttpServerAdvanced
         return EncodeURIComponent(str.c_str(), str.length());
     }
 
-    String WebUtility::EncodeURIComponent(const StringView &str)
+    String WebUtility::EncodeURIComponent(std::string_view str)
     {
-        return EncodeURIComponent(str.begin(), str.length());
+        return EncodeURIComponent(str.data(), str.size());
     }
 
     String WebUtility::HtmlEncode(const char *str, std::size_t length)
@@ -194,9 +193,9 @@ namespace HttpServerAdvanced
         return HtmlEncode(String(input));
     }
 
-    String WebUtility::HtmlEncode(const StringView &str)
+    String WebUtility::HtmlEncode(std::string_view str)
     {
-        return HtmlEncode(str.begin(), str.length());
+        return HtmlEncode(str.data(), str.size());
     }
 
     String WebUtility::HtmlAttributeEncode(const char *input, std::size_t length)
@@ -248,9 +247,9 @@ namespace HttpServerAdvanced
         return HtmlAttributeEncode(String(input));
     }
 
-    String WebUtility::HtmlAttributeEncode(const StringView &str)
+    String WebUtility::HtmlAttributeEncode(std::string_view str)
     {
-        return HtmlAttributeEncode(str.begin(), str.length());
+        return HtmlAttributeEncode(str.data(), str.size());
     }
 
     String WebUtility::JavaScriptStringEncode(const String &input, bool includeQuotes)
@@ -327,15 +326,15 @@ namespace HttpServerAdvanced
         return ReadAsVector(base64Stream);
     }
 
-    std::vector<uint8_t> WebUtility::Base64Decode(const StringView &input, bool urlCompatible)
+    std::vector<uint8_t> WebUtility::Base64Decode(std::string_view input, bool urlCompatible)
     {
-        Base64DecoderStream base64Stream = Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(input.c_str()), input.length(), urlCompatible);
+        Base64DecoderStream base64Stream = Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(input.data()), input.size(), urlCompatible);
         return ReadAsVector(base64Stream);
     }
 
-    String WebUtility::Base64Encode(const StringView &input, bool urlCompatible)
+    String WebUtility::Base64Encode(std::string_view input, bool urlCompatible)
     {
-        return Base64Encode(reinterpret_cast<const uint8_t *>(input.begin()), input.length(), urlCompatible);
+        return Base64Encode(reinterpret_cast<const uint8_t *>(input.data()), input.size(), urlCompatible);
     }
 
     String WebUtility::Base64DecodeToString(const String &input, bool urlCompatible)
@@ -350,9 +349,9 @@ namespace HttpServerAdvanced
         return ReadAsString(base64Stream);
     }
 
-    String WebUtility::Base64DecodeToString(const StringView &input, bool urlCompatible)
+    String WebUtility::Base64DecodeToString(std::string_view input, bool urlCompatible)
     {
-        return Base64DecodeToString(input.begin(), input.length(), urlCompatible);
+        return Base64DecodeToString(input.data(), input.size(), urlCompatible);
     }
 
 

@@ -6,8 +6,8 @@
 namespace HttpServerAdvanced
 {
 
-    HttpResponse::ResponseFilter CrossOriginRequestSharing(const String &allowedOrigins = "*", const String &allowedMethods = "*", const String &allowedHeaders = "*",
-                                                           const String &allowedCredentials = "", const String &exposeHeaders = "", const int maxAge = -1, const String &requestHeaders = "", const String &requestMethods = "")
+    inline HttpResponse::ResponseFilter CrossOriginRequestSharing(const String &allowedOrigins = "*", const String &allowedMethods = "*", const String &allowedHeaders = "*",
+                                                                  const String &allowedCredentials = "", const String &exposeHeaders = "", const int maxAge = -1, const String &requestHeaders = "", const String &requestMethods = "")
     {
         return [=](std::unique_ptr<IHttpResponse> resp) -> std::unique_ptr<IHttpResponse>
         {
@@ -34,6 +34,20 @@ namespace HttpServerAdvanced
                 headers.set(HttpHeaderNames::AccessControlRequestMethod, requestMethods);
             return resp;
         };
+    }
+
+    inline HttpResponse::ResponseFilter CrossOriginRequestSharing(const char *allowedOrigins, const char *allowedMethods, const char *allowedHeaders,
+                                                                  const char *allowedCredentials = "", const char *exposeHeaders = "", const int maxAge = -1,
+                                                                  const char *requestHeaders = "", const char *requestMethods = "")
+    {
+        return CrossOriginRequestSharing(String(allowedOrigins != nullptr ? allowedOrigins : ""),
+                                         String(allowedMethods != nullptr ? allowedMethods : ""),
+                                         String(allowedHeaders != nullptr ? allowedHeaders : ""),
+                                         String(allowedCredentials != nullptr ? allowedCredentials : ""),
+                                         String(exposeHeaders != nullptr ? exposeHeaders : ""),
+                                         maxAge,
+                                         String(requestHeaders != nullptr ? requestHeaders : ""),
+                                         String(requestMethods != nullptr ? requestMethods : ""));
     }
 
 } // namespace HttpServerAdvanced
