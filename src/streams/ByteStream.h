@@ -117,6 +117,48 @@ namespace HttpServerAdvanced
         return std::string(data.begin(), data.end());
     }
 
+    class SingleByteSource : public IByteSource
+    {
+    public:
+        size_t read(HttpServerAdvanced::span<uint8_t> buffer) override
+        {
+            size_t totalRead = 0;
+            while (totalRead < buffer.size())
+            {
+                const int value = readSingleByte();
+                if (value < 0)
+                {
+                    break;
+                }
+
+                buffer[totalRead++] = static_cast<uint8_t>(value);
+            }
+
+            return totalRead;
+        }
+
+        size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override
+        {
+            if (buffer.empty())
+            {
+                return 0;
+            }
+
+            const int value = peekSingleByte();
+            if (value < 0)
+            {
+                return 0;
+            }
+
+            buffer[0] = static_cast<uint8_t>(value);
+            return 1;
+        }
+
+    protected:
+        virtual int readSingleByte() = 0;
+        virtual int peekSingleByte() = 0;
+    };
+
     class SpanByteSource : public IByteSource
     {
     public:

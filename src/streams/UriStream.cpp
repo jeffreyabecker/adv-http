@@ -1,51 +1,139 @@
 #include "UriStream.h"
+
+#include <cstdlib>
+
 namespace HttpServerAdvanced
 {
+    namespace
+    {
+        std::vector<std::pair<std::string, std::string>> toOwnedData(std::vector<std::pair<String, String>> &&data)
+        {
+            std::vector<std::pair<std::string, std::string>> owned;
+            owned.reserve(data.size());
+            for (auto &pair : data)
+            {
+                owned.emplace_back(
+                    std::string(pair.first.c_str(), pair.first.length()),
+                    std::string(pair.second.c_str(), pair.second.length()));
+            }
+            return owned;
+        }
+
+        bool isUriUnreserved(unsigned char byte)
+        {
+            return (byte >= 'A' && byte <= 'Z') ||
+                   (byte >= 'a' && byte <= 'z') ||
+                   (byte >= '0' && byte <= '9') ||
+                   byte == '-' || byte == '_' || byte == '.' || byte == '~';
+        }
+
+        std::string encodeFormComponent(std::string_view value)
+        {
+            static constexpr char Hex[] = "0123456789ABCDEF";
+
+            std::string encoded;
+            encoded.reserve(value.size());
+            for (unsigned char ch : value)
+            {
+                if (isUriUnreserved(ch) || ch == '*')
+                {
+                    encoded.push_back(static_cast<char>(ch));
+                }
+                else if (ch == ' ')
+                {
+                    encoded.push_back('+');
+                }
+                else
+                {
+                    encoded.push_back('%');
+                    encoded.push_back(Hex[(ch >> 4) & 0x0F]);
+                    encoded.push_back(Hex[ch & 0x0F]);
+                }
+            }
+
+            return encoded;
+        }
+
+        std::string buildFormBody(const std::vector<std::pair<std::string, std::string>> &data)
+        {
+            std::string body;
+            bool first = true;
+            for (const auto &pair : data)
+            {
+                if (!first)
+                {
+                    body.push_back('&');
+                }
+                first = false;
+
+                body.append(encodeFormComponent(pair.first));
+                if (!pair.second.empty())
+                {
+                    body.push_back('=');
+                    body.append(encodeFormComponent(pair.second));
+                }
+            }
+
+            return body;
+        }
+    }
+
     // UriDecodingStream
     UriDecodingStream::UriDecodingStream(const String &uri)
-        : UriDecodingStream(std::make_unique<StringStream>(uri))
+        : UriDecodingStream(std::make_unique<StdStringByteSource>(std::string(uri.c_str(), uri.length())))
     {
     }
 
     UriDecodingStream::UriDecodingStream(const char *uri)
-        : UriDecodingStream(std::make_unique<OctetsStream>(uri))
+        : UriDecodingStream(std::make_unique<SpanByteSource>(reinterpret_cast<const uint8_t *>(uri), strlen(uri)))
     {
     }
 
     UriDecodingStream::UriDecodingStream(const uint8_t *uri, size_t length)
-        : UriDecodingStream(std::make_unique<OctetsStream>(uri, length))
+        : UriDecodingStream(std::make_unique<SpanByteSource>(uri, length))
     {
     }
 
-    UriDecodingStream::UriDecodingStream(std::unique_ptr<ReadStream> innerStream)
+    UriDecodingStream::UriDecodingStream(std::unique_ptr<IByteSource> innerStream)
         : innerStream_(std::move(innerStream))
     {
     }
 
-    int UriDecodingStream::available()
+    AvailableResult UriDecodingStream::available()
     {
-        return innerStream_->available();
+        if (!innerStream_)
+        {
+            return ExhaustedResult();
+        }
+
+        const AvailableResult innerAvailable = innerStream_->available();
+        if (state_ != State::Normal && innerAvailable.hasBytes())
+        {
+            return AvailableBytes(1);
+        }
+
+        return innerAvailable;
     }
 
-    int UriDecodingStream::read()
+    int UriDecodingStream::readSingleByte()
     {
-        int byte = peek();
+        int byte = peekSingleByte();
         if (byte != -1)
         {
             if (state_ == State::Normal)
             {
-                innerStream_->read(); // Consume normal character
+                ReadByte(*innerStream_); // Consume normal character
             }
             // For Percent1 and Percent2 states, the bytes were already consumed in peek()
         }
         return byte;
     }
 
-    int UriDecodingStream::peek()
+    int UriDecodingStream::peekSingleByte()
     {
         while (true)
         {
-            int byte = innerStream_->peek();
+            int byte = PeekByte(*innerStream_);
             if (byte == -1)
             {
                 return -1; // End of stream
@@ -56,7 +144,7 @@ namespace HttpServerAdvanced
                 if (byte == '%')
                 {
                     state_ = State::Percent1;
-                    innerStream_->read(); // Consume '%'
+                    ReadByte(*innerStream_); // Consume '%'
                 }
                 else if (byte == '+')
                 {
@@ -71,7 +159,7 @@ namespace HttpServerAdvanced
             {
                 percentBuffer_[0] = static_cast<char>(byte);
                 state_ = State::Percent2;
-                innerStream_->read(); // Consume first hex digit
+                ReadByte(*innerStream_); // Consume first hex digit
             }
             else if (state_ == State::Percent2)
             {
@@ -91,33 +179,38 @@ namespace HttpServerAdvanced
 
     // UriEncodingStream
     UriEncodingStream::UriEncodingStream(const String &uri)
-        : UriEncodingStream(std::make_unique<StringStream>(uri))
+        : UriEncodingStream(std::make_unique<StdStringByteSource>(std::string(uri.c_str(), uri.length())))
     {
     }
 
     UriEncodingStream::UriEncodingStream(const char *uri)
-        : UriEncodingStream(std::make_unique<OctetsStream>(uri))
+        : UriEncodingStream(std::make_unique<SpanByteSource>(reinterpret_cast<const uint8_t *>(uri), strlen(uri)))
     {
     }
 
     UriEncodingStream::UriEncodingStream(const uint8_t *uri, size_t length)
-        : UriEncodingStream(std::make_unique<OctetsStream>(uri, length))
+        : UriEncodingStream(std::make_unique<SpanByteSource>(uri, length))
     {
     }
 
-    UriEncodingStream::UriEncodingStream(std::unique_ptr<ReadStream> innerStream)
+    UriEncodingStream::UriEncodingStream(std::unique_ptr<IByteSource> innerStream)
         : innerStream_(std::move(innerStream))
     {
     }
 
-    int UriEncodingStream::available()
+    AvailableResult UriEncodingStream::available()
     {
-        return innerStream_->available();
+        if (state_ != State::Normal)
+        {
+            return AvailableBytes(1);
+        }
+
+        return innerStream_ ? innerStream_->available() : ExhaustedResult();
     }
 
-    int UriEncodingStream::read()
+    int UriEncodingStream::readSingleByte()
     {
-        int byte = peek();
+        int byte = peekSingleByte();
         if (byte != -1)
         {
             encodedIndex_++;
@@ -125,28 +218,26 @@ namespace HttpServerAdvanced
             {
                 encodedIndex_ = 0;
                 state_ = State::Normal;
-                innerStream_->read();
+                ReadByte(*innerStream_);
             }
         }
         return byte;
     }
 
-    int UriEncodingStream::peek()
+    int UriEncodingStream::peekSingleByte()
     {
         while (true)
         {
             if (state_ == State::Normal)
             {
-                int byte = innerStream_->peek();
+                int byte = PeekByte(*innerStream_);
                 if (byte == -1)
                 {
                     return -1;
                 }
 
                 // Check if byte needs encoding (unreserved characters per RFC 3986)
-                if ((byte >= 'A' && byte <= 'Z') || (byte >= 'a' && byte <= 'z') ||
-                    (byte >= '0' && byte <= '9') || byte == '-' || byte == '_' ||
-                    byte == '.' || byte == '~')
+                if (isUriUnreserved(static_cast<unsigned char>(byte)))
                 {
                     return byte; // Safe character, return as-is
                 }
@@ -170,5 +261,15 @@ namespace HttpServerAdvanced
                 return encodedBuffer_[1];
             }
         }
+    }
+
+    FormEncodingStream::FormEncodingStream(std::vector<std::pair<std::string, std::string>> &&data)
+        : StdStringByteSource(buildFormBody(data))
+    {
+    }
+
+    FormEncodingStream::FormEncodingStream(std::vector<std::pair<String, String>> &&data)
+        : FormEncodingStream(toOwnedData(std::move(data)))
+    {
     }
 }

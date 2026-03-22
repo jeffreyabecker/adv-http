@@ -27,12 +27,13 @@ namespace
         {
         }
 
-        int available() override
+        AvailableResult available() override
         {
-            return position_ < bytes_.size() ? -1 : 0;
+            return position_ < bytes_.size() ? TemporarilyUnavailableResult() : ExhaustedResult();
         }
 
-        int read() override
+    protected:
+        int readSingleByte() override
         {
             if (position_ >= bytes_.size())
             {
@@ -42,7 +43,7 @@ namespace
             return bytes_[position_++];
         }
 
-        int peek() override
+        int peekSingleByte() override
         {
             if (position_ >= bytes_.size())
             {
@@ -60,17 +61,18 @@ namespace
     class TemporarilyUnavailableReadStream : public ReadStream
     {
     public:
-        int available() override
+        AvailableResult available() override
+        {
+            return TemporarilyUnavailableResult();
+        }
+
+    protected:
+        int readSingleByte() override
         {
             return -1;
         }
 
-        int read() override
-        {
-            return -1;
-        }
-
-        int peek() override
+        int peekSingleByte() override
         {
             return -1;
         }
@@ -88,24 +90,24 @@ namespace
     {
         EmptyReadStream stream;
 
-        TEST_ASSERT_EQUAL_INT(0, stream.available());
-        TEST_ASSERT_EQUAL_INT(-1, stream.peek());
-        TEST_ASSERT_EQUAL_INT(-1, stream.read());
+        TEST_ASSERT_EQUAL_INT(0, LegacyAvailableFromResult(stream.available()));
+        TEST_ASSERT_EQUAL_INT(-1, PeekByte(stream));
+        TEST_ASSERT_EQUAL_INT(-1, ReadByte(stream));
     }
 
     void test_octets_stream_reads_and_peeks_without_consuming_peek()
     {
         OctetsStream stream("abc");
 
-        TEST_ASSERT_EQUAL_INT(3, stream.available());
-        TEST_ASSERT_EQUAL_INT('a', stream.peek());
-        TEST_ASSERT_EQUAL_INT(3, stream.available());
-        TEST_ASSERT_EQUAL_INT('a', stream.read());
-        TEST_ASSERT_EQUAL_INT(2, stream.available());
-        TEST_ASSERT_EQUAL_INT('b', stream.read());
-        TEST_ASSERT_EQUAL_INT('c', stream.read());
-        TEST_ASSERT_EQUAL_INT(0, stream.available());
-        TEST_ASSERT_EQUAL_INT(-1, stream.read());
+        TEST_ASSERT_EQUAL_INT(3, LegacyAvailableFromResult(stream.available()));
+        TEST_ASSERT_EQUAL_INT('a', PeekByte(stream));
+        TEST_ASSERT_EQUAL_INT(3, LegacyAvailableFromResult(stream.available()));
+        TEST_ASSERT_EQUAL_INT('a', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT(2, LegacyAvailableFromResult(stream.available()));
+        TEST_ASSERT_EQUAL_INT('b', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT('c', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT(0, LegacyAvailableFromResult(stream.available()));
+        TEST_ASSERT_EQUAL_INT(-1, ReadByte(stream));
     }
 
     void test_lazy_stream_adapter_creates_stream_once()
@@ -117,12 +119,12 @@ namespace
         });
 
         TEST_ASSERT_EQUAL_INT(0, factoryCallCount);
-        TEST_ASSERT_EQUAL_INT(2, stream.available());
+        TEST_ASSERT_EQUAL_INT(2, LegacyAvailableFromResult(stream.available()));
         TEST_ASSERT_EQUAL_INT(1, factoryCallCount);
-        TEST_ASSERT_EQUAL_INT('x', stream.peek());
+        TEST_ASSERT_EQUAL_INT('x', PeekByte(stream));
         TEST_ASSERT_EQUAL_INT(1, factoryCallCount);
-        TEST_ASSERT_EQUAL_INT('x', stream.read());
-        TEST_ASSERT_EQUAL_INT('y', stream.read());
+        TEST_ASSERT_EQUAL_INT('x', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT('y', ReadByte(stream));
         TEST_ASSERT_EQUAL_INT(1, factoryCallCount);
     }
 
@@ -167,14 +169,14 @@ namespace
         auto inner = std::make_unique<OctetsStream>("hello");
         StaticBufferedReadStreamWrapper<3> stream(std::move(inner));
 
-        TEST_ASSERT_EQUAL_INT('h', stream.peek());
-        TEST_ASSERT_EQUAL_INT('h', stream.read());
-        TEST_ASSERT_EQUAL_INT('e', stream.peek());
-        TEST_ASSERT_EQUAL_INT('e', stream.read());
-        TEST_ASSERT_EQUAL_INT('l', stream.read());
-        TEST_ASSERT_EQUAL_INT('l', stream.read());
-        TEST_ASSERT_EQUAL_INT('o', stream.read());
-        TEST_ASSERT_EQUAL_INT(-1, stream.peek());
+        TEST_ASSERT_EQUAL_INT('h', PeekByte(stream));
+        TEST_ASSERT_EQUAL_INT('h', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT('e', PeekByte(stream));
+        TEST_ASSERT_EQUAL_INT('e', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT('l', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT('l', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT('o', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT(-1, PeekByte(stream));
     }
 
     void test_buffered_read_stream_wrapper_available_reports_only_buffered_bytes()
@@ -182,48 +184,48 @@ namespace
         auto inner = std::make_unique<OctetsStream>("hi");
         StaticBufferedReadStreamWrapper<3> stream(std::move(inner));
 
-        TEST_ASSERT_EQUAL_INT(0, stream.available());
-        TEST_ASSERT_EQUAL_INT('h', stream.peek());
-        TEST_ASSERT_EQUAL_INT(2, stream.available());
+        TEST_ASSERT_EQUAL_INT(0, LegacyAvailableFromResult(stream.available()));
+        TEST_ASSERT_EQUAL_INT('h', PeekByte(stream));
+        TEST_ASSERT_EQUAL_INT(2, LegacyAvailableFromResult(stream.available()));
     }
 
     void test_concat_stream_reads_all_children_in_order()
     {
-        std::array<std::unique_ptr<Stream>, 3> streams = {
+        std::array<std::unique_ptr<IByteSource>, 3> streams = {
             std::make_unique<OctetsStream>("ab"),
             std::make_unique<EmptyReadStream>(),
             std::make_unique<OctetsStream>("cd")};
         ConcatStream<3> stream(std::move(streams));
 
-        TEST_ASSERT_EQUAL_INT('a', stream.read());
-        TEST_ASSERT_EQUAL_INT('b', stream.read());
-        TEST_ASSERT_EQUAL_INT('c', stream.read());
-        TEST_ASSERT_EQUAL_INT('d', stream.read());
-        TEST_ASSERT_EQUAL_INT(-1, stream.read());
+        TEST_ASSERT_EQUAL_INT('a', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT('b', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT('c', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT('d', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT(-1, ReadByte(stream));
     }
 
     void test_concat_stream_available_skips_only_exhausted_children()
     {
-        std::array<std::unique_ptr<Stream>, 3> streams = {
+        std::array<std::unique_ptr<IByteSource>, 3> streams = {
             std::make_unique<EmptyReadStream>(),
             std::make_unique<OctetsStream>("ab"),
             std::make_unique<OctetsStream>("cd")};
         ConcatStream<3> stream(std::move(streams));
 
-        TEST_ASSERT_EQUAL_INT(2, stream.available());
+        TEST_ASSERT_EQUAL_INT(2, LegacyAvailableFromResult(stream.available()));
     }
 
     void test_concat_stream_peek_and_read_advance_past_negative_available_child()
     {
-        std::array<std::unique_ptr<Stream>, 2> streams = {
+        std::array<std::unique_ptr<IByteSource>, 2> streams = {
             std::make_unique<TemporarilyUnavailableReadStream>(),
             std::make_unique<OctetsStream>("z")};
         ConcatStream<2> stream(std::move(streams));
 
-        TEST_ASSERT_EQUAL_INT(-1, stream.available());
-        TEST_ASSERT_EQUAL_INT('z', stream.peek());
-        TEST_ASSERT_EQUAL_INT('z', stream.read());
-        TEST_ASSERT_EQUAL_INT(0, stream.available());
+        TEST_ASSERT_EQUAL_INT(-1, LegacyAvailableFromResult(stream.available()));
+        TEST_ASSERT_EQUAL_INT('z', PeekByte(stream));
+        TEST_ASSERT_EQUAL_INT('z', ReadByte(stream));
+        TEST_ASSERT_EQUAL_INT(0, LegacyAvailableFromResult(stream.available()));
     }
 
     void test_read_helpers_convert_stream_contents()

@@ -271,69 +271,33 @@ HttpServerAdvanced has larger code size due to templates and additional features
 
 ## 1.8 Response Serialization Overhead (HttpServerAdvanced)
 
-HttpServerAdvanced uses a sophisticated streaming response framework (`HttpPipelineResponseStream`) that trades a small fixed overhead for constant-memory response sending. This section analyzes that overhead.
+HttpServerAdvanced uses an incremental response serializer (`HttpPipelineResponseSource`) that trades a small amount of serializer state for constant-memory response sending. The exact internal object layout changed as the library moved from legacy `Stream` composition toward `IByteSource`, but the design goal remains the same: avoid buffering the full serialized response in RAM.
 
-### Object Sizes (32-bit RP2040)
+### Current Serializer Shape
 
-| Object | Size (bytes) | Notes |
-|--------|--------------|-------|
-| `HttpPipelineResponseStream` | ~68 | vtable + response ptr + bodyStream ptr + ConcatStream<5> base |
-| `ConcatStream<5>` base | ~48 | std::array of 5 unique_ptr (20) + 2 iterators (16) + vtable |
-| `IndefiniteConcatStream` | ~16-20 | 2 iterator copies + vtable |
-| `BoundedStreamIterable` (iterator) | ~16 | index_ + maxIndex_ + current_ ptr + vtable |
-| `OctetsStream` | ~20 | vtable + data ptr + length + position + ownsData flag |
-
-### Total Framework Overhead Per Response
-
-**Peak memory during response send:**
-
-```
-HttpPipelineResponseStream          ~68 bytes
-├── [0] IndefiniteConcatStream      ~20 bytes
-│       └── HttpHeadersStartLineIterator (2×) ~32 bytes
-│           └── Active OctetsStream   ~20 bytes
-├── [1] OctetsStream (CRLF)          ~20 bytes  
-├── [2] IndefiniteConcatStream       ~20 bytes
-│       └── HttpHeaderCollectionStreamIterator (2×) ~32 bytes
-│           └── IndefiniteConcatStream ~20 bytes
-│               └── HttpHeaderStreamIterator (2×) ~32 bytes
-│                   └── Active OctetsStream ~20 bytes
-├── [3] OctetsStream (CRLF)          ~20 bytes
-└── [4] Body stream                  (varies)
-────────────────────────────────────────────────
-Framework overhead:               ~150-200 bytes fixed
-```
+- `HttpPipelineResponseSource` owns the `IHttpResponse` while building a composed `IByteSource`
+- start line and headers are materialized as compact string-backed byte sources
+- the serializer adds a small delimiter source between headers and body
+- the body stays as its original `IByteSource`, optionally wrapped by `ChunkedHttpResponseBodyStream`
 
 ### Comparison: Framework vs Direct Serialization
 
-| Approach | Memory | CPU Cycles/byte |
-|----------|--------|-----------------|
-| **HttpPipelineResponseStream** | ~150-200 bytes fixed | ~15-25 (vtable + iterator logic) |
-| **Direct sprintf to buffer** | Response size + buffer | ~5-10 |
-| **String concatenation** | 2-3× response size (copies) | ~10-15 |
-
-### Virtual Call Overhead
-
-Each `read()` call traverses:
-```
-ConcatStream::read()           (1 vtable lookup)
-  → IndefiniteConcatStream logic
-    → *iterator dereference    (getAt() vtable call)
-      → OctetsStream::read()   (1 vtable lookup)
-```
-
-**~2-3 virtual calls per byte** during header streaming, reduced to **1 virtual call** for body streaming.
+| Approach | Memory | CPU |
+|----------|--------|-----|
+| **HttpPipelineResponseSource** | Small fixed serializer state plus active body source | Extra dispatch and composition overhead, especially for header emission |
+| **Direct sprintf to buffer** | Response size plus staging buffer | Lower per-byte overhead |
+| **String concatenation** | 2-3x response size during copies and reallocation | Moderate overhead plus copy cost |
 
 ### Trade-off Summary
 
 | Factor | Overhead | Benefit |
 |--------|----------|---------|
-| Memory | +150-200 bytes fixed | No large buffer needed for full response |
-| CPU | +10-15 cycles/byte for headers | Body streams with zero copy |
+| Memory | Small fixed serializer state | No large buffer needed for full response |
+| CPU | Additional composition overhead for headers | Body streams with zero copy |
 | Latency | Slight increase for first byte | Constant memory for any response size |
-| Complexity | Iterator machinery | Composable, testable stream components |
+| Complexity | Byte-source composition machinery | Composable, testable stream components |
 
-**For RP2040 with 264KB RAM:** The ~200 byte overhead is **< 0.1%** of RAM, easily justified by eliminating response buffers that could be 1-10KB+ for typical responses.
+**For RP2040 with 264KB RAM:** the serializer-state overhead is still tiny compared with buffering multi-kilobyte responses in memory.
 
 ### WebServer Response Approach (Comparison)
 

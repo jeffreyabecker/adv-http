@@ -222,7 +222,6 @@ The current codebase already suggests a natural split.
 - `ConcatStream`
 - URI encoding and decoding stream wrappers
 - base64 encoding and decoding stream wrappers
-- `HttpResponseBodyStream`
 - `ChunkedHttpResponseBodyStream`
 - static-file response wrappers
 
@@ -257,9 +256,8 @@ The current codebase already suggests a natural split.
 - `UriDecodingStream`
 - `UriEncodingStream`
 - `FormEncodingStream`
-- `HttpResponseBodyStream`
 - `ChunkedHttpResponseBodyStream`
-- `HttpPipelineResponseStream`
+- `HttpPipelineResponseSource`
 
 ### Duplex Types
 
@@ -268,7 +266,7 @@ The current codebase already suggests a natural split.
 ### Adapter-Facing Legacy Or Bridge Types
 
 - `Compat::File` is a legacy `Stream`-shaped readable file adapter with no-op write behavior in the non-Arduino build.
-- `StaticFileHandlerFactory::FileStreamWrapper` is a response-path adapter over `File`.
+- `StaticFileHandlerFactory::FileByteSource` is a response-path adapter over `File`.
 - `StreamByteSourceAdapter` and `OwningStreamByteSourceAdapter` adapt legacy `Stream` objects into `IByteSource`.
 - `ByteSourceStreamAdapter` adapts an `IByteSource` back into the legacy `Stream` contract.
 - `StreamByteSinkAdapter` adapts a legacy `Stream` into `IByteSink`.

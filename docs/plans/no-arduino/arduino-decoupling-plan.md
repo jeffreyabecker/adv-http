@@ -340,7 +340,7 @@ This is the first step.
 - refactor response body streams, wrappers, and iterators to target the readable byte-source contract rather than a full Arduino-shaped duplex `Stream`
 - migrate or wrap existing stream-centric helpers rather than replacing them with an unrelated IO abstraction
   - `streams/Streams.*`
-  - `response/HttpResponseBodyStream.*`
+  - `response/HttpResponse.*`
   - `response/ChunkedHttpResponseBodyStream.*`
   - response iterator stream composition
   - static-file stream wrappers

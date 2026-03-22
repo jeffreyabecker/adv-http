@@ -1,7 +1,7 @@
 2026-03-22 - Copilot: audited duplex stream utilities, removed unused owning memory-stream helpers, and fixed the phase decision on keeping duplex behavior isolated to a single legacy helper.
 2026-03-22 - Copilot: refreshed phase status after the response and pipeline byte-source migration, marked file-backed response integration complete, and narrowed the remaining work to legacy stream utilities, adapters, and regression gaps.
 2026-03-22 - Copilot: documented current legacy Stream semantics, froze native stream-semantics coverage, and classified in-tree stream roles.
-2026-03-21 - Copilot: migrated `HttpResponseBodyStream` and `ChunkedHttpResponseBodyStream` to own `IByteSource` internally while retaining legacy `Stream` entrypoints, and added native response-stream bridge coverage.
+2026-03-21 - Copilot: migrated response bodies and `ChunkedHttpResponseBodyStream` onto `IByteSource`-based ownership and added native response-stream coverage.
 2026-03-21 - Copilot: introduced byte-source and byte-sink contracts plus legacy Stream bridge adapters while leaving response-path migration open.
 2026-03-21 - Copilot: created detailed Phase 5 stream and response backlog.
 
@@ -44,7 +44,7 @@ This phase is the architectural seam change for the response path. The repositor
 ### Response Layer Migration
 
 - [x] Update `src/response/HttpResponse.h` and `src/response/HttpResponse.cpp` so response bodies are typed against the new readable contract.
-- [x] Update `src/response/HttpResponseBodyStream.h` and `src/response/ChunkedHttpResponseBodyStream.*` to wrap the new readable contract rather than `Stream` directly.
+- [x] Update `src/response/HttpResponse.*` and `src/response/ChunkedHttpResponseBodyStream.*` so response bodies are owned as readable byte sources rather than legacy `Stream` objects.
 - [x] Update `src/response/HttpResponseIterators.h` and related response composition helpers to emit the new source type.
 - [ ] Preserve the current direct-response and chunked-response behavior byte-for-byte where practical.
 
@@ -95,7 +95,6 @@ High
 - `src/streams/Iterators.h`
 - `src/response/HttpResponse.h`
 - `src/response/HttpResponse.cpp`
-- `src/response/HttpResponseBodyStream.h`
 - `src/response/ChunkedHttpResponseBodyStream.h`
 - `src/response/ChunkedHttpResponseBodyStream.cpp`
 - `src/response/HttpResponseIterators.h`

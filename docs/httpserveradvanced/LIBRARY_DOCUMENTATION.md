@@ -480,7 +480,7 @@ The response module provides response creation and streaming.
 | `StringResponse` | Factory for text/HTML responses |
 | `JsonResponse` | Factory for JSON responses |
 | `FormResponse` | Factory for URL-encoded form responses |
-| `HttpResponseBodyStream` | Base class for response body streams |
+| `IByteSource` | Readable byte-source contract used for response bodies |
 | `ChunkedHttpResponseBodyStream` | Chunked transfer encoding support |
 
 #### IHttpResponse Interface
@@ -492,7 +492,7 @@ public:
     
     virtual HttpStatus status() const = 0;
     virtual HttpHeaderCollection& headers() = 0;
-    virtual std::unique_ptr<HttpResponseBodyStream> getBody() = 0;
+    virtual std::unique_ptr<IByteSource> getBody() = 0;
 };
 ```
 
@@ -1086,55 +1086,47 @@ All limits are configurable in `core/Defines.h`.
 
 ---
 
-## HttpPipelineResponseStream: Zero-Copy Response Streaming
+## HttpPipelineResponseSource: Incremental Response Streaming
 
-The `HttpPipelineResponseStream` class demonstrates a sophisticated approach to minimizing memory allocations during HTTP response transmission. Rather than building the complete response in memory before sending, it streams each component lazily.
+The `HttpPipelineResponseSource` class incrementally serializes HTTP responses without building the full wire payload in memory first. Instead of exposing a legacy `Stream` tree, it builds a composed `IByteSource` and lets the pipeline drain that source into a fixed-size buffer.
 
 ### Architecture
 
 ```
-HttpPipelineResponseStream : ConcatStream<5>
-├── [0] Start Line Stream (IndefiniteConcatStream<HttpHeadersStartLineIterator>)
-│       └── "HTTP/1.1 " + status_code + " " + reason + "\r\n"
-├── [1] CRLF Stream (OctetsStream)
-├── [2] Headers Stream (IndefiniteConcatStream<HttpHeaderCollectionStreamIterator>)
-│       └── For each header: name + ": " + value + "\r\n"
-├── [3] CRLF Stream (OctetsStream)
-└── [4] Body Stream (HttpResponseBodyStream)
+HttpPipelineResponseSource : IByteSource
+├── response_ : std::unique_ptr<IHttpResponse>
+└── source_ : ConcatByteSource
+        ├── Start line (StdStringByteSource)
+        ├── Headers block (StdStringByteSource)
+        ├── Header/body delimiter (SpanByteSource)
+        └── Optional body source (IByteSource)
 ```
 
 ### Allocation Minimization Strategies
 
-#### 1. Fixed-Size Stream Concatenation
+#### 1. Byte-Source Composition
 
 ```cpp
-class HttpPipelineResponseStream : public ConcatStream<5>
+class HttpPipelineResponseSource : public IByteSource
 ```
 
-Uses a compile-time fixed array of 5 streams (`std::array<std::unique_ptr<Stream>, 5>`) instead of a dynamic `std::vector`. This eliminates heap allocation for the stream container itself.
+The serializer exposes one readable contract to the pipeline while delegating byte sequencing to `ConcatByteSource`.
 
-#### 2. Lazy Iterator-Based Stream Generation
+#### 2. Deferred Header Finalization
 
-The iterator classes (`HttpHeadersStartLineIterator`, `HttpHeaderCollectionStreamIterator`) don't pre-allocate all content. They generate streams on-demand as bytes are read:
+Required headers are finalized only after the body source is obtained and inspected:
 
 ```cpp
-// FixedStreamIterable<N> - knows size at compile time
-class HttpHeadersStartLineIterator : public FixedStreamIterable<HttpHeadersStartLineIterator, 5>
-{
-protected:
-    value_type getAt(size_t index) const override {
-        switch (index) {
-            case 0: return std::make_unique<OctetsStream>(ResponseStringConstants::HTTP_VERSION);
-            case 1: return std::make_unique<OctetsStream>(String(static_cast<uint16_t>(status_)));
-            // ... streams created only when iterator advances to them
-        }
-    }
-};
+std::unique_ptr<IByteSource> bodySource = response_->getBody();
+const AvailableResult bodyAvailable = bodySource ? bodySource->available() : ExhaustedResult();
+EnsureRequiredHeaders(response_->headers(), knownBodySize);
 ```
 
-#### 3. Zero-Copy Constant Strings
+This keeps content-length and transfer-encoding decisions close to the real body source rather than forcing a prebuilt response buffer.
 
-Static response components use `constexpr` character arrays:
+#### 3. Compact Constant-String Sources
+
+Static response components use `constexpr` character arrays and short string-backed byte sources:
 
 ```cpp
 namespace ResponseStringConstants {
@@ -1145,57 +1137,14 @@ namespace ResponseStringConstants {
 }
 ```
 
-`OctetsStream` holds only a pointer and length—no string copying:
+#### 4. Optional Chunking Wrapper
+
+Chunked transfer encoding is layered only when the response headers request it:
 
 ```cpp
-class OctetsStream : public ReadStream {
-    const uint8_t* data_;  // Points directly to source data
-    size_t length_;
-    size_t position_ = 0;
-    bool ownsData_ = false;  // False for string literals
-};
-```
-
-#### 4. IndefiniteConcatStream Iterator Pattern
-
-`IndefiniteConcatStream<ForwardIt>` consumes streams one at a time:
-
-```cpp
-template <typename ForwardIt, typename Sentinel = ForwardIt>
-class IndefiniteConcatStream : public ReadStream {
-    ForwardIt current_;
-    Sentinel end_;
-    // Only one sub-stream active at a time
-    // Previous streams deallocated as iterator advances
-};
-```
-
-**Memory lifecycle:**
-1. Iterator starts at first element
-2. First stream created and read until exhausted
-3. First stream deallocated, iterator advances
-4. Next stream created (previous memory now available)
-5. Repeat until all elements consumed
-
-#### 5. Move Semantics for Body Stream
-
-The response body is moved, never copied:
-
-```cpp
-std::unique_ptr<Stream> getBodyStream() {
-    return std::move(bodyStream_);  // Ownership transfer, no copy
-}
-```
-
-#### 6. Deferred Header Finalization
-
-Required headers (Content-Length, Date) are added only after the body stream is obtained:
-
-```cpp
-std::unique_ptr<Stream> getHeadersStream() {
-    bodyStream_ = response_->getBody();
-    EnsureRequiredHeaders(response_->headers(), bodyStream_->available());
-    // Headers stream created after body size is known
+if (response_->headers().exists(HttpHeaderNames::TransferEncoding, "chunked") && bodySource)
+{
+    bodySource = ChunkedHttpResponseBodyStream::create(std::move(bodySource));
 }
 ```
 
@@ -1203,10 +1152,10 @@ std::unique_ptr<Stream> getHeadersStream() {
 
 For a typical response with 5 headers and 1KB body:
 
-| Traditional Approach | HttpPipelineResponseStream |
+| Traditional Approach | HttpPipelineResponseSource |
 |---------------------|---------------------------|
 | Build complete response string in RAM | Stream components on-demand |
-| ~1.5KB+ allocation for response buffer | ~50 bytes for active stream + iterators |
+| Allocation scales with full serialized payload | Allocation stays near the active serializer components |
 | Peak memory = full response size | Peak memory = largest single component |
 | All headers concatenated upfront | Each header streamed individually |
 
@@ -1215,24 +1164,13 @@ For a typical response with 5 headers and 1KB body:
 ```
 read() called by HttpPipeline
     │
-    ├─► ConcatStream<5>::read()
+    ├─► HttpPipelineResponseSource::read()
     │       │
-    │       ├─► streams_[0]->read() (start line)
-    │       │       │
-    │       │       └─► IndefiniteConcatStream iterates through:
-    │       │               "HTTP/1.1 " → "200" → " " → "OK" → "\r\n"
-    │       │               (each OctetsStream created/destroyed in sequence)
-    │       │
-    │       ├─► streams_[1]->read() (CRLF)
-    │       │
-    │       ├─► streams_[2]->read() (headers)
-    │       │       │
-    │       │       └─► For each header in collection:
-    │       │               name → ": " → value → "\r\n"
-    │       │
-    │       ├─► streams_[3]->read() (CRLF)
-    │       │
-    │       └─► streams_[4]->read() (body)
+    │       └─► ConcatByteSource::read()
+    │               ├─► start line source
+    │               ├─► headers block source
+    │               ├─► CRLF delimiter source
+    │               └─► optional body source
     │
     └─► Bytes sent to client incrementally
 ```

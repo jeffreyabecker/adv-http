@@ -97,17 +97,17 @@ namespace
     {
     }
 
-    void test_http_response_body_stream_reads_from_byte_source()
+    void test_byte_source_reads_direct_body_content()
     {
-        auto body = HttpResponseBodyStream::create(std::make_unique<VectorByteSource>("ok"));
+        auto body = std::make_unique<VectorByteSource>("ok");
 
         const String content = ReadByteSourceAsString(*body);
         TEST_ASSERT_TRUE(content == String("ok"));
     }
 
-    void test_http_response_body_stream_reports_temporarily_unavailable()
+    void test_byte_source_reports_temporarily_unavailable()
     {
-        auto body = HttpResponseBodyStream::create(std::make_unique<VectorByteSource>("", true));
+        auto body = std::make_unique<VectorByteSource>("", true);
 
         TEST_ASSERT_TRUE(body->available().isTemporarilyUnavailable());
     }
@@ -133,8 +133,8 @@ namespace
     int runUnitySuite()
     {
         UNITY_BEGIN();
-        RUN_TEST(test_http_response_body_stream_reads_from_byte_source);
-        RUN_TEST(test_http_response_body_stream_reports_temporarily_unavailable);
+        RUN_TEST(test_byte_source_reads_direct_body_content);
+        RUN_TEST(test_byte_source_reports_temporarily_unavailable);
         RUN_TEST(test_chunked_response_body_stream_reads_from_byte_source);
         RUN_TEST(test_http_response_accepts_byte_source_body);
         return UNITY_END();

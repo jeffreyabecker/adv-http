@@ -3,24 +3,18 @@
 
 namespace HttpServerAdvanced
 {
-    // ReadStream
-    size_t ReadStream::write(uint8_t)
-    {
-        return 0;
-    }
-
     // EmptyReadStream
-    int EmptyReadStream::available()
+    AvailableResult EmptyReadStream::available()
     {
-        return 0;
+        return ExhaustedResult();
     }
 
-    int EmptyReadStream::read()
+    int EmptyReadStream::readSingleByte()
     {
         return -1;
     }
 
-    int EmptyReadStream::peek()
+    int EmptyReadStream::peekSingleByte()
     {
         return -1;
     }
@@ -49,12 +43,17 @@ namespace HttpServerAdvanced
         }
     }
 
-    int OctetsStream::available()
+    AvailableResult OctetsStream::available()
     {
-        return static_cast<int>(length_ - position_);
+        if (position_ >= length_)
+        {
+            return ExhaustedResult();
+        }
+
+        return AvailableBytes(length_ - position_);
     }
 
-    int OctetsStream::read()
+    int OctetsStream::readSingleByte()
     {
         if (position_ >= length_)
         {
@@ -63,7 +62,7 @@ namespace HttpServerAdvanced
         return data_[position_++];
     }
 
-    int OctetsStream::peek()
+    int OctetsStream::peekSingleByte()
     {
         if (position_ >= length_)
         {
@@ -74,13 +73,17 @@ namespace HttpServerAdvanced
 
     // StringStream
     StringStream::StringStream(String &&str)
-        : OctetsStream(str), str_(std::move(str))
+        : OctetsStream(static_cast<const uint8_t *>(nullptr), 0), str_(std::move(str))
     {
+        data_ = reinterpret_cast<const uint8_t *>(str_.c_str());
+        length_ = str_.length();
     }
 
     StringStream::StringStream(const String &str)
-        : OctetsStream(str), str_() // intentionally empty so we dont copy the stream
+        : OctetsStream(static_cast<const uint8_t *>(nullptr), 0), str_(str)
     {
+        data_ = reinterpret_cast<const uint8_t *>(str_.c_str());
+        length_ = str_.length();
     }
 
     StdStringStream::StdStringStream(std::string str)
@@ -88,12 +91,17 @@ namespace HttpServerAdvanced
     {
     }
 
-    int StdStringStream::available()
+    AvailableResult StdStringStream::available()
     {
-        return static_cast<int>(str_.size() - position_);
+        if (position_ >= str_.size())
+        {
+            return ExhaustedResult();
+        }
+
+        return AvailableBytes(str_.size() - position_);
     }
 
-    int StdStringStream::read()
+    int StdStringStream::readSingleByte()
     {
         if (position_ >= str_.size())
         {
@@ -103,7 +111,7 @@ namespace HttpServerAdvanced
         return static_cast<uint8_t>(str_[position_++]);
     }
 
-    int StdStringStream::peek()
+    int StdStringStream::peekSingleByte()
     {
         if (position_ >= str_.size())
         {
@@ -114,38 +122,37 @@ namespace HttpServerAdvanced
     }
 
     // LazyStreamAdapter
-    LazyStreamAdapter::LazyStreamAdapter(std::function<std::unique_ptr<Stream>()> factory)
+    LazyStreamAdapter::LazyStreamAdapter(std::function<std::unique_ptr<IByteSource>()> factory)
         : streamFactory_(std::move(factory))
     {
     }
 
-
-
-    int LazyStreamAdapter::available()
+    IByteSource *LazyStreamAdapter::ensureStream()
     {
         if (!stream_)
         {
             stream_ = streamFactory_();
         }
-        return stream_->available();
+
+        return stream_.get();
     }
 
-    int LazyStreamAdapter::read()
+    AvailableResult LazyStreamAdapter::available()
     {
-        if (!stream_)
-        {
-            stream_ = streamFactory_();
-        }
-        return stream_->read();
+        IByteSource *source = ensureStream();
+        return source != nullptr ? source->available() : ExhaustedResult();
     }
 
-    int LazyStreamAdapter::peek()
+    int LazyStreamAdapter::readSingleByte()
     {
-        if (!stream_)
-        {
-            stream_ = streamFactory_();
-        }
-        return stream_->peek();
+        IByteSource *source = ensureStream();
+        return source != nullptr ? ReadByte(*source) : -1;
+    }
+
+    int LazyStreamAdapter::peekSingleByte()
+    {
+        IByteSource *source = ensureStream();
+        return source != nullptr ? PeekByte(*source) : -1;
     }
 
     // NonOwningMemoryStream
@@ -241,7 +248,7 @@ namespace HttpServerAdvanced
         }
         while (count_ < size_)
         {
-            int val = innerStream_->read();
+            int val = ReadByte(*innerStream_);
             if (val == -1)
             {
                 break;
@@ -253,19 +260,19 @@ namespace HttpServerAdvanced
         return count_ > 0;
     }
 
-    RefBufferedReadStreamWrapper::RefBufferedReadStreamWrapper(std::unique_ptr<ReadStream> innerStream, uint8_t *buffer, size_t size)
+    RefBufferedReadStreamWrapper::RefBufferedReadStreamWrapper(std::unique_ptr<IByteSource> innerStream, uint8_t *buffer, size_t size)
         : buffer_(buffer), size_(size), innerStream_(std::move(innerStream))
     {
     }
 
-    int RefBufferedReadStreamWrapper::available()
+    AvailableResult RefBufferedReadStreamWrapper::available()
     {
-        return static_cast<int>(count_);
+        return count_ > 0 ? AvailableBytes(count_) : ExhaustedResult();
     }
 
-    int RefBufferedReadStreamWrapper::read()
+    int RefBufferedReadStreamWrapper::readSingleByte()
     {
-        int val = peek();
+        int val = peekSingleByte();
         if (val != -1)
         {
             consume();
@@ -273,7 +280,7 @@ namespace HttpServerAdvanced
         return val;
     }
 
-    int RefBufferedReadStreamWrapper::peek()
+    int RefBufferedReadStreamWrapper::peekSingleByte()
     {
         if (count_ == 0)
         {
@@ -286,58 +293,38 @@ namespace HttpServerAdvanced
     }
 
 
-    String ReadAsString(Stream &stream, size_t maxLength)
+    String ReadAsString(IByteSource &stream, size_t maxLength)
     {
         String result;
-        int availableBytes = stream.available();
-        if (availableBytes == 0)
+        AvailableResult availableBytes = stream.available();
+        if (availableBytes.isExhausted())
         {
             return result;
         }
-        else if (availableBytes > 0 && static_cast<size_t>(availableBytes) < maxLength)
+        else if (availableBytes.hasBytes() && availableBytes.count < maxLength)
         {
-            result.reserve(availableBytes);
-            maxLength = availableBytes;
+            result.reserve(availableBytes.count);
+            maxLength = availableBytes.count;
         }
 
         size_t bytesRead = 0;
+        uint8_t buffer[256] = {};
         while (bytesRead < maxLength)
         {
-            int byte = stream.read();
-            if (byte == -1)
+            const size_t chunkSize = (std::min)(sizeof(buffer), maxLength - bytesRead);
+            const size_t readNow = stream.read(HttpServerAdvanced::span<uint8_t>(buffer, chunkSize));
+            if (readNow == 0)
             {
                 break; // End of stream
             }
-            result += static_cast<char>(byte);
-            bytesRead++;
+
+            for (size_t index = 0; index < readNow; ++index)
+            {
+                result += static_cast<char>(buffer[index]);
+            }
+
+            bytesRead += readNow;
         }
         return result;
     }
-
-    std::vector<uint8_t> ReadAsVector(Stream &stream, size_t maxLength){
-        std::vector<uint8_t> result;
-        int availableBytes = stream.available();
-        if (availableBytes == 0)
-        {
-            return result;
-        }
-        else if (availableBytes > 0 && static_cast<size_t>(availableBytes) < maxLength)
-        {
-            result.reserve(availableBytes);
-            maxLength = availableBytes;
-        }
-
-        size_t bytesRead = 0;
-        while (bytesRead < maxLength)
-        {
-            int byte = stream.read();
-            if (byte == -1)
-            {
-                break; // End of stream
-            }
-            result.push_back(static_cast<uint8_t>(byte));
-            bytesRead++;
-        }
-        return result;
-    }    
 } // namespace HttpServerAdvanced

@@ -1,10 +1,11 @@
+2026-03-22 - Copilot: refreshed the phase summary after Phase 5 response work, marked the file-backed byte-source wrapper task complete, and aligned the backlog wording with the current `FileByteSource` implementation.
 2026-03-21 - Copilot: created detailed Phase 6 filesystem and static files backlog.
 
 # No-Arduino Phase 6 Filesystem And Static Files Backlog
 
 ## Summary
 
-This phase narrows the filesystem dependency to the actual operations static-file serving needs and detaches file-backed responses from Arduino filesystem types. The repository already has `compat/FileSystem.h` and a POSIX adapter, but the current design still lets `File` inherit from `Stream`, and the static-file path still assumes Arduino-flavored metadata and file access patterns. The goal of this phase is to make static-file serving depend on a focused library-owned file interface while preserving board behavior through adapters.
+This phase narrows the filesystem dependency to the actual operations static-file serving needs and detaches file-backed responses from Arduino filesystem types. The repository already has `compat/FileSystem.h`, a POSIX adapter, and a `FileByteSource` bridge in the static-file handler, so file-backed responses already flow through the Phase 5 byte-source response path. The remaining work is to narrow the filesystem seam itself, stop treating `File` as a core-facing legacy `Stream`, and preserve board behavior through adapters.
 
 ## Goal / Acceptance Criteria
 
@@ -38,7 +39,7 @@ This phase narrows the filesystem dependency to the actual operations static-fil
 
 ### Static File Handler Migration
 
-- [ ] Refactor `src/staticfiles/StaticFileHandler.h` and `src/staticfiles/StaticFileHandler.cpp` so file-backed responses wrap the new file or byte-source abstraction instead of legacy `Stream` inheritance.
+- [x] Refactor `src/staticfiles/StaticFileHandler.h` and `src/staticfiles/StaticFileHandler.cpp` so file-backed responses wrap the new file or byte-source abstraction instead of legacy `Stream` inheritance.
 - [ ] Rework ETag and last-modified helpers so they use the narrowed metadata contract.
 - [ ] Decide how file name or full path should be exposed for gzip detection without overspecifying the file interface.
 - [ ] Preserve content-length, ETag, last-modified, and content-type behavior.

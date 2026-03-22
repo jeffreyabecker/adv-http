@@ -1,5 +1,6 @@
 #pragma once
 #include "../compat/Stream.h"
+#include "ByteStream.h"
 #include <Arduino.h>
 #include <functional>
 #include <memory>
@@ -25,28 +26,27 @@ namespace HttpServerAdvanced
     /**
      * @brief An abstract base class for read-only streams.
      */
-    class ReadStream : public Stream
+    class ReadStream : public SingleByteSource
     {
     public:
-        using Stream::write;
-
         virtual ~ReadStream() = default;
-        virtual size_t write(uint8_t b) override;
     };
 
     class EmptyReadStream : public ReadStream
     {
     public:
-        virtual int available() override;
-        virtual int read() override;
-        virtual int peek() override;
+        AvailableResult available() override;
+
+    protected:
+        int readSingleByte() override;
+        int peekSingleByte() override;
     };
     /**
      * @brief A stream that reads from a constant C-style string.
      */
     class OctetsStream : public ReadStream
     {
-    private:
+    protected:
         const uint8_t *data_;
         size_t length_;
         size_t position_ = 0;
@@ -58,9 +58,11 @@ namespace HttpServerAdvanced
         OctetsStream(const char *data, size_t length, bool ownsData = false) : OctetsStream(reinterpret_cast<const uint8_t *>(data), length, ownsData) {}
         OctetsStream(const String &str);
         virtual ~OctetsStream();
-        virtual int available() override;
-        virtual int read() override;
-        virtual int peek() override;
+        AvailableResult available() override;
+
+    protected:
+        int readSingleByte() override;
+        int peekSingleByte() override;
     };
 
     /**
@@ -84,23 +86,28 @@ namespace HttpServerAdvanced
 
     public:
         explicit StdStringStream(std::string str);
-        virtual int available() override;
-        virtual int read() override;
-        virtual int peek() override;
+        AvailableResult available() override;
+
+    protected:
+        int readSingleByte() override;
+        int peekSingleByte() override;
     };
 
     class LazyStreamAdapter : public ReadStream
     {
     private:
-        std::function<std::unique_ptr<Stream>()> streamFactory_;
-        std::unique_ptr<Stream> stream_;
+        std::function<std::unique_ptr<IByteSource>()> streamFactory_;
+        std::unique_ptr<IByteSource> stream_;
+        IByteSource *ensureStream();
 
     public:
-        LazyStreamAdapter(std::function<std::unique_ptr<Stream>()> factory);
+        LazyStreamAdapter(std::function<std::unique_ptr<IByteSource>()> factory);
         virtual ~LazyStreamAdapter() = default;
-        virtual int available() override;
-        virtual int read() override;
-        virtual int peek() override;
+        AvailableResult available() override;
+
+    protected:
+        int readSingleByte() override;
+        int peekSingleByte() override;
     };
 
     /**
@@ -128,24 +135,29 @@ namespace HttpServerAdvanced
 
     public:
 
-        virtual int available() override
-        {
-            while (current_ != end_ && (*current_)->available() == 0)
-            {
-                ++current_;
-            }
-            if (current_ != end_)
-            {
-                return (*current_)->available();
-            }
-            return 0;
-        }
-
-        virtual int read() override
+        AvailableResult available() override
         {
             while (current_ != end_)
             {
-                int val = (*current_)->read();
+                const AvailableResult currentAvailable = (*current_)->available();
+                if (currentAvailable.isExhausted())
+                {
+                    ++current_;
+                    continue;
+                }
+
+                return currentAvailable;
+            }
+
+            return ExhaustedResult();
+        }
+
+    protected:
+        int readSingleByte() override
+        {
+            while (current_ != end_)
+            {
+                int val = ReadByte(*(*current_));
                 if (val != -1)
                 {
                     return val;
@@ -155,11 +167,11 @@ namespace HttpServerAdvanced
             return -1;
         }
 
-        virtual int peek() override
+        int peekSingleByte() override
         {
             while (current_ != end_)
             {
-                int val = (*current_)->peek();
+                int val = PeekByte(*(*current_));
                 if (val != -1)
                 {
                     return val;
@@ -173,19 +185,19 @@ namespace HttpServerAdvanced
      * @brief A convenience class for concatenating streams from a vector of ReadStreams.
      */
     template <size_t N>
-    class ConcatStream : public IndefiniteConcatStream<typename std::array<std::unique_ptr<Stream>, N>::iterator>
+    class ConcatStream : public IndefiniteConcatStream<typename std::array<std::unique_ptr<IByteSource>, N>::iterator>
     {
     private:
-        std::array<std::unique_ptr<Stream>, N> streams_;
+        std::array<std::unique_ptr<IByteSource>, N> streams_;
 
     public:
-        ConcatStream(std::array<std::unique_ptr<Stream>, N> streams)
+        ConcatStream(std::array<std::unique_ptr<IByteSource>, N> streams)
             : streams_(std::move(streams))
         {
             this->resetRange(streams_.begin(), streams_.end());
         }
 
-        ConcatStream(std::initializer_list<std::unique_ptr<Stream>>) = delete;
+        ConcatStream(std::initializer_list<std::unique_ptr<IByteSource>>) = delete;
     };
 
     /**
@@ -227,16 +239,18 @@ namespace HttpServerAdvanced
         size_t readPos_ = 0;
         size_t writePos_ = 0;
         size_t count_ = 0;
-        std::unique_ptr<ReadStream> innerStream_;
+        std::unique_ptr<IByteSource> innerStream_;
 
         void consume();
         bool fillBuffer();
 
     public:
-        RefBufferedReadStreamWrapper(std::unique_ptr<ReadStream> innerStream, uint8_t *buffer, size_t size);
-        virtual int available() override;
-        virtual int read() override;
-        virtual int peek() override;
+        RefBufferedReadStreamWrapper(std::unique_ptr<IByteSource> innerStream, uint8_t *buffer, size_t size);
+        AvailableResult available() override;
+
+    protected:
+        int readSingleByte() override;
+        int peekSingleByte() override;
     };
 
     template <size_t N>
@@ -246,11 +260,9 @@ namespace HttpServerAdvanced
         uint8_t buffer_[N];
 
     public:
-        StaticBufferedReadStreamWrapper(std::unique_ptr<ReadStream> innerStream)
+        StaticBufferedReadStreamWrapper(std::unique_ptr<IByteSource> innerStream)
             : RefBufferedReadStreamWrapper(std::move(innerStream), buffer_, N) {}
     };
 
-    String ReadAsString(Stream &stream, size_t maxLength = SIZE_MAX);
-
-    std::vector<uint8_t> ReadAsVector(Stream &stream, size_t maxLength = SIZE_MAX);
+    String ReadAsString(IByteSource &stream, size_t maxLength = SIZE_MAX);
 }
