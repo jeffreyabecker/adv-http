@@ -11,6 +11,7 @@ Note: `String`, `Stream`, and filesystem/transport topics are covered in their o
 ## Findings / Pervasiveness
 - Timing/clock APIs (`millis()`, `delay()`): pervasive in examples and example loops. Example evidence: [examples/pico-httpserveradvanced.ino](examples/pico-httpserveradvanced.ino#L80-L107), [examples/1_GettingStarted/HelloWorld/HelloWorld.ino](examples/1_GettingStarted/HelloWorld/HelloWorld.ino#L19-L62). Core parsing/timeouts now flow through `src/compat/Clock.h` and are injected into `HttpPipeline` via `HttpServerBase`; the remaining direct `millis()` call in `src/` lives inside the Arduino backend of that compatibility seam.
 - Serial / logging (`Serial.begin`, `Serial.print`, `Serial.println`, `Serial.`): ubiquitous in examples and used for run-time feedback in sketches. Examples: [examples/1_GettingStarted/MultipleRoutes/MultipleRoutes.ino](examples/1_GettingStarted/MultipleRoutes/MultipleRoutes.ino#L16-L64).
+- Shared example helper logging should remain under `examples/` rather than being promoted into `src/`; `examples/WifiSetup.h` now routes its shared serial and delay behavior through `examples/ExampleRuntime.h` to keep that boundary explicit.
 - PROGMEM / `F()` macro: the former core-code usage in `src/util/HttpUtility.cpp` has now been replaced with portable compile-time literals. Remaining `F()` or PROGMEM work, if any, should be treated as adapter or example scope unless new core usages appear.
 - Hardware I/O (`pinMode`, `digitalWrite`, `analogRead` etc.): present in examples that drive LEDs and GPIO and in example route handlers that expose GPIO control. Examples: [examples/2_RequestData/UrlParameters/UrlParameters.ino](examples/2_RequestData/UrlParameters/UrlParameters.ino#L32-L111).
 - Randomness (`random()`, `randomSeed()`): occasionally used in examples or platform-specific helpers; not pervasive in core.
@@ -21,7 +22,7 @@ Note: `String`, `Stream`, and filesystem/transport topics are covered in their o
 - Timing / Clock
   - Use the existing `Clock` compatibility seam in `src/compat/Clock.h`. Under `ARDUINO` it maps to `millis()` semantics; in non-Arduino builds it uses `std::chrono` equivalents. Core timeout and activity tracking should consume injected `Clock` instances rather than calling runtime helpers directly. Examples keep calling `delay()` directly until adapter migration.
 - Serial / Logging
-  - Add a minimal `ILogger` / `Log` adapter used only by examples and optional diagnostics. Under `ARDUINO` the default adapter maps to `Serial` methods; for core-native builds the default is a no-op or `std::cout` logger for tests. Remove `Serial` usage from core; keep it in example code.
+  - Keep logging example-only for now rather than introducing a core logging seam prematurely. If multiple example helpers share serial or timing behavior, keep those wrappers under `examples/` so the boundary stays explicit and no `Serial` dependency leaks into `src/`.
 - PROGMEM / `F()` macro
   - Prefer plain compile-time literals such as `constexpr const char *` in core code. Reserve any wrapper macro/function for adapter-only or clearly justified memory-sensitive paths; do not reintroduce `F()` directly into core utilities.
 - Hardware I/O (pins)

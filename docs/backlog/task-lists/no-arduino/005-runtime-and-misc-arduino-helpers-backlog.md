@@ -1,3 +1,4 @@
+2026-03-21 - Copilot: decided to keep logging example-only for now and moved shared helper logging/timing behavior behind a new `examples/ExampleRuntime.h` boundary used by `examples/WifiSetup.h`.
 2026-03-21 - Copilot: aligned `HttpTimeouts` with `Compat::ClockMillis`, completed the residual runtime-helper scan for `src/`, and documented the injected clock seam follow-on for native timeout fixtures.
 2026-03-21 - Copilot: migrated `HttpPipeline` timekeeping onto the injected clock seam, removed core `F()` literal usage from `HttpUtility.cpp`, and added native seam regression tests.
 2026-03-21 - Copilot: added a concrete header-only clock seam with system and manual clocks while leaving pipeline time migration open.
@@ -7,7 +8,7 @@
 
 ## Summary
 
-This phase cleans up the Arduino runtime dependencies that are not the main transport, stream, or filesystem seams but still prevent a clean platform-neutral core. The repository now routes pipeline timing through the library-owned clock seam and no longer uses `F()` macro literals in `HttpUtility.cpp`, but example/runtime concerns such as `Serial` logging remain conceptually mixed into the broader Arduino-centric surface. The goal of this phase is to finish the remaining runtime cleanup, verify timeout behavior more deeply, and keep Arduino runtime helpers confined to compatibility layers and examples.
+This phase cleans up the Arduino runtime dependencies that are not the main transport, stream, or filesystem seams but still prevent a clean platform-neutral core. The repository now routes pipeline timing through the library-owned clock seam, no longer uses `F()` macro literals in `HttpUtility.cpp`, and keeps shared example logging and delay behavior under `examples/ExampleRuntime.h` rather than in `src/`. The remaining goal is to verify timeout behavior more deeply and finish any example-only runtime cleanup without inventing premature core abstractions.
 
 ## Goal / Acceptance Criteria
 
@@ -53,9 +54,9 @@ This phase cleans up the Arduino runtime dependencies that are not the main tran
 
 ### Logging And Example Runtime Separation
 
-- [ ] Decide whether the repository needs a formal logging adapter or whether logging remains example-only for now.
+- [x] Decide whether the repository needs a formal logging adapter or whether logging remains example-only for now.
 - [x] Ensure core headers and core source files do not rely on `Serial` or example-oriented debug printing.
-- [ ] If example helper headers need shared logging utilities, keep them under `examples/` or another explicitly non-core location.
+- [x] If example helper headers need shared logging utilities, keep them under `examples/` or another explicitly non-core location.
 
 ### Documentation And Follow-On Work
 

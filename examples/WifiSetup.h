@@ -1,6 +1,9 @@
 #pragma once
 #include <Arduino.h>
 #include <WiFi.h>
+
+#include "ExampleRuntime.h"
+
 #ifndef STASSID
 #define STASSID "your-ssid"
 #define STAPSK "your-password"
@@ -14,12 +17,12 @@ void setupWiFi()
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED)
     {
-        delay(500);
-        Serial.print(".");
+        ExampleRuntime::delayMs(500);
+        ExampleRuntime::print(".");
     }
-    Serial.println("Connected to WiFi");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
+    ExampleRuntime::println("Connected to WiFi");
+    ExampleRuntime::print("IP Address: ");
+    ExampleRuntime::println(WiFi.localIP());
 }
 
 

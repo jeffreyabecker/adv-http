@@ -1,3 +1,4 @@
+2026-03-21 - Copilot: kept logging example-only via `examples/ExampleRuntime.h`, isolated shared `WifiSetup` serial or delay behavior under `examples/`, and closed the remaining Phase 3 logging-boundary tasks.
 2026-03-21 - Copilot: completed the first production time-seam migration, removed core `F()` literal usage from `HttpUtility.cpp`, and added native regression coverage for the clock seam and HTML encoders.
 2026-03-21 - Copilot: added explicit Phase 4 backlog items to replace `IPAddress` transport exposure with `std::string_view`-based address APIs backed by safe ownership.
 2026-03-21 - Copilot: landed initial Phase 3-5 seam scaffolding for clock, transport, and byte-stream contracts while leaving call-site migration open.
@@ -65,9 +66,9 @@ This backlog replaces the deleted de-arduinofication task list with a single imp
 
 - [x] Introduce a library-owned clock/time seam in `src/compat/` and retarget timeout-sensitive code to it.
 - [x] Replace direct core usage of Arduino runtime helpers such as `millis()` and any similar calls with compatibility wrappers.
-- [ ] Isolate logging so examples can still use `Serial`, but core code does not depend on Arduino logging APIs.
+- [x] Isolate logging so examples can still use `Serial`, but core code does not depend on Arduino logging APIs.
 - [x] Replace PROGMEM/`F()` usage in core code with a portable wrapper or plain compile-time literals where the memory tradeoff is acceptable.
-- [ ] Move example-only hardware IO and similar sketch concerns out of any library-core code paths.
+- [x] Move example-only hardware IO and similar sketch concerns out of any library-core code paths.
 
 ### Phase 4: Transport Boundary
 
