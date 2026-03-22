@@ -89,13 +89,14 @@ This phase narrows the transport seam to the actual contracts the HTTP pipeline 
 
 - [x] Decide where Arduino client/server adapters live after the seam cleanup.
 - [x] Define the minimum adapter responsibilities, including endpoint translation and timeout forwarding.
-- [ ] Ensure any remaining adapter hooks such as `configureConnection()` do not leak platform detail back into the core contract.
+- [x] Ensure any remaining adapter hooks such as `configureConnection()` do not leak platform detail back into the core contract.
 
 #### Adapter Responsibility Snapshot
 
 - Translate Arduino client/server endpoint objects into textual addresses for the core seam.
 - Forward timeout, liveness, read/write, flush, and stop behavior without reshaping pipeline semantics.
 - Keep Arduino-only types and helper conversions out of `TransportInterfaces.h`, `IPipelineHandler.h`, `HttpPipeline`, `HttpRequest`, and `HttpServerBase`.
+- The old `configureConnection()` escape hatch has been removed from the in-tree wrappers so adapter mutation is no longer exposed through the core-facing server surface.
 
 ### Validation And Tests
 

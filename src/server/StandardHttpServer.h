@@ -30,10 +30,6 @@ namespace HttpServerAdvanced
         {
             server_.end();
         }
-        void configureConnection(std::function<void(TServer *)> callback)
-        {
-            server_.configureConnection(callback);
-        }
         virtual std::string_view localAddress() const override
         {
             return bindAddress_;

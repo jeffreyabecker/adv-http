@@ -4,7 +4,6 @@
 
 #include "../compat/IpAddress.h"
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -86,14 +85,6 @@ namespace HttpServerAdvanced
             return connection_.localPort();
         }
 
-        void configureConnection(std::function<void(T *)> callback)
-        {
-            if (callback)
-            {
-                callback(&connection_);
-            }
-        }
-
         void setTimeout(std::uint32_t timeoutMs) override
         {
             connection_.setTimeout(timeoutMs);
@@ -132,14 +123,6 @@ namespace HttpServerAdvanced
             }
 
             return nullptr;
-        }
-
-        void configureConnection(std::function<void(T *)> callback)
-        {
-            if (callback)
-            {
-                callback(&connection_);
-            }
         }
 
         void begin() override
