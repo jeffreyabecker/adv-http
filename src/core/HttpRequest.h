@@ -11,6 +11,8 @@
 #include "../util/UriView.h"
 #include "IHttpRequestHandlerFactory.h"
 
+#include <any>
+#include <map>
 #include <string>
 #include <string_view>
 
@@ -30,7 +32,7 @@ namespace HttpServerAdvanced
         size_t bodyBytesReceived_ = 0;
         HttpRequestPhaseFlags completedPhases_ = 0;
         std::function<void(std::unique_ptr<Stream>)> onStreamReady_;
-        mutable std::map<String, std::any> items_;
+        mutable std::map<std::string, std::any> items_;
 
         // Merged from HttpRequest
         std::string method_;
@@ -194,7 +196,7 @@ namespace HttpServerAdvanced
         inline uint16_t remotePort() { return remotePort_; }
         inline std::string_view localAddress() const { return std::string_view(localAddress_.data(), localAddress_.size()); }
         inline uint16_t localPort() { return localPort_; }
-        inline std::map<String, std::any> &items() const{
+        inline std::map<std::string, std::any> &items() const{
             return items_;
         }
 

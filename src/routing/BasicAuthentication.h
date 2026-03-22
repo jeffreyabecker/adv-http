@@ -60,8 +60,8 @@ namespace HttpServerAdvanced
             }
             else
             {
-                context.items().emplace("BasicAuth::Username", toArduinoString(username));
-                context.items().emplace("BasicAuth::Password", toArduinoString(password));
+                context.items().emplace("BasicAuth::Username", std::string(username));
+                context.items().emplace("BasicAuth::Password", std::string(password));
             }
             return true;
         }

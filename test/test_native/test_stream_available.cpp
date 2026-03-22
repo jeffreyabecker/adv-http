@@ -3,11 +3,73 @@
 #include <unity.h>
 
 #include "../../src/compat/Availability.h"
+#include "../../src/streams/ByteStream.h"
 
 using namespace HttpServerAdvanced;
 
 namespace
 {
+    class LegacyAvailableStream : public Stream
+    {
+    public:
+        using Stream::write;
+
+        explicit LegacyAvailableStream(int availableValue)
+            : availableValue_(availableValue)
+        {
+        }
+
+        int available() override
+        {
+            return availableValue_;
+        }
+
+        int read() override
+        {
+            return -1;
+        }
+
+        int peek() override
+        {
+            return -1;
+        }
+
+        std::size_t write(uint8_t) override
+        {
+            return 0;
+        }
+
+    private:
+        int availableValue_;
+    };
+
+    class FixedAvailableByteSource : public IByteSource
+    {
+    public:
+        explicit FixedAvailableByteSource(AvailableResult result)
+            : result_(result)
+        {
+        }
+
+        AvailableResult available() override
+        {
+            return result_;
+        }
+
+        int read() override
+        {
+            return -1;
+        }
+
+        int peek() override
+        {
+            return -1;
+        }
+
+    private:
+        AvailableResult result_;
+    };
+
     static AvailableResult mapLegacyAvailable(int availableValue, bool connected)
     {
         AvailableResult result;
@@ -65,6 +127,55 @@ namespace
         TEST_ASSERT_EQUAL_INT(-2, result.errorCode);
     }
 
+    void test_stream_byte_source_adapter_maps_positive_available_to_has_bytes()
+    {
+        LegacyAvailableStream stream(7);
+        StreamByteSourceAdapter adapter(stream);
+
+        const AvailableResult result = adapter.available();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(AvailabilityState::HasBytes), static_cast<int>(result.state));
+        TEST_ASSERT_EQUAL_UINT64(7, result.count);
+    }
+
+    void test_stream_byte_source_adapter_maps_zero_available_to_exhausted()
+    {
+        LegacyAvailableStream stream(0);
+        StreamByteSourceAdapter adapter(stream);
+
+        const AvailableResult result = adapter.available();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(AvailabilityState::Exhausted), static_cast<int>(result.state));
+    }
+
+    void test_stream_byte_source_adapter_maps_negative_available_to_temporarily_unavailable()
+    {
+        LegacyAvailableStream stream(-1);
+        StreamByteSourceAdapter adapter(stream);
+
+        const AvailableResult result = adapter.available();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(AvailabilityState::TemporarilyUnavailable), static_cast<int>(result.state));
+    }
+
+    void test_byte_source_stream_adapter_maps_exhausted_to_zero_available()
+    {
+        ByteSourceStreamAdapter adapter(std::make_unique<FixedAvailableByteSource>(ExhaustedResult()));
+
+        TEST_ASSERT_EQUAL_INT(0, adapter.available());
+    }
+
+    void test_byte_source_stream_adapter_maps_temporarily_unavailable_to_negative_available()
+    {
+        ByteSourceStreamAdapter adapter(std::make_unique<FixedAvailableByteSource>(TemporarilyUnavailableResult()));
+
+        TEST_ASSERT_EQUAL_INT(-1, adapter.available());
+    }
+
+    void test_byte_source_stream_adapter_maps_error_to_negative_available()
+    {
+        ByteSourceStreamAdapter adapter(std::make_unique<FixedAvailableByteSource>(ErrorResult(-9)));
+
+        TEST_ASSERT_EQUAL_INT(-1, adapter.available());
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -72,6 +183,12 @@ namespace
         RUN_TEST(test_mapping_exhausted);
         RUN_TEST(test_mapping_temporarily_unavailable);
         RUN_TEST(test_mapping_error);
+        RUN_TEST(test_stream_byte_source_adapter_maps_positive_available_to_has_bytes);
+        RUN_TEST(test_stream_byte_source_adapter_maps_zero_available_to_exhausted);
+        RUN_TEST(test_stream_byte_source_adapter_maps_negative_available_to_temporarily_unavailable);
+        RUN_TEST(test_byte_source_stream_adapter_maps_exhausted_to_zero_available);
+        RUN_TEST(test_byte_source_stream_adapter_maps_temporarily_unavailable_to_negative_available);
+        RUN_TEST(test_byte_source_stream_adapter_maps_error_to_negative_available);
         return UNITY_END();
     }
 }

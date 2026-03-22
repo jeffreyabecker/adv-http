@@ -53,6 +53,23 @@ The current codebase uses `Stream` in a narrower way than Arduino defines it.
 - writable behavior exists mainly in a small number of utility types such as in-memory streams
 - `File` participates in the response path mainly because it can be consumed as a byte source
 
+### Current Legacy `Stream` Semantics In This Repository
+
+The repository currently documents a three-state legacy contract around `int available()`, but the concrete implementations are not perfectly uniform.
+
+- `available() > 0` means a caller can pull that many bytes immediately from the current source.
+- `available() == 0` is treated as terminal exhaustion for finite sources and is the value concat helpers skip past when moving to the next child.
+- `available() < 0` is used by adapter-facing code and newer bridge layers to mean "temporarily unavailable" rather than exhausted.
+- `read()` and `peek()` are the practical byte-production contract. They return the next byte as an unsigned `int` payload or `-1` when no byte is produced for the current call.
+
+Important current quirks that must be preserved until the migration intentionally changes them:
+
+- `ReadAsString()` and `ReadAsVector()` treat an initial `available() == 0` as definitely empty and return immediately, but they do not short-circuit on negative `available()` values.
+- `IndefiniteConcatStream::available()` skips only children whose `available() == 0`; a negative `available()` is surfaced to the caller instead of being skipped.
+- `IndefiniteConcatStream::read()` and `peek()` advance past any child whose `read()` or `peek()` returns `-1`, so temporary-unavailable behavior is not preserved consistently through concat wrappers today.
+- `RefBufferedReadStreamWrapper::available()` reports only bytes already staged in its local buffer. It can return `0` even when the wrapped stream still has more data until `peek()` or `read()` fills the buffer.
+- Transform wrappers such as base64 and URI encoding/decoding expose `available()` as a pass-through or approximation, not a guaranteed exact final-output byte count in every state.
+
 ### Semantics That Must Be Preserved
 
 - pull-based byte production
@@ -222,6 +239,43 @@ These are the types most likely to justify either an explicit duplex interface o
 
 - `File` should participate in the response path primarily as a readable byte source
 - Arduino `fs::File` may still be adapted as a stream-like object under `ARDUINO`, but that should remain an adapter concern
+
+## Current In-Tree Stream Role Inventory
+
+### Read-Only / Source-Oriented Types
+
+- `ReadStream`
+- `EmptyReadStream`
+- `OctetsStream`
+- `StringStream`
+- `StdStringStream`
+- `LazyStreamAdapter`
+- `IndefiniteConcatStream`
+- `ConcatStream`
+- `RefBufferedReadStreamWrapper`
+- `StaticBufferedReadStreamWrapper`
+- `Base64DecoderStream`
+- `Base64EncoderStream`
+- `UriDecodingStream`
+- `UriEncodingStream`
+- `FormEncodingStream`
+- `HttpResponseBodyStream`
+- `ChunkedHttpResponseBodyStream`
+- `HttpPipelineResponseStream`
+
+### Duplex Types
+
+- `NonOwningMemoryStream`
+- `MemoryStream`
+- `StaticMemoryStream`
+
+### Adapter-Facing Legacy Or Bridge Types
+
+- `Compat::File` is a legacy `Stream`-shaped readable file adapter with no-op write behavior in the non-Arduino build.
+- `StaticFileHandlerFactory::FileStreamWrapper` is a response-path adapter over `File`.
+- `StreamByteSourceAdapter` and `OwningStreamByteSourceAdapter` adapt legacy `Stream` objects into `IByteSource`.
+- `ByteSourceStreamAdapter` adapts an `IByteSource` back into the legacy `Stream` contract.
+- `StreamByteSinkAdapter` adapts a legacy `Stream` into `IByteSink`.
 
 ## Response Path Consequences
 

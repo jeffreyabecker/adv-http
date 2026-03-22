@@ -1,11 +1,16 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
 #include <Arduino.h>
+#include <any>
 #include <cstring>
+#include <map>
 #include <string_view>
+#include <type_traits>
 #include <unity.h>
+#include <utility>
 
 #include "../../src/core/IHttpRequestHandlerFactory.h"
+#include "../../src/core/HttpRequest.h"
 #include "../../src/util/HttpUtility.h"
 #include "../../src/util/StringUtility.h"
 #include "../../src/core/HttpHeaderCollection.h"
@@ -221,6 +226,13 @@ namespace
         TEST_ASSERT_EQUAL_STRING("third", factory.lastBody.c_str());
     }
 
+    void test_http_request_items_exposes_std_string_keyed_map()
+    {
+        using ItemsType = std::remove_reference_t<decltype(std::declval<const HttpServerAdvanced::HttpRequest &>().items())>;
+
+        TEST_ASSERT_TRUE((std::is_same_v<ItemsType, std::map<std::string, std::any>>));
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -238,6 +250,7 @@ namespace
         RUN_TEST(test_html_attribute_encode_preserves_expected_entities_without_progmem_helpers);
         RUN_TEST(test_cors_string_view_overload_sets_headers);
         RUN_TEST(test_request_handler_factory_string_adapters_delegate_to_std_string);
+        RUN_TEST(test_http_request_items_exposes_std_string_keyed_map);
         return UNITY_END();
     }
 }

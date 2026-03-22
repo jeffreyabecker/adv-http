@@ -1,3 +1,4 @@
+2026-03-22 - Copilot: documented current legacy Stream semantics, froze native stream-semantics coverage, and classified in-tree stream roles.
 2026-03-21 - Copilot: migrated `HttpResponseBodyStream` and `ChunkedHttpResponseBodyStream` to own `IByteSource` internally while retaining legacy `Stream` entrypoints, and added native response-stream bridge coverage.
 2026-03-21 - Copilot: introduced byte-source and byte-sink contracts plus legacy Stream bridge adapters while leaving response-path migration open.
 2026-03-21 - Copilot: created detailed Phase 5 stream and response backlog.
@@ -19,9 +20,9 @@ This phase is the architectural seam change for the response path. The repositor
 
 ### Existing Semantics Freeze
 
-- [ ] Document the current `Stream` contract as used by the repository, including the meaning of `available()`, `read()`, `peek()`, and end-of-stream behavior.
-- [ ] Add or extend tests in `test/test_native/test_stream_available.cpp` and `test/test_native/test_stream_utilities.cpp` to lock in the current semantics before interface changes.
-- [ ] Confirm which in-tree stream types are read-only, which are duplex, and which exist only as adapters.
+- [x] Document the current `Stream` contract as used by the repository, including the meaning of `available()`, `read()`, `peek()`, and end-of-stream behavior.
+- [x] Add or extend tests in `test/test_native/test_stream_available.cpp` and `test/test_native/test_stream_utilities.cpp` to lock in the current semantics before interface changes.
+- [x] Confirm which in-tree stream types are read-only, which are duplex, and which exist only as adapters.
 
 ### Core Interface Introduction
 

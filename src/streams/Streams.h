@@ -12,11 +12,15 @@
 
 namespace HttpServerAdvanced
 {
-    // Stream contract used throughout the HTTP pipeline:
-    //  - available() == 0   : end of stream (no more bytes)
-    //  - available()  > 0   : that many bytes are buffered and readable now
-    //  - available() == -1  : buffer empty but more data is expected (non-final)
-    // read() should return -1 only at end of stream; peek() mirrors read() without consuming.
+    // Legacy Stream contract as currently used by the repository:
+    //  - available()  > 0 : that many bytes are readable now.
+    //  - available() == 0 : terminal exhaustion for finite sources and the
+    //                       value concat helpers skip past.
+    //  - available()  < 0 : adapter/wrapper-only "temporarily unavailable";
+    //                       existing helpers do not preserve this state
+    //                       consistently.
+    // read() and peek() return the next byte or -1 when no byte is produced
+    // for the current call. Most current callers treat -1 as end-of-stream.
 
     /**
      * @brief An abstract base class for read-only streams.
