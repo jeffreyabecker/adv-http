@@ -1,10 +1,11 @@
+2026-03-21 - Copilot: recorded the Phase 3 follow-on that timeout fixture tests should drive the injected server clock via `HttpServerBase::setClock(...)` and `Compat::ManualClock`.
 2026-03-21 - Copilot: created detailed Phase 9 native test consolidation and fixture coverage backlog.
 
 # No-Arduino Phase 9 Native Test Consolidation And Fixture Coverage Backlog
 
 ## Summary
 
-This phase grows the native validation lane from a small curated unit-test set into a stronger transport, parser, and response regression harness. The repository already has a consolidated `test/test_native/` runner and curated production-source list, but the current coverage is still limited to utilities, streams, and filesystem compatibility. The goal is to extend that lane deliberately with reusable fixtures, fake transports, and parser or pipeline coverage once the earlier seam work makes those components host-safe.
+This phase grows the native validation lane from a small curated unit-test set into a stronger transport, parser, and response regression harness. The repository already has a consolidated `test/test_native/` runner and curated production-source list, and the runtime seam work now provides an injectable server clock via `HttpServerBase::setClock(...)` backed by `Compat::ManualClock` for deterministic timeout tests. The goal is to extend that lane deliberately with reusable fixtures, fake transports, and parser or pipeline coverage once the earlier seam work makes those components host-safe.
 
 ## Goal / Acceptance Criteria
 
@@ -51,7 +52,7 @@ This phase grows the native validation lane from a small curated unit-test set i
 - [ ] Add fake-client tests for partial response writes.
 - [ ] Add fake-client tests for disconnect-before-completion behavior.
 - [ ] Add fake-client tests for keep-alive handling across request lifecycle boundaries.
-- [ ] Add timeout tests once the clock seam is implemented and injectable.
+- [ ] Add timeout tests using `HttpServerBase::setClock(...)` with `Compat::ManualClock` once the pipeline sources are host-safe.
 
 ### Documentation
 

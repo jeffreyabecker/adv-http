@@ -1,6 +1,7 @@
 #pragma once
+#include "../compat/Clock.h"
 #include "Defines.h"
-#include <cstdint>
+
 namespace HttpServerAdvanced
 {
 
@@ -22,44 +23,44 @@ namespace HttpServerAdvanced
     {
     private:
         /// @brief Maximum total time (ms) allowed for complete request processing
-        /// @details Default: CONTEXT_MAX_TOTAL_REQUEST_LENGTH_MS
-        uint32_t _totalRequestLengthMs = PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS;
+        /// @details Default: PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS
+        Compat::ClockMillis _totalRequestLengthMs = PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS;
 
         /// @brief Maximum time (ms) between processing actions
-        /// @details Default: CONTEXT_ACTIVITY_TIMEOUT
-        uint32_t _activityTimeout = PIPELINE_ACTIVITY_TIMEOUT;
+        /// @details Default: PIPELINE_ACTIVITY_TIMEOUT
+        Compat::ClockMillis _activityTimeout = PIPELINE_ACTIVITY_TIMEOUT;
 
         /// @brief Maximum time (ms) to wait for incoming data
-        /// @details Default: CONTEXT_READ_TIMEOUT
-        uint32_t _readTimeout = PIPELINE_READ_TIMEOUT;
+        /// @details Default: PIPELINE_READ_TIMEOUT
+        Compat::ClockMillis _readTimeout = PIPELINE_READ_TIMEOUT;
 
     public:
         // Getters
 
         /// @brief Get the maximum total request processing time
         /// @return Timeout value in milliseconds
-        uint32_t getTotalRequestLengthMs() const { return _totalRequestLengthMs; }
+        Compat::ClockMillis getTotalRequestLengthMs() const { return _totalRequestLengthMs; }
 
         /// @brief Get the action timeout (time between processing steps)
         /// @return Timeout value in milliseconds
-        uint32_t getActivityTimeout() const { return _activityTimeout; }
+        Compat::ClockMillis getActivityTimeout() const { return _activityTimeout; }
 
         /// @brief Get the read timeout (waiting for client data)
         /// @return Timeout value in milliseconds
-        uint32_t getReadTimeout() const { return _readTimeout; }
+        Compat::ClockMillis getReadTimeout() const { return _readTimeout; }
 
         // Setters
 
         /// @brief Set the maximum total request processing time
         /// @param timeout Timeout value in milliseconds
-        void setTotalRequestLengthMs(uint32_t timeout) { _totalRequestLengthMs = timeout; }
+        void setTotalRequestLengthMs(Compat::ClockMillis timeout) { _totalRequestLengthMs = timeout; }
 
         /// @brief Set the action timeout (time between processing steps)
         /// @param timeout Timeout value in milliseconds
-        void setActivityTimeout(uint32_t timeout) { _activityTimeout = timeout; }
+        void setActivityTimeout(Compat::ClockMillis timeout) { _activityTimeout = timeout; }
 
         /// @brief Set the read timeout (waiting for client data)
         /// @param timeout Timeout value in milliseconds
-        void setReadTimeout(uint32_t timeout) { _readTimeout = timeout; }
+        void setReadTimeout(Compat::ClockMillis timeout) { _readTimeout = timeout; }
     };
 }

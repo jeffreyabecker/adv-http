@@ -1,3 +1,4 @@
+2026-03-21 - Copilot: aligned `HttpTimeouts` with `Compat::ClockMillis`, completed the residual runtime-helper scan for `src/`, and documented the injected clock seam follow-on for native timeout fixtures.
 2026-03-21 - Copilot: migrated `HttpPipeline` timekeeping onto the injected clock seam, removed core `F()` literal usage from `HttpUtility.cpp`, and added native seam regression tests.
 2026-03-21 - Copilot: added a concrete header-only clock seam with system and manual clocks while leaving pipeline time migration open.
 2026-03-21 - Copilot: created detailed Phase 3 runtime and miscellaneous Arduino helpers backlog.
@@ -28,7 +29,7 @@ This phase cleans up the Arduino runtime dependencies that are not the main tran
 
 - [x] Refactor `src/pipeline/HttpPipeline.cpp` to remove direct `millis()` calls.
 - [x] Thread the new clock seam through pipeline construction or configuration without creating brittle global dependencies.
-- [ ] Review `src/core/HttpTimeouts.h` and any related timeout configuration code so naming and types align with the new seam.
+- [x] Review `src/core/HttpTimeouts.h` and any related timeout configuration code so naming and types align with the new seam.
 - [ ] Verify that timeout state transitions and activity tracking semantics remain unchanged after the clock swap.
 
 ### Deterministic Test Support
@@ -46,20 +47,20 @@ This phase cleans up the Arduino runtime dependencies that are not the main tran
 
 ### Residual Runtime Helper Audit
 
-- [ ] Re-scan `src/**` for any residual direct runtime helper calls such as `delay()`, `yield()`, or Arduino-specific convenience macros.
-- [ ] Classify any remaining runtime helper use as core bug, adapter responsibility, or example-only concern.
-- [ ] Remove any remaining core-side calls that should already be covered by compatibility layers.
+- [x] Re-scan `src/**` for any residual direct runtime helper calls such as `delay()`, `yield()`, or Arduino-specific convenience macros.
+- [x] Classify any remaining runtime helper use as core bug, adapter responsibility, or example-only concern.
+- [x] Remove any remaining core-side calls that should already be covered by compatibility layers.
 
 ### Logging And Example Runtime Separation
 
 - [ ] Decide whether the repository needs a formal logging adapter or whether logging remains example-only for now.
-- [ ] Ensure core headers and core source files do not rely on `Serial` or example-oriented debug printing.
+- [x] Ensure core headers and core source files do not rely on `Serial` or example-oriented debug printing.
 - [ ] If example helper headers need shared logging utilities, keep them under `examples/` or another explicitly non-core location.
 
 ### Documentation And Follow-On Work
 
-- [ ] Document the concrete clock seam so later backlog phases can assume it exists.
-- [ ] Record any follow-on requirements for timeout fixture metadata in the future HTTP pipeline test backlog.
+- [x] Document the concrete clock seam so later backlog phases can assume it exists.
+- [x] Record any follow-on requirements for timeout fixture metadata in the future HTTP pipeline test backlog.
 
 ## Owner
 
