@@ -27,7 +27,7 @@ This library must depend only on a stable, implementation-agnostic interface. Th
 Required methods and return semantics (suggested signatures):
 
 - `virtual std::size_t write(const std::uint8_t *buf, std::size_t size) = 0;`
-- `virtual AvailableResult availablity() = 0;`
+- `virtual AvailableResult available() = 0;`
 - `virtual int read(std::uint8_t *buffer, std::size_t size) = 0;` // returns bytes read or -1 on error
 - `virtual void flush() = 0;` // blocks or waits until pending bytes are acknowledged (implementation detail)
 - `virtual void stop() = 0;` // orderly close
@@ -41,7 +41,7 @@ Required methods and return semantics (suggested signatures):
 
 Notes:
 - Use textual address accessors in the core seam and keep any binary address conversions inside transport adapters.
-- `availablity()` should return `HasBytes` with a queued-byte count when request data is ready, `Exhausted` when the current request input is complete, `TemporarilyUnavailable` when no bytes are ready yet but more may still arrive, and `Error` when the transport observes a real failure.
+- `available()` should return `HasBytes` with a queued-byte count when request data is ready, `Exhausted` when the current request input is complete, `TemporarilyUnavailable` when no bytes are ready yet but more may still arrive, and `Error` when the transport observes a real failure.
 - Document error codes and exceptional behaviors (for example, `read()` returning 0 vs `-1`), and specify whether implementations may throw exceptions (prefer returning error codes to throwing).
 
 ### `IServer` (interface)
@@ -127,7 +127,7 @@ The library will continue to expose `IClient` and `IServer` in `src/pipeline/Net
 Implementations provided by an outside implementer must meet these tests and validation points:
 
 1. API compatibility: compile the library and examples while only depending on headers that declare `IClient` / `IServer` (no Arduino types in public headers).
-2. Behavioral tests: implementer provides unit tests verifying `accept()` returns `nullptr` when empty, `availablity()`/`read()` semantics across buffer boundaries, `connected()` remains true while unread data exists, and `flush()` awaits acknowledgements.
+2. Behavioral tests: implementer provides unit tests verifying `accept()` returns `nullptr` when empty, `available()`/`read()` semantics across buffer boundaries, `connected()` remains true while unread data exists, and `flush()` awaits acknowledgements.
 3. Ownership and lifetime: implementer documents the ownership model and demonstrates callback-safety (no callbacks referencing freed objects).
 4. Platform notes: implementer documents any platform-specific deviations or optional configuration flags and provides a short integration guide.
 ## Summary
@@ -200,7 +200,7 @@ The existing server and pipeline layers already define the minimal transport sur
 The HTTP stack depends on these behaviors:
 
 + `write(const std::uint8_t *, std::size_t)`
-+ `availablity()`
++ `available()`
 + `read(std::uint8_t *, std::size_t)`
 + `flush()`
 + `stop()`
@@ -227,9 +227,9 @@ The pipeline and server layer impose several important semantics:
 
    `HttpServerBase::handleClient()` creates a new `HttpPipeline` only when `accept()` returns a non-null client.
 
-2. `availablity()` drives request-read progress.
+2. `available()` drives request-read progress.
 
-   `HttpPipeline::readFromClientIntoParser()` loops while `availablity()` reports `HasBytes`, reads bytes, and treats `Exhausted` as request-read completion for the current request.
+   `HttpPipeline::readFromClientIntoParser()` loops while `available()` reports `HasBytes`, reads bytes, and treats `Exhausted` as request-read completion for the current request.
 
 3. `connected()` gates pipeline liveness.
 
@@ -317,7 +317,7 @@ Suggested responsibilities:
 - manage the raw lwIP PCB lifecycle
 - track receive data using a pbuf chain and an offset into the current head pbuf
 - expose local and remote endpoint data from the PCB
-- implement `availablity()`, `read()`, `peek()`, and receive-buffer consumption
+- implement `available()`, `read()`, `peek()`, and receive-buffer consumption
 - implement `write()` with partial-send and retry handling
 - implement `flush()` by waiting for unacknowledged bytes to drain
 - implement `close()` and `abort()` with correct callback detachment
@@ -334,7 +334,7 @@ Suggested data members:
 
 Suggested methods:
 
-- `AvailableResult availablity()`
+- `AvailableResult available()`
 - `int read(HttpServerAdvanced::span<std::uint8_t> buffer)`
 - `int peek() const`
 - `std::size_t write(HttpServerAdvanced::span<const std::uint8_t> buffer)`
@@ -398,7 +398,7 @@ Responsibilities:
 Expected methods:
 
 - `write()` delegates to context
-- `availablity()` delegates to context or returns `Exhausted` / `Error` depending on chosen invalid-client semantics
+- `available()` delegates to context or returns `Exhausted` / `Error` depending on chosen invalid-client semantics
 - `read()` delegates to context
 - `flush()` delegates to context
 - `stop()` closes and releases the context
@@ -473,7 +473,7 @@ The pipeline assumes that a completed response write has real transport meaning.
 
 Timeout changes from `HttpPipeline` must influence the actual behavior of reads, writes, and flushes.
 
-### 6. `availablity()` / EOF behavior must remain compatible with current request parsing
+### 6. `available()` / EOF behavior must remain compatible with current request parsing
 
 The current pipeline logic is somewhat coarse, but it works against the existing transport. The first transport rewrite should match that behavior before any attempt is made to refine end-of-input semantics.
 
@@ -621,7 +621,7 @@ The repository currently has limited direct transport coverage, so this work sho
 
    Verify:
 
-   - `availablity()` reports queued bytes through `HasBytes(count)`
+   - `available()` reports queued bytes through `HasBytes(count)`
    - `read()` advances offsets correctly
    - reading across chained buffers behaves correctly
    - consuming the final bytes releases buffers correctly
@@ -699,7 +699,7 @@ Write behavior must preserve the retry and backpressure semantics currently inhe
 
 ### EOF and connection-state regressions
 
-The current pipeline is sensitive to `availablity()`, `connected()`, and `flush()` semantics. Any behavior drift there can cause truncated requests, premature disconnect handling, or hung pipelines.
+The current pipeline is sensitive to `available()`, `connected()`, and `flush()` semantics. Any behavior drift there can cause truncated requests, premature disconnect handling, or hung pipelines.
 
 ### Over-generalizing too early
 

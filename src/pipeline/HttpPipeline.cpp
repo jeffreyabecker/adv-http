@@ -41,9 +41,9 @@ namespace HttpServerAdvanced
         startActivity();
         uint8_t buffer[HttpServerAdvanced::PIPELINE_STACK_BUFFER_SIZE];
         AvailableResult available = TemporarilyUnavailableResult();
-        while ((available = client_->availablity()).hasBytes())
+        while ((available = client_->available()).hasBytes())
         {
-            std::size_t bytesRead = client_->read(buffer, sizeof(buffer));
+            std::size_t bytesRead = client_->read(HttpServerAdvanced::span<uint8_t>(buffer, sizeof(buffer)));
 
             size_t bytesParsed = requestParser_.execute(buffer, bytesRead);
             if (bytesParsed < bytesRead)
@@ -87,7 +87,7 @@ namespace HttpServerAdvanced
             const size_t bytesRead = responseStream_->read(HttpServerAdvanced::span<uint8_t>(buffer, bytesToRead));
             if (bytesRead > 0)
             {
-                auto written = client_->write(buffer, bytesRead);
+                auto written = client_->write(HttpServerAdvanced::span<const uint8_t>(buffer, bytesRead));
                 if (written < bytesRead)
                 {
                     setErroredUnrecoverably();

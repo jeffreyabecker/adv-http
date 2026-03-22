@@ -35,20 +35,20 @@ This phase narrows the transport seam to the actual contracts the HTTP pipeline 
 
 #### Current Interface Inventory
 
-- `IClient` currently exposes `write()`, `availablity()`, `read()`, `flush()`, `stop()`, `connected()`, `remoteAddress()`, `remotePort()`, `localAddress()`, `localPort()`, `setTimeout()`, and `getTimeout()`.
+- `IClient` currently exposes byte-channel `write()`, `available()`, `read()`, `peek()`, and `flush()` plus transport methods `stop()`, `connected()`, `remoteAddress()`, `remotePort()`, `localAddress()`, `localPort()`, `setTimeout()`, and `getTimeout()`.
 - `IServer` currently exposes `accept()`, `begin()`, `port()`, `localAddress()`, and `end()`.
 - `src/pipeline/NetClient.h` is now only a re-export header over `TransportInterfaces.h`; the actual interface surface is `TransportInterfaces.h`, while Arduino-facing transport wrappers have been pushed out of the core contract.
 
 #### Current Consumer Inventory
 
-- `HttpPipeline` consumes `IClient::availablity()`, `read()`, `write()`, `connected()`, `stop()`, `setTimeout()`, `remoteAddress()`, `remotePort()`, `localAddress()`, and `localPort()`.
+- `HttpPipeline` consumes `IClient::available()`, `read()`, `write()`, `connected()`, `stop()`, `setTimeout()`, `remoteAddress()`, `remotePort()`, `localAddress()`, and `localPort()`.
 - `HttpServerBase` consumes `IServer::accept()` indirectly via concrete server wrappers and only requires server-local address and port reporting for the higher-level server API.
 - `StandardHttpServer` and `WiFiHttpServer` are now clearly adapter-facing wrappers that translate Arduino endpoint state into textual address views for the core-facing server contract.
 
 #### Frozen Semantics Snapshot
 
 - `accept()` returns `nullptr` when no pending client exists and transfers ownership when a client is available.
-- `availablity()` now drives request-read progress in `HttpPipeline` through `AvailableResult`, with `HasBytes` continuing the read loop and `Exhausted` marking request completion for the current request.
+- `available()` now drives request-read progress in `HttpPipeline` through `AvailableResult`, with `HasBytes` continuing the read loop and `Exhausted` marking request completion for the current request.
 - `connected()` is a boolean liveness gate checked before each processing pass and must remain `true` while unread buffered request bytes can still be drained.
 - `setTimeout()` and `getTimeout()` remain part of the transport contract as implementation hints rather than being routed through a separate clock-driven timeout controller.
 - `IClient::status()` has been removed from the core seam because no in-tree consumer depends on per-client TCP-state reporting.

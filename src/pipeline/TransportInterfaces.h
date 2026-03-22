@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../compat/Availability.h"
+#include "../streams/ByteStream.h"
 #include "../core/Defines.h"
 
 #include <cstddef>
@@ -10,15 +10,11 @@
 
 namespace HttpServerAdvanced
 {
-    class IClient
+    class IClient : public IByteChannel
     {
     public:
-        virtual ~IClient() = default;
+        ~IClient() override = default;
 
-        virtual std::size_t write(const std::uint8_t *buf, std::size_t size) = 0;
-        virtual AvailableResult availablity() = 0;
-        virtual int read(std::uint8_t *rbuf, std::size_t size) = 0;
-        virtual void flush() = 0;
         virtual void stop() = 0;
         virtual bool connected() = 0;
         virtual std::string_view remoteAddress() const = 0;

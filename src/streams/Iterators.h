@@ -8,8 +8,8 @@ namespace HttpServerAdvanced
     class BoundedStreamIterable
     {
     public:
-        using value_type = std::unique_ptr<Stream>;
-        using reference = std::unique_ptr<Stream> &;
+        using value_type = std::unique_ptr<IByteSource>;
+        using reference = std::unique_ptr<IByteSource> &;
         using pointer = value_type *;
         using difference_type = std::ptrdiff_t;
         using iterator_category = std::forward_iterator_tag;
@@ -18,7 +18,7 @@ namespace HttpServerAdvanced
         size_t index_ = 0;
         size_t maxIndex_;
 
-        mutable std::unique_ptr<Stream> current_ = nullptr;
+        mutable std::unique_ptr<IByteSource> current_ = nullptr;
         BoundedStreamIterable(size_t index, size_t maxIndex)
             : index_(index), maxIndex_(maxIndex) {}
         virtual value_type getAt(size_t index) const = 0;

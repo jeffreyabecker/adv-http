@@ -1,3 +1,4 @@
+2026-03-22 - Copilot: completed the read-only stream migration, moved iterator-helper ownership onto `IByteSource`, and marked the remaining Phase 5 transformer tasks done.
 2026-03-22 - Copilot: audited duplex stream utilities, removed unused owning memory-stream helpers, and fixed the phase decision on keeping duplex behavior isolated to a single legacy helper.
 2026-03-22 - Copilot: refreshed phase status after the response and pipeline byte-source migration, marked file-backed response integration complete, and narrowed the remaining work to legacy stream utilities, adapters, and regression gaps.
 2026-03-22 - Copilot: documented current legacy Stream semantics, froze native stream-semantics coverage, and classified in-tree stream roles.
@@ -36,10 +37,10 @@ This phase is the architectural seam change for the response path. The repositor
 
 ### Read-Only Stream Migration
 
-- [ ] Migrate `src/streams/Streams.h` and `src/streams/Streams.cpp` read-only stream types such as `ReadStream`, `OctetsStream`, `LazyStreamAdapter`, and concat helpers onto the byte-source contract.
-- [ ] Update `src/streams/Base64Stream.h` and `src/streams/Base64Stream.cpp` to target the new readable contract.
-- [ ] Update `src/streams/UriStream.h` and `src/streams/UriStream.cpp` to target the new readable contract.
-- [ ] Update iterator helpers in `src/streams/Iterators.h` so ownership uses the new source abstraction rather than raw `Stream` pointers.
+- [x] Migrate `src/streams/Streams.h` and `src/streams/Streams.cpp` read-only stream types such as `ReadStream`, `OctetsStream`, `LazyStreamAdapter`, and concat helpers onto the byte-source contract.
+- [x] Update `src/streams/Base64Stream.h` and `src/streams/Base64Stream.cpp` to target the new readable contract.
+- [x] Update `src/streams/UriStream.h` and `src/streams/UriStream.cpp` to target the new readable contract.
+- [x] Update iterator helpers in `src/streams/Iterators.h` so ownership uses the new source abstraction rather than raw `Stream` pointers.
 
 ### Response Layer Migration
 
