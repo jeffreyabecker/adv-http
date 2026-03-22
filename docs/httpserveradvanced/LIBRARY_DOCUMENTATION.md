@@ -166,7 +166,7 @@ The pipeline module handles HTTP parsing and request/response flow.
 | `HttpPipeline` | Orchestrates request/response lifecycle for a client connection |
 | `RequestParser` | Wraps `http_parser` library for incremental HTTP parsing |
 | `IPipelineHandler` | Interface for objects receiving pipeline events |
-| `NetClient` | Abstract client wrapper (`IClient`) and server adapter (`ServerImpl`) |
+| `NetClient` | Transport seam header exposing the abstract `IClient` and `IServer` contracts |
 | `PipelineError` | Error codes and messages for pipeline failures |
 | `PipelineHandleClientResult` | Enum result of `handleClient()` operation |
 

@@ -150,7 +150,7 @@ Semantics:
 - `Error`: unrecoverable error; `errorCode` may carry a platform-specific code useful for diagnostics.
 
 Recommended API changes:
-- replace `int available()` with `AvailableResult available()` on `IByteSource`-like contracts and on `IClient`.
+- replace legacy integer availability reporting with `AvailableResult` on `IByteSource`-like contracts and expose the transport seam through `IClient::availablity()` rather than an integer-returning readiness method.
 - keep `read()`/`peek()` semantics but document interactions with `AvailableResult` (e.g., `read()` may return `-1` on error or `0` if no byte was produced and `AvailableResult` reports `TemporarilyUnavailable`).
 - provide helper accessors in adapters where useful, e.g., `bool hasBytes() const { return available().state == AvailabilityState::HasBytes; }` and `std::size_t peekAvailable() const { auto r = available(); return r.state == AvailabilityState::HasBytes ? r.count : 0; }`.
 

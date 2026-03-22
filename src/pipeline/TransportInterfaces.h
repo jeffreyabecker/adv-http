@@ -16,7 +16,7 @@ namespace HttpServerAdvanced
         virtual ~IClient() = default;
 
         virtual std::size_t write(const std::uint8_t *buf, std::size_t size) = 0;
-        virtual int available() = 0;
+        virtual AvailableResult availablity() = 0;
         virtual int read(std::uint8_t *rbuf, std::size_t size) = 0;
         virtual void flush() = 0;
         virtual void stop() = 0;
@@ -27,22 +27,6 @@ namespace HttpServerAdvanced
         virtual std::uint16_t localPort() = 0;
         virtual void setTimeout(std::uint32_t timeoutMs) = 0;
         virtual std::uint32_t getTimeout() const = 0;
-
-        virtual AvailableResult availability()
-        {
-            const int result = available();
-            if (result > 0)
-            {
-                return AvailableBytes(static_cast<std::size_t>(result));
-            }
-
-            if (result == 0)
-            {
-                return ExhaustedResult();
-            }
-
-            return TemporarilyUnavailableResult();
-        }
 
     };
 

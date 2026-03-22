@@ -40,8 +40,8 @@ namespace HttpServerAdvanced
         }
         startActivity();
         uint8_t buffer[HttpServerAdvanced::PIPELINE_STACK_BUFFER_SIZE];
-        int available = 0;
-        while ((available = client_->available()) >= 0)
+        AvailableResult available = TemporarilyUnavailableResult();
+        while ((available = client_->availablity()).hasBytes())
         {
             std::size_t bytesRead = client_->read(buffer, sizeof(buffer));
 
@@ -56,7 +56,7 @@ namespace HttpServerAdvanced
                 return;
             }
         }
-        if (available == 0)
+        if (available.isExhausted())
         {
             markRequestReadCompleted();
         }
