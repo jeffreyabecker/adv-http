@@ -1,3 +1,4 @@
+2026-03-22 - Copilot: added exact-output regression coverage for direct and chunked response serialization, including a temporary-unavailability chunk boundary, and marked the serializer-behavior preservation task complete.
 2026-03-22 - Copilot: completed the read-only stream migration, moved iterator-helper ownership onto `IByteSource`, and marked the remaining Phase 5 transformer tasks done.
 2026-03-22 - Copilot: audited duplex stream utilities, removed unused owning memory-stream helpers, and fixed the phase decision on keeping duplex behavior isolated to a single legacy helper.
 2026-03-22 - Copilot: refreshed phase status after the response and pipeline byte-source migration, marked file-backed response integration complete, and narrowed the remaining work to legacy stream utilities, adapters, and regression gaps.
@@ -47,7 +48,7 @@ This phase is the architectural seam change for the response path. The repositor
 - [x] Update `src/response/HttpResponse.h` and `src/response/HttpResponse.cpp` so response bodies are typed against the new readable contract.
 - [x] Update `src/response/HttpResponse.*` and `src/response/ChunkedHttpResponseBodyStream.*` so response bodies are owned as readable byte sources rather than legacy `Stream` objects.
 - [x] Update `src/response/HttpResponseIterators.h` and related response composition helpers to emit the new source type.
-- [ ] Preserve the current direct-response and chunked-response behavior byte-for-byte where practical.
+- [x] Preserve the current direct-response and chunked-response behavior byte-for-byte where practical.
 
 ### Pipeline Integration
 
