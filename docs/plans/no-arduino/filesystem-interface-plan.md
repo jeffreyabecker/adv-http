@@ -2,128 +2,154 @@
 
 ## Objective
 
-Define a small, C++17-friendly filesystem access interface to replace direct dependencies on Arduino `FS`/`File` in the library's static-file serving code. The interface should be minimal (only the operations the static-file handlers need), easily adapted to Arduino `FS`/`File` and to POSIX `FILE*`/`stat`, and support clear ownership and testability.
+Define a small, C++17-friendly filesystem seam for static-file serving that removes direct dependencies on Arduino `FS` and `File` from the core while aligning file reads with the existing `IByteSource` response pipeline.
 
 ## Summary of findings
 
-From scanning the codebase (notably `src/staticfiles/*` and `src/compat/FileSystem.h`) the static-file path expects the following filesystem operations:
+The current static-file path only needs a narrow read-only contract:
 
-- open(path, mode) -> file handle (movable, checkable for validity)
-- file validity test (boolean)
-- stream reads: `available()`, `read()`, `peek()`
-- metadata: `size()`, `fullName()` or `name`, `getLastWrite()`
-- `isDirectory()`
-- `close()`
+- filesystem open by path
+- readable bytes through the Phase 5 byte-source seam
+- directory detection for index fallback
+- explicit close for early release
+- size metadata for `Content-Length`
+- resolved path metadata for gzip detection and content-type lookup
+- last-write metadata for `ETag` and `Last-Modified`
 
-Most code uses the file handle as a stream (wrapping it as a `Stream`), and also reads `size()` and `getLastWrite()` for headers (Content-Length, ETag). Directory checks and index-file fallback are used by the `DefaultFileLocator`.
+The current code does not need write-side byte-channel behavior for file-backed responses. It also does not benefit from moving metadata lookups back onto the filesystem object once a file has been opened.
 
-Operations not currently used in static-file paths but possibly useful later: `exists()`, `listDir()`, `remove()`, `rename()`, `seek()`.
+## Design decisions
 
-## Goals for the interface
+- Introduce a dedicated `IFileSystem` and `IFile` seam rather than evolving `compat/FileSystem.h` in place.
+- Make `IFile` inherit from `IByteChannel` so filesystem handles can participate in the byte-stream seam uniformly even though static-file responses currently use only the read side.
+- Keep metadata on the opened `IFile`, not on `IFileSystem`, so headers are derived from the same opened resource that provides the bytes.
+- Use `std::unique_ptr<IFile>` for ownership and use `nullptr` to represent open failure instead of an invalid sentinel file object.
+- Use `std::optional` for metadata that may be unavailable instead of `0` or empty-string sentinel values.
+- Keep the static-file implementation focused on read-side behavior even though the file seam itself exposes read/write capability.
 
-- Satisfy the static-file handler needs without exposing Arduino types in public headers.
-- Keep the interface small and testable.
-- Return ownership as `std::unique_ptr<IFile>` so callers manage lifetimes explicitly.
-- Provide best-effort metadata (empty / zero when unavailable).
-- Provide adapters for Arduino `FS`/`File` and POSIX `FILE*` + `stat`.
+## Concrete proposed interfaces
 
-## Proposed interfaces
-
-Create a header `src/compat/IFileSystem.h` (or similar) exposing `IFile` and `IFileSystem` in a `HttpServerAdvanced::Compat` namespace.
-
-Suggested content:
+Create a header such as `src/compat/IFileSystem.h` with the following contract:
 
 ```cpp
-// src/compat/IFileSystem.h
 #pragma once
 
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <string>
+#include <optional>
+#include <string_view>
 
-namespace HttpServerAdvanced::Compat {
+#include "../streams/ByteStream.h"
 
-class IFile {
-public:
-    virtual ~IFile() = default;
-    virtual explicit operator bool() const = 0; // truthy when open/readable
-    // Returns a small readiness result instead of an overloaded int. See stream replacement plan
-    // for `AvailableResult` semantics: `HasBytes`, `Exhausted`, `TemporarilyUnavailable`, `Error`.
-    // The `count` field is valid only when the state is `HasBytes`.
-    virtual AvailableResult available() = 0;
-    virtual int read() = 0;                     // read single byte, -1 on EOF/error
-    virtual int read(unsigned char* buffer, std::size_t len) = 0; // read up to len bytes
-    virtual int peek() = 0;
-    virtual void close() = 0;
-    virtual std::size_t size() const = 0;      // total size in bytes (0 if unknown)
-    virtual std::string fullName() const = 0;  // file path or empty
-    virtual uint32_t getLastWrite() const = 0; // epoch seconds, 0 if unknown
-    virtual bool isDirectory() const = 0;
-};
+namespace HttpServerAdvanced
+{
+    namespace Compat
+    {
+        enum class FileOpenMode
+        {
+            Read,
+            Write,
+            ReadWrite
+        };
 
-class IFileSystem {
-public:
-    virtual ~IFileSystem() = default;
-    // open for read-only use; mode kept as const char* for future extension
-    virtual std::unique_ptr<IFile> open(const std::string &path, const char *mode) = 0;
-};
+        class IFile : public IByteChannel
+        {
+        public:
+            ~IFile() override = default;
 
-} // namespace HttpServerAdvanced::Compat
+            virtual bool isDirectory() const = 0;
+            virtual void close() = 0;
+            virtual std::optional<std::size_t> size() const = 0;
+            virtual std::string_view path() const = 0;
+            virtual std::optional<uint32_t> lastWriteEpochSeconds() const = 0;
+        };
+
+        class IFileSystem
+        {
+        public:
+            virtual ~IFileSystem() = default;
+
+            virtual std::unique_ptr<IFile> open(std::string_view path, FileOpenMode mode) = 0;
+        };
+    }
+}
 ```
 
-Design notes:
+## Contract notes
 
-- `IFileSystem::open` returns `nullptr` when the file is not present or cannot be opened.
-- `IFile` is used through `std::unique_ptr<IFile>` to express single ownership. This maps naturally to the static-file code which passes `File` objects by value but treats them as unique handles.
-- `read()` returns `-1` on EOF/error to mirror existing `Stream` semantics used in the codebase; `read(buffer,len)` returns number of bytes read or `-1` on unrecoverable error.
-- `available()` previously returned an `int` with overloaded meanings. The new `AvailableResult` separates readiness from quantity and reduces ambiguity.
-- If an underlying platform cannot provide an accurate available count, adapters should map best-effort to `TemporarilyUnavailable` (count 0) or to `HasBytes` with an approximation when possible. See `docs/plans/no-arduino/stream-replacement-plan.md` for mapping rules.
-- `size()` is used for `Content-Length`. If size is unknown, returning `0` is acceptable but should be documented.
+- `IFileSystem::open()` returns `nullptr` when the path does not exist, cannot be opened in the requested mode, or is otherwise unavailable.
+- `IFile` remains valid until it is closed or destroyed. Destruction should release any underlying handle even if `close()` was never called.
+- `IFile` inherits `available()`, `read()`, `peek()`, `write()`, and `flush()` from `IByteChannel`.
+- Static-file code should continue to use only the read-side operations even though the interface also supports writes.
+- `size()` returns `std::nullopt` when the adapter cannot provide a stable byte count. Static-file code can omit `Content-Length` in that case or make an explicit policy decision later.
+- `path()` returns the resolved path for the opened resource, not the original request URL. This is the value used for gzip detection and content-type lookup.
+- `lastWriteEpochSeconds()` returns `std::nullopt` when the underlying platform cannot provide usable last-write metadata.
+- `isDirectory()` remains part of `IFile` because directory fallback is based on the opened resource, not on a second filesystem query.
+- `FileOpenMode` should be mapped to the narrowest platform mode string or flags that preserve intended behavior. Adapters may reject unsupported mode combinations by returning `nullptr`.
+
+## Why this shape fits the current code
+
+This contract maps directly onto the current static-file call flow:
+
+1. `DefaultFileLocator` opens a candidate path, checks `isDirectory()`, and retries with `.gz` or `/index.html` variants.
+2. `StaticFileHandler` reads metadata from the opened file to build headers.
+3. The response pipeline already consumes `std::unique_ptr<IByteSource>`, so `IFile` can still flow into that path through its read-side inheritance while remaining compatible with broader byte-channel usage elsewhere.
+
+This avoids one weaker alternative:
+
+- Putting metadata methods on `IFileSystem`, which would force a second lookup path and risks metadata drifting from the opened handle.
+
+## Mapping from the current compat seam
+
+Current `File` and `FS` behavior in `src/compat/FileSystem.h` maps to the proposed seam as follows:
+
+- `FS::open(path, mode)` becomes `IFileSystem::open(path, FileOpenMode)`
+- `File::available()`, `read()`, `peek()`, `write()`, and `flush()` move under `IByteChannel`
+- `File::isDirectory()` stays on `IFile`
+- `File::close()` stays on `IFile`
+- `File::size()` becomes `IFile::size()` returning `std::optional<std::size_t>`
+- `File::fullName()` becomes `IFile::path()` returning `std::string_view`
+- `File::getLastWrite()` becomes `IFile::lastWriteEpochSeconds()` returning `std::optional<uint32_t>`
+- `File` no longer inherits from the legacy compat `Stream`
+- invalid default-constructed file handles are replaced by `nullptr`
 
 ## Adapter mapping
 
-Arduino `FS` / `File` adapter:
+Arduino adapter:
 
-- `open(path, "r")` -> call `fs.open(path, "r")` and wrap into an `IFile` implementation that forwards `available()`, `read()`, `peek()`, `close()`, `size()`, `isDirectory()`.
-- `fullName()` can map to `file.name()` when available; otherwise return the requested `path` string stored by the adapter.
-- `getLastWrite()` is not available in all Arduino FS implementations; return `0` when unsupported or use the underlying API if provided (LittleFS/VFS may supply metadata).
+- Wrap `fs::FS` behind an `IFileSystem` implementation exposing `open()`.
+- Wrap `fs::File` behind an `IFile` implementation exposing channel operations, `isDirectory()`, `close()`, and metadata.
+- Use the underlying file name API when available; otherwise store the resolved path string in the adapter.
+- Return `std::nullopt` for `lastWriteEpochSeconds()` when the board filesystem cannot supply it.
+- Return `std::nullopt` for `size()` only if the underlying filesystem genuinely cannot provide a stable size.
+- Map `FileOpenMode::Read`, `Write`, and `ReadWrite` to the closest Arduino mode strings accepted by the underlying filesystem implementation.
 
-POSIX `FILE*` + `stat` adapter:
+POSIX adapter:
 
-- `open(path, "r")` -> `fopen(path, "rb")`; wrap `FILE*` in IFile.
-- `read()` -> `fgetc()` or `fread()` wrapper; `read(buffer,len)` uses `fread()`.
-- `available()` can be implemented as `size() - ftell(file)` when `fseek/ftell` work; otherwise return 0.
-- `size()` -> use `stat(path, &st)` and return `st.st_size`.
-- `getLastWrite()` -> map from `st.st_mtime`.
-- `isDirectory()` -> `S_ISDIR(st.st_mode)` from `stat`.
+- Wrap `FILE *` and `stat` behind an `IFile` implementation.
+- Implement `available()` as a best-effort `size - current-position` calculation when seeking is supported.
+- Implement `write()` and `flush()` in terms of `fwrite()` and `fflush()` when the handle was opened in a writable mode.
+- Use `stat` to populate `size()`, `isDirectory()`, and `lastWriteEpochSeconds()`.
+- Preserve the resolved path string in adapter storage so `path()` can return a stable `std::string_view`.
 
 ## Integration plan
 
-1. Add `src/compat/IFileSystem.h` with the `IFile`/`IFileSystem` definitions.
-2. Update `src/staticfiles` to accept an `IFileSystem &` (or `std::shared_ptr<IFileSystem>`) instead of an Arduino `FS &`.
-   - Keep a transitional adapter layer so existing example code can pass `LittleFS` via a small wrapper that implements `IFileSystem`.
-3. Provide two adapters in `src/compat/adapters`:
-   - `ArduinoFsAdapter` wrapping `fs::FS`/`fs::File`.
-   - `PosixFileAdapter` for native builds/tests.
-4. Update `DefaultFileLocator` and `StaticFileHandler` to use `std::unique_ptr<IFile>` returned by `IFileSystem::open`.
-5. Add unit tests for content-length, ETag extraction, index-file fallback, and directory handling using the POSIX adapter in native builds.
-
-## Backwards compatibility and deployment
-
-- Provide a small transitional header `src/compat/AdapterHelpers.h` with convenience functions to build an `ArduinoFsAdapter` from an `fs::FS &` so examples keep working with minimal changes (e.g., `StaticFiles(LittleFS)` can be adapted by the example harness to `StaticFiles(makeArduinoFsAdapter(LittleFS))`).
-- Document adapter creation in `docs/EXAMPLES.md` and update examples incrementally.
+1. Add `src/compat/IFileSystem.h` with the proposed interfaces.
+2. Add adapter implementations for Arduino and POSIX.
+3. Refactor `src/staticfiles/FileLocator.h` to return `std::unique_ptr<Compat::IFile>`.
+4. Refactor `DefaultFileLocator` and `AggregateFileLocator` to use `IFileSystem` and nullable file handles.
+5. Refactor `StaticFileHandler` to consume `IFile` directly instead of wrapping `Compat::File` in a local adapter class, while keeping handler logic read-only.
+6. Rework static-file header generation so it handles `std::optional` metadata explicitly.
+7. Keep any builder-level Arduino ergonomics in adapter helpers rather than leaking raw Arduino filesystem headers back into core-facing types.
 
 ## Acceptance criteria
 
-- All static-file examples compile using the Arduino adapter (no Arduino types in public headers of the library core).
-- `Content-Length` and `ETag` headers are correct when `size()` and `getLastWrite()` are available.
-- Directory index fallback behavior matches current behavior.
-- Unit tests exercise the public `IFile`/`IFileSystem` behavior via the POSIX adapter.
+- No core-facing static-file header requires Arduino `FS.h`.
+- Static-file bodies flow through the read side of `IByteChannel` without `Stream` inheritance.
+- Gzip fallback, directory index fallback, `Content-Length`, `ETag`, and `Last-Modified` behavior remain correct when metadata is available.
+- Native tests cover both adapter behavior and static-file fallback behavior through the new seam.
 
-## Next steps
+## Recommended next implementation step
 
-- I can implement `src/compat/IFileSystem.h` and the `ArduinoFsAdapter` next, then update `DefaultFileLocator` to accept the new interface. Which adapter do you want first (Arduino or POSIX)?
-
-
-*Document generated by Copilot assistant.*
+Implement the new header and the POSIX adapter first, then refactor `DefaultFileLocator` and `StaticFileHandler` against that seam before adding the Arduino adapter. That sequence gives native compile and behavior coverage while the Arduino-facing mode mapping is still in flux.

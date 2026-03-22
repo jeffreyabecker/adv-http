@@ -1,3 +1,4 @@
+2026-03-22 - Copilot: recorded the proposed `IFileSystem` and `IFile` seam, including `IByteChannel` inheritance and explicit open-mode selection.
 2026-03-22 - Copilot: refreshed the phase summary after Phase 5 response work, marked the file-backed byte-source wrapper task complete, and aligned the backlog wording with the current `FileByteSource` implementation.
 2026-03-21 - Copilot: created detailed Phase 6 filesystem and static files backlog.
 
@@ -18,10 +19,13 @@ This phase narrows the filesystem dependency to the actual operations static-fil
 
 ### Interface Definition
 
-- [ ] Decide whether `src/compat/FileSystem.h` evolves in place or is replaced by a narrower `IFile` and `IFileSystem` contract.
-- [ ] Define the minimum file operations required for static-file serving: open, validity, directory check, close, size, name/path, last-write metadata, and readable-byte access.
-- [ ] Decide how file readability participates in the new stream or byte-source contract so filesystem work aligns with Phase 5.
+- [x] Decide whether `src/compat/FileSystem.h` evolves in place or is replaced by a narrower `IFile` and `IFileSystem` contract.
+- [x] Define the minimum file operations required for static-file serving: open, validity, directory check, close, size, name/path, last-write metadata, and readable-byte access.
+- [x] Decide how file readability participates in the new stream or byte-source contract so filesystem work aligns with Phase 5.
 - [ ] Eliminate the assumption that `File` must be a subclass of the legacy compat `Stream` type.
+
+Selected contract direction:
+Replace `src/compat/FileSystem.h` in core-facing code with `IFileSystem::open(path, FileOpenMode)` returning `std::unique_ptr<IFile>`, where `IFile` extends `IByteChannel` and carries directory, size, path, and last-write metadata. Keep static-file handler logic read-only even though the file seam exposes broader channel behavior.
 
 ### Adapter Strategy
 
