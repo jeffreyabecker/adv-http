@@ -3,6 +3,7 @@
 2026-03-21 - Copilot: implemented the first URI/query parsing migration slice and validated it through the native PlatformIO test lane.
 2026-03-21 - Copilot: admitted `HttpHeaderCollection` into the native lane and added standard-text header lookup accessors while leaving header/request ownership migration open.
 2026-03-21 - Copilot: moved `HttpHeader` and `HttpRequest` internal ownership to `std::string`, widened the native portable source list to cover the new slice, and fixed host-safe response-path regressions uncovered by that validation.
+2026-03-21 - Copilot: captured the remaining `String` inventory snapshot and froze the next conversion order around `StringUtility`, `StringView`, and routing/handler parameter plumbing.
 
 # No-Arduino Phase 2 Text And Utility Backlog
 
@@ -23,10 +24,33 @@ This phase attacks the deepest and widest coupling point in the repository: Ardu
 
 ### String Inventory And Conversion Order
 
-- [ ] Build a file-by-file inventory of `String` usage across `src/util`, `src/core`, `src/handlers`, `src/routing`, `src/response`, and `src/HttpServerAdvanced.h`.
-- [ ] Classify each `String` use as owned internal state, non-owning parsed view, compatibility overload, or Arduino-only boundary.
-- [ ] Record the preferred replacement type for each classification: `std::string`, `std::string_view`, `const char *`, or deferred adapter-only retention.
-- [ ] Freeze the conversion order so URI and query parsing lands first, then the remaining lower-level text utilities, then higher-level routing and response helpers.
+- [x] Build a file-by-file inventory of `String` usage across `src/util`, `src/core`, `src/handlers`, `src/routing`, `src/response`, and `src/HttpServerAdvanced.h`.
+- [x] Classify each `String` use as owned internal state, non-owning parsed view, compatibility overload, or Arduino-only boundary.
+- [x] Record the preferred replacement type for each classification: `std::string`, `std::string_view`, `const char *`, or deferred adapter-only retention.
+- [x] Freeze the conversion order so URI and query parsing lands first, then the remaining lower-level text utilities, then higher-level routing and response helpers.
+
+#### Current Inventory Snapshot
+
+- `src/core/HttpHeader.*`, `src/core/HttpHeaderCollection.*`, and `src/core/HttpRequest.*`: now migrated to `std::string` internal ownership with Arduino `String` adapters retained at the boundary. Classification: owned internal state. Preferred replacement: keep `std::string` internally and leave compatibility adapters temporary.
+- `src/core/HttpMethod.h` and `src/routing/HandlerMatcher.*`: still depend on `StringUtility` for compare/prefix/search behavior while matcher configuration and extracted params remain Arduino-owned. Classification: owned internal state plus compatibility-heavy matcher APIs. Preferred replacement: `std::string` for configured text, `std::vector<std::string>` for extracted params, direct STL calls where possible.
+- `src/util/StringUtility.*`: current surface is a mix of low-level `const char *` helpers, `std::string_view` helpers, Arduino `String` overloads, and one remaining `replace()` that still returns Arduino `String`. Classification: mostly small standard helper plus compatibility shim. Preferred replacement: keep `const char *` and `std::string_view` helpers only where call sites still need a shared helper, remove Arduino `String` overloads from core paths, and revisit whether `replace()` should become a `std::string` helper or disappear into call sites.
+- `src/util/StringView.h`: still provides parser/view/member-helper behavior plus `OwningStringView`. Classification: non-owning parsed view and optional ownership wrapper. Preferred replacement: `std::string_view` for borrowed slices, `std::string` for retained ownership, and local free functions where member helpers are still needed.
+- `src/util/HttpUtility.*`: URI/query parsing is already standard-text-based internally, but public overloads still take `StringView` and several encode/decode helpers still return Arduino `String`. Classification: compatibility overloads around an already-modernized core. Preferred replacement: keep `const char *` and `std::string_view` front doors for the core path, defer Arduino `String` convenience overloads to adapter status.
+- `src/handlers/HandlerRestrictions.h` and `src/handlers/HandlerTypes.h`: handler plumbing still hard-wires extracted route params as `std::vector<String>`. Classification: owned internal state flowing through core-ish plumbing. Preferred replacement: `std::vector<std::string>` internally, with adapter lambdas only where Arduino-facing handler ergonomics still need `String`.
+- `src/handlers/BufferedStringBodyHandler.*`, `src/handlers/FormBodyHandler.*`, `src/handlers/RawBodyHandler.*`, `src/handlers/JsonBodyHandler.*`, and `src/handlers/MultipartFormDataHandler.*`: body handlers still carry `std::vector<String>` params and, depending on handler type, Arduino `String` payloads or multipart metadata. Classification: mixed owned internal state and compatibility surfaces. Preferred replacement: `std::vector<std::string>` for params, `std::string` for buffered body and multipart metadata, leave Arduino `String` payload adapters only where a public handler contract still expects them.
+- `src/routing/HandlerBuilder.h`: the builder still seeds empty params as `std::vector<String>` and depends on handler restriction types. Classification: owned internal routing state. Preferred replacement: align with `std::vector<std::string>` once handler plumbing moves.
+- `src/routing/BasicAuthentication.h` and `src/routing/CrossOriginRequestSharing.h`: these remain intentionally compatibility-oriented and still manipulate Arduino `String` directly. Classification: compatibility overload / Arduino-facing boundary. Preferred replacement: prefer `const char *` or standard-text internals later, but keep the user-facing adapters until a public API cleanup phase.
+- `src/response/StringResponse.h`, `src/response/FormResponse.h`, and related response helpers: still expected to be compatibility-oriented string wrappers. Classification: compatibility overload / Arduino-facing boundary. Preferred replacement: thin adapters over standard-text internals, deferred until after routing and handler plumbing stabilizes.
+- `src/HttpServerAdvanced.h`: umbrella header still re-exports `StringUtility.h`, `StringView.h`, `HandlerRestrictions.h`, and `HandlerTypes.h`. Classification: umbrella compatibility surface. Preferred replacement: defer until internal utility and handler migrations finish so umbrella aliases can be reduced in one pass.
+
+#### Frozen Conversion Order
+
+1. Keep the already-landed URI/query and core request/header ownership slices as the baseline.
+2. Reduce `src/util/StringUtility.*` to the minimum standard-library-backed helper surface needed by current call sites.
+3. Replace `src/util/StringView.h` and `OwningStringView` call sites with `std::string_view` / `std::string`, then decide whether the header survives only as a compatibility shim.
+4. Migrate `src/routing/HandlerMatcher.*`, `src/handlers/HandlerRestrictions.h`, `src/handlers/HandlerTypes.h`, and `src/routing/HandlerBuilder.h` from `std::vector<String>` to `std::vector<std::string>`.
+5. Push the new parameter/body text model through `FormBodyHandler`, `RawBodyHandler`, `MultipartFormDataHandler`, and adjacent handler types.
+6. Finish with response helpers, auth/CORS convenience wrappers, and the umbrella header once the internal model is stable.
 
 ### URI And Query Parsing First
 
