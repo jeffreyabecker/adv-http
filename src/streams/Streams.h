@@ -189,7 +189,11 @@ namespace HttpServerAdvanced
     };
 
     /**
-     * @brief A stream that uses a user-provided buffer for read and write operations.
+     * @brief Legacy duplex stream backed by caller-owned storage.
+     *
+     * This is intentionally the only retained in-tree writable stream helper.
+     * Owning memory-stream variants were removed once the response pipeline
+     * stopped depending on them internally.
      */
     class NonOwningMemoryStream : public Stream
     {
@@ -213,29 +217,6 @@ namespace HttpServerAdvanced
         virtual size_t write(uint8_t b) override;
         virtual void flush() override;
         virtual int availableForWrite() override;
-    };
-
-    class MemoryStream : public NonOwningMemoryStream
-    {
-    private:
-        uint8_t *dynamicBuffer_;
-
-    public:
-        MemoryStream(size_t size);
-        virtual ~MemoryStream() override;
-    };
-
-    /**
-     * @brief A stream that uses a statically allocated buffer for read and write operations.
-     */
-    template <size_t N>
-    class StaticMemoryStream : public NonOwningMemoryStream
-    {
-    private:
-        uint8_t staticBuffer_[N];
-
-    public:
-        StaticMemoryStream() : NonOwningMemoryStream(staticBuffer_, N) {}
     };
 
     class RefBufferedReadStreamWrapper : public ReadStream

@@ -5,7 +5,7 @@ namespace HttpServerAdvanced
 {
 
     HttpResponse::HttpResponse(HttpStatus status, std::unique_ptr<IByteSource> body, HttpHeaderCollection &&headers)
-        : status_(status), headers_(std::move(headers)), body_(HttpResponseBodyStream::create(std::move(body)))
+        : status_(status), headers_(std::move(headers)), body_(std::move(body))
     {
     }
 

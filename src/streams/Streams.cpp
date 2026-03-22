@@ -216,17 +216,6 @@ namespace HttpServerAdvanced
         return static_cast<int>(size_ - count_);
     }
 
-    // MemoryStream
-    MemoryStream::MemoryStream(size_t size)
-        : NonOwningMemoryStream(new uint8_t[size], size), dynamicBuffer_(buffer_)
-    {
-    }
-
-    MemoryStream::~MemoryStream()
-    {
-        delete[] dynamicBuffer_;
-    }
-
     // RefBufferedReadStreamWrapper
     void RefBufferedReadStreamWrapper::consume()
     {

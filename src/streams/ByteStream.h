@@ -80,6 +80,43 @@ namespace HttpServerAdvanced
         return source.peek(HttpServerAdvanced::span<uint8_t>(&byte, 1)) == 0 ? -1 : byte;
     }
 
+    inline std::vector<uint8_t> ReadAsVector(IByteSource &source, size_t maxLength = SIZE_MAX)
+    {
+        std::vector<uint8_t> result;
+        const AvailableResult available = source.available();
+        if (available.hasBytes() && available.count < maxLength)
+        {
+            result.reserve(available.count);
+        }
+        else if (maxLength != SIZE_MAX)
+        {
+            result.reserve(maxLength);
+        }
+
+        uint8_t buffer[256] = {};
+        size_t totalRead = 0;
+        while (totalRead < maxLength)
+        {
+            const size_t chunkSize = (std::min)(sizeof(buffer), maxLength - totalRead);
+            const size_t bytesRead = source.read(HttpServerAdvanced::span<uint8_t>(buffer, chunkSize));
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            result.insert(result.end(), buffer, buffer + bytesRead);
+            totalRead += bytesRead;
+        }
+
+        return result;
+    }
+
+    inline std::string ReadAsStdString(IByteSource &source, size_t maxLength = SIZE_MAX)
+    {
+        const std::vector<uint8_t> data = ReadAsVector(source, maxLength);
+        return std::string(data.begin(), data.end());
+    }
+
     class SpanByteSource : public IByteSource
     {
     public:

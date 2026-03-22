@@ -1,3 +1,5 @@
+2026-03-22 - Copilot: audited duplex stream utilities, removed unused owning memory-stream helpers, and fixed the phase decision on keeping duplex behavior isolated to a single legacy helper.
+2026-03-22 - Copilot: refreshed phase status after the response and pipeline byte-source migration, marked file-backed response integration complete, and narrowed the remaining work to legacy stream utilities, adapters, and regression gaps.
 2026-03-22 - Copilot: documented current legacy Stream semantics, froze native stream-semantics coverage, and classified in-tree stream roles.
 2026-03-21 - Copilot: migrated `HttpResponseBodyStream` and `ChunkedHttpResponseBodyStream` to own `IByteSource` internally while retaining legacy `Stream` entrypoints, and added native response-stream bridge coverage.
 2026-03-21 - Copilot: introduced byte-source and byte-sink contracts plus legacy Stream bridge adapters while leaving response-path migration open.
@@ -7,7 +9,7 @@
 
 ## Summary
 
-This phase is the architectural seam change for the response path. The repository currently models response production, transform layers, file-backed output, and pipeline response callbacks around `std::unique_ptr<Stream>`, with a compat fallback that still mirrors Arduino `Stream` semantics. The goal of this phase is to introduce library-owned read and write contracts, migrate the read-only response types first, and stop letting duplex Arduino inheritance shape the entire response pipeline. The initial contract layer now exists in `src/streams/ByteStream.h`, backed by explicit availability semantics and bridge adapters to the current compat `Stream`, and the first response-body slice now consumes `IByteSource` internally while keeping legacy `Stream` entrypoints alive.
+This phase is the architectural seam change for the response path. The repository originally modeled response production, transform layers, file-backed output, and pipeline response callbacks around `std::unique_ptr<Stream>`, with a compat fallback that still mirrors Arduino `Stream` semantics. The library-owned contract layer now exists in `src/streams/ByteStream.h`, and response bodies, response assembly, pipeline callbacks, and static-file bodies already flow through `IByteSource`. The remaining work is concentrated in the legacy stream utility layer, duplex stream review, adapter cleanup, and the last regression gaps around composed response behavior.
 
 ## Goal / Acceptance Criteria
 
@@ -43,30 +45,32 @@ This phase is the architectural seam change for the response path. The repositor
 
 - [x] Update `src/response/HttpResponse.h` and `src/response/HttpResponse.cpp` so response bodies are typed against the new readable contract.
 - [x] Update `src/response/HttpResponseBodyStream.h` and `src/response/ChunkedHttpResponseBodyStream.*` to wrap the new readable contract rather than `Stream` directly.
-- [ ] Update `src/response/HttpResponseIterators.h` and related response composition helpers to emit the new source type.
+- [x] Update `src/response/HttpResponseIterators.h` and related response composition helpers to emit the new source type.
 - [ ] Preserve the current direct-response and chunked-response behavior byte-for-byte where practical.
 
 ### Pipeline Integration
 
-- [ ] Update `src/pipeline/IPipelineHandler.h` and `src/pipeline/HttpPipeline.*` so response-ready callbacks carry the new source abstraction.
-- [ ] Keep the pipeline write loop buffer-based and incremental.
-- [ ] Ensure the client write path still uses the transport seam cleanly and does not depend on Arduino `Print` behavior.
+- [x] Update `src/pipeline/IPipelineHandler.h` and `src/pipeline/HttpPipeline.*` so response-ready callbacks carry the new source abstraction.
+- [x] Keep the pipeline write loop buffer-based and incremental.
+- [x] Ensure the client write path still uses the transport seam cleanly and does not depend on Arduino `Print` behavior.
 
 ### Duplex And Memory Stream Review
 
-- [ ] Audit `NonOwningMemoryStream`, `StaticMemoryStream`, and any other write-capable in-tree stream type.
-- [ ] Decide whether these types should implement a combined duplex interface, a separate sink interface, or split reader/writer views.
-- [ ] Prevent the small number of duplex types from forcing the entire response model back onto a duplex base class.
+- [x] Audit `NonOwningMemoryStream`, `StaticMemoryStream`, and any other write-capable in-tree stream type.
+- [x] Decide whether these types should implement a combined duplex interface, a separate sink interface, or split reader/writer views.
+- [x] Prevent the small number of duplex types from forcing the entire response model back onto a duplex base class.
+
+Outcome: `NonOwningMemoryStream` remains as an isolated legacy duplex helper backed by caller-owned storage. The unused owning wrappers `MemoryStream` and `StaticMemoryStream` were removed rather than promoting them into the byte-contract layer. No response-path type now needs a combined duplex base class.
 
 ### File-Backed And Adapter Interactions
 
-- [ ] Coordinate with the filesystem phase so file-backed responses can consume file data through the new readable contract without reintroducing `Stream` inheritance into the core.
+- [x] Coordinate with the filesystem phase so file-backed responses can consume file data through the new readable contract without reintroducing `Stream` inheritance into the core.
 - [ ] Keep Arduino `Stream` and `Print` usage confined to adapter code once the migration stabilizes.
 
 ### Validation
 
 - [x] Extend native tests to cover the new source contract and bridge behavior.
-- [ ] Add regression tests for concat ordering, lazy generation, chunk framing, and end-of-stream signaling.
+- [ ] Add regression tests for full response assembly, temporarily-unavailable propagation through composed response sources, and any remaining concat, lazy-generation, chunk-framing, or end-of-stream edge cases.
 - [ ] Record any semantic changes that would force example or response API compatibility work later.
 
 ## Owner
@@ -81,6 +85,7 @@ High
 
 - `src/compat/Stream.h`
 - `src/compat/Availability.h`
+- `src/streams/ByteStream.h`
 - `src/streams/Streams.h`
 - `src/streams/Streams.cpp`
 - `src/streams/Base64Stream.h`
@@ -97,6 +102,9 @@ High
 - `src/pipeline/IPipelineHandler.h`
 - `src/pipeline/HttpPipeline.h`
 - `src/pipeline/HttpPipeline.cpp`
+- `src/staticfiles/StaticFileHandler.h`
+- `src/staticfiles/StaticFileHandler.cpp`
+- `test/test_native/test_response_streams.cpp`
 - `test/test_native/test_stream_available.cpp`
 - `test/test_native/test_stream_utilities.cpp`
 - `docs/plans/no-arduino/stream-replacement-plan.md`

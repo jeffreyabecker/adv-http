@@ -32,7 +32,6 @@
 #include "response/ChunkedHttpResponseBodyStream.h"
 #include "response/FormResponse.h"
 #include "response/HttpResponse.h"
-#include "response/HttpResponseBodyStream.h"
 #include "response/HttpResponseIterators.h"
 #include "response/IHttpResponse.h"
 #include "response/JsonResponse.h"

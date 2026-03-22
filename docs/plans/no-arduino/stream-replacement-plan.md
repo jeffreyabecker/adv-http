@@ -229,11 +229,9 @@ The current codebase already suggests a natural split.
 ### Classes That Need Separate Review
 
 - `NonOwningMemoryStream`
-- `MemoryStream`
-- `StaticMemoryStream`
 - any future helper that is truly both readable and writable
 
-These are the types most likely to justify either an explicit duplex interface or a split reader and writer view.
+`NonOwningMemoryStream` is the only remaining in-tree duplex helper after removing the unused owning memory-stream wrappers. Any future duplex helper should justify itself explicitly rather than broadening the source-oriented response contracts.
 
 ### Filesystem Interaction
 
@@ -266,8 +264,6 @@ These are the types most likely to justify either an explicit duplex interface o
 ### Duplex Types
 
 - `NonOwningMemoryStream`
-- `MemoryStream`
-- `StaticMemoryStream`
 
 ### Adapter-Facing Legacy Or Bridge Types
 
