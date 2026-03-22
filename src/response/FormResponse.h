@@ -1,21 +1,28 @@
 #pragma once
 #include <initializer_list>
-#include <vector>
 #include <map>
+#include <memory>
+#include <string>
 #include <utility>
-#include "../core/HttpStatus.h"
+#include <vector>
+
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
-#include "HttpResponse.h"
+#include "../core/HttpStatus.h"
 #include "../streams/UriStream.h"
-#include <Arduino.h>
-#include <memory>
+#include "HttpResponse.h"
+
+class String;
 
 namespace HttpServerAdvanced
 {
     class FormResponse
     {
     public:
+        using Field = std::pair<std::string, std::string>;
+        using FieldCollection = std::vector<Field>;
+        using FieldMap = std::map<std::string, std::string>;
+
         /**
          * @brief Create a form URL-encoded response.
          * @param status HTTP status code
@@ -25,7 +32,7 @@ namespace HttpServerAdvanced
          */
         static std::unique_ptr<IHttpResponse> create(
             HttpStatus status,
-            std::vector<std::pair<String, String>> &&data,
+            FieldCollection &&data,
             std::initializer_list<HttpHeader> headers = {}
         );
 
@@ -38,7 +45,7 @@ namespace HttpServerAdvanced
          */
         static std::unique_ptr<IHttpResponse> create(
             HttpStatus status,
-            const std::vector<std::pair<String, String>> &data,
+            const FieldCollection &data,
             std::initializer_list<HttpHeader> headers = {}
         );
 
@@ -51,7 +58,7 @@ namespace HttpServerAdvanced
          */
         static std::unique_ptr<IHttpResponse> create(
             HttpStatus status,
-            std::map<String, String> &&data,
+            FieldMap &&data,
             std::initializer_list<HttpHeader> headers = {}
         );
 
@@ -62,6 +69,30 @@ namespace HttpServerAdvanced
          * @param headers Optional additional headers (Content-Type and Content-Length are set automatically)
          * @return A unique_ptr to an IHttpResponse with form-encoded body
          */
+        static std::unique_ptr<IHttpResponse> create(
+            HttpStatus status,
+            const FieldMap &data,
+            std::initializer_list<HttpHeader> headers = {}
+        );
+
+        static std::unique_ptr<IHttpResponse> create(
+            HttpStatus status,
+            std::vector<std::pair<String, String>> &&data,
+            std::initializer_list<HttpHeader> headers = {}
+        );
+
+        static std::unique_ptr<IHttpResponse> create(
+            HttpStatus status,
+            const std::vector<std::pair<String, String>> &data,
+            std::initializer_list<HttpHeader> headers = {}
+        );
+
+        static std::unique_ptr<IHttpResponse> create(
+            HttpStatus status,
+            std::map<String, String> &&data,
+            std::initializer_list<HttpHeader> headers = {}
+        );
+
         static std::unique_ptr<IHttpResponse> create(
             HttpStatus status,
             const std::map<String, String> &data,

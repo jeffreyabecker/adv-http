@@ -107,7 +107,9 @@ using HttpServerAdvanced::HttpStatus;
 using HttpServerAdvanced::IHttpResponse;
 using HttpServerAdvanced::StringResponse;
 
-using PostBodyData = HttpServerAdvanced::WebUtility::QueryParameters;
+using QueryParameter = HttpServerAdvanced::WebUtility::QueryParameter;
+using QueryParameters = HttpServerAdvanced::WebUtility::QueryParameters;
+using PostBodyData = QueryParameters;
 using HttpServerAdvanced::BasicAuth;
 using HttpServerAdvanced::CrossOriginRequestSharing;
 using HttpServerAdvanced::HandlerMatcher;

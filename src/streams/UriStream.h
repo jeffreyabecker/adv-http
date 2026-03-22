@@ -1,6 +1,9 @@
 #pragma once
 #include <Arduino.h>
+#include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #include "Streams.h"
 #include "Iterators.h"
@@ -159,18 +162,31 @@ namespace HttpServerAdvanced
     class FormEncodingStream : public IndefiniteConcatStream<FormUrlEncodingIterator, FormUrlEncodingIterator>
     {
         private:
-         std::vector<std::pair<String,String>> data_;
+         std::vector<std::pair<std::string, std::string>> data_;
          std::vector<std::pair<std::string_view,std::string_view>> viewData_;
-         static std::vector<std::pair<std::string_view,std::string_view>> toViewData(const std::vector<std::pair<String,String>> & data)
+         static std::vector<std::pair<std::string_view,std::string_view>> toViewData(const std::vector<std::pair<std::string, std::string>> & data)
          {
             std::vector<std::pair<std::string_view,std::string_view>> views;
+            views.reserve(data.size());
             for (const auto & pair : data)
             {
                 views.emplace_back(
-                    std::string_view(pair.first.c_str(), pair.first.length()),
-                    std::string_view(pair.second.c_str(), pair.second.length()));
+                    std::string_view(pair.first.data(), pair.first.size()),
+                    std::string_view(pair.second.data(), pair.second.size()));
             }
             return views;
+         }
+         static std::vector<std::pair<std::string, std::string>> toOwnedData(std::vector<std::pair<String, String>> && data)
+         {
+            std::vector<std::pair<std::string, std::string>> owned;
+            owned.reserve(data.size());
+            for (auto & pair : data)
+            {
+                owned.emplace_back(
+                    std::string(pair.first.c_str(), pair.first.length()),
+                    std::string(pair.second.c_str(), pair.second.length()));
+            }
+            return owned;
          }
          size_t totalLength_;
          size_t position_;
@@ -191,9 +207,12 @@ namespace HttpServerAdvanced
          }
         public:
 
-        FormEncodingStream(std::vector<std::pair<String,String>> && data) : data_(std::move(data)), viewData_(toViewData(data_)),
+        FormEncodingStream(std::vector<std::pair<std::string, std::string>> && data) : data_(std::move(data)), viewData_(toViewData(data_)),
         IndefiniteConcatStream<FormUrlEncodingIterator, FormUrlEncodingIterator>(FormUrlEncodingIterator::begin(viewData_), FormUrlEncodingIterator::end(viewData_)), 
         totalLength_(calculateTotalLength(viewData_)), position_(0) {}
+
+        FormEncodingStream(std::vector<std::pair<String, String>> && data)
+            : FormEncodingStream(toOwnedData(std::move(data))) {}
 
         virtual int available() override
         {

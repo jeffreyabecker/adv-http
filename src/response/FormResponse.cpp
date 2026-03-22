@@ -1,9 +1,41 @@
 #include "FormResponse.h"
 
+#include <Arduino.h>
+
+#include <string>
+#include <utility>
+#include <vector>
+
 namespace HttpServerAdvanced
 {
     namespace
     {
+        FormResponse::FieldCollection toOwnedFields(const std::vector<std::pair<String, String>> &data)
+        {
+            FormResponse::FieldCollection owned;
+            owned.reserve(data.size());
+            for (const auto &pair : data)
+            {
+                owned.emplace_back(
+                    std::string(pair.first.c_str(), pair.first.length()),
+                    std::string(pair.second.c_str(), pair.second.length()));
+            }
+            return owned;
+        }
+
+        FormResponse::FieldCollection toOwnedFields(const std::map<String, String> &data)
+        {
+            FormResponse::FieldCollection owned;
+            owned.reserve(data.size());
+            for (const auto &pair : data)
+            {
+                owned.emplace_back(
+                    std::string(pair.first.c_str(), pair.first.length()),
+                    std::string(pair.second.c_str(), pair.second.length()));
+            }
+            return owned;
+        }
+
         HttpHeaderCollection buildFormHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength)
         {
             HttpHeaderCollection headersCollection;
@@ -17,7 +49,7 @@ namespace HttpServerAdvanced
             }
             if (!headersCollection.exists(HttpHeaderNames::ContentLength))
             {
-                headersCollection.set(HttpHeader(HttpHeaderNames::ContentLength, String(contentLength)));
+                headersCollection.set(HttpHeader(std::string_view(HttpHeaderNames::ContentLength), std::to_string(contentLength)));
             }
             return headersCollection;
         }
@@ -25,7 +57,7 @@ namespace HttpServerAdvanced
 
     std::unique_ptr<IHttpResponse> FormResponse::create(
         HttpStatus status,
-        std::vector<std::pair<String, String>> &&data,
+        FieldCollection &&data,
         std::initializer_list<HttpHeader> headers)
     {
         // Create the form encoding stream; it will calculate total length internally
@@ -37,7 +69,7 @@ namespace HttpServerAdvanced
 
     std::unique_ptr<IHttpResponse> FormResponse::create(
         HttpStatus status,
-        const std::vector<std::pair<String, String>> &data,
+        const FieldCollection &data,
         std::initializer_list<HttpHeader> headers)
     {
         // Copy the data and delegate to the rvalue reference version
@@ -47,16 +79,56 @@ namespace HttpServerAdvanced
 
     std::unique_ptr<IHttpResponse> FormResponse::create(
         HttpStatus status,
-        std::map<String, String> &&data,
+        FieldMap &&data,
         std::initializer_list<HttpHeader> headers)
     {
         // Convert map to vector of pairs and delegate
-        std::vector<std::pair<String, String>> vectorData;
+        FieldCollection vectorData;
+        vectorData.reserve(data.size());
         for (auto &pair : data)
         {
-            vectorData.emplace_back(std::move(pair));
+            vectorData.emplace_back(pair.first, std::move(pair.second));
         }
         return create(status, std::move(vectorData), headers);
+    }
+
+    std::unique_ptr<IHttpResponse> FormResponse::create(
+        HttpStatus status,
+        const FieldMap &data,
+        std::initializer_list<HttpHeader> headers)
+    {
+        // Convert map to vector of pairs and delegate
+        FieldCollection vectorData;
+        vectorData.reserve(data.size());
+        for (const auto &pair : data)
+        {
+            vectorData.emplace_back(pair);
+        }
+        return create(status, std::move(vectorData), headers);
+    }
+
+    std::unique_ptr<IHttpResponse> FormResponse::create(
+        HttpStatus status,
+        std::vector<std::pair<String, String>> &&data,
+        std::initializer_list<HttpHeader> headers)
+    {
+        return create(status, toOwnedFields(data), headers);
+    }
+
+    std::unique_ptr<IHttpResponse> FormResponse::create(
+        HttpStatus status,
+        const std::vector<std::pair<String, String>> &data,
+        std::initializer_list<HttpHeader> headers)
+    {
+        return create(status, toOwnedFields(data), headers);
+    }
+
+    std::unique_ptr<IHttpResponse> FormResponse::create(
+        HttpStatus status,
+        std::map<String, String> &&data,
+        std::initializer_list<HttpHeader> headers)
+    {
+        return create(status, toOwnedFields(data), headers);
     }
 
     std::unique_ptr<IHttpResponse> FormResponse::create(
@@ -64,13 +136,7 @@ namespace HttpServerAdvanced
         const std::map<String, String> &data,
         std::initializer_list<HttpHeader> headers)
     {
-        // Convert map to vector of pairs and delegate
-        std::vector<std::pair<String, String>> vectorData;
-        for (const auto &pair : data)
-        {
-            vectorData.emplace_back(pair);
-        }
-        return create(status, std::move(vectorData), headers);
+        return create(status, toOwnedFields(data), headers);
     }
 
 } // namespace HttpServerAdvanced

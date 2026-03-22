@@ -83,6 +83,36 @@ namespace HttpServerAdvanced
     {
     }
 
+    StdStringStream::StdStringStream(std::string str)
+        : str_(std::move(str))
+    {
+    }
+
+    int StdStringStream::available()
+    {
+        return static_cast<int>(str_.size() - position_);
+    }
+
+    int StdStringStream::read()
+    {
+        if (position_ >= str_.size())
+        {
+            return -1;
+        }
+
+        return static_cast<uint8_t>(str_[position_++]);
+    }
+
+    int StdStringStream::peek()
+    {
+        if (position_ >= str_.size())
+        {
+            return -1;
+        }
+
+        return static_cast<uint8_t>(str_[position_]);
+    }
+
     // LazyStreamAdapter
     LazyStreamAdapter::LazyStreamAdapter(std::function<std::unique_ptr<Stream>()> factory)
         : streamFactory_(std::move(factory))

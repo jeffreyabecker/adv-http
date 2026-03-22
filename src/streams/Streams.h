@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <algorithm>
 #include <array>
+#include <string>
 #include "../core/Defines.h"
 
 namespace HttpServerAdvanced
@@ -69,6 +70,19 @@ namespace HttpServerAdvanced
     public:
         StringStream(String &&str);
         StringStream(const String &str);
+    };
+
+    class StdStringStream : public ReadStream
+    {
+    private:
+        std::string str_;
+        size_t position_ = 0;
+
+    public:
+        explicit StdStringStream(std::string str);
+        virtual int available() override;
+        virtual int read() override;
+        virtual int peek() override;
     };
 
     class LazyStreamAdapter : public ReadStream

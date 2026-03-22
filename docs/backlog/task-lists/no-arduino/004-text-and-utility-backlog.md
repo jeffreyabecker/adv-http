@@ -1,3 +1,4 @@
+2026-03-22 - Copilot: converted `StringResponse` and `FormResponse` to standard-text-first internals, exposed umbrella query aliases explicitly, recorded the Arduino compatibility overloads that still remain, and widened native validation to compile the response helpers.
 2026-03-22 - Copilot: removed `StringUtility` from remaining core call sites, dropped Arduino-`String` overloads from `StringUtility`, and widened native validation to compile `HandlerMatcher.cpp`.
 2026-03-22 - Copilot: migrated the remaining production `StringView` call sites in `HttpUtility` to `std::string_view`, reduced `StringView.h` to compatibility aliases, and validated the native test lane.
 2026-03-22 - Copilot: migrated handler route params to standard-text plumbing, moved multipart metadata ownership to std::string-backed internals, audited matcher/auth/CORS borrowed-input paths, and validated the slice in the native lane.
@@ -43,8 +44,8 @@ This phase attacks the deepest and widest coupling point in the repository: Ardu
 - `src/handlers/BufferedStringBodyHandler.*`, `src/handlers/FormBodyHandler.*`, `src/handlers/RawBodyHandler.*`, `src/handlers/JsonBodyHandler.*`, and `src/handlers/MultipartFormDataHandler.*`: body handlers still carry `std::vector<String>` params and, depending on handler type, Arduino `String` payloads or multipart metadata. Classification: mixed owned internal state and compatibility surfaces. Preferred replacement: `std::vector<std::string>` for params, `std::string` for buffered body and multipart metadata, leave Arduino `String` payload adapters only where a public handler contract still expects them.
 - `src/routing/HandlerBuilder.h`: the builder still seeds empty params as `std::vector<String>` and depends on handler restriction types. Classification: owned internal routing state. Preferred replacement: align with `std::vector<std::string>` once handler plumbing moves.
 - `src/routing/BasicAuthentication.h` and `src/routing/CrossOriginRequestSharing.h`: these remain intentionally compatibility-oriented and still manipulate Arduino `String` directly. Classification: compatibility overload / Arduino-facing boundary. Preferred replacement: prefer `const char *` or standard-text internals later, but keep the user-facing adapters until a public API cleanup phase.
-- `src/response/StringResponse.h`, `src/response/FormResponse.h`, and related response helpers: still expected to be compatibility-oriented string wrappers. Classification: compatibility overload / Arduino-facing boundary. Preferred replacement: thin adapters over standard-text internals, deferred until after routing and handler plumbing stabilizes.
-- `src/HttpServerAdvanced.h`: umbrella header still re-exports `StringUtility.h`, `StringView.h`, `HandlerRestrictions.h`, and `HandlerTypes.h`. Classification: umbrella compatibility surface. Preferred replacement: defer until internal utility and handler migrations finish so umbrella aliases can be reduced in one pass.
+- `src/response/StringResponse.h`, `src/response/FormResponse.h`, and related response helpers: now use `std::string`, `std::string_view`, and `std::vector<std::pair<std::string, std::string>>` for internal response construction, while Arduino `String` overloads remain as thin compatibility adapters. Classification: compatibility overload / Arduino-facing boundary. Preferred replacement: keep only the boundary adapters that mirror existing public ergonomics until the later public API cleanup phase.
+- `src/HttpServerAdvanced.h`: umbrella header now exposes `QueryParameter` and `QueryParameters` directly and keeps `PostBodyData` as a compatibility alias to the standard-text query container. Classification: umbrella compatibility surface. Preferred replacement: keep the standard-text aliases primary and retire compatibility naming in a later public API cleanup phase.
 
 #### Frozen Conversion Order
 
@@ -124,9 +125,15 @@ This phase attacks the deepest and widest coupling point in the repository: Ardu
 
 ### Response And Umbrella Compatibility Review
 
-- [ ] Audit `src/response/StringResponse.h`, `src/response/FormResponse.h`, and related helpers for Arduino-facing string overloads that can become thin adapters.
-- [ ] Update `src/HttpServerAdvanced.h` aliases such as `PostBodyData` so the umbrella header stops hard-wiring Arduino string types into core-facing typedefs.
-- [ ] Record any compatibility overloads that must survive until a later public API cleanup phase.
+- [x] Audit `src/response/StringResponse.h`, `src/response/FormResponse.h`, and related helpers for Arduino-facing string overloads that can become thin adapters.
+- [x] Update `src/HttpServerAdvanced.h` aliases such as `PostBodyData` so the umbrella header stops hard-wiring Arduino string types into core-facing typedefs.
+- [x] Record any compatibility overloads that must survive until a later public API cleanup phase.
+
+#### Compatibility Overloads Kept For Later Public API Cleanup
+
+- `src/response/StringResponse.h`: retain `const String &` and `String &&` body overloads plus the `String` content-type convenience overloads as Arduino-facing adapters over the `std::string` / `std::string_view` implementation path.
+- `src/response/FormResponse.h`: retain `std::vector<std::pair<String, String>>` and `std::map<String, String>` overloads as adapters that copy into the standard-text field collection before building the response stream.
+- `src/HttpServerAdvanced.h`: retain `PostBodyData` as a compatibility alias, but make `QueryParameter` and `QueryParameters` the primary umbrella names for the standard-text query model.
 
 ### Tests And Validation
 

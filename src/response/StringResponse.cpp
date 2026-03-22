@@ -1,48 +1,78 @@
 #include "StringResponse.h"
 
+#include <Arduino.h>
+
+#include <string>
+#include <string_view>
+
 namespace HttpServerAdvanced
 {
-
-    static HttpHeaderCollection buildHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength)
+    namespace
     {
-        HttpHeaderCollection headersCollection;
-        for (const auto &header : headers)
+        std::string toStdString(const String &value)
         {
-            headersCollection.set(header);
+            return std::string(value.c_str(), value.length());
         }
-        if (!headersCollection.exists(HttpHeaderNames::ContentType))
+
+        HttpHeaderCollection buildHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength, std::string_view defaultContentType = HttpContentTypes::TextPlain)
         {
-            headersCollection.set(HttpHeader(HttpHeaderNames::ContentType, HttpContentTypes::TextPlain));
+            HttpHeaderCollection headersCollection;
+            for (const auto &header : headers)
+            {
+                headersCollection.set(header);
+            }
+            if (!headersCollection.exists(HttpHeaderNames::ContentType))
+            {
+                headersCollection.set(HttpHeader(HttpHeaderNames::ContentType, defaultContentType));
+            }
+            if (!headersCollection.exists(HttpHeaderNames::ContentLength))
+            {
+                headersCollection.set(HttpHeader(std::string_view(HttpHeaderNames::ContentLength), std::to_string(contentLength)));
+            }
+            return headersCollection;
         }
-        if (!headersCollection.exists(HttpHeaderNames::ContentLength))
-        {
-            headersCollection.set(HttpHeader(HttpHeaderNames::ContentLength, String(contentLength)));
-        }
-        return headersCollection;
     }
 
-    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const String &body, std::initializer_list<HttpHeader> headers)
+    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, std::string body, std::initializer_list<HttpHeader> headers)
     {
-        auto headersCollection = buildHeaders(headers, body.length());
-        auto bodyStream = std::make_unique<StringStream>(body);
+        auto headersCollection = buildHeaders(headers, body.size());
+        auto bodyStream = std::make_unique<StdStringStream>(std::move(body));
         return std::make_unique<HttpResponse>(status, std::move(bodyStream), std::move(headersCollection));
     }
 
-    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const String &body)
+    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, std::string_view body, std::initializer_list<HttpHeader> headers)
+    {
+        return create(status, std::string(body), headers);
+    }
+
+    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, std::string body)
+    {
+        return create(status, std::move(body), {});
+    }
+
+    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, std::string_view body)
     {
         return create(status, body, {});
     }
 
+    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const String &body, std::initializer_list<HttpHeader> headers)
+    {
+        return create(status, toStdString(body), headers);
+    }
+
+    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const String &body)
+    {
+        return create(status, toStdString(body), {});
+    }
+
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, String &&body, std::initializer_list<HttpHeader> headers)
     {
-        auto headersCollection = buildHeaders(headers, body.length());
-        auto bodyStream = std::make_unique<StringStream>(std::move(body));
-        return std::make_unique<HttpResponse>(status, std::move(bodyStream), std::move(headersCollection));
+        return create(status, toStdString(body), headers);
     }
 
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, String &&body)
     {
-        return create(status, std::move(body), {});
+        return create(status, toStdString(body), {});
     }
 
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const char *body, std::initializer_list<HttpHeader> headers)
@@ -65,19 +95,29 @@ namespace HttpServerAdvanced
         return std::make_unique<HttpResponse>(status, std::move(bodyStream), std::move(headersCollection));
     }
 
+    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, std::string_view contentType, std::string body)
+    {
+        return create(status, std::move(body), {HttpHeader(HttpHeaderNames::ContentType, contentType)});
+    }
+
+    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, std::string_view contentType, std::string_view body)
+    {
+        return create(status, std::string(body), {HttpHeader(HttpHeaderNames::ContentType, contentType)});
+    }
+
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const String &contentType, const String &body)
     {
-        return create(status, body, {HttpHeader::ContentType(contentType)});
+        return create(status, std::string_view(contentType.c_str(), contentType.length()), toStdString(body));
     }
 
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const String &contentType, String &&body)
     {
-        return create(status, std::move(body), {HttpHeader::ContentType(contentType)});
+        return create(status, std::string_view(contentType.c_str(), contentType.length()), toStdString(body));
     }
 
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const String &contentType, const char *body)
     {
-        return create(status, body, {HttpHeader::ContentType(contentType)});
+        return create(status, body, {HttpHeader(HttpHeaderNames::ContentType, std::string_view(contentType.c_str(), contentType.length()))});
     }
 
 } // namespace HttpServerAdvanced
