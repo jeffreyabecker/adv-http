@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: completed response serialization coverage and documented current no-content length behavior.
 2026-03-23 - Copilot: completed core response object helper coverage in native tests.
 2026-03-23 - Copilot: created detailed Phase 4 response construction and body streaming backlog.
 
@@ -23,9 +24,9 @@ This phase expands response-side coverage beyond the stream-specific tests that 
 
 ### Serialization And Iteration
 
-- [ ] Extend coverage for `HttpResponseIterators` ordering, separator placement, and header-body boundaries.
-- [ ] Add exact-output tests for responses with no body, small bodies, and multiple headers.
-- [ ] Verify repeated body access expectations where the API allows or disallows them.
+- [x] Extend coverage for `HttpResponseIterators` ordering, separator placement, and header-body boundaries.
+- [x] Add exact-output tests for responses with no body, small bodies, and multiple headers.
+- [x] Verify repeated body access expectations where the API allows or disallows them.
 
 ### Chunked Output
 
@@ -35,8 +36,12 @@ This phase expands response-side coverage beyond the stream-specific tests that 
 
 ### Regression Documentation
 
-- [ ] Record any currently odd but intentional response serialization behaviors before pipeline tests lock them in more broadly.
+- [x] Record any currently odd but intentional response serialization behaviors before pipeline tests lock them in more broadly.
 - [ ] Flag any response-helper inconsistencies that should be corrected before adding API-facing examples or docs coverage.
+
+## Notes
+
+- Native coverage now freezes the current `204 No Content` serialization behavior: required headers are inferred before no-body statuses suppress payload bytes, so an implicit `Content-Length` can still reflect the original body size even though no body bytes are emitted.
 
 ## Owner
 

@@ -231,6 +231,127 @@ namespace
             "Hi", content.c_str());
     }
 
+    void test_create_response_stream_serializes_empty_response_without_body()
+    {
+        HttpHeaderCollection headers;
+        headers.set(HttpHeader::Date("Thu, 01 Jan 1970 00:00:00 GMT"));
+        headers.set(HttpHeader::Server("UnitTest"));
+        headers.set(HttpHeader::ContentType("text/plain"));
+        headers.set(HttpHeader::Connection("close"));
+
+        auto response = std::make_unique<HttpResponse>(HttpStatus::Ok(), nullptr, std::move(headers));
+
+        auto source = CreateResponseStream(std::move(response));
+        const std::string content = TestSupport::ReadByteSourceAsStdString(*source);
+
+        TEST_ASSERT_EQUAL_STRING(
+            "HTTP/1.1 200 OK\r\n"
+            "Date: Thu, 01 Jan 1970 00:00:00 GMT\r\n"
+            "Server: UnitTest\r\n"
+            "Content-Type: text/plain\r\n"
+            "Connection: close\r\n"
+            "Content-Length: 0\r\n"
+            "\r\n",
+            content.c_str());
+    }
+
+    void test_create_response_stream_no_content_status_suppresses_body_but_keeps_length_header()
+    {
+        HttpHeaderCollection headers;
+        headers.set(HttpHeader::Date("Thu, 01 Jan 1970 00:00:00 GMT"));
+        headers.set(HttpHeader::Server("UnitTest"));
+        headers.set(HttpHeader::ContentType("text/plain"));
+        headers.set(HttpHeader::Connection("close"));
+
+        auto response = std::make_unique<HttpResponse>(
+            HttpStatus::NoContent(),
+            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("body")),
+            std::move(headers));
+
+        auto source = CreateResponseStream(std::move(response));
+        const std::string content = TestSupport::ReadByteSourceAsStdString(*source);
+
+        TEST_ASSERT_EQUAL_STRING(
+            "HTTP/1.1 204 No Content\r\n"
+            "Date: Thu, 01 Jan 1970 00:00:00 GMT\r\n"
+            "Server: UnitTest\r\n"
+            "Content-Type: text/plain\r\n"
+            "Connection: close\r\n"
+            "Content-Length: 4\r\n"
+            "\r\n",
+            content.c_str());
+    }
+
+    void test_create_response_stream_preserves_header_insertion_order()
+    {
+        HttpHeaderCollection headers;
+        headers.set(HttpHeader::Date("Thu, 01 Jan 1970 00:00:00 GMT"));
+        headers.set(HttpHeader::Server("UnitTest"));
+        headers.set(HttpHeader::ContentType("text/plain"));
+        headers.set(HttpHeader("X-First", "1"));
+        headers.set(HttpHeader("X-Second", "2"));
+        headers.set(HttpHeader::Connection("close"));
+
+        auto response = std::make_unique<HttpResponse>(
+            HttpStatus::Ok(),
+            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("!")),
+            std::move(headers));
+
+        auto source = CreateResponseStream(std::move(response));
+        const std::string content = TestSupport::ReadByteSourceAsStdString(*source);
+
+        TEST_ASSERT_EQUAL_STRING(
+            "HTTP/1.1 200 OK\r\n"
+            "Date: Thu, 01 Jan 1970 00:00:00 GMT\r\n"
+            "Server: UnitTest\r\n"
+            "Content-Type: text/plain\r\n"
+            "X-First: 1\r\n"
+            "X-Second: 2\r\n"
+            "Connection: close\r\n"
+            "Content-Length: 1\r\n"
+            "\r\n"
+            "!",
+            content.c_str());
+    }
+
+    void test_create_response_stream_peek_and_small_reads_cross_header_body_boundary()
+    {
+        auto response = std::make_unique<HttpResponse>(
+            HttpStatus::Ok(),
+            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("Hi")),
+            MakeDeterministicResponseHeaders());
+
+        auto source = CreateResponseStream(std::move(response));
+        std::string content;
+        std::uint8_t peeked = 0;
+        std::uint8_t buffer[7] = {};
+
+        TEST_ASSERT_EQUAL_UINT64(1, source->peek(HttpServerAdvanced::span<std::uint8_t>(&peeked, 1)));
+        TEST_ASSERT_EQUAL('H', static_cast<char>(peeked));
+
+        while (true)
+        {
+            const std::size_t bytesRead = source->read(HttpServerAdvanced::span<std::uint8_t>(buffer, sizeof(buffer)));
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            content.append(reinterpret_cast<const char *>(buffer), bytesRead);
+        }
+
+        TEST_ASSERT_EQUAL_STRING(
+            "HTTP/1.1 200 OK\r\n"
+            "Date: Thu, 01 Jan 1970 00:00:00 GMT\r\n"
+            "Server: UnitTest\r\n"
+            "Content-Type: text/plain\r\n"
+            "Connection: close\r\n"
+            "Content-Length: 2\r\n"
+            "\r\n"
+            "Hi",
+            content.c_str());
+    }
+
     void test_create_response_stream_serializes_chunked_response_exactly()
     {
         auto response = std::make_unique<HttpResponse>(
@@ -305,6 +426,10 @@ namespace
         RUN_TEST(test_json_response_sets_default_headers_and_preserves_explicit_headers);
     #endif
         RUN_TEST(test_create_response_stream_serializes_direct_response_exactly);
+        RUN_TEST(test_create_response_stream_serializes_empty_response_without_body);
+        RUN_TEST(test_create_response_stream_no_content_status_suppresses_body_but_keeps_length_header);
+        RUN_TEST(test_create_response_stream_preserves_header_insertion_order);
+        RUN_TEST(test_create_response_stream_peek_and_small_reads_cross_header_body_boundary);
         RUN_TEST(test_create_response_stream_serializes_chunked_response_exactly);
         RUN_TEST(test_chunked_response_stream_handles_temporary_unavailability_between_chunks);
         RUN_TEST(test_recording_byte_channel_captures_written_bytes_and_flushes);
