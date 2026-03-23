@@ -3,42 +3,21 @@
 #include "../response/StringResponse.h"
 #include <ctime>
 
+#include <string>
 #include <string_view>
 
 namespace
 {
-    String ToArduinoString(std::string_view value)
-    {
-        return String(value.data(), value.size());
-    }
-
     bool EndsWith(std::string_view value, std::string_view suffix)
     {
         return value.size() >= suffix.size() &&
                value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
     }
-
-    String NormalizeUrlPath(const String &url)
-    {
-        std::string_view path(url.c_str(), url.length());
-        const std::size_t queryIndex = path.find('?');
-        if (queryIndex != std::string_view::npos)
-        {
-            path = path.substr(0, queryIndex);
-        }
-
-        while (path.size() >= 2 && path[0] == '/' && path[1] == '/')
-        {
-            path.remove_prefix(1);
-        }
-
-        return String(path.data(), path.size());
-    }
 }
 
 namespace HttpServerAdvanced
 {
-    std::optional<String> StaticFileHandlerFactory::getEtag(const IFile &file)
+    std::optional<std::string> StaticFileHandlerFactory::getEtag(const IFile &file)
     {
         const std::optional<std::size_t> size = file.size();
         const std::optional<uint32_t> lastWrite = file.lastWriteEpochSeconds();
@@ -52,10 +31,10 @@ namespace HttpServerAdvanced
         uint64_t etagValue = (static_cast<uint64_t>(combined) << 32) | static_cast<uint64_t>(*lastWrite);
         char hex[17];
         snprintf(hex, sizeof(hex), "%016llx", etagValue);
-        return String(hex);
+        return std::string(hex);
     }
 
-    std::optional<String> StaticFileHandlerFactory::getLastWriteValue(const IFile &file)
+    std::optional<std::string> StaticFileHandlerFactory::getLastWriteValue(const IFile &file)
     {
         const std::optional<uint32_t> lastWrite = file.lastWriteEpochSeconds();
         if (!lastWrite.has_value())
@@ -72,12 +51,7 @@ namespace HttpServerAdvanced
         }
 
         strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", tm_info);
-        return String(buffer);
-    }
-
-    String StaticFileHandlerFactory::getUrlPath(const String &url)
-    {
-        return NormalizeUrlPath(url);
+        return std::string(buffer);
     }
 
     // Public methods
@@ -88,7 +62,7 @@ namespace HttpServerAdvanced
 
     bool StaticFileHandlerFactory::canHandle(HttpRequest &context)
     {
-        if (fileLocator_ == nullptr || !fileLocator_->canHandle(context.url()))
+        if (fileLocator_ == nullptr || !fileLocator_->canHandle(context.urlView()))
         {
             return false;
         }
@@ -130,17 +104,15 @@ namespace HttpServerAdvanced
 
         const std::string_view filePath = file->path();
         const bool isGzipped = EndsWith(filePath, ".gz");
-        const String fullPath = ToArduinoString(filePath);
 
-        String contentType;
+        const char *contentType = nullptr;
         if (isGzipped)
         {
-            String nameWithoutGz = ToArduinoString(filePath.substr(0, filePath.size() - 3));
-            contentType = contentTypes_.getContentTypeFromPath(nameWithoutGz.c_str());
+            contentType = contentTypes_.getContentTypeFromPath(filePath.substr(0, filePath.size() - 3));
         }
         else
         {
-            contentType = contentTypes_.getContentTypeFromPath(fullPath.c_str());
+            contentType = contentTypes_.getContentTypeFromPath(filePath);
         }
 
         HttpHeaderCollection headers;
@@ -151,14 +123,14 @@ namespace HttpServerAdvanced
             headers.push_back(HttpHeader::ContentLength(contentLength.c_str()));
         }
 
-        if (const std::optional<String> etag = getEtag(*file); etag.has_value())
+        if (const std::optional<std::string> etag = getEtag(*file); etag.has_value())
         {
-            headers.push_back(HttpHeader::ETag(*etag));
+            headers.push_back(HttpHeader::ETag(std::move(*etag)));
         }
 
-        if (const std::optional<String> lastModified = getLastWriteValue(*file); lastModified.has_value())
+        if (const std::optional<std::string> lastModified = getLastWriteValue(*file); lastModified.has_value())
         {
-            headers.push_back(HttpHeader::LastModified(*lastModified));
+            headers.push_back(HttpHeader::LastModified(std::move(*lastModified)));
         }
 
         if (isGzipped)

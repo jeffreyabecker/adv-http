@@ -1,34 +1,34 @@
 #pragma once
 #include "../compat/IFileSystem.h"
-#include <Arduino.h>
 
-#include "FileLocator.h"
-#include <functional>
 #include "../core/HttpRequest.h"
+#include "FileLocator.h"
+
+#include <functional>
+#include <string>
+#include <string_view>
 
 namespace HttpServerAdvanced
 {
-    using namespace HttpServerAdvanced;
-
     class DefaultFileLocator : public FileLocator
     {
     public:
-        using RequestPathPredicate = std::function<bool(const String &)>;
-        using RequestPathMapper = std::function<String(const String &)>;
-        static constexpr const char *DefaultFSRoot = "/www";
-        static constexpr const char *DefaultIncludePrefix = "/";
-        static constexpr const char *DefaultExcludePrefix = "/api/";
+        using RequestPathPredicate = std::function<bool(std::string_view)>;
+        using RequestPathMapper = std::function<std::string(std::string_view)>;
+        static constexpr std::string_view DefaultFSRoot = "/www";
+        static constexpr std::string_view DefaultIncludePrefix = "/";
+        static constexpr std::string_view DefaultExcludePrefix = "/api/";
 
     private:
         RequestPathPredicate pathPredicate_;
         RequestPathMapper pathMapper_;
         IFileSystem &filesystem_;
 
-        static RequestPathPredicate createPathPredicate(const String &includePrefix, const String &excludePrefix);
+        static RequestPathPredicate createPathPredicate(std::string_view includePrefix, std::string_view excludePrefix);
 
-        static RequestPathMapper createPathMapper(const String &root);
+        static RequestPathMapper createPathMapper(std::string_view root);
 
-        virtual String getLocalPath(const HttpRequest &context);
+        virtual std::string getLocalPath(const HttpRequest &context);
 
     public:
         DefaultFileLocator(IFileSystem &fs);
@@ -38,13 +38,13 @@ namespace HttpServerAdvanced
 
         virtual void setPathMapper(RequestPathMapper mapper);
 
-        virtual void setRequestPathPrefixes(const String &includePrefix, const String &excludePrefix = DefaultFileLocator::DefaultExcludePrefix);
+        virtual void setRequestPathPrefixes(std::string_view includePrefix, std::string_view excludePrefix = DefaultFileLocator::DefaultExcludePrefix);
 
-        virtual void setFilesystemContentRoot(const String &root);
+        virtual void setFilesystemContentRoot(std::string_view root);
 
         virtual FileHandle getFile(HttpRequest &context) override;
 
-        virtual bool canHandle(const String& path) override;
+        virtual bool canHandle(std::string_view path) override;
     };
 
 } // namespace HttpServerAdvanced

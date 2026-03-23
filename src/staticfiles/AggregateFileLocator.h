@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../compat/IFileSystem.h"
-#include <Arduino.h>
-#include <memory>
-#include <vector>
-
 #include "FileLocator.h"
+
+#include <memory>
+#include <string_view>
+#include <vector>
 
 namespace HttpServerAdvanced
 {
@@ -19,7 +19,7 @@ namespace HttpServerAdvanced
         void add(FileLocator &locator);
         void add(std::shared_ptr<FileLocator> locator);
         FileHandle getFile(HttpRequest &context) override;
-        bool canHandle(const String &path) override;
+        bool canHandle(std::string_view path) override;
     };
 
 } // namespace HttpServerAdvanced

@@ -1,9 +1,11 @@
 #pragma once
-#include <Arduino.h>
-#include <functional>
 #include "../core/Defines.h"
-#include "HandlerMatcher.h"
 #include "../handlers/HandlerRestrictions.h"
+
+#include "HandlerMatcher.h"
+
+#include <functional>
+#include <string_view>
 
 namespace HttpServerAdvanced
 {
@@ -162,13 +164,13 @@ namespace HttpServerAdvanced
             return *this;
         }
 
-        HandlerBuilder &allowMethods(const String &methods)
+        HandlerBuilder &allowMethods(std::string_view methods)
         {
             matcher_.setAllowedMethods(methods);
             return *this;
         }
 
-        HandlerBuilder &allowContentTypes(const std::initializer_list<String> &contentTypes)
+        HandlerBuilder &allowContentTypes(const std::initializer_list<std::string_view> &contentTypes)
         {
             matcher_.setAllowedContentTypes(contentTypes);
             return *this;

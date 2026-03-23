@@ -1,15 +1,25 @@
 #pragma once
 
-#include <Arduino.h>
-#include <map>
 #include <algorithm>
+#include <cctype>
+#include <map>
+#include <string>
+#include <string_view>
 
 namespace HttpServerAdvanced
 {
     class HttpContentTypes
     {
     private:
-        std::map<String, const char *> contentTypes_;
+        std::map<std::string, const char *, std::less<>> contentTypes_;
+
+        static std::string NormalizeExtension(std::string_view extension)
+        {
+            std::string extLower(extension);
+            std::transform(extLower.begin(), extLower.end(), extLower.begin(), [](unsigned char value)
+                           { return static_cast<char>(std::tolower(value)); });
+            return extLower;
+        }
 
     public:
         static constexpr const char *ServiceName = "HttpContentTypesLookup";
@@ -41,10 +51,9 @@ namespace HttpServerAdvanced
         }
 
         // Returns the MIME type for a given file extension (without dot), or "application/octet-stream" if unknown
-        const char *getContentTypeByExtension(const String &extension)
+        const char *getContentTypeByExtension(std::string_view extension) const
         {
-            String extLower = extension;
-            extLower.toLowerCase(); // Normalize to lowercase
+            const std::string extLower = NormalizeExtension(extension);
             const auto &table = contentTypes_;
             auto it = table.find(extLower);
             if (it != table.end())
@@ -53,28 +62,27 @@ namespace HttpServerAdvanced
             }
             return table.at("unknown"); // Default type for unknown extensions
         }
-        const char *getContentTypeFromPath(const char *path)
+
+        const char *getContentTypeFromPath(std::string_view path) const
         {
-            const char *dot = strrchr(path, '.');
-            if (dot && *(dot + 1))
+            const std::size_t dot = path.find_last_of('.');
+            if (dot != std::string_view::npos && dot + 1 < path.size())
             {
-                String ext = String(dot + 1);
-                ext.toLowerCase();
-                return getContentTypeByExtension(ext);
+                return getContentTypeByExtension(path.substr(dot + 1));
             }
             return getContentTypeByExtension("unknown");
         }
-        void set(const String &extension, const char *contentType)
+
+        void set(std::string_view extension, const char *contentType)
         {
-            String extLower = extension;
-            extLower.toLowerCase();
+            std::string extLower = NormalizeExtension(extension);
             contentTypes_[extLower] = contentType;
         }
 
     private:
-        static const std::map<String, const char *> &getTable()
+        static const std::map<std::string, const char *, std::less<>> &getTable()
         {
-            static const std::map<String, const char *> standardTypes = {
+            static const std::map<std::string, const char *, std::less<>> standardTypes = {
                 {"html", Html},
                 {"htm", Html},
                 {"css", Css},

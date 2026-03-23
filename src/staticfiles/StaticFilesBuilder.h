@@ -1,6 +1,4 @@
 #pragma once
-#include <Arduino.h>
-
 #include "../compat/IFileSystem.h"
 #include "../server/WebServerBuilder.h"
 #include "../core/HttpContentTypes.h"
@@ -8,6 +6,9 @@
 #include "StaticFileHandler.h"
 #include "DefaultFileLocator.h"
 #include "FileLocator.h"
+
+#include <string>
+#include <string_view>
 
 namespace HttpServerAdvanced
 {
@@ -28,10 +29,10 @@ namespace HttpServerAdvanced
     public:
         StaticFilesBuilder(IFileSystem &fs, HttpServerAdvanced::HttpContentTypes &contentTypes, std::function<void(StaticFilesBuilder &)> setupFunc);
         ~StaticFilesBuilder();
-        StaticFilesBuilder &setPathPredicate(std::function<bool(const String &)> predicate);
-        StaticFilesBuilder &setPathMapper(std::function<String(const String &)> mapper);
-        StaticFilesBuilder &setRequestPathPrefixes(const String &prefix = "/", const String &excludePrefix = "/api");
-        StaticFilesBuilder &setFilesystemContentRoot(const String &root);
+        StaticFilesBuilder &setPathPredicate(std::function<bool(std::string_view)> predicate);
+        StaticFilesBuilder &setPathMapper(std::function<std::string(std::string_view)> mapper);
+        StaticFilesBuilder &setRequestPathPrefixes(std::string_view prefix = "/", std::string_view excludePrefix = "/api");
+        StaticFilesBuilder &setFilesystemContentRoot(std::string_view root);
     };
 
     std::function<void(WebServerBuilder &)> &StaticFiles(IFileSystem &fs, std::function<void(StaticFilesBuilder &)> setupFunc = nullptr);

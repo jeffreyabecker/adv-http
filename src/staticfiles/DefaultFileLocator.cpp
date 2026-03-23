@@ -1,23 +1,23 @@
 #include "DefaultFileLocator.h"
 
+#include <string>
 #include <string_view>
 
 namespace
 {
-    HttpServerAdvanced::FileHandle OpenFile(HttpServerAdvanced::IFileSystem &filesystem, const String &path)
+    HttpServerAdvanced::FileHandle OpenFile(HttpServerAdvanced::IFileSystem &filesystem, std::string_view path)
     {
-        return filesystem.open(std::string_view(path.c_str(), path.length()), HttpServerAdvanced::FileOpenMode::Read);
+        return filesystem.open(path, HttpServerAdvanced::FileOpenMode::Read);
     }
 
-    bool StartsWith(const String &value, std::string_view prefix)
+    bool StartsWith(std::string_view value, std::string_view prefix)
     {
-        const std::string_view view(value.c_str(), value.length());
-        return view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0;
+        return value.size() >= prefix.size() && value.compare(0, prefix.size(), prefix) == 0;
     }
 
-    String TrimMappedPath(const String &root, const String &path)
+    std::string TrimMappedPath(std::string_view root, std::string_view path)
     {
-        std::string_view pathView(path.c_str(), path.length());
+        std::string_view pathView(path);
         while (!pathView.empty() && pathView.back() == '/')
         {
             pathView.remove_suffix(1);
@@ -28,18 +28,19 @@ namespace
             pathView.remove_prefix(1);
         }
 
-        String mappedPath = root + "/";
+        std::string mappedPath(root);
+        mappedPath += "/";
         if (!pathView.empty())
         {
-            mappedPath += String(pathView.data(), pathView.size());
+            mappedPath.append(pathView.data(), pathView.size());
         }
 
         return mappedPath;
     }
 
-    String NormalizeRequestPath(const String &url)
+    std::string NormalizeRequestPath(std::string_view url)
     {
-        std::string_view path(url.c_str(), url.length());
+        std::string_view path(url);
         const std::size_t queryIndex = path.find('?');
         if (queryIndex != std::string_view::npos)
         {
@@ -56,27 +57,27 @@ namespace
             path.remove_suffix(1);
         }
 
-        return String(path.data(), path.size());
+        return std::string(path);
     }
 
-    String TrimTrailingSlashes(const String &path)
+    std::string TrimTrailingSlashes(std::string_view path)
     {
-        std::string_view trimmed(path.c_str(), path.length());
+        std::string_view trimmed(path);
         while (!trimmed.empty() && trimmed.back() == '/')
         {
             trimmed.remove_suffix(1);
         }
 
-        return String(trimmed.data(), trimmed.size());
+        return std::string(trimmed);
     }
 }
 
 namespace HttpServerAdvanced {
 
-DefaultFileLocator::RequestPathPredicate DefaultFileLocator::createPathPredicate(const String &includePrefix, const String &excludePrefix) {
-    return [includePrefix, excludePrefix](const String &path) {
-        if (includePrefix.isEmpty() || StartsWith(path, std::string_view(includePrefix.c_str(), includePrefix.length()))) {
-            if (!excludePrefix.isEmpty() && StartsWith(path, std::string_view(excludePrefix.c_str(), excludePrefix.length()))) {
+DefaultFileLocator::RequestPathPredicate DefaultFileLocator::createPathPredicate(std::string_view includePrefix, std::string_view excludePrefix) {
+    return [includePrefix = std::string(includePrefix), excludePrefix = std::string(excludePrefix)](std::string_view path) {
+        if (includePrefix.empty() || StartsWith(path, includePrefix)) {
+            if (!excludePrefix.empty() && StartsWith(path, excludePrefix)) {
                 return false;
             }
             return true;
@@ -85,14 +86,14 @@ DefaultFileLocator::RequestPathPredicate DefaultFileLocator::createPathPredicate
     };
 }
 
-DefaultFileLocator::RequestPathMapper DefaultFileLocator::createPathMapper(const String &root) {
-    return [root](const String &path) {
+DefaultFileLocator::RequestPathMapper DefaultFileLocator::createPathMapper(std::string_view root) {
+    return [root = std::string(root)](std::string_view path) {
         return TrimMappedPath(root, path);
     };
 }
 
-String DefaultFileLocator::getLocalPath(const HttpRequest &context) {
-    return NormalizeRequestPath(context.url());
+std::string DefaultFileLocator::getLocalPath(const HttpRequest &context) {
+    return NormalizeRequestPath(context.urlView());
 }
 
 DefaultFileLocator::DefaultFileLocator(IFileSystem &fs)
@@ -105,21 +106,21 @@ void DefaultFileLocator::setPathPredicate(RequestPathPredicate predicate) { path
 
 void DefaultFileLocator::setPathMapper(RequestPathMapper mapper) { pathMapper_ = mapper; }
 
-void DefaultFileLocator::setRequestPathPrefixes(const String &includePrefix, const String &excludePrefix) {
+void DefaultFileLocator::setRequestPathPrefixes(std::string_view includePrefix, std::string_view excludePrefix) {
     setPathPredicate(createPathPredicate(includePrefix, excludePrefix));
 }
 
-void DefaultFileLocator::setFilesystemContentRoot(const String &root) { setPathMapper(createPathMapper(root)); }
+void DefaultFileLocator::setFilesystemContentRoot(std::string_view root) { setPathMapper(createPathMapper(root)); }
 
 FileHandle DefaultFileLocator::getFile(HttpRequest &context) {
-    String path = this->getLocalPath(context);
+    std::string path = this->getLocalPath(context);
     if (pathMapper_) {
         path = pathMapper_(path);
     }
 
     FileHandle file = OpenFile(filesystem_, path);
     if (!file) {
-        String gzPath = path + ".gz";
+        std::string gzPath = path + ".gz";
         file = OpenFile(filesystem_, gzPath);
         if (file) {
             return file;
@@ -127,19 +128,19 @@ FileHandle DefaultFileLocator::getFile(HttpRequest &context) {
         return file;
     }
     if (file->isDirectory()) {
-        String indexPath = TrimTrailingSlashes(path);
+        std::string indexPath = TrimTrailingSlashes(path);
         indexPath += "/index.html";
         file->close();
         file = OpenFile(filesystem_, indexPath);
         if (!file) {
-            String gzIndexPath = indexPath + ".gz";
+            std::string gzIndexPath = indexPath + ".gz";
             file = OpenFile(filesystem_, gzIndexPath);
         }
     }
     return file;
 }
 
-bool DefaultFileLocator::canHandle(const String& path) {
+bool DefaultFileLocator::canHandle(std::string_view path) {
     return pathPredicate_(path);
 }
 

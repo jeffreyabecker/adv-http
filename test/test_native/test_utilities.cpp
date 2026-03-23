@@ -10,10 +10,12 @@
 #include <utility>
 
 #include "../../src/core/IHttpRequestHandlerFactory.h"
+#include "../../src/core/Defines.h"
 #include "../../src/core/HttpRequest.h"
 #include "../../src/util/HttpUtility.h"
 #include "../../src/core/HttpHeaderCollection.h"
 #include "../../src/routing/CrossOriginRequestSharing.h"
+#include "../../src/routing/HandlerMatcher.h"
 #include "../../src/response/StringResponse.h"
 #include "../../src/util/UriView.h"
 
@@ -197,6 +199,36 @@ namespace
         TEST_ASSERT_TRUE((std::is_same_v<ItemsType, std::map<std::string, std::any>>));
     }
 
+    void test_handler_matcher_uses_standard_text_configuration()
+    {
+        HttpServerAdvanced::HandlerMatcher matcher(std::string_view("/files/*"), std::string_view("get,post"), {std::string_view("Application/Json"), std::string_view("text/plain")});
+
+        TEST_ASSERT_EQUAL_STRING("/files/*", std::string(matcher.getUriPattern()).c_str());
+        TEST_ASSERT_EQUAL_STRING("GET,POST", std::string(matcher.getAllowedMethods()).c_str());
+        TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(matcher.getAllowedContentTypes().size()));
+        TEST_ASSERT_EQUAL_STRING("application/json", matcher.getAllowedContentTypes()[0].c_str());
+        TEST_ASSERT_EQUAL_STRING("text/plain", matcher.getAllowedContentTypes()[1].c_str());
+
+        matcher.setUriPattern(std::string_view("/assets/*"));
+        matcher.setAllowedMethods(std::string_view("head"));
+        matcher.setAllowedContentTypes({std::string_view("IMAGE/SVG+XML")});
+
+        TEST_ASSERT_EQUAL_STRING("/assets/*", std::string(matcher.getUriPattern()).c_str());
+        TEST_ASSERT_EQUAL_STRING("HEAD", std::string(matcher.getAllowedMethods()).c_str());
+        TEST_ASSERT_EQUAL_STRING("image/svg+xml", matcher.getAllowedContentTypes()[0].c_str());
+    }
+
+    void test_handler_matcher_default_helpers_use_standard_text_inputs()
+    {
+        const std::string wildcardPattern = std::string("/files/") + HttpServerAdvanced::REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+
+        TEST_ASSERT_TRUE(HttpServerAdvanced::defaultCheckMethod(std::string_view("GET,POST"), std::string_view("GET")));
+        TEST_ASSERT_FALSE(HttpServerAdvanced::defaultCheckMethod(std::string_view("GET,POST"), std::string_view("PUT")));
+
+        TEST_ASSERT_TRUE(HttpServerAdvanced::defaultCheckUriPattern(std::string_view("/files/report.txt"), wildcardPattern));
+        TEST_ASSERT_FALSE(HttpServerAdvanced::defaultCheckUriPattern(std::string_view("/files/report.txt"), std::string_view("/assets/*")));
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -211,6 +243,8 @@ namespace
         RUN_TEST(test_cors_string_view_overload_sets_headers);
         RUN_TEST(test_request_handler_factory_std_text_overloads_delegate_to_std_string);
         RUN_TEST(test_http_request_items_exposes_std_string_keyed_map);
+        RUN_TEST(test_handler_matcher_uses_standard_text_configuration);
+        RUN_TEST(test_handler_matcher_default_helpers_use_standard_text_inputs);
         return UNITY_END();
     }
 }

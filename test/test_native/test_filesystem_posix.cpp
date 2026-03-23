@@ -3,7 +3,10 @@
 #include <unity.h>
 
 #include "../../src/compat/PosixFileAdapter.h"
+#include "../../src/core/HttpContentTypes.h"
+#include "../../src/staticfiles/DefaultFileLocator.h"
 
+#include <string_view>
 #include <vector>
 
 using namespace HttpServerAdvanced;
@@ -80,12 +83,40 @@ namespace
         TEST_ASSERT_EQUAL_INT(0, remove(tmpPath));
     }
 
+    void test_content_types_accept_string_view_inputs()
+    {
+        HttpContentTypes contentTypes;
+
+        TEST_ASSERT_EQUAL_STRING("text/html", contentTypes.getContentTypeByExtension(std::string_view("HTML")));
+        TEST_ASSERT_EQUAL_STRING("application/javascript", contentTypes.getContentTypeFromPath(std::string_view("/www/app.Js")));
+
+        contentTypes.set(std::string_view("cust"), "application/x-custom");
+        TEST_ASSERT_EQUAL_STRING("application/x-custom", contentTypes.getContentTypeByExtension(std::string_view("CUST")));
+    }
+
+    void test_default_file_locator_accepts_string_view_configuration()
+    {
+        Compat::PosixFS fs;
+        DefaultFileLocator locator(fs);
+
+        locator.setRequestPathPrefixes(std::string_view("/static"), std::string_view("/static/api"));
+
+        TEST_ASSERT_TRUE(locator.canHandle(std::string_view("/static/app.js")));
+        TEST_ASSERT_FALSE(locator.canHandle(std::string_view("/static/api/data.json")));
+
+        locator.setRequestPathPrefixes(std::string_view("/assets"));
+        TEST_ASSERT_TRUE(locator.canHandle(std::string_view("/assets/logo.svg")));
+        TEST_ASSERT_FALSE(locator.canHandle(std::string_view("/static/app.js")));
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
         RUN_TEST(test_posix_adapter_can_open_and_read_temp_file);
         RUN_TEST(test_posix_adapter_supports_directory_handles);
         RUN_TEST(test_posix_adapter_can_write_and_reopen_file);
+        RUN_TEST(test_content_types_accept_string_view_inputs);
+        RUN_TEST(test_default_file_locator_accepts_string_view_configuration);
         return UNITY_END();
     }
 }

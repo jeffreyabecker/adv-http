@@ -23,25 +23,25 @@ namespace HttpServerAdvanced
         handlerFactory.add(fileHandlerFactory_, 0);
     }
 
-    StaticFilesBuilder &StaticFilesBuilder::setPathPredicate(std::function<bool(const String &)> predicate)
+        StaticFilesBuilder &StaticFilesBuilder::setPathPredicate(std::function<bool(std::string_view)> predicate)
     {
         fileLocator_.setPathPredicate(predicate);
         return *this;
     }
 
-    StaticFilesBuilder &StaticFilesBuilder::setPathMapper(std::function<String(const String &)> mapper)
+        StaticFilesBuilder &StaticFilesBuilder::setPathMapper(std::function<std::string(std::string_view)> mapper)
     {
         fileLocator_.setPathMapper(mapper);
         return *this;
     }
 
-    StaticFilesBuilder &StaticFilesBuilder::setRequestPathPrefixes(const String &prefix, const String &excludePrefix)
+        StaticFilesBuilder &StaticFilesBuilder::setRequestPathPrefixes(std::string_view prefix, std::string_view excludePrefix)
     {
         fileLocator_.setRequestPathPrefixes(prefix, excludePrefix);
         return *this;
     }
 
-    StaticFilesBuilder &StaticFilesBuilder::setFilesystemContentRoot(const String &root)
+        StaticFilesBuilder &StaticFilesBuilder::setFilesystemContentRoot(std::string_view root)
     {
         fileLocator_.setFilesystemContentRoot(root);
         return *this;

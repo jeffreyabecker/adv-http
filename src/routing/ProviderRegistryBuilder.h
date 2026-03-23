@@ -1,6 +1,4 @@
 #pragma once
-#include <Arduino.h>
-#include <utility>
 #include "../core/Defines.h"
 #include "../handlers/HttpHandler.h"
 #include "../handlers/HandlerTypes.h"
@@ -9,6 +7,8 @@
 #include "../handlers/HandlerRestrictions.h"
 #include "HandlerProviderRegistry.h"
 #include "HandlerBuilder.h"
+
+#include <utility>
 
 namespace HttpServerAdvanced
 {

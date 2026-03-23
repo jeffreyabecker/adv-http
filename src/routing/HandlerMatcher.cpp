@@ -12,14 +12,17 @@ namespace HttpServerAdvanced
 {
     namespace
     {
-        std::string_view toStringView(const String &value)
-        {
-            return std::string_view(value.c_str(), value.length());
-        }
-
         char toLowerAscii(char value)
         {
             return static_cast<char>(std::tolower(static_cast<unsigned char>(value)));
+        }
+
+        std::string toLowerAsciiString(std::string_view value)
+        {
+            std::string lowered(value);
+            std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char ch)
+                           { return static_cast<char>(std::tolower(ch)); });
+            return lowered;
         }
 
         bool startsWithIgnoreCase(std::string_view value, std::string_view prefix)
@@ -40,7 +43,7 @@ namespace HttpServerAdvanced
         return false;
     }
 
-    bool defaultCheckContentType(HttpRequest &context, const std::vector<String> &allowedContentTypes)
+    bool defaultCheckContentType(HttpRequest &context, const std::vector<std::string> &allowedContentTypes)
     {
         std::optional<HttpHeader> contentType = context.headers().find("Content-Type");
         if (!contentType.has_value())
@@ -51,7 +54,7 @@ namespace HttpServerAdvanced
         bool matchFound = false;
         for (const auto &allowedCT : allowedContentTypes)
         {
-            if (startsWithIgnoreCase(contentType->valueView(), toStringView(allowedCT)))
+            if (startsWithIgnoreCase(contentType->valueView(), allowedCT))
             {
                 matchFound = true;
                 break;
@@ -187,41 +190,36 @@ namespace HttpServerAdvanced
     }
 
     // HandlerMatcher implementations
-    HandlerMatcher::HandlerMatcher(const String &uriPattern, const String &allowedMethods, const std::initializer_list<String> &allowedContentTypes)
-        : uriPattern_(uriPattern), allowedMethods_(allowedMethods), allowedContentTypes_(allowedContentTypes),
+    HandlerMatcher::HandlerMatcher(std::string_view uriPattern, std::string_view allowedMethods, const std::initializer_list<std::string_view> &allowedContentTypes)
+        : uriPattern_(uriPattern), allowedMethods_(allowedMethods),
           methodChecker_(defaultCheckMethod), uriPatternChecker_(defaultCheckUriPattern),
           contentTypeChecker_(defaultCheckContentType), argsExtractor_(defaultExtractParameters)
     {
-        allowedMethods_.toUpperCase();
-        for (auto &ct : allowedContentTypes_)
-        {
-            ct.toLowerCase();
-        }
+        setAllowedContentTypes(allowedContentTypes);
+        fixStringCases();
     }
 
     void HandlerMatcher::fixStringCases()
     {
-        allowedMethods_.toUpperCase();
+        std::transform(allowedMethods_.begin(), allowedMethods_.end(), allowedMethods_.begin(), [](unsigned char ch)
+                       { return static_cast<char>(std::toupper(ch)); });
         for (auto &ct : allowedContentTypes_)
         {
-            ct.toLowerCase();
+            ct = toLowerAsciiString(ct);
         }
     }
 
-    HandlerMatcher::HandlerMatcher(const char *uriPattern) : HandlerMatcher(String(uriPattern)) {}
+    HandlerMatcher::HandlerMatcher(const char *uriPattern) : HandlerMatcher(std::string_view(uriPattern != nullptr ? uriPattern : "")) {}
 
-    HandlerMatcher::HandlerMatcher(const String &uriPattern, MethodChecker methodChecker, UriPatternChecker uriPatternChecker,
+    HandlerMatcher::HandlerMatcher(std::string_view uriPattern, MethodChecker methodChecker, UriPatternChecker uriPatternChecker,
                                           ContentTypeChecker contentTypeChecker, ArgsExtractor argsExtractor,
-                                          const String &allowedMethods, const std::initializer_list<String> &allowedContentTypes)
-        : uriPattern_(uriPattern), allowedMethods_(allowedMethods), allowedContentTypes_(allowedContentTypes),
+                                          std::string_view allowedMethods, const std::initializer_list<std::string_view> &allowedContentTypes)
+        : uriPattern_(uriPattern), allowedMethods_(allowedMethods),
           methodChecker_(methodChecker), uriPatternChecker_(uriPatternChecker),
           contentTypeChecker_(contentTypeChecker), argsExtractor_(argsExtractor)
     {
-        allowedMethods_.toUpperCase();
-        for (auto &ct : allowedContentTypes_)
-        {
-            ct.toLowerCase();
-        }
+        setAllowedContentTypes(allowedContentTypes);
+        fixStringCases();
     }
 
     // Setters
@@ -245,11 +243,6 @@ namespace HttpServerAdvanced
         argsExtractor_ = extractor;
     }
 
-    void HandlerMatcher::setUriPattern(const String &uriPattern)
-    {
-        uriPattern_ = uriPattern;
-    }
-
     void HandlerMatcher::setUriPattern(const char *uriPattern)
     {
         uriPattern_ = uriPattern != nullptr ? uriPattern : "";
@@ -257,36 +250,19 @@ namespace HttpServerAdvanced
 
     void HandlerMatcher::setUriPattern(std::string_view uriPattern)
     {
-        uriPattern_ = String(uriPattern.data(), uriPattern.size());
-    }
-
-    void HandlerMatcher::setAllowedMethods(const String &methods)
-    {
-        allowedMethods_ = methods;
-        allowedMethods_.toUpperCase();
+        uriPattern_.assign(uriPattern.data(), uriPattern.size());
     }
 
     void HandlerMatcher::setAllowedMethods(const char *methods)
     {
         allowedMethods_ = methods != nullptr ? methods : "";
-        allowedMethods_.toUpperCase();
+        fixStringCases();
     }
 
     void HandlerMatcher::setAllowedMethods(std::string_view methods)
     {
-        allowedMethods_ = String(methods.data(), methods.size());
-        allowedMethods_.toUpperCase();
-    }
-
-    void HandlerMatcher::setAllowedContentTypes(const std::initializer_list<String> &contentTypes)
-    {
-        allowedContentTypes_.clear();
-        for (auto &ct : contentTypes)
-        {
-            String loweredCT = ct;
-            loweredCT.toLowerCase();
-            allowedContentTypes_.emplace_back(loweredCT);
-        }
+        allowedMethods_.assign(methods.data(), methods.size());
+        fixStringCases();
     }
 
     void HandlerMatcher::setAllowedContentTypes(const std::initializer_list<const char *> &contentTypes)
@@ -294,24 +270,31 @@ namespace HttpServerAdvanced
         allowedContentTypes_.clear();
         for (const char *contentType : contentTypes)
         {
-            String loweredCT = contentType != nullptr ? contentType : "";
-            loweredCT.toLowerCase();
-            allowedContentTypes_.emplace_back(loweredCT);
+            allowedContentTypes_.push_back(toLowerAsciiString(contentType != nullptr ? std::string_view(contentType) : std::string_view()));
+        }
+    }
+
+    void HandlerMatcher::setAllowedContentTypes(const std::initializer_list<std::string_view> &contentTypes)
+    {
+        allowedContentTypes_.clear();
+        for (std::string_view contentType : contentTypes)
+        {
+            allowedContentTypes_.push_back(toLowerAsciiString(contentType));
         }
     }
 
     // Getters
-    const String &HandlerMatcher::getUriPattern() const
+    std::string_view HandlerMatcher::getUriPattern() const
     {
         return uriPattern_;
     }
 
-    const String &HandlerMatcher::getAllowedMethods() const
+    std::string_view HandlerMatcher::getAllowedMethods() const
     {
         return allowedMethods_;
     }
 
-    const std::vector<String> &HandlerMatcher::getAllowedContentTypes() const
+    const std::vector<std::string> &HandlerMatcher::getAllowedContentTypes() const
     {
         return allowedContentTypes_;
     }
@@ -339,12 +322,12 @@ namespace HttpServerAdvanced
     // Public methods
     bool HandlerMatcher::canHandle(HttpRequest &context) const
     {
-        if (!allowedMethods_.isEmpty() && !methodChecker_(context.methodView(), toStringView(allowedMethods_)))
+        if (!allowedMethods_.empty() && !methodChecker_(allowedMethods_, context.methodView()))
         {
             return false;
         }
 
-        if (!uriPatternChecker_(context.urlView(), toStringView(uriPattern_)))
+        if (!uriPatternChecker_(context.urlView(), uriPattern_))
         {
             return false;
         }
@@ -361,11 +344,11 @@ namespace HttpServerAdvanced
 
     RouteParameters HandlerMatcher::extractParameters(HttpRequest &context) const
     {
-        return argsExtractor_(context, toStringView(uriPattern_));
+        return argsExtractor_(context, uriPattern_);
     }
 
     // ParameterizedUri implementation
-    ParameterizedUri::ParameterizedUri(const String &uriPattern, const String &allowedMethods, const std::initializer_list<String> &allowedContentTypes)
+    ParameterizedUri::ParameterizedUri(std::string_view uriPattern, std::string_view allowedMethods, const std::initializer_list<std::string_view> &allowedContentTypes)
         : HandlerMatcher(uriPattern, allowedMethods, allowedContentTypes)
     {
     }

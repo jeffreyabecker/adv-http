@@ -29,7 +29,7 @@ namespace HttpServerAdvanced
     {
         for (auto &locator : locators_)
         {
-            if (locator->canHandle(context.url()))
+            if (locator->canHandle(context.urlView()))
             {
                 FileHandle file = locator->getFile(context);
                 if (file)
@@ -41,7 +41,7 @@ namespace HttpServerAdvanced
         return nullptr;
     }
 
-    bool AggregateFileLocator::canHandle(const String &path)
+    bool AggregateFileLocator::canHandle(std::string_view path)
     {
         for (auto &locator : locators_)
         {
