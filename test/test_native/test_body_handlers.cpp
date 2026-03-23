@@ -5,7 +5,10 @@
 
 #include "../../src/core/HttpRequest.h"
 #include "../../src/core/HttpRequestPhase.h"
+#include "../../src/handlers/BufferedStringBodyHandler.h"
 #include "../../src/handlers/BufferingHttpHandlerBase.h"
+#include "../../src/handlers/FormBodyHandler.h"
+#include "../../src/handlers/RawBodyHandler.h"
 #include "../../src/server/HttpServerBase.h"
 
 #include <cstdint>
@@ -251,6 +254,216 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(0, zeroLengthPtr->payloads.size());
     }
 
+    void test_buffered_string_body_handler_preserves_exact_bytes_in_std_string()
+    {
+        std::vector<std::string> capturedBodies;
+        std::vector<RouteParameters> capturedParams;
+
+        auto handler = std::make_unique<BufferedStringBodyHandler>(
+            [&capturedBodies, &capturedParams](HttpRequest &, RouteParameters &&params, std::string &&body) -> IHttpHandler::HandlerResult
+            {
+                capturedParams.push_back(std::move(params));
+                capturedBodies.push_back(std::move(body));
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {"route-id", "42"};
+            });
+
+        RequestHarness harness(std::move(handler));
+        const std::string payload("A\0B", 3);
+
+        harness.beginRequest();
+        harness.completeHeaders();
+        harness.addBody(std::string_view(payload.data(), payload.size()));
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(1, capturedBodies.size());
+        TEST_ASSERT_EQUAL_UINT64(3, capturedBodies[0].size());
+        TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const uint8_t *>(payload.data()), reinterpret_cast<const uint8_t *>(capturedBodies[0].data()), payload.size());
+        TEST_ASSERT_EQUAL_UINT64(2, capturedParams[0].size());
+        TEST_ASSERT_EQUAL_STRING("route-id", capturedParams[0][0].c_str());
+        TEST_ASSERT_EQUAL_STRING("42", capturedParams[0][1].c_str());
+    }
+
+    void test_buffered_string_body_handler_ignores_empty_payloads()
+    {
+        std::size_t invocationCount = 0;
+
+        auto handler = std::make_unique<BufferedStringBodyHandler>(
+            [&invocationCount](HttpRequest &, RouteParameters &&, std::string &&) -> IHttpHandler::HandlerResult
+            {
+                ++invocationCount;
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {};
+            });
+
+        RequestHarness harness(std::move(handler));
+
+        harness.beginRequest();
+        harness.addHeader(HttpHeaderNames::ContentLength, "0");
+        harness.completeHeaders();
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(0, invocationCount);
+    }
+
+    void test_raw_body_handler_preserves_chunks_and_completion_metadata()
+    {
+        std::vector<RawBodyBuffer> capturedBuffers;
+        std::vector<RouteParameters> capturedParams;
+
+        auto handler = std::make_unique<RawBodyHandler>(
+            [&capturedBuffers, &capturedParams](HttpRequest &, RouteParameters &params, RawBodyBuffer buffer) -> IHttpHandler::HandlerResult
+            {
+                capturedParams.push_back(params);
+                capturedBuffers.push_back(std::move(buffer));
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {"alpha"};
+            });
+
+        RequestHarness harness(std::move(handler));
+
+        harness.beginRequest();
+        harness.addHeader(HttpHeaderNames::ContentLength, "5");
+        harness.completeHeaders();
+        harness.addBody("ab");
+        harness.addBody("cde");
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(3, capturedBuffers.size());
+        TEST_ASSERT_EQUAL_UINT64(2, capturedBuffers[0].size());
+        TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const uint8_t *>("ab"), capturedBuffers[0].data(), 2);
+        TEST_ASSERT_EQUAL_UINT64(0, capturedBuffers[0].receivedLength());
+        TEST_ASSERT_EQUAL_UINT64(5, capturedBuffers[0].contentLength());
+
+        TEST_ASSERT_EQUAL_UINT64(3, capturedBuffers[1].size());
+        TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const uint8_t *>("cde"), capturedBuffers[1].data(), 3);
+        TEST_ASSERT_EQUAL_UINT64(2, capturedBuffers[1].receivedLength());
+        TEST_ASSERT_EQUAL_UINT64(5, capturedBuffers[1].contentLength());
+
+        TEST_ASSERT_EQUAL_UINT64(0, capturedBuffers[2].size());
+        TEST_ASSERT_EQUAL_UINT64(5, capturedBuffers[2].receivedLength());
+        TEST_ASSERT_EQUAL_UINT64(5, capturedBuffers[2].contentLength());
+        TEST_ASSERT_EQUAL_UINT64(1, capturedParams[0].size());
+        TEST_ASSERT_EQUAL_STRING("alpha", capturedParams[0][0].c_str());
+    }
+
+    void test_raw_body_handler_passes_large_chunks_without_internal_truncation()
+    {
+        std::vector<RawBodyBuffer> capturedBuffers;
+        auto handler = std::make_unique<RawBodyHandler>(
+            [&capturedBuffers](HttpRequest &, RouteParameters &, RawBodyBuffer buffer) -> IHttpHandler::HandlerResult
+            {
+                capturedBuffers.push_back(std::move(buffer));
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {};
+            });
+
+        RequestHarness harness(std::move(handler));
+        const std::string payload(3000, 'x');
+
+        harness.beginRequest();
+        harness.addHeader(HttpHeaderNames::ContentLength, "3000");
+        harness.completeHeaders();
+        harness.addBody(payload);
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(2, capturedBuffers.size());
+        TEST_ASSERT_EQUAL_UINT64(payload.size(), capturedBuffers[0].size());
+        TEST_ASSERT_EQUAL_UINT64(payload.size(), capturedBuffers[0].contentLength());
+        TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const uint8_t *>(payload.data()), capturedBuffers[0].data(), payload.size());
+        TEST_ASSERT_EQUAL_UINT64(0, capturedBuffers[1].size());
+        TEST_ASSERT_EQUAL_UINT64(payload.size(), capturedBuffers[1].receivedLength());
+    }
+
+    void test_form_body_handler_parses_repeated_empty_and_malformed_values()
+    {
+        std::vector<WebUtility::QueryParameters> capturedBodies;
+        std::vector<RouteParameters> capturedParams;
+
+        auto handler = std::make_unique<FormBodyHandler>(
+            [&capturedBodies, &capturedParams](HttpRequest &, RouteParameters &&params, WebUtility::QueryParameters &&body) -> IHttpHandler::HandlerResult
+            {
+                capturedParams.push_back(std::move(params));
+                capturedBodies.push_back(std::move(body));
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {"route", "form"};
+            });
+
+        RequestHarness harness(std::move(handler));
+        const std::string_view body = "=value&&name=&name=second&bad=%ZZ&trailing=";
+
+        harness.beginRequest();
+        harness.completeHeaders();
+        harness.addBody(body);
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(1, capturedBodies.size());
+        TEST_ASSERT_EQUAL_UINT64(6, capturedBodies[0].pairs().size());
+        TEST_ASSERT_EQUAL_UINT64(2, capturedBodies[0].exists("name"));
+        TEST_ASSERT_EQUAL_UINT64(2, capturedBodies[0].exists(""));
+
+        const auto emptyKey = capturedBodies[0].get("");
+        TEST_ASSERT_TRUE(emptyKey.has_value());
+        TEST_ASSERT_EQUAL_STRING("value", emptyKey->c_str());
+
+        const auto allNames = capturedBodies[0].getAll("name");
+        TEST_ASSERT_EQUAL_UINT64(2, allNames.size());
+        TEST_ASSERT_EQUAL_STRING("", allNames[0].c_str());
+        TEST_ASSERT_EQUAL_STRING("second", allNames[1].c_str());
+
+        const auto bad = capturedBodies[0].get("bad");
+        TEST_ASSERT_TRUE(bad.has_value());
+        TEST_ASSERT_EQUAL_UINT64(1, bad->size());
+        TEST_ASSERT_EQUAL_UINT8(0, static_cast<uint8_t>((*bad)[0]));
+
+        const auto trailing = capturedBodies[0].get("trailing");
+        TEST_ASSERT_TRUE(trailing.has_value());
+        TEST_ASSERT_TRUE(trailing->empty());
+
+        TEST_ASSERT_EQUAL_UINT64(2, capturedParams[0].size());
+        TEST_ASSERT_EQUAL_STRING("route", capturedParams[0][0].c_str());
+        TEST_ASSERT_EQUAL_STRING("form", capturedParams[0][1].c_str());
+    }
+
+    void test_form_body_handler_ignores_empty_payloads()
+    {
+        std::size_t invocationCount = 0;
+
+        auto handler = std::make_unique<FormBodyHandler>(
+            [&invocationCount](HttpRequest &, RouteParameters &&, WebUtility::QueryParameters &&) -> IHttpHandler::HandlerResult
+            {
+                ++invocationCount;
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {};
+            });
+
+        RequestHarness harness(std::move(handler));
+
+        harness.beginRequest();
+        harness.completeHeaders();
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(0, invocationCount);
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -261,6 +474,12 @@ namespace
         RUN_TEST(test_buffering_handler_invokes_handle_body_from_handle_step_without_content_length);
         RUN_TEST(test_buffering_handler_truncates_to_configured_max_buffer_and_replays_on_completion);
         RUN_TEST(test_buffering_handler_ignores_empty_body_and_zero_content_length);
+        RUN_TEST(test_buffered_string_body_handler_preserves_exact_bytes_in_std_string);
+        RUN_TEST(test_buffered_string_body_handler_ignores_empty_payloads);
+        RUN_TEST(test_raw_body_handler_preserves_chunks_and_completion_metadata);
+        RUN_TEST(test_raw_body_handler_passes_large_chunks_without_internal_truncation);
+        RUN_TEST(test_form_body_handler_parses_repeated_empty_and_malformed_values);
+        RUN_TEST(test_form_body_handler_ignores_empty_payloads);
         return UNITY_END();
     }
 }

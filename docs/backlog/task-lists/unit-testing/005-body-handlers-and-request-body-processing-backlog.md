@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: completed text raw form handler coverage and documented current raw-body passthrough behavior.
 2026-03-23 - Copilot: completed buffering-base native coverage and documented current replay-on-completion behavior.
 2026-03-23 - Copilot: created detailed Phase 5 body handlers and request-body processing backlog.
 
@@ -25,12 +26,13 @@ This phase focuses on the request-body handling stack that sits between parsed H
 ## Notes
 
 - Native coverage now freezes the current `BufferingHttpHandlerBase` replay behavior: when buffering fills early from `Content-Length` or configured max, `handleBody(...)` runs once from `handleBodyChunk(...)` and then again from `handleStep()` after `CompletedReadingMessage`.
+- Native coverage also freezes the current `RawBodyHandler` passthrough behavior: large body chunks are delivered intact, followed by a zero-length completion callback carrying final `receivedLength()` and parsed `contentLength()` metadata.
 
 ### Text, Raw, And Form Bodies
 
-- [ ] Add tests for `BufferedStringBodyHandler` covering encoding-neutral byte capture and empty payload handling.
-- [ ] Add tests for `RawBodyHandler` covering exact byte preservation and large-body truncation at configured limits.
-- [ ] Add tests for `FormBodyHandler` covering key-value parsing, repeated fields, empty values, and invalid form payload tolerance.
+- [x] Add tests for `BufferedStringBodyHandler` covering encoding-neutral byte capture and empty payload handling.
+- [x] Add tests for `RawBodyHandler` covering exact byte preservation and large-body truncation at configured limits.
+- [x] Add tests for `FormBodyHandler` covering key-value parsing, repeated fields, empty values, and invalid form payload tolerance.
 
 ### Multipart And JSON Paths
 
