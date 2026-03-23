@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: completed buffering-base native coverage and documented current replay-on-completion behavior.
 2026-03-23 - Copilot: created detailed Phase 5 body handlers and request-body processing backlog.
 
 # Unit Testing Phase 5 Body Handlers And Request-Body Processing Backlog
@@ -16,10 +17,14 @@ This phase focuses on the request-body handling stack that sits between parsed H
 
 ### Buffering Base Behavior
 
-- [ ] Add direct tests for `tryParseHeaderLength(...)` and content-length parsing edge cases.
-- [ ] Verify behavior when buffering is disabled, unlimited, exactly full, and over capacity.
-- [ ] Verify when `handleBody(...)` is invoked from `handleBodyChunk(...)` versus from `handleStep(...)`.
-- [ ] Verify empty-body and missing-content-length semantics.
+- [x] Add direct tests for `tryParseHeaderLength(...)` and content-length parsing edge cases.
+- [x] Verify behavior when buffering is disabled, unlimited, exactly full, and over capacity.
+- [x] Verify when `handleBody(...)` is invoked from `handleBodyChunk(...)` versus from `handleStep(...)`.
+- [x] Verify empty-body and missing-content-length semantics.
+
+## Notes
+
+- Native coverage now freezes the current `BufferingHttpHandlerBase` replay behavior: when buffering fills early from `Content-Length` or configured max, `handleBody(...)` runs once from `handleBodyChunk(...)` and then again from `handleStep()` after `CompletedReadingMessage`.
 
 ### Text, Raw, And Form Bodies
 
