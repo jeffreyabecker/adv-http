@@ -1,4 +1,6 @@
 #include "HttpPipeline.h"
+#include <cassert>
+
 #include "../server/HttpServerBase.h"
 
 namespace HttpServerAdvanced

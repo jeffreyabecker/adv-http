@@ -1,5 +1,7 @@
 #include "HttpServerBase.h"
 
+#include <cassert>
+
 namespace HttpServerAdvanced {
 
 HttpServerBase::HttpServerBase(std::unique_ptr<IServer> server)

@@ -8,11 +8,15 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <vector>
 
 using namespace HttpServerAdvanced;
 
 namespace
 {
+    constexpr std::string_view MaxSupportedCustomMethod = "UNSUBSCRIBE";
+    static_assert(MaxSupportedCustomMethod.size() == HttpServerAdvanced::MAX_REQUEST_METHOD_LENGTH);
+
     void localSetUp()
     {
     }
@@ -93,17 +97,32 @@ namespace
         TEST_ASSERT_TRUE(recorder.events()[0].kind == TestSupport::PipelineEventKind::Error);
     }
 
-    void test_request_parser_rejects_sixteen_character_custom_method_at_current_boundary()
+    void test_request_parser_accepts_custom_method_at_explicit_limit()
     {
         TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
-        const std::string request = BuildRequest("ABCDEFGHIJKLMNOP", "/too-long");
+        const std::string request = BuildRequest(MaxSupportedCustomMethod, "/limit");
+        const std::size_t consumed = ExecuteText(parser, request);
+
+        TEST_ASSERT_EQUAL_UINT64(request.size(), consumed);
+        TEST_ASSERT_EQUAL_STRING(MaxSupportedCustomMethod.data(), recorder.method().c_str());
+        TEST_ASSERT_TRUE(recorder.errors().empty());
+        TEST_ASSERT_EQUAL_UINT64(1, recorder.messageCompleteCount());
+    }
+
+    void test_request_parser_rejects_custom_method_past_explicit_limit()
+    {
+        TestSupport::PipelineEventRecorder recorder;
+        RequestParser parser(recorder);
+
+        const std::string method = std::string(HttpServerAdvanced::MAX_REQUEST_METHOD_LENGTH + 1U, 'M');
+        const std::string request = BuildRequest(method, "/too-long");
         const std::size_t consumed = ExecuteText(parser, request);
 
         TEST_ASSERT_EQUAL_UINT64(0, consumed);
         TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
-        TEST_ASSERT_TRUE(recorder.errors()[0] != PipelineErrorCode::None);
+        TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::InvalidMethodError);
         TEST_ASSERT_TRUE(recorder.events()[0].kind == TestSupport::PipelineEventKind::Error);
     }
 
@@ -113,7 +132,8 @@ namespace
         RUN_TEST(test_request_parser_accepts_custom_method_verbatim);
         RUN_TEST(test_request_parser_preserves_split_custom_method_bytes);
         RUN_TEST(test_request_parser_rejects_invalid_custom_method_token);
-        RUN_TEST(test_request_parser_rejects_sixteen_character_custom_method_at_current_boundary);
+        RUN_TEST(test_request_parser_accepts_custom_method_at_explicit_limit);
+        RUN_TEST(test_request_parser_rejects_custom_method_past_explicit_limit);
         return UNITY_END();
     }
 }

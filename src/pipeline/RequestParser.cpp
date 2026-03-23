@@ -123,10 +123,10 @@ namespace HttpServerAdvanced
         if (self)
         {
             // Just buffer the method data
-            if (!self->appendToBuffer(at, length, 16, self->methodPos_, self->methodLen_))
+            if (!self->appendToBuffer(at, length, HttpServerAdvanced::MAX_REQUEST_METHOD_LENGTH, self->methodPos_, self->methodLen_))
             {
                 self->currentEvent_ = RequestParserEvent::Error;
-                self->eventHandler_.onError(PipelineError(PipelineErrorCode::ParseError));
+                self->eventHandler_.onError(PipelineError(PipelineErrorCode::InvalidMethodError));
                 return -1;
             }
         }

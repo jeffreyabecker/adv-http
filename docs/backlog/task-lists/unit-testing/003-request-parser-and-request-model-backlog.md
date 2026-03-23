@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: added HttpRequest custom-method propagation coverage and clarified current llhttp-backed method support limits.
 2026-03-23 - Copilot: marked initial custom-verb parser coverage complete and left request propagation follow-up open.
 2026-03-23 - Copilot: extended backlog to cover custom HTTP verb parsing allowed by the HTTP specification.
 2026-03-23 - Copilot: created detailed Phase 3 request parser and request model backlog.
@@ -6,12 +7,13 @@
 
 ## Summary
 
-This phase covers the inbound HTTP request path without requiring any real transport. `RequestParser` already wraps llhttp behind a library-owned event interface, and `HttpRequest` already centralizes request lifecycle, address propagation, handler invocation, and response dispatch. The goal is to drive both components entirely from in-memory byte fixtures and fake handlers so parser correctness and request-phase transitions become deterministic native tests. Coverage should also explicitly verify that syntactically valid extension methods are accepted and preserved, since HTTP allows custom verbs beyond the common built-in set.
+This phase covers the inbound HTTP request path without requiring any real transport. `RequestParser` already wraps llhttp behind a library-owned event interface, and `HttpRequest` already centralizes request lifecycle, address propagation, handler invocation, and response dispatch. The goal is to drive both components entirely from in-memory byte fixtures and fake handlers so parser correctness and request-phase transitions become deterministic native tests. Coverage should also explicitly verify that llhttp-supported extension methods are accepted and preserved. Truly arbitrary project-defined verbs remain a separate follow-up because the current vendored llhttp parser only recognizes a fixed method table.
 
 ## Goal / Acceptance Criteria
 
 - `RequestParser` behavior is validated against valid, malformed, boundary-sized, and split-input request fixtures.
-- Valid custom HTTP methods allowed by the HTTP token grammar are accepted, surfaced unchanged to pipeline callbacks, and propagated into `HttpRequest` state without normalization.
+- llhttp-supported extension HTTP methods are accepted, surfaced unchanged to pipeline callbacks, and propagated into `HttpRequest` state without normalization.
+- The current request-method length limit is explicit, tested, and aligned with the llhttp-backed method surface currently supported by the library.
 - `HttpRequest` lifecycle behavior is validated without sockets by invoking pipeline callbacks directly.
 - Parser events, error mapping, and request-phase transitions can be asserted in order with reusable fixtures.
 
@@ -20,12 +22,13 @@ This phase covers the inbound HTTP request path without requiring any real trans
 ### RequestParser Fixture Coverage
 
 - [ ] Add parser tests for simple GET requests, POST requests with bodies, and header-only requests.
-- [x] Add parser tests for syntactically valid extension methods such as `PURGE`, `MKCOL`, and a project-defined custom verb, including verification that method text is preserved exactly and remains case-sensitive.
+- [x] Add parser tests for llhttp-supported extension methods such as `PURGE`, `MKCOL`, and `UNSUBSCRIBE`, including verification that method text is preserved exactly and remains case-sensitive.
 - [ ] Add parser tests that split request bytes across multiple `execute()` calls at request-line, header, and body boundaries.
 - [x] Add parser tests that split custom-method bytes across multiple `execute()` calls so method buffering is covered independently from URL and header buffering.
 - [x] Add malformed-request tests for invalid method tokens, malformed request lines, invalid headers, and unexpected EOF handling.
 - [ ] Add oversized-URI, oversized-header-field, oversized-header-value, and total-buffer-limit tests.
 - [x] Add method-boundary tests around the parser's current method-buffer limit so extension methods near the supported maximum length are either accepted or rejected in a deterministic, documented way.
+- [ ] Evaluate parser changes if arbitrary project-defined method tokens must be supported beyond the current vendored llhttp method table.
 - [ ] Verify parser completion, keep-alive decisions, and repeated `execute(nullptr, 0)` or post-finish behavior.
 
 ### Event Recording And Error Mapping
@@ -37,8 +40,8 @@ This phase covers the inbound HTTP request path without requiring any real trans
 
 ### HttpRequest Lifecycle Coverage
 
-- [ ] Add tests that drive `HttpRequest` through starting-line completion, header completion, body delivery, and message completion.
-- [ ] Verify that `HttpRequest` exposes custom request methods unchanged after parser-driven request construction and through handler invocation.
+- [x] Add tests that drive `HttpRequest` through starting-line completion, header completion, body delivery, and message completion.
+- [x] Verify that `HttpRequest` exposes custom request methods unchanged after parser-driven request construction and through handler invocation.
 - [ ] Verify address propagation through `setAddresses(...)` and request accessors.
 - [ ] Verify item storage, URI-view caching behavior, and handler creation timing.
 - [ ] Verify when `handleStep()` is triggered relative to completed phases and response-writing callbacks.
