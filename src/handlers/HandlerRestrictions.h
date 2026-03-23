@@ -3,11 +3,11 @@
 #include <string>
 #include <vector>
 #include "../core/Defines.h"
+#include "../response/IHttpResponse.h"
 #include "IHttpHandler.h"
 namespace HttpServerAdvanced
 {
     class HandlerProviderRegistry;
-    class IHttpResponse;
     class HandlerMatcher;
     
     // Forward declare for trait checking

@@ -2,6 +2,8 @@
 
 Examples organized by complexity and feature coverage. Each example builds on concepts from previous ones.
 
+JSON examples assume the optional ArduinoJson integration is enabled. HTTPS/TLS server examples are intentionally out of scope for this repository.
+
 ---
 
 ## 1. Getting Started

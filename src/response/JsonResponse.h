@@ -2,11 +2,10 @@
 #include "../core/Defines.h"
 #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 #include <initializer_list>
+#include <memory>
 #include "../core/HttpStatus.h"
 #include "../core/HttpHeader.h"
 #include "IHttpResponse.h"
-#include <Arduino.h>
-#include <memory>
 #include <ArduinoJson.h>
 
 namespace HttpServerAdvanced

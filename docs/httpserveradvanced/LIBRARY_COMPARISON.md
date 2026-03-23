@@ -31,7 +31,7 @@ A comprehensive analysis of the rp2040 platform's **WebServer** library versus *
 | **Type Safety** | ⭐⭐ Weak | ⭐⭐⭐⭐⭐ Strong |
 | **Memory Safety** | ⭐⭐⭐ Moderate | ⭐⭐⭐⭐⭐ Excellent |
 | **Input Validation** | ⭐⭐ Limited | ⭐⭐⭐⭐⭐ Comprehensive |
-| **JSON Support** | ⭐⭐ Manual | ⭐⭐⭐⭐⭐ Native |
+| **JSON Support** | ⭐⭐ Manual | ⭐⭐⭐⭐⭐ Native when optional JSON is enabled |
 | **Auth Patterns** | ⭐⭐⭐⭐ Good (+ Digest) | ⭐⭐⭐⭐ Good (middleware) |
 | **Routing Flexibility** | ⭐⭐⭐⭐⭐ Excellent (+ Regex) | ⭐⭐⭐⭐ Good |
 | **Static Files** | ⭐⭐⭐⭐ Good | ⭐⭐⭐⭐⭐ Excellent |
@@ -40,7 +40,7 @@ A comprehensive analysis of the rp2040 platform's **WebServer** library versus *
 
 **Key Functionality Differences:**
 - WebServer offers simpler API but lacks input size limits
-- HttpServerAdvanced has native ArduinoJson integration and middleware architecture
+- HttpServerAdvanced has optional ArduinoJson integration and middleware architecture
 - WebServer supports Digest Auth and Regex routing (not in HttpServerAdvanced)
 - HttpServerAdvanced provides fine-grained CORS control per-route
 
@@ -48,7 +48,7 @@ A comprehensive analysis of the rp2040 platform's **WebServer** library versus *
 
 **Choose WebServer if:** Building simple prototypes, need Digest auth or regex routing, prefer imperative API, memory constraints are not critical.
 
-**Choose HttpServerAdvanced if:** Building production applications, need robust input validation, want built-in JSON handling, require middleware architecture, running long-term without reboots.
+**Choose HttpServerAdvanced if:** Building production applications, need robust input validation, want optional built-in JSON handling, require middleware architecture, running long-term without reboots.
 
 ---
 
@@ -372,7 +372,7 @@ server.addHook([](const String& method, const String& url, WiFiClient* client, .
 | Multipart Form Data | ✅ Built-in | ✅ `MultipartFormDataHandler` |
 | File Uploads | ✅ Callback-based | ✅ Streaming with status events |
 | Raw Body Access | ✅ Callback-based | ✅ `RawBodyHandler` |
-| JSON Body Parsing | ❌ Manual | ✅ `JsonBodyHandler` (ArduinoJson integration) |
+| JSON Body Parsing | ❌ Manual | ✅ `JsonBodyHandler` (optional ArduinoJson integration) |
 | Request Header Access | ✅ By name/index | ✅ `HttpHeaderCollection` |
 | Remote Address Access | ✅ `client()` | ✅ `request.remoteAddress()` |
 
@@ -381,7 +381,7 @@ server.addHook([](const String& method, const String& url, WiFiClient* client, .
 | Feature | WebServer | HttpServerAdvanced |
 |---------|-----------|-------------------|
 | Plain Text Response | ✅ `send()` | ✅ `StringResponse` |
-| JSON Response | ✅ Manual | ✅ `JsonResponse` |
+| JSON Response | ✅ Manual | ✅ `JsonResponse` when JSON support is enabled |
 | Binary Response | ✅ `send()` with length | ✅ Stream-based |
 | File Streaming | ✅ `streamFile()` | ✅ `StaticFileHandler` |
 | Chunked Response | ✅ `chunkedResponseModeStart()` | ✅ `ChunkedHttpResponseBodyStream` |
@@ -591,7 +591,7 @@ Response handleJsonPost(HttpRequest &request, JsonDocument &&body) {
 }
 ```
 
-**Verdict**: HttpServerAdvanced has significant advantage with built-in ArduinoJson integration.
+**Verdict**: HttpServerAdvanced has significant advantage when its optional ArduinoJson integration is enabled.
 
 ### Authentication
 
@@ -706,6 +706,7 @@ return StringResponse::create(
 | Filters | Route filtering |
 | UploadHugeFile | Large file upload handling |
 | SimpleAuthentication | Auth patterns |
+| Note | HTTPS examples remain in WebServer scope; this repository does not ship a corresponding HTTPS example |
 
 **Total: 11 examples**
 
@@ -832,7 +833,7 @@ handlers.on<Multipart>("/upload",
 1. **Handlers return response objects** instead of calling `send()`
 2. **Parameters are passed to handlers**, not accessed globally
 3. **Authentication is middleware**, not in-handler
-4. **JSON parsing is automatic** with `Json` handler type
+4. **JSON parsing is automatic** with `Json` handler type when optional JSON support is enabled
 5. **Memory limits are enforced** by default
 
 ---

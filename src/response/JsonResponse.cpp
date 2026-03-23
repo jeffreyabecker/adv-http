@@ -9,33 +9,36 @@
 namespace HttpServerAdvanced
 {
 
-    static HttpHeaderCollection buildHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength)
+    namespace
     {
-        HttpHeaderCollection headersCollection;
-        for (const auto &header : headers)
+        HttpHeaderCollection buildHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength)
         {
-            headersCollection.set(header);
+            HttpHeaderCollection headersCollection;
+            for (const auto &header : headers)
+            {
+                headersCollection.set(header);
+            }
+            if (!headersCollection.exists(HttpHeaderNames::ContentType))
+            {
+                headersCollection.set(HttpHeader(HttpHeaderNames::ContentType, HttpContentTypes::Json));
+            }
+            if (!headersCollection.exists(HttpHeaderNames::ContentLength))
+            {
+                headersCollection.set(HttpHeader(std::string_view(HttpHeaderNames::ContentLength), std::to_string(contentLength)));
+            }
+            return headersCollection;
         }
-        if (!headersCollection.exists(HttpHeaderNames::ContentType))
-        {
-            headersCollection.set(HttpHeader(HttpHeaderNames::ContentType, HttpContentTypes::Json));
-        }
-        if (!headersCollection.exists(HttpHeaderNames::ContentLength))
-        {
-            headersCollection.set(HttpHeader(HttpHeaderNames::ContentLength, std::to_string(contentLength)));
-        }
-        return headersCollection;
     }
 
     std::unique_ptr<IHttpResponse> JsonResponse::create(HttpStatus status, const JsonDocument &doc, std::initializer_list<HttpHeader> headers)
     {
         // I'm not thrilled about this double serialization, but ArduinoJson doesn't provide a way to
         // serialize using a pull model.
-        String body;
-        body.reserve(measureJson(doc) + 1); // +1 for null terminator
+        std::string body;
+        body.reserve(measureJson(doc));
         serializeJson(doc, body);
-        auto headersCollection = buildHeaders(headers, body.length());
-        auto bodySource = std::make_unique<StdStringByteSource>(std::string(body.c_str(), body.length()));
+        auto headersCollection = buildHeaders(headers, body.size());
+        auto bodySource = std::make_unique<StdStringByteSource>(std::move(body));
         return std::make_unique<HttpResponse>(status, std::move(bodySource), std::move(headersCollection));
     }
 

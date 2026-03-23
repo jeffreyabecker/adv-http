@@ -1,7 +1,6 @@
 #pragma once
 #include "../core/Defines.h"
 #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
-#include <Arduino.h>
 #include "BufferingHttpHandlerBase.h"
 #include "HandlerRestrictions.h"
 #include "../routing/HandlerMatcher.h"
@@ -18,8 +17,6 @@ namespace HttpServerAdvanced
     private:
         std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, JsonDocument &&)> handler_;
         ExtractArgsFromRequest extractor_;
-
-        std::vector<uint8_t> bodyBuffer_;
 
     public:
         JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)

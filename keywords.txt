@@ -7,7 +7,6 @@
 #######################################
 
 WebServer	KEYWORD1
-WebServerSecure	KEYWORD1
 HTTPServer	KEYWORD1
 HTTPMethod	KEYWORD1
 

@@ -1,3 +1,4 @@
+2026-03-22 - Copilot: reviewed the detailed no-Arduino phase backlogs, refreshed the umbrella progress summary, and aligned the high-level phase checklist with completed slices.
 2026-03-21 - Copilot: kept logging example-only via `examples/ExampleRuntime.h`, isolated shared `WifiSetup` serial or delay behavior under `examples/`, and closed the remaining Phase 3 logging-boundary tasks.
 2026-03-21 - Copilot: completed the first production time-seam migration, removed core `F()` literal usage from `HttpUtility.cpp`, and added native regression coverage for the clock seam and HTML encoders.
 2026-03-21 - Copilot: added explicit Phase 4 backlog items to replace legacy transport address-value exposure with `std::string_view`-based address APIs backed by safe ownership.
@@ -9,7 +10,18 @@
 
 ## Summary
 
-This backlog replaces the deleted de-arduinofication task list with a single implementation-oriented program backlog derived from the current planning set under `docs/plans/no-arduino/`. The goal is to move the HTTP core, parsing, routing, response streaming, and static-file paths onto platform-neutral C++17 interfaces while preserving Arduino support through thin compatibility adapters. The work is intentionally staged so the repository remains buildable during migration, native coverage can expand incrementally, and HTTPS/TLS removal plus optional-feature isolation are handled as explicit scope rather than incidental churn. The initial text migration slice is in place, and the first runtime, transport, and stream seam headers now exist in-tree, but pipeline, server, response, and request-model call sites still need to move onto them.
+This backlog replaces the deleted de-arduinofication task list with a single implementation-oriented program backlog derived from the current planning set under `docs/plans/no-arduino/`. The goal remains to move the HTTP core, parsing, routing, response streaming, and static-file paths onto platform-neutral C++17 interfaces while preserving Arduino support through thin compatibility adapters. The work has now progressed beyond initial seam scaffolding: the baseline and build-matrix phases are complete, the text, runtime, transport, stream, and filesystem phases all have landed implementation slices, and the remaining work is concentrated in validation gaps, adapter cleanup, optional-feature isolation, public-surface cleanup, and final enforcement or documentation.
+
+## Current Progress Snapshot
+
+- Phase 0 baseline and scope lock is complete.
+- Phase 1 build and validation harness is complete at the backlog level: build-matrix expectations, JSON build-policy direction, and native-lane purpose are documented.
+- Phase 2 text and utility migration is substantially complete: URI and query parsing, `HttpHeader*`, `HttpRequest*`, handler parameter plumbing, auth/CORS entry points, and string-based response helpers now use standard-text-first internals. The main remaining umbrella item is removing the last direct `Arduino.h` dependence from core text-model headers.
+- Phase 3 runtime-helper cleanup is effectively complete for implementation: the concrete clock seam exists, pipeline timekeeping uses it, `F()` has been removed from the core path, and example runtime concerns sit under `examples/`. Remaining follow-on work is deeper timeout-semantics validation in later native fixture coverage.
+- Phase 4 transport cleanup is largely complete: textual address accessors replaced the old address shim, transport semantics were documented, and the core-facing seam no longer depends on Arduino-shaped wrappers. Remaining work is focused on transport-specific validation and any out-of-tree implementer guidance.
+- Phase 5 stream and response refactoring is largely complete: the byte-source seam exists, response bodies and pipeline callbacks use it, and serializer behavior now has exact-output regression coverage. Remaining work is concentrated in adapter confinement and a few composed-response regression gaps.
+- Phase 6 filesystem and static-file migration is in progress: static-file locators, handlers, and builder wiring now target `IFileSystem` or `IFile`, and Arduino adapter helpers plus POSIX-backed native coverage exist. Remaining work centers on final adapter cleanup, metadata-behavior verification, and broader filesystem regression coverage.
+- Phases 7 through 10 remain mostly planning and cleanup scope: optional JSON isolation, HTTPS residue removal, public API cleanup, broader native fixtures, and final guardrails or documentation are still open.
 
 ## Goal / Acceptance Criteria
 
@@ -46,20 +58,20 @@ This backlog replaces the deleted de-arduinofication task list with a single imp
 
 ### Phase 1: Build And Validation Harness
 
-- [ ] Audit the existing top-level PlatformIO configuration against the plan goals and document any missing library-only, example, or native validation targets.
-- [ ] Add or adjust build targets so the library can be compiled in isolation without relying on the root sketch layout.
-- [ ] Define a representative board matrix for migration validation, with RP2040/Pico W, ESP32, and ESP8266 support status made explicit.
-- [ ] Add a documented command set for build validation using the current Arduino CLI and PlatformIO entrypoints.
-- [ ] Add CI-ready notes or config placeholders for the final board matrix and native lane so migration phases can attach to a stable validation harness.
+- [x] Audit the existing top-level PlatformIO configuration against the plan goals and document any missing library-only, example, or native validation targets.
+- [x] Add or adjust build targets so the library can be compiled in isolation without relying on the root sketch layout.
+- [x] Define a representative board matrix for migration validation, with RP2040/Pico W, ESP32, and ESP8266 support status made explicit.
+- [x] Add a documented command set for build validation using the current Arduino CLI and PlatformIO entrypoints.
+- [x] Add CI-ready notes or config placeholders for the final board matrix and native lane so migration phases can attach to a stable validation harness.
 
 ### Phase 2: Text And Utility Foundation
 
-- [ ] Produce a file-by-file `String` inventory covering owned internal state, non-owning view state, Arduino compatibility surfaces, and Arduino-only adapter usage.
-- [ ] Replace `util/StringUtility.*` with STL-backed text helpers and standard-library algorithms so no library-owned string-helper abstraction remains on the core path.
-- [ ] Retire `util/StringView.h` in favor of STL view and ownership constructs, with compatibility shims only where a public transition requires them.
-- [ ] Update URI and query parsing helpers, including `util/UriView.*` and related utilities, to use `std::string` plus `std::string_view` semantics instead of Arduino-owned text.
-- [ ] Move core owned text models such as `HttpHeader`, `HttpHeaderCollection`, `HttpRequest`, and parser-owned request/header storage onto `std::string`.
-- [ ] Keep Arduino-facing overloads only as compatibility shims, with a bias toward `const char *` for borrowed-input APIs.
+- [x] Produce a file-by-file `String` inventory covering owned internal state, non-owning view state, Arduino compatibility surfaces, and Arduino-only adapter usage.
+- [x] Replace `util/StringUtility.*` with STL-backed text helpers and standard-library algorithms so no library-owned string-helper abstraction remains on the core path.
+- [x] Retire `util/StringView.h` in favor of STL view and ownership constructs, with compatibility shims only where a public transition requires them.
+- [x] Update URI and query parsing helpers, including `util/UriView.*` and related utilities, to use `std::string` plus `std::string_view` semantics instead of Arduino-owned text.
+- [x] Move core owned text models such as `HttpHeader`, `HttpHeaderCollection`, `HttpRequest`, and parser-owned request/header storage onto `std::string`.
+- [x] Keep Arduino-facing overloads only as compatibility shims, with a bias toward `const char *` for borrowed-input APIs.
 - [ ] Remove `Arduino.h` from low-level utility and core model headers once replacement types are in place.
 
 ### Phase 3: Runtime And Miscellaneous Arduino Helpers
@@ -72,28 +84,28 @@ This backlog replaces the deleted de-arduinofication task list with a single imp
 
 ### Phase 4: Transport Boundary
 
-- [ ] Reduce `pipeline/NetClient.h` to a platform-neutral transport contract using library-owned endpoint/value types and C++17 primitives.
-- [ ] Ensure `HttpPipeline` and server layers consume transport interfaces only, not Arduino networking classes.
-- [ ] Define the minimum transport address surface the core actually requires and route all address access through that seam.
+- [x] Reduce `pipeline/NetClient.h` to a platform-neutral transport contract using library-owned endpoint/value types and C++17 primitives.
+- [x] Ensure `HttpPipeline` and server layers consume transport interfaces only, not Arduino networking classes.
+- [x] Define the minimum transport address surface the core actually requires and route all address access through that seam.
 - [x] Replace legacy transport address-value exposure in transport and request/server contracts with `std::string_view`-based address accessors, while keeping ports as integer values.
-- [ ] Define the ownership model behind those `std::string_view` address accessors so views are backed by stable owned strings rather than temporary conversions.
-- [ ] Keep Arduino transport support as thin adapter implementations and constructors rather than core dependencies.
+- [x] Define the ownership model behind those `std::string_view` address accessors so views are backed by stable owned strings rather than temporary conversions.
+- [x] Keep Arduino transport support as thin adapter implementations and constructors rather than core dependencies.
 - [ ] Document the implementer contract for any out-of-tree concrete transport implementation work and keep in-tree code interface-only where intended by the plan.
 
 ### Phase 5: Stream And Response Refactor
 
-- [ ] Freeze the current response-stream behavior with tests before changing the stream contract.
-- [ ] Introduce library-owned readable byte-source and byte-sink contracts alongside temporary bridge adapters.
-- [ ] Migrate read-only stream and response-body types first, including response wrappers, concatenation, chunking, and lazy body composition.
-- [ ] Review duplex memory-stream utilities separately so they do not dictate the base abstraction for the whole response stack.
+- [x] Freeze the current response-stream behavior with tests before changing the stream contract.
+- [x] Introduce library-owned readable byte-source and byte-sink contracts alongside temporary bridge adapters.
+- [x] Migrate read-only stream and response-body types first, including response wrappers, concatenation, chunking, and lazy body composition.
+- [x] Review duplex memory-stream utilities separately so they do not dictate the base abstraction for the whole response stack.
 - [ ] Restrict Arduino `Stream` and `Print` to adapter-only code once the read-path migration is complete.
-- [ ] Verify that bounded-memory direct and chunked response behavior remains unchanged after the interface swap.
+- [x] Verify that bounded-memory direct and chunked response behavior remains unchanged after the interface swap.
 
 ### Phase 6: Filesystem And Static Files
 
-- [ ] Define the minimal filesystem interface required by static-file serving and file-backed response streaming.
-- [ ] Retarget static-file locators and handlers onto library-owned filesystem/file abstractions.
-- [ ] Provide Arduino filesystem adapters that preserve current board behavior with minimal wrapping.
+- [x] Define the minimal filesystem interface required by static-file serving and file-backed response streaming.
+- [x] Retarget static-file locators and handlers onto library-owned filesystem/file abstractions.
+- [x] Provide Arduino filesystem adapters that preserve current board behavior with minimal wrapping.
 - [ ] Ensure metadata-dependent behavior such as content length, directory fallback, and last-modified handling remains correct where the platform can provide it.
 - [ ] Add or extend host-side adapters for filesystem-backed tests so static-file behavior can be validated without Arduino headers.
 

@@ -4,6 +4,7 @@
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
 #include "../streams/ByteStream.h"
+#include "ChunkedHttpResponseBodyStream.h"
 #include "IHttpResponse.h"
 
 namespace HttpServerAdvanced

@@ -39,6 +39,19 @@ namespace HttpServerAdvanced
 
         virtual AvailableResult available() = 0;
         virtual size_t read(HttpServerAdvanced::span<uint8_t> buffer) = 0;
+        virtual int read(){
+            uint8_t byte = 0;
+            return read(HttpServerAdvanced::span<uint8_t>(&byte, 1)) == 0 ? -1 : byte;
+        }
+        virtual size_t readBytes(uint8_t *buffer, size_t size)
+        {
+            return read(HttpServerAdvanced::span<uint8_t>(buffer, size));
+        }
+        virtual size_t peek(uint8_t *buffer, size_t size)
+        {
+            return peek(HttpServerAdvanced::span<uint8_t>(buffer, size));
+        }
+
         virtual size_t peek(HttpServerAdvanced::span<uint8_t> buffer) = 0;
     };
 
@@ -51,7 +64,10 @@ namespace HttpServerAdvanced
         {
             return write(HttpServerAdvanced::span<const uint8_t>(&byte, 1));
         }
-
+        virtual std::size_t write(std::uint8_t* buffer, std::size_t size)
+        {
+            return write(HttpServerAdvanced::span<const uint8_t>(buffer, size));
+        }
         virtual std::size_t write(HttpServerAdvanced::span<const uint8_t> buffer) = 0;
 
         std::size_t write(std::string_view buffer)

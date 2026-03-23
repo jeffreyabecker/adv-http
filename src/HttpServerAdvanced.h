@@ -24,7 +24,9 @@
 #include "handlers/HttpHandler.h"
 #include "handlers/IHandlerProvider.h"
 #include "handlers/IHttpHandler.h"
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 #include "handlers/JsonBodyHandler.h"
+#endif
 #include "handlers/MultipartFormDataHandler.h"
 #include "handlers/RawBodyHandler.h"
 
@@ -34,7 +36,9 @@
 #include "response/HttpResponse.h"
 #include "response/HttpResponseIterators.h"
 #include "response/IHttpResponse.h"
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 #include "response/JsonResponse.h"
+#endif
 #include "response/StringResponse.h"
 
 // Request routing

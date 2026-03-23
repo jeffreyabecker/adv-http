@@ -1,6 +1,6 @@
 # HttpServerAdvanced Library Documentation
 
-A comprehensive, pipeline-based HTTP server library for Arduino/RP2040 (Pico W) platforms with advanced routing and handler patterns.
+A comprehensive, pipeline-based HTTP server library for Arduino/RP2040 (Pico W) platforms with advanced routing and handler patterns. JSON integration is optional and enabled only when `ArduinoJson` is available or `HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON=1` is set. HTTPS/TLS server support is not part of the maintained library surface.
 
 ---
 
@@ -257,7 +257,7 @@ Handlers process HTTP requests and generate responses.
 | Type | HTTP Method | Body Type | Signature |
 |------|-------------|-----------|-----------|
 | `GetRequest` | GET | None | `(HttpRequest&, args...) → IHttpResponse` |
-| `Json` | POST/PUT | ArduinoJson | `(HttpRequest&, JsonDocument&, args...) → IHttpResponse` |
+| `Json` | POST/PUT | ArduinoJson (optional) | `(HttpRequest&, JsonDocument&, args...) → IHttpResponse` when JSON support is enabled |
 | `Form` | POST | URL-encoded | `(HttpRequest&, FormData&, args...) → IHttpResponse` |
 | `Multipart` | POST | multipart/form-data | `(HttpRequest&, MultipartData&, args...) → IHttpResponse` |
 | `RawBody` | POST/PUT | Raw bytes | `(HttpRequest&, Buffer&, args...) → IHttpResponse` |
@@ -303,7 +303,7 @@ public:
 
 #### Handler Type Pattern
 
-Each handler type (GetRequest, Json, Form, etc.) follows this pattern:
+Each handler type (GetRequest, Json, Form, etc.) follows this pattern. `Json` is only available when JSON support is enabled:
 
 ```cpp
 struct Json {
@@ -535,6 +535,8 @@ public:
                                                   std::initializer_list<HttpHeader> headers);
 };
 ```
+
+`JsonResponse` and the `Json` handler family are excluded from JSON-disabled builds.
 
 ---
 
@@ -821,7 +823,7 @@ class UriView {
 public:
     UriView(const String& uri);
     
-    std::string_view scheme() const;     // "https"
+    std::string_view scheme() const;     // URI scheme if present, e.g. "http"
     std::string_view userinfo() const;   // "user:pass"
     std::string_view host() const;       // "example.com"
     std::string_view port() const;       // "8080"
@@ -966,13 +968,6 @@ void setup() {
         return StringResponse::text("Hello World!");
     });
     
-    server.cfg().on<GetRequest>("/json", [](HttpRequest& req) {
-        JsonDocument doc;
-        doc["message"] = "Hello";
-        doc["time"] = millis();
-        return JsonResponse::create(doc);
-    });
-    
     server.begin();
 }
 
@@ -992,6 +987,8 @@ server.cfg().on<GetRequest>(ParameterizedUri("/users/:id"),
 ```
 
 ### JSON API
+
+This pattern requires optional ArduinoJson support to be enabled.
 
 ```cpp
 server.cfg().on<Json>("/api/data", [](HttpRequest& req, JsonDocument& body, std::vector<String>& args) {

@@ -9,7 +9,10 @@
 #include "MultipartFormDataHandler.h"
 #include "RawBodyHandler.h"
 #include "FormBodyHandler.h"
-#include "JsonBodyHandler.h" // JsonBodyHandler is excluded until I can figure out how to efficently serialize a response without needing to preallocate a buffer
+#include "../core/Defines.h"
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#include "JsonBodyHandler.h"
+#endif
 #include "BufferedStringBodyHandler.h"
 namespace HttpServerAdvanced
 {
