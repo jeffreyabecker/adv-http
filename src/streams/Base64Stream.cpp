@@ -51,11 +51,6 @@ namespace HttpServerAdvanced
     {
     }
 
-    Base64DecoderStream::Base64DecoderStream(const String &data, const char *dictionary)
-        : Base64DecoderStream(std::make_unique<StdStringByteSource>(std::string(data.c_str(), data.length())), data.length(), dictionary)
-    {
-    }
-
     Base64DecoderStream::Base64DecoderStream(const char *data, const char *dictionary)
         : Base64DecoderStream(std::make_unique<SpanByteSource>(reinterpret_cast<const uint8_t *>(data), strlen(data)), strlen(data), dictionary)
     {
@@ -64,11 +59,6 @@ namespace HttpServerAdvanced
     Base64DecoderStream::Base64DecoderStream(const uint8_t *data, size_t length, const char *dictionary)
         : Base64DecoderStream(std::make_unique<SpanByteSource>(data, length), length, dictionary)
     {
-    }
-
-    Base64DecoderStream Base64DecoderStream::create(const String &data, bool isUrlSafe)
-    {
-        return Base64DecoderStream(data, isUrlSafe ? base64_url_chars : base64_chars);
     }
 
     Base64DecoderStream Base64DecoderStream::create(const char *data, bool isUrlSafe)
@@ -106,6 +96,40 @@ namespace HttpServerAdvanced
         }
 
         return underlyingAvailable;
+    }
+
+    size_t Base64DecoderStream::read(HttpServerAdvanced::span<uint8_t> buffer)
+    {
+        size_t totalRead = 0;
+        while (totalRead < buffer.size())
+        {
+            const int value = readSingleByte();
+            if (value < 0)
+            {
+                break;
+            }
+
+            buffer[totalRead++] = static_cast<uint8_t>(value);
+        }
+
+        return totalRead;
+    }
+
+    size_t Base64DecoderStream::peek(HttpServerAdvanced::span<uint8_t> buffer)
+    {
+        if (buffer.empty())
+        {
+            return 0;
+        }
+
+        const int value = peekSingleByte();
+        if (value < 0)
+        {
+            return 0;
+        }
+
+        buffer[0] = static_cast<uint8_t>(value);
+        return 1;
     }
 
     int Base64DecoderStream::peekSingleByte()
@@ -174,11 +198,6 @@ namespace HttpServerAdvanced
     {
     }
 
-    Base64EncoderStream Base64EncoderStream::create(const String &data, bool isUrlSafe, bool emitPadding)
-    {
-        return Base64EncoderStream(std::make_unique<StdStringByteSource>(std::string(data.c_str(), data.length())), data.length(), isUrlSafe ? base64_url_chars : base64_chars, !isUrlSafe && emitPadding);
-    }
-
     Base64EncoderStream Base64EncoderStream::create(const uint8_t *data, size_t length, bool isUrlSafe, bool emitPadding)
     {
         return Base64EncoderStream(std::make_unique<SpanByteSource>(data, length), length, isUrlSafe ? base64_url_chars : base64_chars, !isUrlSafe && emitPadding);
@@ -214,6 +233,40 @@ namespace HttpServerAdvanced
         }
 
         return underlyingAvailable;
+    }
+
+    size_t Base64EncoderStream::read(HttpServerAdvanced::span<uint8_t> buffer)
+    {
+        size_t totalRead = 0;
+        while (totalRead < buffer.size())
+        {
+            const int value = readSingleByte();
+            if (value < 0)
+            {
+                break;
+            }
+
+            buffer[totalRead++] = static_cast<uint8_t>(value);
+        }
+
+        return totalRead;
+    }
+
+    size_t Base64EncoderStream::peek(HttpServerAdvanced::span<uint8_t> buffer)
+    {
+        if (buffer.empty())
+        {
+            return 0;
+        }
+
+        const int value = peekSingleByte();
+        if (value < 0)
+        {
+            return 0;
+        }
+
+        buffer[0] = static_cast<uint8_t>(value);
+        return 1;
     }
 
     int Base64EncoderStream::peekSingleByte()

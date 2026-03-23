@@ -1,24 +1,12 @@
 #include "UriStream.h"
 
 #include <cstdlib>
+#include <cstring>
 
 namespace HttpServerAdvanced
 {
     namespace
     {
-        std::vector<std::pair<std::string, std::string>> toOwnedData(std::vector<std::pair<String, String>> &&data)
-        {
-            std::vector<std::pair<std::string, std::string>> owned;
-            owned.reserve(data.size());
-            for (auto &pair : data)
-            {
-                owned.emplace_back(
-                    std::string(pair.first.c_str(), pair.first.length()),
-                    std::string(pair.second.c_str(), pair.second.length()));
-            }
-            return owned;
-        }
-
         bool isUriUnreserved(unsigned char byte)
         {
             return (byte >= 'A' && byte <= 'Z') ||
@@ -79,11 +67,6 @@ namespace HttpServerAdvanced
     }
 
     // UriDecodingStream
-    UriDecodingStream::UriDecodingStream(const String &uri)
-        : UriDecodingStream(std::make_unique<StdStringByteSource>(std::string(uri.c_str(), uri.length())))
-    {
-    }
-
     UriDecodingStream::UriDecodingStream(const char *uri)
         : UriDecodingStream(std::make_unique<SpanByteSource>(reinterpret_cast<const uint8_t *>(uri), strlen(uri)))
     {
@@ -113,6 +96,40 @@ namespace HttpServerAdvanced
         }
 
         return innerAvailable;
+    }
+
+    size_t UriDecodingStream::read(HttpServerAdvanced::span<uint8_t> buffer)
+    {
+        size_t totalRead = 0;
+        while (totalRead < buffer.size())
+        {
+            const int value = readSingleByte();
+            if (value < 0)
+            {
+                break;
+            }
+
+            buffer[totalRead++] = static_cast<uint8_t>(value);
+        }
+
+        return totalRead;
+    }
+
+    size_t UriDecodingStream::peek(HttpServerAdvanced::span<uint8_t> buffer)
+    {
+        if (buffer.empty())
+        {
+            return 0;
+        }
+
+        const int value = peekSingleByte();
+        if (value < 0)
+        {
+            return 0;
+        }
+
+        buffer[0] = static_cast<uint8_t>(value);
+        return 1;
     }
 
     int UriDecodingStream::readSingleByte()
@@ -178,11 +195,6 @@ namespace HttpServerAdvanced
     }
 
     // UriEncodingStream
-    UriEncodingStream::UriEncodingStream(const String &uri)
-        : UriEncodingStream(std::make_unique<StdStringByteSource>(std::string(uri.c_str(), uri.length())))
-    {
-    }
-
     UriEncodingStream::UriEncodingStream(const char *uri)
         : UriEncodingStream(std::make_unique<SpanByteSource>(reinterpret_cast<const uint8_t *>(uri), strlen(uri)))
     {
@@ -206,6 +218,40 @@ namespace HttpServerAdvanced
         }
 
         return innerStream_ ? innerStream_->available() : ExhaustedResult();
+    }
+
+    size_t UriEncodingStream::read(HttpServerAdvanced::span<uint8_t> buffer)
+    {
+        size_t totalRead = 0;
+        while (totalRead < buffer.size())
+        {
+            const int value = readSingleByte();
+            if (value < 0)
+            {
+                break;
+            }
+
+            buffer[totalRead++] = static_cast<uint8_t>(value);
+        }
+
+        return totalRead;
+    }
+
+    size_t UriEncodingStream::peek(HttpServerAdvanced::span<uint8_t> buffer)
+    {
+        if (buffer.empty())
+        {
+            return 0;
+        }
+
+        const int value = peekSingleByte();
+        if (value < 0)
+        {
+            return 0;
+        }
+
+        buffer[0] = static_cast<uint8_t>(value);
+        return 1;
     }
 
     int UriEncodingStream::readSingleByte()
@@ -268,8 +314,4 @@ namespace HttpServerAdvanced
     {
     }
 
-    FormEncodingStream::FormEncodingStream(std::vector<std::pair<String, String>> &&data)
-        : FormEncodingStream(toOwnedData(std::move(data)))
-    {
-    }
 }

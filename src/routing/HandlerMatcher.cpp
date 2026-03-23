@@ -106,7 +106,7 @@ namespace HttpServerAdvanced
     RouteParameters defaultExtractParameters(HttpRequest &context, std::string_view uriPattern)
     {
         RouteParameters params;
-        auto v = UriView(context.url());
+        auto v = UriView(context.urlView());
         auto path = v.path();
         if (uriPattern.find('*') == std::string_view::npos)
         {

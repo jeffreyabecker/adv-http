@@ -215,11 +215,6 @@ The current codebase already suggests a natural split.
 ### Classes That Should Migrate To `IByteSource`
 
 - `ReadStream`
-- `EmptyReadStream`
-- `OctetsStream`
-- `StringStream`
-- `LazyStreamAdapter`
-- `ConcatStream`
 - URI encoding and decoding stream wrappers
 - base64 encoding and decoding stream wrappers
 - `ChunkedHttpResponseBodyStream`
@@ -227,10 +222,9 @@ The current codebase already suggests a natural split.
 
 ### Classes That Need Separate Review
 
-- `NonOwningMemoryStream`
 - any future helper that is truly both readable and writable
 
-`NonOwningMemoryStream` is the only remaining in-tree duplex helper after removing the unused owning memory-stream wrappers. Any future duplex helper should justify itself explicitly rather than broadening the source-oriented response contracts.
+The remaining review rule is straightforward: any future duplex helper should justify itself explicitly rather than broadening the source-oriented response contracts.
 
 ### Filesystem Interaction
 
@@ -242,15 +236,6 @@ The current codebase already suggests a natural split.
 ### Read-Only / Source-Oriented Types
 
 - `ReadStream`
-- `EmptyReadStream`
-- `OctetsStream`
-- `StringStream`
-- `StdStringStream`
-- `LazyStreamAdapter`
-- `IndefiniteConcatStream`
-- `ConcatStream`
-- `RefBufferedReadStreamWrapper`
-- `StaticBufferedReadStreamWrapper`
 - `Base64DecoderStream`
 - `Base64EncoderStream`
 - `UriDecodingStream`
@@ -258,10 +243,6 @@ The current codebase already suggests a natural split.
 - `FormEncodingStream`
 - `ChunkedHttpResponseBodyStream`
 - `HttpPipelineResponseSource`
-
-### Duplex Types
-
-- `NonOwningMemoryStream`
 
 ### Adapter-Facing Legacy Or Bridge Types
 

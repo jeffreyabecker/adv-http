@@ -1,5 +1,5 @@
 #pragma once
-#include <Arduino.h>
+#include <string>
 #include "BufferingHttpHandlerBase.h"
 #include "HandlerRestrictions.h"
 #include "../routing/HandlerMatcher.h"
@@ -11,14 +11,14 @@ namespace HttpServerAdvanced
     class BufferedStringBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_FORM_BODY_LENGTH>
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, String &&)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, std::string &&)> handler_;
         ExtractArgsFromRequest extractor_;
 
     public:
-        BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, String &&)> handler, ExtractArgsFromRequest extractor)
+        BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, std::string &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, String &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequest &context, RouteParameters &&, String &&postData)
+        BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, std::string &&)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](HttpRequest &context, RouteParameters &&, std::string &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
 
@@ -28,7 +28,7 @@ namespace HttpServerAdvanced
     class Buffered
     {
     public:
-        using BodyData = arduino::String;
+        using BodyData = std::string;
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, BodyData &&)>;
         using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, BodyData &&)>;
 

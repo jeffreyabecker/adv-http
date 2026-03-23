@@ -77,8 +77,6 @@
 // Utility functions
 #include "util/HttpUtility.h"
 #include "util/KeyValuePairView.h"
-#include "util/StringUtility.h"
-#include "util/StringView.h"
 #include "util/UriView.h"
 
 // Server implementations

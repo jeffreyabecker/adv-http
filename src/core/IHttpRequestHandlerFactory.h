@@ -1,5 +1,4 @@
 #pragma once
-#include <Arduino.h>
 #include <string>
 #include <string_view>
 
@@ -17,14 +16,6 @@ namespace HttpServerAdvanced
         virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string_view body)
         {
             return createResponse(status, std::string(body));
-        }
-        virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, const String &body)
-        {
-            return createResponse(status, std::string(body.c_str(), body.length()));
-        }
-        virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, String &&body)
-        {
-            return createResponse(status, std::string(body.c_str(), body.length()));
         }
         virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, const char * body)
         {

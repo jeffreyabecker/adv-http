@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <string>
 #include "../core/Defines.h"
 
 namespace HttpServerAdvanced
@@ -123,7 +124,7 @@ namespace HttpServerAdvanced
         static int on_header_field_complete_cb(llhttp_t *parser);
         static int on_header_value_complete_cb(llhttp_t *parser);
 
-        String method_;
+        std::string method_;
         short versionMajor_ = 1;
         short versionMinor_ = 1;
         // Map llhttp error code to PipelineErrorCode

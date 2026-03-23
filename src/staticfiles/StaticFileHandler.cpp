@@ -122,10 +122,9 @@ namespace HttpServerAdvanced
         FileHandle file = fileLocator_->getFile(context);
         if (!file)
         {
-            const String notFoundBody("Not Found");
             return HttpHandler::create(
                 StringResponse::create(HttpStatus::NotFound(),
-                                       notFoundBody,
+                                       "Not Found",
                                        {}));
         }
 

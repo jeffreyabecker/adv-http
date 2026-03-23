@@ -744,12 +744,7 @@ Stream utilities for encoding/decoding and composition.
 
 | Class | Purpose |
 |-------|---------|
-| `ReadStream` | Abstract base for read-only streams |
-| `EmptyReadStream` | Always-empty stream |
-| `OctetsStream` | Stream from byte array |
-| `StringStream` | Stream from Arduino String |
-| `LazyStreamAdapter` | Deferred stream creation |
-| `IndefiniteConcatStream` | Concatenates multiple streams |
+| `ReadStream` | Single-byte-source convenience base for decoder and encoder wrappers |
 | `Base64DecoderStream` | Decodes Base64 input |
 | `Base64EncoderStream` | Encodes to Base64 output |
 | `UriDecodingStream` | Decodes percent-encoding |
@@ -799,20 +794,9 @@ Helper classes and functions.
 
 | Class | Purpose |
 |-------|---------|
-| `StringView` | Non-owning string reference (like std::string_view) |
 | `KeyValuePairView<K,V>` | Immutable key-value collection |
 | `UriView` | Parsed URI with scheme, host, path, query, fragment |
 | `WebUtility` | URL/HTML encoding, Base64 utilities |
-| `StringUtil` | Minimal standard-text helper namespace kept for compatibility during migration |
-
-#### StringView
-
-Compatibility aliases for STL text views and ownership:
-
-```cpp
-using StringView = std::string_view;
-using OwningStringView = std::string;
-```
 
 #### UriView
 
@@ -844,21 +828,21 @@ Encoding/decoding utilities:
 class WebUtility {
 public:
     // Query string parsing
-    static std::vector<std::pair<String, String>> ParseQueryString(const String& query);
+    static std::vector<std::pair<std::string, std::string>> ParseQueryString(std::string_view query);
     
     // URI encoding/decoding
-    static String DecodeURIComponent(const String& str);
-    static String EncodeURIComponent(const String& str);
+    static std::string DecodeURIComponent(std::string_view str);
+    static std::string EncodeURIComponent(std::string_view str);
     
     // HTML encoding
-    static String HtmlEncode(const String& str);
-    static String HtmlAttributeEncode(const String& str);
-    static String JavaScriptStringEncode(const String& str, bool includeQuotes = true);
+    static std::string HtmlEncode(std::string_view str);
+    static std::string HtmlAttributeEncode(std::string_view str);
+    static std::string JavaScriptStringEncode(std::string_view str, bool includeQuotes = true);
     
     // Base64
-    static String Base64Encode(const String& input, bool urlCompatible = false);
-    static String Base64DecodeToString(const String& input, bool urlCompatible = false);
-    static std::vector<uint8_t> Base64Decode(const String& input, bool urlCompatible = false);
+    static std::string Base64Encode(std::string_view input, bool urlCompatible = false);
+    static std::string Base64DecodeToString(std::string_view input, bool urlCompatible = false);
+    static std::vector<uint8_t> Base64Decode(std::string_view input, bool urlCompatible = false);
 };
 ```
 
@@ -897,11 +881,6 @@ FileLocator
 
 Stream
 └── ReadStream
-    ├── EmptyReadStream
-    ├── OctetsStream
-    │   └── StringStream
-    ├── LazyStreamAdapter
-    ├── IndefiniteConcatStream<It>
     ├── Base64DecoderStream
     ├── Base64EncoderStream
     ├── UriDecodingStream

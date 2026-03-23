@@ -5,8 +5,6 @@
 
 #include "HttpUtility.h"
 
-class String;
-
 namespace HttpServerAdvanced
 {
     class UriView
@@ -16,7 +14,6 @@ namespace HttpServerAdvanced
         explicit UriView(std::string uri);
         explicit UriView(std::string_view uri);
         explicit UriView(const char *uri);
-        explicit UriView(const String &uri);
         UriView(const UriView &that);
         UriView &operator=(const UriView &that);
 

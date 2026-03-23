@@ -41,7 +41,7 @@ namespace HttpServerAdvanced
             {
                 return false;
             }
-            const std::string decodedCredentials = HttpServerAdvanced::WebUtility::Base64DecodeToStdString(authHeaderValue.substr(Prefix.size()));
+            const std::string decodedCredentials = HttpServerAdvanced::WebUtility::Base64DecodeToString(authHeaderValue.substr(Prefix.size()));
             const std::string_view decodedView(decodedCredentials.data(), decodedCredentials.size());
             const std::size_t separatorIndex = decodedView.find(':');
             if (separatorIndex == std::string_view::npos)

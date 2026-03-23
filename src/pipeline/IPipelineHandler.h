@@ -23,10 +23,10 @@ namespace HttpServerAdvanced
     {
     public:
         virtual ~IPipelineHandler() = default;
-        virtual int onMessageBegin(const char* method, uint16_t versionMajor, uint16_t versionMinor, String&& url) = 0;
+        virtual int onMessageBegin(const char* method, uint16_t versionMajor, uint16_t versionMinor, std::string_view url) = 0;
         virtual void setAddresses(std::string_view remoteAddress, uint16_t remotePort, std::string_view localAddress, uint16_t localPort) = 0;
         virtual void setResponseStreamCallback(std::function<void(std::unique_ptr<IByteSource>)> onStreamReady) = 0;
-        virtual int onHeader(String&& field, String&& value) = 0;
+        virtual int onHeader(std::string_view field, std::string_view value) = 0;
         virtual int onHeadersComplete() = 0;
         virtual int onBody(const uint8_t *at, std::size_t length) = 0;
         virtual int onMessageComplete() = 0;

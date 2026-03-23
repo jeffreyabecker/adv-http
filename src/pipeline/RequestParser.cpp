@@ -165,7 +165,7 @@ namespace HttpServerAdvanced
                 self->method_.c_str(),
                 self->versionMajor_,
                 self->versionMinor_,
-                String(self->buffer_.data() + self->urlPos_, self->urlLen_));
+                std::string_view(self->buffer_.data() + self->urlPos_, self->urlLen_));
             
             if (result != 0)
             {
@@ -181,7 +181,7 @@ namespace HttpServerAdvanced
         if (self && self->methodLen_ > 0)
         {
             // Copy method from buffer to method_ string
-            self->method_ = String(self->buffer_.data() + self->methodPos_, self->methodLen_);
+            self->method_.assign(self->buffer_.data() + self->methodPos_, self->methodLen_);
         }
         return 0;
     }
@@ -238,8 +238,8 @@ namespace HttpServerAdvanced
             }
             ++self->headerCount_;
             int result = self->eventHandler_.onHeader(
-                String(self->buffer_.data() + self->headerFieldPos_, self->headerFieldLen_),
-                String(self->buffer_.data() + self->headerValuePos_, self->headerValueLen_));
+                std::string_view(self->buffer_.data() + self->headerFieldPos_, self->headerFieldLen_),
+                std::string_view(self->buffer_.data() + self->headerValuePos_, self->headerValueLen_));
             
             // Reset header field and value lengths for next header
             self->headerFieldLen_ = 0;

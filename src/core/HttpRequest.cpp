@@ -42,7 +42,7 @@ namespace HttpServerAdvanced
 
         if (!response_)
         {
-            response_ = handlerFactory_.createResponse(HttpStatus::InternalServerError(), String("Internal Server Error: No response generated"));
+            response_ = handlerFactory_.createResponse(HttpStatus::InternalServerError(), "Internal Server Error: No response generated");
         }
         completedPhases_ |= HttpRequestPhase::WritingResponseStarted;
         onStreamReady_(CreateResponseStream(std::move(response_)));
@@ -53,7 +53,7 @@ namespace HttpServerAdvanced
         if (!haveSentResponse_)
         {
             HttpStatus status;
-            String message;
+            std::string message;
 
             switch (error.code())
             {
@@ -82,7 +82,7 @@ namespace HttpServerAdvanced
                 break;
             }
 
-            response_ = handlerFactory_.createResponse(status, std::move(message + String(error.message())));
+            response_ = handlerFactory_.createResponse(status, message + std::string(error.message()));
             sendResponse();
         }
     }

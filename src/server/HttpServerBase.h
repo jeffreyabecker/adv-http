@@ -51,7 +51,7 @@ namespace HttpServerAdvanced
         std::vector<std::unique_ptr<HttpPipeline>> pipelines_;
         HttpTimeouts timeouts_;
         const Compat::Clock *clock_;
-        mutable std::map<String, std::any> items_;
+        mutable std::map<std::string, std::any> items_;
     };
 
 } // namespace HttpServerAdvanced

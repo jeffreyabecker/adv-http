@@ -1,7 +1,6 @@
 #include "StringResponse.h"
 
-#include <Arduino.h>
-
+#include <cstring>
 #include <string>
 #include <string_view>
 
@@ -9,11 +8,6 @@ namespace HttpServerAdvanced
 {
     namespace
     {
-        std::string toStdString(const String &value)
-        {
-            return std::string(value.c_str(), value.length());
-        }
-
         HttpHeaderCollection buildHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength, std::string_view defaultContentType = HttpContentTypes::TextPlain)
         {
             HttpHeaderCollection headersCollection;
@@ -55,26 +49,6 @@ namespace HttpServerAdvanced
         return create(status, body, {});
     }
 
-    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const String &body, std::initializer_list<HttpHeader> headers)
-    {
-        return create(status, toStdString(body), headers);
-    }
-
-    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const String &body)
-    {
-        return create(status, toStdString(body), {});
-    }
-
-    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, String &&body, std::initializer_list<HttpHeader> headers)
-    {
-        return create(status, toStdString(body), headers);
-    }
-
-    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, String &&body)
-    {
-        return create(status, toStdString(body), {});
-    }
-
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const char *body, std::initializer_list<HttpHeader> headers)
     {
         size_t len = strlen(body);
@@ -103,21 +77,6 @@ namespace HttpServerAdvanced
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, std::string_view contentType, std::string_view body)
     {
         return create(status, std::string(body), {HttpHeader(HttpHeaderNames::ContentType, contentType)});
-    }
-
-    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const String &contentType, const String &body)
-    {
-        return create(status, std::string_view(contentType.c_str(), contentType.length()), toStdString(body));
-    }
-
-    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const String &contentType, String &&body)
-    {
-        return create(status, std::string_view(contentType.c_str(), contentType.length()), toStdString(body));
-    }
-
-    std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const String &contentType, const char *body)
-    {
-        return create(status, body, {HttpHeader(HttpHeaderNames::ContentType, std::string_view(contentType.c_str(), contentType.length()))});
     }
 
 } // namespace HttpServerAdvanced

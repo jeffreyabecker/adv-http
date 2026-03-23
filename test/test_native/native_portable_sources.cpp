@@ -22,5 +22,4 @@
 #include "../../src/staticfiles/DefaultFileLocator.cpp"
 #include "../../src/staticfiles/StaticFileHandler.cpp"
 #include "../../src/util/HttpUtility.cpp"
-#include "../../src/util/StringUtility.cpp"
 #include "../../src/util/UriView.cpp"

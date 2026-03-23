@@ -1,7 +1,5 @@
 #include "UriView.h"
 
-#include <Arduino.h>
-
 #include "HttpUtility.h"
 
 namespace HttpServerAdvanced
@@ -24,11 +22,6 @@ namespace HttpServerAdvanced
 
     UriView::UriView(const char *uri)
         : UriView(uri == nullptr ? std::string() : std::string(uri))
-    {
-    }
-
-    UriView::UriView(const String &uri)
-        : UriView(std::string(uri.c_str(), uri.length()))
     {
     }
 

@@ -9,7 +9,9 @@
 
 #include "KeyValuePairView.h"
 
-class String;
+#ifdef ARDUINO
+#include <Arduino.h>
+#endif
 
 namespace HttpServerAdvanced
 {
@@ -22,45 +24,30 @@ namespace HttpServerAdvanced
         static QueryParameters ParseQueryParameters(const char *query, std::size_t length);
         static QueryParameters ParseQueryParameters(std::string_view query);
 
-        static std::vector<std::pair<String, String>> ParseQueryString(const char *query, std::size_t length);
-        static std::vector<std::pair<String, String>> ParseQueryString(const String &query);
-    static std::vector<std::pair<String, String>> ParseQueryString(std::string_view query);
+        static std::vector<QueryParameter> ParseQueryString(const char *query, std::size_t length);
+        static std::vector<QueryParameter> ParseQueryString(std::string_view query);
 
-        static std::string DecodeURIComponentToString(const char *str, std::size_t length);
-        static std::string DecodeURIComponentToString(std::string_view str);
-        static String DecodeURIComponent(const String &str);
-        static String DecodeURIComponent(const char *str, std::size_t length);
-    static String DecodeURIComponent(std::string_view str);
+        static std::string DecodeURIComponent(const char *str, std::size_t length);
+        static std::string DecodeURIComponent(std::string_view str);
 
-        static std::string EncodeURIComponentToString(const char *str, std::size_t length);
-        static std::string EncodeURIComponentToString(std::string_view str);
-        static String EncodeURIComponent(const char *str, std::size_t length);
-        static String EncodeURIComponent(const String &str);
-    static String EncodeURIComponent(std::string_view str);
+        static std::string EncodeURIComponent(const char *str, std::size_t length);
+        static std::string EncodeURIComponent(std::string_view str);
 
-        static String HtmlEncode(const char *str, std::size_t length);
-        static String HtmlEncode(const String &str);
-        static String HtmlEncode(const char *input);
-    static String HtmlEncode(std::string_view str);
+        static std::string HtmlEncode(const char *str, std::size_t length);
+        static std::string HtmlEncode(const char *input);
+        static std::string HtmlEncode(std::string_view str);
 
-        static String HtmlAttributeEncode(const char *input, std::size_t length);
-        static String HtmlAttributeEncode(const String &input);
-        static String HtmlAttributeEncode(const char *input);
-    static String HtmlAttributeEncode(std::string_view str);
+        static std::string HtmlAttributeEncode(const char *input, std::size_t length);
+        static std::string HtmlAttributeEncode(const char *input);
+        static std::string HtmlAttributeEncode(std::string_view str);
 
-        static String JavaScriptStringEncode(const String &input, bool includeQuotes = true);
+        static std::string JavaScriptStringEncode(std::string_view input, bool includeQuotes = true);
 
-        static String Base64Encode(const String &input, bool urlCompatible = false);
-        static String Base64Encode(const uint8_t *data, std::size_t length, bool urlCompatible = false);
-    static String Base64Encode(std::string_view input, bool urlCompatible = false);
-        static std::vector<uint8_t> Base64Decode(const String &input, bool urlCompatible = false);
-    static std::vector<uint8_t> Base64Decode(std::string_view input, bool urlCompatible = false);
-        static std::string Base64DecodeToStdString(std::string_view input, bool urlCompatible = false);
-        static String Base64DecodeToString(const String &input, bool urlCompatible = false);
-        static String Base64DecodeToString(const char *data, std::size_t length, bool urlCompatible = false);
-    static String Base64DecodeToString(std::string_view input, bool urlCompatible = false);
-
-
+        static std::string Base64Encode(const uint8_t *data, std::size_t length, bool urlCompatible = false);
+        static std::string Base64Encode(std::string_view input, bool urlCompatible = false);
+        static std::vector<uint8_t> Base64Decode(std::string_view input, bool urlCompatible = false);
+        static std::string Base64DecodeToString(const char *data, std::size_t length, bool urlCompatible = false);
+        static std::string Base64DecodeToString(std::string_view input, bool urlCompatible = false);
     };
 
 } // namespace HttpServerAdvanced

@@ -12,8 +12,6 @@
 #include "../streams/UriStream.h"
 #include "HttpResponse.h"
 
-class String;
-
 namespace HttpServerAdvanced
 {
     class FormResponse
@@ -75,29 +73,6 @@ namespace HttpServerAdvanced
             std::initializer_list<HttpHeader> headers = {}
         );
 
-        static std::unique_ptr<IHttpResponse> create(
-            HttpStatus status,
-            std::vector<std::pair<String, String>> &&data,
-            std::initializer_list<HttpHeader> headers = {}
-        );
-
-        static std::unique_ptr<IHttpResponse> create(
-            HttpStatus status,
-            const std::vector<std::pair<String, String>> &data,
-            std::initializer_list<HttpHeader> headers = {}
-        );
-
-        static std::unique_ptr<IHttpResponse> create(
-            HttpStatus status,
-            std::map<String, String> &&data,
-            std::initializer_list<HttpHeader> headers = {}
-        );
-
-        static std::unique_ptr<IHttpResponse> create(
-            HttpStatus status,
-            const std::map<String, String> &data,
-            std::initializer_list<HttpHeader> headers = {}
-        );
     };
 }
 

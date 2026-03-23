@@ -6,7 +6,7 @@ namespace HttpServerAdvanced
     IHttpHandler::HandlerResult BufferedStringBodyHandler::handleBody(HttpRequest &context, std::vector<uint8_t> &&body)
     {
         auto params = extractor_(context);
-        arduino::String postData(reinterpret_cast<const char *>(body.data()), body.size());
+        std::string postData(reinterpret_cast<const char *>(body.data()), body.size());
         return handler_(context, std::move(params), std::move(postData));
     }
 

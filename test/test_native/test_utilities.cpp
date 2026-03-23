@@ -12,13 +12,10 @@
 #include "../../src/core/IHttpRequestHandlerFactory.h"
 #include "../../src/core/HttpRequest.h"
 #include "../../src/util/HttpUtility.h"
-#include "../../src/util/StringUtility.h"
 #include "../../src/core/HttpHeaderCollection.h"
 #include "../../src/routing/CrossOriginRequestSharing.h"
 #include "../../src/response/StringResponse.h"
 #include "../../src/util/UriView.h"
-
-using namespace HttpServerAdvanced::StringUtil;
 
 namespace
 {
@@ -28,39 +25,6 @@ namespace
 
     void localTearDown()
     {
-    }
-
-    void test_compareTo_basic()
-    {
-        const char *a = "Hello";
-        const char *b = "Hello";
-        TEST_ASSERT_EQUAL_INT(0, compareTo(a, 5, b, 5, false));
-        TEST_ASSERT_EQUAL_INT(-1, compareTo("Abc", 3, "Bcd", 3, false));
-    }
-
-    void test_starts_ends_index()
-    {
-        const char *text = "The quick brown fox";
-        TEST_ASSERT_EQUAL_INT(4, indexOf(text, strlen(text), "quick", 5, 0, false));
-        TEST_ASSERT_EQUAL_INT(0, compareTo(text, 3, "The", 3, false));
-        TEST_ASSERT_EQUAL_INT(16, lastIndexOf(text, strlen(text), "fox", 3, strlen(text) - 1, false));
-    }
-
-    void test_replace()
-    {
-        const char *hay = "aabbaabb";
-        const std::string replaced = replace(hay, strlen(hay), "bb", 2, "X", 1, false);
-        TEST_ASSERT_EQUAL_STRING("aaXaaX", replaced.c_str());
-    }
-
-    void test_string_utility_string_view_overloads()
-    {
-        const std::string_view haystack = "AlphaBetaGamma";
-        TEST_ASSERT_EQUAL_INT(0, compareTo(std::string_view("abc"), std::string_view("ABC"), true));
-        TEST_ASSERT_TRUE(startsWith(haystack, std::string_view("Alpha"), false));
-        TEST_ASSERT_TRUE(endsWith(haystack, std::string_view("Gamma"), false));
-        TEST_ASSERT_EQUAL_INT(5, indexOf(haystack, std::string_view("Beta"), 0, false));
-        TEST_ASSERT_EQUAL_INT(13, lastIndexOf(haystack, std::string_view("a"), haystack.size() - 1, true));
     }
 
     void test_parse_query_parameters_uses_std_string_payloads()
@@ -87,19 +51,19 @@ namespace
         const auto pairs = HttpServerAdvanced::WebUtility::ParseQueryString(query);
 
         TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(pairs.size()));
-        TEST_ASSERT_TRUE(pairs[0].first == String("first"));
-        TEST_ASSERT_TRUE(pairs[0].second == String("one"));
+        TEST_ASSERT_EQUAL_STRING("first", pairs[0].first.c_str());
+        TEST_ASSERT_EQUAL_STRING("one", pairs[0].second.c_str());
 
-        const String encoded = HttpServerAdvanced::WebUtility::HtmlEncode(std::string_view("<&>\"'"));
-        TEST_ASSERT_TRUE(encoded == String("&lt;&amp;&gt;&quot;&#39;"));
+        const std::string encoded = HttpServerAdvanced::WebUtility::HtmlEncode(std::string_view("<&>\"'"));
+        TEST_ASSERT_EQUAL_STRING("&lt;&amp;&gt;&quot;&#39;", encoded.c_str());
 
-        const String decoded = HttpServerAdvanced::WebUtility::DecodeURIComponent(std::string_view("Jane%20Doe"));
-        TEST_ASSERT_TRUE(decoded == String("Jane Doe"));
+        const std::string decoded = HttpServerAdvanced::WebUtility::DecodeURIComponent(std::string_view("Jane%20Doe"));
+        TEST_ASSERT_EQUAL_STRING("Jane Doe", decoded.c_str());
     }
 
     void test_web_utility_base64_decode_to_std_string()
     {
-        const std::string decoded = HttpServerAdvanced::WebUtility::Base64DecodeToStdString(std::string_view("SmFuZSBEb2U="));
+        const std::string decoded = HttpServerAdvanced::WebUtility::Base64DecodeToString(std::string_view("SmFuZSBEb2U="));
 
         TEST_ASSERT_EQUAL_STRING("Jane Doe", decoded.c_str());
     }
@@ -152,16 +116,16 @@ namespace
 
     void test_html_encode_preserves_expected_entities_without_progmem_helpers()
     {
-        const String encoded = HttpServerAdvanced::WebUtility::HtmlEncode("<&>\"'", 5);
+        const std::string encoded = HttpServerAdvanced::WebUtility::HtmlEncode("<&>\"'", 5);
 
-        TEST_ASSERT_TRUE(encoded == String("&lt;&amp;&gt;&quot;&#39;"));
+        TEST_ASSERT_EQUAL_STRING("&lt;&amp;&gt;&quot;&#39;", encoded.c_str());
     }
 
     void test_html_attribute_encode_preserves_expected_entities_without_progmem_helpers()
     {
-        const String encoded = HttpServerAdvanced::WebUtility::HtmlAttributeEncode("<&>\"'", 5);
+        const std::string encoded = HttpServerAdvanced::WebUtility::HtmlAttributeEncode("<&>\"'", 5);
 
-        TEST_ASSERT_TRUE(encoded == String("&lt;&amp;&gt;&quot;&#39;"));
+        TEST_ASSERT_EQUAL_STRING("&lt;&amp;&gt;&quot;&#39;", encoded.c_str());
     }
 
     void test_cors_string_view_overload_sets_headers()
@@ -211,14 +175,14 @@ namespace
         }
     };
 
-    void test_request_handler_factory_string_adapters_delegate_to_std_string()
+    void test_request_handler_factory_std_text_overloads_delegate_to_std_string()
     {
         RecordingRequestHandlerFactory factory;
 
         factory.createResponse(HttpServerAdvanced::HttpStatus::Ok(), std::string_view("first"));
         TEST_ASSERT_EQUAL_STRING("first", factory.lastBody.c_str());
 
-        const String second("second");
+        const std::string second("second");
         factory.createResponse(HttpServerAdvanced::HttpStatus::Ok(), second);
         TEST_ASSERT_EQUAL_STRING("second", factory.lastBody.c_str());
 
@@ -236,10 +200,6 @@ namespace
     int runUnitySuite()
     {
         UNITY_BEGIN();
-        RUN_TEST(test_compareTo_basic);
-        RUN_TEST(test_starts_ends_index);
-        RUN_TEST(test_replace);
-        RUN_TEST(test_string_utility_string_view_overloads);
         RUN_TEST(test_parse_query_parameters_uses_std_string_payloads);
         RUN_TEST(test_web_utility_std_string_view_overloads_remain_available);
         RUN_TEST(test_web_utility_base64_decode_to_std_string);
@@ -249,7 +209,7 @@ namespace
         RUN_TEST(test_html_encode_preserves_expected_entities_without_progmem_helpers);
         RUN_TEST(test_html_attribute_encode_preserves_expected_entities_without_progmem_helpers);
         RUN_TEST(test_cors_string_view_overload_sets_headers);
-        RUN_TEST(test_request_handler_factory_string_adapters_delegate_to_std_string);
+        RUN_TEST(test_request_handler_factory_std_text_overloads_delegate_to_std_string);
         RUN_TEST(test_http_request_items_exposes_std_string_keyed_map);
         return UNITY_END();
     }

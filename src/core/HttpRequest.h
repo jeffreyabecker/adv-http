@@ -117,11 +117,11 @@ namespace HttpServerAdvanced
         void handleStep();
 
         void sendResponse();
-        virtual int onMessageBegin(const char *method, uint16_t versionMajor, uint16_t versionMinor, String &&url) override
+        virtual int onMessageBegin(const char *method, uint16_t versionMajor, uint16_t versionMinor, std::string_view url) override
         {
             method_ = method != nullptr ? method : "";
             version_ = std::to_string(versionMajor) + "." + std::to_string(versionMinor);
-            url_ = std::string(url.c_str(), url.length());
+            url_.assign(url.data(), url.size());
             invalidateTextCaches();
             completedStartingLine();
             return 0;
@@ -136,9 +136,9 @@ namespace HttpServerAdvanced
 
         // virtual int onRequestHeaderField(const uint8_t *at, std::size_t length) override;
         // virtual int onRequestHeaderValue(const uint8_t *at, std::size_t length) override;
-        virtual int onHeader(String &&field, String &&value) override
+        virtual int onHeader(std::string_view field, std::string_view value) override
         {
-            headers_.set(HttpHeader(std::move(field), std::move(value)));
+            headers_.set(HttpHeader(field, value));
             return 0;
         }
         virtual int onHeadersComplete() override

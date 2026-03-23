@@ -1,3 +1,5 @@
+2026-03-22 - Copilot: removed test-only helper classes from `src/streams/Streams.*`, rewired native coverage onto byte-source primitives, and narrowed the surviving surface to `ReadStream` plus `ReadAsString`.
+2026-03-22 - Copilot: removed the unused `NonOwningMemoryStream` helper and its dedicated native coverage so the in-tree legacy writable `Stream` surface shrank further.
 2026-03-22 - Copilot: added exact-output regression coverage for direct and chunked response serialization, including a temporary-unavailability chunk boundary, and marked the serializer-behavior preservation task complete.
 2026-03-22 - Copilot: completed the read-only stream migration, moved iterator-helper ownership onto `IByteSource`, and marked the remaining Phase 5 transformer tasks done.
 2026-03-22 - Copilot: audited duplex stream utilities, removed unused owning memory-stream helpers, and fixed the phase decision on keeping duplex behavior isolated to a single legacy helper.
@@ -62,7 +64,9 @@ This phase is the architectural seam change for the response path. The repositor
 - [x] Decide whether these types should implement a combined duplex interface, a separate sink interface, or split reader/writer views.
 - [x] Prevent the small number of duplex types from forcing the entire response model back onto a duplex base class.
 
-Outcome: `NonOwningMemoryStream` remains as an isolated legacy duplex helper backed by caller-owned storage. The unused owning wrappers `MemoryStream` and `StaticMemoryStream` were removed rather than promoting them into the byte-contract layer. No response-path type now needs a combined duplex base class.
+Outcome: the unused owning wrappers `MemoryStream`, `StaticMemoryStream`, and `NonOwningMemoryStream` were removed rather than promoting them into the byte-contract layer. No response-path type now needs a combined duplex base class.
+
+Follow-up: the old test-oriented helper types in `src/streams/Streams.*` (`EmptyReadStream`, `OctetsStream`, `StringStream`, `StdStringStream`, `LazyStreamAdapter`, concat wrappers, and buffered wrappers) were also removed once equivalent byte-source primitives and test-local fixtures were in place.
 
 ### File-Backed And Adapter Interactions
 
