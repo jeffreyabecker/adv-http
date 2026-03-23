@@ -397,10 +397,10 @@ public:
     HandlerBuilder& apply(IHttpResponse::ResponseFilter filter);
     
     // Restrict HTTP methods
-    HandlerBuilder& allowMethods(const String& methods);
+    HandlerBuilder& allowMethods(std::string_view methods);
     
     // Restrict content types
-    HandlerBuilder& allowContentTypes(const std::initializer_list<String>& contentTypes);
+    HandlerBuilder& allowContentTypes(const std::initializer_list<std::string_view>& contentTypes);
 };
 ```
 
@@ -422,11 +422,13 @@ public:
     void add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, AddPosition position = AddAt::End);
     
     // Global middleware
-    void with(IHttpHandler::InterceptorCallback interceptor);     // Global interceptor
-    void filterRequest(IHttpHandler::Predicate predicate);        // Global request filter
-    void apply(IHttpResponse::ResponseFilter filter);             // Global response filter
+    void with(IHttpHandler::InterceptorCallback interceptor);     // Wraps matched and fallback handlers
+    void filterRequest(IHttpHandler::Predicate predicate);        // Gates provider evaluation before fallback
+    void apply(IHttpResponse::ResponseFilter filter);             // Applies to non-null responses only
 };
 ```
+
+`HandlerMatcher` path wildcards follow the library's configured matcher constant, `REQUEST_MATCHER_PATH_WILDCARD_CHAR`, which defaults to `?`.
 
 #### BasicAuthentication
 
@@ -437,7 +439,7 @@ Interceptor for HTTP Basic Auth:
 auto auth = BasicAuth("admin", "password123", "Admin Area");
 
 // With validator function
-auto auth = BasicAuth([](const String& user, const String& pass) {
+auto auth = BasicAuth([](std::string_view user, std::string_view pass) {
     return user == "admin" && checkPassword(pass);
 }, "Secure Zone");
 
@@ -461,6 +463,7 @@ auto cors = CrossOriginRequestSharing(
 
 // Apply globally or per-handler
 server.cfg().apply(cors);
+server.cfg().on<GetRequest>("/api/data", handler).apply(cors);
 ```
 
 ---
@@ -1031,6 +1034,8 @@ server.cfg().with([](HttpRequest& req, IHttpHandler::InvocationCallback next) {
     Serial.printf("[%s] %s\n", req.method().c_str(), req.uri().c_str());
     return next(req);
 });
+
+// Global interceptors and response filters wrap matched handlers as well as the fallback handler.
 
 // Filter requests
 server.cfg().filterRequest([](HttpRequest& req) {

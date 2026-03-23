@@ -1,3 +1,5 @@
+2026-03-23 - Copilot: completed native routing/provider/auth/filter coverage and matcher fixes.
+
 2026-03-23 - Copilot: created detailed Phase 6 routing, providers, authentication, and filters backlog.
 
 # Unit Testing Phase 6 Routing, Providers, Authentication, And Filters Backlog
@@ -16,27 +18,27 @@ This phase covers how requests are matched to handlers and how cross-cutting req
 
 ### Matcher Semantics
 
-- [ ] Expand `HandlerMatcher` coverage for exact paths, wildcard paths, method normalization, and content-type normalization.
-- [ ] Add tests for mismatched methods, mismatched content types, and missing request metadata.
-- [ ] Verify extracted route-parameter behavior for successful wildcard matches.
+- [x] Expand `HandlerMatcher` coverage for exact paths, wildcard paths, method normalization, and content-type normalization.
+- [x] Add tests for mismatched methods, mismatched content types, and missing request metadata.
+- [x] Verify extracted route-parameter behavior for successful wildcard matches.
 
 ### Provider Registry Composition
 
-- [ ] Add tests for `HandlerProviderRegistry` provider ordering at beginning and end insertion points.
-- [ ] Verify default-handler selection when no provider matches.
-- [ ] Verify request predicates, request interceptors, and response filters when combined on the same registry.
-- [ ] Verify that wrapped handlers still receive body chunks and that filters only apply when responses exist.
+- [x] Add tests for `HandlerProviderRegistry` provider ordering at beginning and end insertion points.
+- [x] Verify default-handler selection when no provider matches.
+- [x] Verify request predicates, request interceptors, and response filters when combined on the same registry.
+- [x] Verify that wrapped handlers still receive body chunks and that filters only apply when responses exist.
 
 ### Builder Helpers
 
-- [ ] Add tests for `HandlerBuilder` helper paths that compose predicates, handlers, and filters.
-- [ ] Freeze any builder convenience behavior that examples or library docs currently depend on.
+- [x] Add tests for `HandlerBuilder` helper paths that compose predicates, handlers, and filters.
+- [x] Freeze any builder convenience behavior that examples or library docs currently depend on.
 
 ### Auth And CORS
 
-- [ ] Expand `BasicAuthentication` tests for missing headers, malformed prefixes, malformed base64 payloads, missing separators, valid credentials, and failure-response headers.
-- [ ] Verify both standard-string and Arduino-string-facing overload paths where they are intentionally kept.
-- [ ] Expand CORS tests for omitted optional values, repeated application, and header overwrite behavior.
+- [x] Expand `BasicAuthentication` tests for missing headers, malformed prefixes, malformed base64 payloads, missing separators, valid credentials, and failure-response headers.
+- [x] Verify both standard-string and Arduino-string-facing overload paths where they are intentionally kept.
+- [x] Expand CORS tests for omitted optional values, repeated application, and header overwrite behavior.
 
 ## Owner
 
@@ -57,3 +59,4 @@ High
 - `src/routing/BasicAuthentication.h`
 - `src/routing/CrossOriginRequestSharing.h`
 - `test/test_native/test_utilities.cpp`
+- `test/test_native/test_routing.cpp`

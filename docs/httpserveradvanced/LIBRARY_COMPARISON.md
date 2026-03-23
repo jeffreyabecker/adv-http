@@ -393,7 +393,7 @@ server.addHook([](const String& method, const String& url, WiFiClient* client, .
 | Feature | WebServer | HttpServerAdvanced |
 |---------|-----------|-------------------|
 | Exact Path Matching | ✅ | ✅ |
-| Wildcard Patterns | ✅ `UriGlob` | ✅ `?` wildcard |
+| Wildcard Patterns | ✅ `UriGlob` | ✅ `REQUEST_MATCHER_PATH_WILDCARD_CHAR` (`?` by default) |
 | Parameterized Routes | ✅ `UriBraces` | ✅ `ParameterizedUri` |
 | Regex Routes | ✅ `UriRegex` | ❌ Not built-in |
 | Method Filtering | ✅ Per-handler | ✅ Per-handler + content-type |

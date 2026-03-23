@@ -63,7 +63,7 @@ GET /api/data     → API route (not static)
 **File**: `examples/UrlParameters/UrlParameters.ino`  
 **Features**: Parameterized routes, extracting URL segments  
 **Concepts**:
-- Wildcard routes: `/api/users/?`
+- Wildcard routes: `/api/users/?` (`?` is the default value of `REQUEST_MATCHER_PATH_WILDCARD_CHAR`)
 - Accessing `params` vector
 - Multiple parameters: `/api/?/items/?`
 
@@ -146,7 +146,7 @@ GET /admin    → Different credentials
 **Features**: Cross-Origin Resource Sharing  
 **Concepts**:
 - `CrossOriginRequestSharing()` response filter
-- `.filter()` chaining
+- `.apply()` chaining
 - Preflight OPTIONS handling
 - Allow-Origin, Allow-Methods, Allow-Headers
 
