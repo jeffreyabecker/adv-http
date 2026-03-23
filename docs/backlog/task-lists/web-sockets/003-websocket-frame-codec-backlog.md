@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: implemented frame codec/parser/serializer with incremental header state, protocol validation, and native coverage; marked Phase 3 tasks complete.
 2026-03-23 - Copilot: added locked decisions for codec IO model (decision 6) and fragmentation/delivery model (decision 7); updated tasks accordingly.
 2026-03-23 - Copilot: created detailed Phase 3 WebSocket frame codec backlog.
 
@@ -31,26 +32,26 @@ This phase adds the protocol primitives that make an upgraded connection useful:
 
 ### Protocol Types
 
-- [ ] Introduce internal enums and structs for opcode, close code, frame header metadata, and codec status.
-- [ ] Keep the type set internal until the session runtime proves what must remain private versus public.
-- [ ] Ensure value ranges and constants follow RFC 6455 without exposing unnecessary surface area yet.
+- [x] Introduce internal enums and structs for opcode, close code, frame header metadata, and codec status.
+- [x] Keep the type set internal until the session runtime proves what must remain private versus public.
+- [x] Ensure value ranges and constants follow RFC 6455 without exposing unnecessary surface area yet.
 
 ### Frame Reader
 
-- [ ] Add a pure-transform `WebSocketFrameParser` that parses one frame from a caller-supplied input span and returns the number of bytes consumed; no transport dependency.
-- [ ] Support incremental parse state for header bytes, extended lengths, mask bytes, and payload consumption.
-- [ ] Enforce masking and payload-length validation as part of parse, not as a later policy pass.
+- [x] Add a pure-transform `WebSocketFrameParser` that parses one frame from a caller-supplied input span and returns the number of bytes consumed; no transport dependency.
+- [x] Support incremental parse state for header bytes, extended lengths, mask bytes, and payload consumption.
+- [x] Enforce masking and payload-length validation as part of parse, not as a later policy pass.
 
 ### Frame Writer
 
-- [ ] Add a pure-transform `WebSocketFrameSerializer` that fills a caller-supplied output span with a framed payload and returns the number of bytes written.
-- [ ] Ensure the serializer emits correct FIN, opcode, and payload-length encoding for server-side frames (text, binary, continuation, ping, pong, close).
+- [x] Add a pure-transform `WebSocketFrameSerializer` that fills a caller-supplied output span with a framed payload and returns the number of bytes written.
+- [x] Ensure the serializer emits correct FIN, opcode, and payload-length encoding for server-side frames (text, binary, continuation, ping, pong, close).
 
 ### Fragmentation And Validation
 
-- [ ] Enforce continuation-sequence protocol rules in the codec: a non-control frame during an open continuation sequence is a protocol error; an orphan continuation frame with no preceding unfragmented sequence is a protocol error.
-- [ ] Keep multi-frame message assembly out of the codec; it belongs in the session runtime (Phase 4).
-- [ ] Keep error reporting deterministic so later phases can map codec failures into close behavior cleanly.
+- [x] Enforce continuation-sequence protocol rules in the codec: a non-control frame during an open continuation sequence is a protocol error; an orphan continuation frame with no preceding unfragmented sequence is a protocol error.
+- [x] Keep multi-frame message assembly out of the codec; it belongs in the session runtime (Phase 4).
+- [x] Keep error reporting deterministic so later phases can map codec failures into close behavior cleanly.
 
 ## Owner
 
