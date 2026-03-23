@@ -16,6 +16,21 @@ namespace HttpServerAdvanced
             { return true; });
     }
 
+    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::wrapHandler(std::unique_ptr<IHttpHandler> innerHandler) const
+    {
+        if (!innerHandler)
+        {
+            return nullptr;
+        }
+
+        if (!globalRequestInterceptor_ && !globalResponseFilter_)
+        {
+            return innerHandler;
+        }
+
+        return std::make_unique<ResponseFilterApplicator>(std::move(innerHandler), globalResponseFilter_, globalRequestInterceptor_);
+    }
+
     std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createContextHandler(HttpRequest &context)
     {
         if (!globalRequestFilter_ || globalRequestFilter_(context))
@@ -25,18 +40,14 @@ namespace HttpServerAdvanced
                 IHandlerProvider &factory = creator.get();
                 if (factory.canHandle(const_cast<HttpRequest &>(context)))
                 {
-                    return factory.create(const_cast<HttpRequest &>(context));
+                    return wrapHandler(factory.create(const_cast<HttpRequest &>(context)));
                 }
             }
         }
         auto inner = defaultFactory_
                          ? defaultFactory_(const_cast<HttpRequest &>(context))
                          : createDefaultHandler(const_cast<HttpRequest &>(context));
-        if (globalResponseFilter_)
-        {
-            return std::make_unique<ResponseFilterApplicator>(std::move(inner), globalResponseFilter_);
-        }
-        return inner;
+        return wrapHandler(std::move(inner));
     }
 
     void HandlerProviderRegistry::setDefaultHandlerFactory(IHttpHandler::Factory creator)

@@ -31,6 +31,7 @@ namespace HttpServerAdvanced
 
     private:
         static std::unique_ptr<IHttpHandler> createDefaultHandler(HttpRequest &context);
+        std::unique_ptr<IHttpHandler> wrapHandler(std::unique_ptr<IHttpHandler> innerHandler) const;
         std::vector<std::reference_wrapper<IHandlerProvider>> factories_;
         std::vector<std::unique_ptr<IHandlerProvider>> ownedFactoryItems_;
         IHttpHandler::Factory defaultFactory_ = nullptr;

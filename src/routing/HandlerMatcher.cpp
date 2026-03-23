@@ -36,11 +36,17 @@ namespace HttpServerAdvanced
     // Default implementations
     bool defaultCheckMethod(std::string_view allowedMethods, std::string_view method)
     {
-        if (allowedMethods.empty() || allowedMethods.find(method) != std::string_view::npos)
+        if (allowedMethods.empty())
         {
             return true;
         }
-        return false;
+
+        if (method.empty())
+        {
+            return false;
+        }
+
+        return allowedMethods.find(method) != std::string_view::npos;
     }
 
     bool defaultCheckContentType(HttpRequest &context, const std::vector<std::string> &allowedContentTypes)
@@ -69,41 +75,45 @@ namespace HttpServerAdvanced
 
     bool defaultCheckUriPattern(std::string_view uri, std::string_view uriPattern)
     {
-        auto v = UriView(uri);
-        auto path = v.path();
+        const std::string_view path = UriView(uri).path();
+        std::size_t pathIndex = 0;
+        std::size_t patternIndex = 0;
+        std::size_t wildcardIndex = std::string_view::npos;
+        std::size_t matchIndex = 0;
 
-        const char *t = path.data();
-        const char *tEnd = t + path.size();
-        const char *p = uriPattern.begin();
-        const char *pEnd = p + uriPattern.length();
-        const char *star = nullptr;
-        const char *ts = nullptr;
-        while (t != tEnd && p != pEnd)
+        while (pathIndex < path.size())
         {
-            if (*p == *t)
+            if (patternIndex < uriPattern.size() && uriPattern[patternIndex] == path[pathIndex])
             {
-                ++t;
-                ++p;
+                ++pathIndex;
+                ++patternIndex;
+                continue;
             }
-            else if (*p == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
+
+            if (patternIndex < uriPattern.size() && uriPattern[patternIndex] == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
             {
-                star = p;
-                ts = t;
-                ++p;
+                wildcardIndex = patternIndex;
+                matchIndex = pathIndex;
+                ++patternIndex;
+                continue;
             }
-            else if (star)
+
+            if (wildcardIndex != std::string_view::npos)
             {
-                p = star + 1;
-                t = ++ts;
+                patternIndex = wildcardIndex + 1;
+                pathIndex = ++matchIndex;
+                continue;
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
-        while (p != pEnd && *p == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
-            ++p;
-        return p == pEnd;
+
+        while (patternIndex < uriPattern.size() && uriPattern[patternIndex] == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
+        {
+            ++patternIndex;
+        }
+
+        return patternIndex == uriPattern.size();
     }
 
     RouteParameters defaultExtractParameters(HttpRequest &context, std::string_view uriPattern)
@@ -111,7 +121,7 @@ namespace HttpServerAdvanced
         RouteParameters params;
         auto v = UriView(context.urlView());
         auto path = v.path();
-        if (uriPattern.find('*') == std::string_view::npos)
+        if (uriPattern.find(REQUEST_MATCHER_PATH_WILDCARD_CHAR) == std::string_view::npos)
         {
             return params;
         }

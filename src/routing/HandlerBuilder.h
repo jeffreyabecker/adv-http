@@ -85,6 +85,7 @@ namespace HttpServerAdvanced
         HandlerBuilder(HandlerBuilder &&other) noexcept
             : addHandler_(std::move(other.addHandler_)),
               predicate_(std::move(other.predicate_)),
+              matcher_(std::move(other.matcher_)),
               invocationCallback_(std::move(other.invocationCallback_)),
               extractor_(std::move(other.extractor_))
         {
@@ -97,6 +98,7 @@ namespace HttpServerAdvanced
             {
                 addHandler_ = std::move(other.addHandler_);
                 predicate_ = std::move(other.predicate_);
+                matcher_ = std::move(other.matcher_);
                 invocationCallback_ = std::move(other.invocationCallback_);
                 extractor_ = std::move(other.extractor_);
                 other.addHandler_ = nullptr;
@@ -132,7 +134,11 @@ namespace HttpServerAdvanced
             auto originalPredicate = predicate_;
             predicate_ = [originalPredicate, predicate](HttpRequest &context)
             {
-                return predicate(context) && originalPredicate(context);
+                if (originalPredicate && !originalPredicate(context))
+                {
+                    return false;
+                }
+                return predicate(context);
             };
             return *this;
         }
