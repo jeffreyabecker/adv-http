@@ -14,6 +14,7 @@
 #include "../../src/handlers/HandlerTypes.h"
 #include "../../src/handlers/MultipartFormDataHandler.cpp"
 #include "../../src/pipeline/PipelineError.cpp"
+#include "../../src/pipeline/RequestParser.cpp"
 #include "../../src/routing/BasicAuthentication.h"
 #include "../../src/routing/CrossOriginRequestSharing.h"
 #include "../../src/routing/HandlerBuilder.h"

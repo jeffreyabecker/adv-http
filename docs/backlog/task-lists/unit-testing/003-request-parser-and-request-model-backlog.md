@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: marked initial custom-verb parser coverage complete and left request propagation follow-up open.
 2026-03-23 - Copilot: extended backlog to cover custom HTTP verb parsing allowed by the HTTP specification.
 2026-03-23 - Copilot: created detailed Phase 3 request parser and request model backlog.
 
@@ -19,18 +20,18 @@ This phase covers the inbound HTTP request path without requiring any real trans
 ### RequestParser Fixture Coverage
 
 - [ ] Add parser tests for simple GET requests, POST requests with bodies, and header-only requests.
-- [ ] Add parser tests for syntactically valid extension methods such as `PURGE`, `MKCOL`, and a project-defined custom verb, including verification that method text is preserved exactly and remains case-sensitive.
+- [x] Add parser tests for syntactically valid extension methods such as `PURGE`, `MKCOL`, and a project-defined custom verb, including verification that method text is preserved exactly and remains case-sensitive.
 - [ ] Add parser tests that split request bytes across multiple `execute()` calls at request-line, header, and body boundaries.
-- [ ] Add parser tests that split custom-method bytes across multiple `execute()` calls so method buffering is covered independently from URL and header buffering.
-- [ ] Add malformed-request tests for invalid method tokens, malformed request lines, invalid headers, and unexpected EOF handling.
+- [x] Add parser tests that split custom-method bytes across multiple `execute()` calls so method buffering is covered independently from URL and header buffering.
+- [x] Add malformed-request tests for invalid method tokens, malformed request lines, invalid headers, and unexpected EOF handling.
 - [ ] Add oversized-URI, oversized-header-field, oversized-header-value, and total-buffer-limit tests.
-- [ ] Add method-boundary tests around the parser's current method-buffer limit so extension methods near the supported maximum length are either accepted or rejected in a deterministic, documented way.
+- [x] Add method-boundary tests around the parser's current method-buffer limit so extension methods near the supported maximum length are either accepted or rejected in a deterministic, documented way.
 - [ ] Verify parser completion, keep-alive decisions, and repeated `execute(nullptr, 0)` or post-finish behavior.
 
 ### Event Recording And Error Mapping
 
 - [ ] Add a reusable `IPipelineHandler` recorder that captures message-begin, header, body, completion, and error callbacks in order.
-- [ ] Verify that recorded `onMessageBegin(...)` callbacks receive custom methods byte-for-byte unchanged rather than mapped to a fixed verb enum or normalized casing.
+- [x] Verify that recorded `onMessageBegin(...)` callbacks receive custom methods byte-for-byte unchanged rather than mapped to a fixed verb enum or normalized casing.
 - [ ] Verify llhttp error-code mapping to `PipelineErrorCode` for each library-level path currently exposed.
 - [ ] Freeze current body-chunk delivery semantics, including multiple body callbacks for one request.
 

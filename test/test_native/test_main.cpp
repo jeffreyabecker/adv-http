@@ -58,6 +58,7 @@ int run_test_filesystem_posix();
 int run_test_native_smoke();
 int run_test_clock();
 int run_test_fixture_support();
+int run_test_request_parser();
 int run_test_response_streams();
 int run_test_stream_available();
 int run_test_stream_utilities();
@@ -70,6 +71,7 @@ int main(int, char **)
     failureCount += run_test_native_smoke();
     failureCount += run_test_clock();
     failureCount += run_test_fixture_support();
+    failureCount += run_test_request_parser();
     failureCount += run_test_response_streams();
     failureCount += run_test_stream_available();
     failureCount += run_test_stream_utilities();
