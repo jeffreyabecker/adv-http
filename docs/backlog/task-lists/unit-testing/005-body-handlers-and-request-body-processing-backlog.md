@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: completed multipart and extractor coverage and left JSON-enabled native coverage explicitly open.
 2026-03-23 - Copilot: completed text raw form handler coverage and documented current raw-body passthrough behavior.
 2026-03-23 - Copilot: completed buffering-base native coverage and documented current replay-on-completion behavior.
 2026-03-23 - Copilot: created detailed Phase 5 body handlers and request-body processing backlog.
@@ -27,6 +28,8 @@ This phase focuses on the request-body handling stack that sits between parsed H
 
 - Native coverage now freezes the current `BufferingHttpHandlerBase` replay behavior: when buffering fills early from `Content-Length` or configured max, `handleBody(...)` runs once from `handleBodyChunk(...)` and then again from `handleStep()` after `CompletedReadingMessage`.
 - Native coverage also freezes the current `RawBodyHandler` passthrough behavior: large body chunks are delivered intact, followed by a zero-length completion callback carrying final `receivedLength()` and parsed `contentLength()` metadata.
+- Native coverage now freezes several multipart quirks as currently implemented: metadata views are only reliable during the handler callback, empty named parts still emit a handler event before `Completed`, and small truncated payload tails can be dropped entirely before the final completion event.
+- The default native PlatformIO lane remains JSON-disabled. Conditional JSON-enabled tests are present in the native suite, but temporarily enabling `ArduinoJson` in `env:native` currently fails at link time without actionable symbol diagnostics, so the JSON-enabled coverage item remains open.
 
 ### Text, Raw, And Form Bodies
 
@@ -36,14 +39,14 @@ This phase focuses on the request-body handling stack that sits between parsed H
 
 ### Multipart And JSON Paths
 
-- [ ] Add multipart handler tests for boundary recognition, missing boundary headers, empty parts, and truncated payloads.
+- [x] Add multipart handler tests for boundary recognition, missing boundary headers, empty parts, and truncated payloads.
 - [ ] Add JSON handler tests for valid JSON, malformed JSON, empty payloads, and JSON-disabled build expectations.
 - [ ] Decide which JSON error behaviors are currently intended and which should remain open for correction before lock-in.
 
 ### Extraction And Route Parameter Interactions
 
-- [ ] Verify that handler parameter extractors are called at the intended phase and receive stable request data.
-- [ ] Verify that route parameters and parsed bodies can coexist without clobbering request items or headers.
+- [x] Verify that handler parameter extractors are called at the intended phase and receive stable request data.
+- [x] Verify that route parameters and parsed bodies can coexist without clobbering request items or headers.
 
 ## Owner
 

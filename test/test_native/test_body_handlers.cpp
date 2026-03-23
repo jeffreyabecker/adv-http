@@ -8,6 +8,7 @@
 #include "../../src/handlers/BufferedStringBodyHandler.h"
 #include "../../src/handlers/BufferingHttpHandlerBase.h"
 #include "../../src/handlers/FormBodyHandler.h"
+#include "../../src/handlers/MultipartFormDataHandler.h"
 #include "../../src/handlers/RawBodyHandler.h"
 #include "../../src/server/HttpServerBase.h"
 
@@ -17,6 +18,11 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#include <ArduinoJson.h>
+#include "../../src/handlers/JsonBodyHandler.h"
+#endif
 
 using namespace HttpServerAdvanced;
 
@@ -464,6 +470,312 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(0, invocationCount);
     }
 
+    void test_multipart_handler_requires_boundary_header()
+    {
+        auto handler = std::make_unique<MultipartFormDataHandler>(
+            [](HttpRequest &, RouteParameters &, MultipartFormDataBuffer) -> IHttpHandler::HandlerResult
+            {
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {};
+            });
+
+        RequestHarness harness(std::move(handler));
+
+        harness.beginRequest();
+        harness.addHeader(HttpHeaderNames::ContentType, HttpContentTypes::MultipartFormData);
+        harness.completeHeaders();
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(1, harness.responseStreamCount());
+        TEST_ASSERT_NOT_EQUAL(std::string::npos, harness.responseText().find("HTTP/1.1 400 Bad Request"));
+        TEST_ASSERT_NOT_EQUAL(std::string::npos, harness.responseText().find("Missing or invalid boundary"));
+    }
+
+    void test_multipart_handler_parses_named_part_and_emits_completed_event()
+    {
+        struct MultipartEvent
+        {
+            MultipartStatus status = MultipartStatus::Completed;
+            std::string name;
+            std::string filename;
+            std::string contentType;
+            std::string data;
+        };
+
+        std::vector<MultipartEvent> capturedParts;
+        auto handler = std::make_unique<MultipartFormDataHandler>(
+            [&capturedParts](HttpRequest &, RouteParameters &, MultipartFormDataBuffer buffer) -> IHttpHandler::HandlerResult
+            {
+                capturedParts.push_back({
+                    buffer.status(),
+                    std::string(buffer.name()),
+                    std::string(buffer.filename()),
+                    std::string(buffer.contentType()),
+                    std::string(reinterpret_cast<const char *>(buffer.data()), buffer.size())});
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {"route-part"};
+            });
+
+        RequestHarness harness(std::move(handler));
+        const std::string body =
+            "Content-Disposition: form-data; name=\"field\"; filename=\"note.txt\"\r\n"
+            "Content-Type: text/plain\r\n\r\n"
+            "hello\r\n--b\r\n";
+
+        harness.beginRequest();
+        harness.addHeader(HttpHeaderNames::ContentType, "multipart/form-data; boundary=--b");
+        harness.completeHeaders();
+        harness.addBody(body);
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(2, capturedParts.size());
+        TEST_ASSERT_EQUAL(MultipartStatus::FirstChunk, capturedParts[0].status);
+        TEST_ASSERT_EQUAL_STRING("hello", capturedParts[0].data.c_str());
+        TEST_ASSERT_EQUAL_STRING("field", capturedParts[0].name.c_str());
+        TEST_ASSERT_EQUAL_STRING("note.txt", capturedParts[0].filename.c_str());
+        TEST_ASSERT_EQUAL_STRING("text/plain", capturedParts[0].contentType.c_str());
+
+        TEST_ASSERT_EQUAL(MultipartStatus::Completed, capturedParts[1].status);
+        TEST_ASSERT_TRUE(capturedParts[1].data.empty());
+        TEST_ASSERT_TRUE(capturedParts[1].name.empty());
+    }
+
+    void test_multipart_handler_skips_empty_parts_and_only_emits_completed_event()
+    {
+        struct MultipartEvent
+        {
+            MultipartStatus status = MultipartStatus::Completed;
+            std::string name;
+            std::size_t size = 0;
+        };
+
+        std::vector<MultipartEvent> capturedParts;
+        auto handler = std::make_unique<MultipartFormDataHandler>(
+            [&capturedParts](HttpRequest &, RouteParameters &, MultipartFormDataBuffer buffer) -> IHttpHandler::HandlerResult
+            {
+                capturedParts.push_back({buffer.status(), std::string(buffer.name()), buffer.size()});
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {};
+            });
+
+        RequestHarness harness(std::move(handler));
+        const std::string body =
+            "Content-Disposition: form-data; name=\"empty\"\r\n\r\n"
+            "\r\n--b\r\n";
+
+        harness.beginRequest();
+        harness.addHeader(HttpHeaderNames::ContentType, "multipart/form-data; boundary=--b");
+        harness.completeHeaders();
+        harness.addBody(body);
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(2, capturedParts.size());
+        TEST_ASSERT_EQUAL(MultipartStatus::FirstChunk, capturedParts[0].status);
+        TEST_ASSERT_EQUAL_STRING("empty", capturedParts[0].name.c_str());
+        TEST_ASSERT_EQUAL_UINT64(0, capturedParts[0].size);
+        TEST_ASSERT_EQUAL(MultipartStatus::Completed, capturedParts[1].status);
+    }
+
+    void test_multipart_handler_drops_small_truncated_part_payload_before_completed_event()
+    {
+        std::vector<MultipartFormDataBuffer> capturedParts;
+        auto handler = std::make_unique<MultipartFormDataHandler>(
+            [&capturedParts](HttpRequest &, RouteParameters &, MultipartFormDataBuffer buffer) -> IHttpHandler::HandlerResult
+            {
+                capturedParts.push_back(std::move(buffer));
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {};
+            });
+
+        RequestHarness harness(std::move(handler));
+        const std::string body =
+            "Content-Disposition: form-data; name=\"field\"\r\n\r\n"
+            "hello";
+
+        harness.beginRequest();
+        harness.addHeader(HttpHeaderNames::ContentType, "multipart/form-data; boundary=--b");
+        harness.completeHeaders();
+        harness.addBody(body);
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(1, capturedParts.size());
+        TEST_ASSERT_EQUAL(MultipartStatus::Completed, capturedParts[0].status());
+        TEST_ASSERT_EQUAL_UINT64(0, capturedParts[0].size());
+    }
+
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+    void test_json_body_handler_parses_valid_json_and_preserves_route_parameters()
+    {
+        std::vector<RouteParameters> capturedParams;
+        std::vector<std::string> capturedMessages;
+        std::vector<int> capturedCounts;
+
+        auto handler = std::make_unique<JsonBodyHandler>(
+            [&capturedParams, &capturedMessages, &capturedCounts](HttpRequest &, RouteParameters &&params, JsonDocument &&body) -> IHttpHandler::HandlerResult
+            {
+                capturedParams.push_back(std::move(params));
+                capturedMessages.emplace_back(body["message"].template as<std::string>());
+                capturedCounts.push_back(body["count"].template as<int>());
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {"json", "route"};
+            });
+
+        RequestHarness harness(std::move(handler));
+
+        harness.beginRequest();
+        harness.completeHeaders();
+        harness.addBody("{\"message\":\"ok\",\"count\":2}");
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(1, capturedMessages.size());
+        TEST_ASSERT_EQUAL_STRING("ok", capturedMessages[0].c_str());
+        TEST_ASSERT_EQUAL(2, capturedCounts[0]);
+        TEST_ASSERT_EQUAL_UINT64(2, capturedParams[0].size());
+        TEST_ASSERT_EQUAL_STRING("json", capturedParams[0][0].c_str());
+        TEST_ASSERT_EQUAL_STRING("route", capturedParams[0][1].c_str());
+    }
+
+    void test_json_body_handler_passes_empty_documents_for_malformed_payloads()
+    {
+        std::vector<bool> messagePresent;
+
+        auto handler = std::make_unique<JsonBodyHandler>(
+            [&messagePresent](HttpRequest &, RouteParameters &&, JsonDocument &&body) -> IHttpHandler::HandlerResult
+            {
+                messagePresent.push_back(!body["message"].isNull());
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {};
+            });
+
+        RequestHarness harness(std::move(handler));
+
+        harness.beginRequest();
+        harness.completeHeaders();
+        harness.addBody("{\"message\":");
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(1, messagePresent.size());
+        TEST_ASSERT_FALSE(messagePresent[0]);
+    }
+
+    void test_json_body_handler_ignores_empty_payloads()
+    {
+        std::size_t invocationCount = 0;
+
+        auto handler = std::make_unique<JsonBodyHandler>(
+            [&invocationCount](HttpRequest &, RouteParameters &&, JsonDocument &&) -> IHttpHandler::HandlerResult
+            {
+                ++invocationCount;
+                return nullptr;
+            },
+            [](HttpRequest &) -> RouteParameters
+            {
+                return {};
+            });
+
+        RequestHarness harness(std::move(handler));
+
+        harness.beginRequest();
+        harness.addHeader(HttpHeaderNames::ContentLength, "0");
+        harness.completeHeaders();
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(0, invocationCount);
+    }
+#else
+    void test_json_body_handler_is_unavailable_in_json_disabled_build()
+    {
+        TEST_ASSERT_EQUAL(0, HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON);
+    }
+#endif
+
+    void test_raw_body_handler_extractor_runs_on_first_body_chunk_phase()
+    {
+        std::vector<HttpRequestPhaseFlags> extractorPhases;
+
+        auto handler = std::make_unique<RawBodyHandler>(
+            [](HttpRequest &, RouteParameters &, RawBodyBuffer) -> IHttpHandler::HandlerResult
+            {
+                return nullptr;
+            },
+            [&extractorPhases](HttpRequest &context) -> RouteParameters
+            {
+                extractorPhases.push_back(context.completedPhases());
+                return {"raw"};
+            });
+
+        RequestHarness harness(std::move(handler));
+
+        harness.beginRequest();
+        harness.completeHeaders();
+        harness.addBody("x");
+        harness.completeMessage();
+
+        TEST_ASSERT_EQUAL_UINT64(1, extractorPhases.size());
+        TEST_ASSERT_TRUE((extractorPhases[0] & HttpRequestPhase::BeginReadingBody) != 0);
+        TEST_ASSERT_FALSE((extractorPhases[0] & HttpRequestPhase::CompletedReadingMessage) != 0);
+    }
+
+    void test_form_body_handler_preserves_headers_items_and_route_parameters_alongside_parsed_body()
+    {
+        HttpRequestPhaseFlags extractorPhase = 0;
+        bool handlerSawHeader = false;
+        std::string handlerItemValue;
+        std::vector<RouteParameters> capturedParams;
+        std::vector<std::string> capturedBodyValues;
+
+        auto handler = std::make_unique<FormBodyHandler>(
+            [&handlerSawHeader, &handlerItemValue, &capturedParams, &capturedBodyValues](HttpRequest &context, RouteParameters &&params, WebUtility::QueryParameters &&body) -> IHttpHandler::HandlerResult
+            {
+                handlerSawHeader = context.headers().exists("X-Test", "present");
+                handlerItemValue = std::any_cast<std::string>(context.items().at("route-key"));
+                capturedParams.push_back(std::move(params));
+                const auto value = body.get("name");
+                capturedBodyValues.push_back(value.has_value() ? *value : std::string());
+                return nullptr;
+            },
+            [&extractorPhase](HttpRequest &context) -> RouteParameters
+            {
+                extractorPhase = context.completedPhases();
+                context.items()["route-key"] = std::string("route-value");
+                return {"route", "123"};
+            });
+
+        RequestHarness harness(std::move(handler));
+
+        harness.beginRequest();
+        harness.addHeader("X-Test", "present");
+        harness.completeHeaders();
+        harness.addBody("name=Jane");
+        harness.completeMessage();
+
+        TEST_ASSERT_TRUE((extractorPhase & HttpRequestPhase::CompletedReadingMessage) != 0);
+        TEST_ASSERT_TRUE(handlerSawHeader);
+        TEST_ASSERT_EQUAL_STRING("route-value", handlerItemValue.c_str());
+        TEST_ASSERT_EQUAL_UINT64(2, capturedParams[0].size());
+        TEST_ASSERT_EQUAL_STRING("route", capturedParams[0][0].c_str());
+        TEST_ASSERT_EQUAL_STRING("123", capturedParams[0][1].c_str());
+        TEST_ASSERT_EQUAL_STRING("Jane", capturedBodyValues[0].c_str());
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -480,6 +792,19 @@ namespace
         RUN_TEST(test_raw_body_handler_passes_large_chunks_without_internal_truncation);
         RUN_TEST(test_form_body_handler_parses_repeated_empty_and_malformed_values);
         RUN_TEST(test_form_body_handler_ignores_empty_payloads);
+        RUN_TEST(test_multipart_handler_requires_boundary_header);
+        RUN_TEST(test_multipart_handler_parses_named_part_and_emits_completed_event);
+        RUN_TEST(test_multipart_handler_skips_empty_parts_and_only_emits_completed_event);
+        RUN_TEST(test_multipart_handler_drops_small_truncated_part_payload_before_completed_event);
+    #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+        RUN_TEST(test_json_body_handler_parses_valid_json_and_preserves_route_parameters);
+        RUN_TEST(test_json_body_handler_passes_empty_documents_for_malformed_payloads);
+        RUN_TEST(test_json_body_handler_ignores_empty_payloads);
+    #else
+        RUN_TEST(test_json_body_handler_is_unavailable_in_json_disabled_build);
+    #endif
+        RUN_TEST(test_raw_body_handler_extractor_runs_on_first_body_chunk_phase);
+        RUN_TEST(test_form_body_handler_preserves_headers_items_and_route_parameters_alongside_parsed_body);
         return UNITY_END();
     }
 }

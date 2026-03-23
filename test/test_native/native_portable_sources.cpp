@@ -10,6 +10,9 @@
 #include "../../src/core/HttpRequest.cpp"
 #include "../../src/handlers/BufferedStringBodyHandler.cpp"
 #include "../../src/handlers/FormBodyHandler.cpp"
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#include "../../src/handlers/JsonBodyHandler.cpp"
+#endif
 #include "../../src/handlers/RawBodyHandler.cpp"
 #include "../../src/handlers/HandlerTypes.h"
 #include "../../src/handlers/MultipartFormDataHandler.cpp"
