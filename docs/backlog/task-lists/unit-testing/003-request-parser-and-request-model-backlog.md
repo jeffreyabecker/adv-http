@@ -1,14 +1,16 @@
+2026-03-23 - Copilot: extended backlog to cover custom HTTP verb parsing allowed by the HTTP specification.
 2026-03-23 - Copilot: created detailed Phase 3 request parser and request model backlog.
 
 # Unit Testing Phase 3 Request Parser And Request Model Backlog
 
 ## Summary
 
-This phase covers the inbound HTTP request path without requiring any real transport. `RequestParser` already wraps llhttp behind a library-owned event interface, and `HttpRequest` already centralizes request lifecycle, address propagation, handler invocation, and response dispatch. The goal is to drive both components entirely from in-memory byte fixtures and fake handlers so parser correctness and request-phase transitions become deterministic native tests.
+This phase covers the inbound HTTP request path without requiring any real transport. `RequestParser` already wraps llhttp behind a library-owned event interface, and `HttpRequest` already centralizes request lifecycle, address propagation, handler invocation, and response dispatch. The goal is to drive both components entirely from in-memory byte fixtures and fake handlers so parser correctness and request-phase transitions become deterministic native tests. Coverage should also explicitly verify that syntactically valid extension methods are accepted and preserved, since HTTP allows custom verbs beyond the common built-in set.
 
 ## Goal / Acceptance Criteria
 
 - `RequestParser` behavior is validated against valid, malformed, boundary-sized, and split-input request fixtures.
+- Valid custom HTTP methods allowed by the HTTP token grammar are accepted, surfaced unchanged to pipeline callbacks, and propagated into `HttpRequest` state without normalization.
 - `HttpRequest` lifecycle behavior is validated without sockets by invoking pipeline callbacks directly.
 - Parser events, error mapping, and request-phase transitions can be asserted in order with reusable fixtures.
 
@@ -17,20 +19,25 @@ This phase covers the inbound HTTP request path without requiring any real trans
 ### RequestParser Fixture Coverage
 
 - [ ] Add parser tests for simple GET requests, POST requests with bodies, and header-only requests.
+- [ ] Add parser tests for syntactically valid extension methods such as `PURGE`, `MKCOL`, and a project-defined custom verb, including verification that method text is preserved exactly and remains case-sensitive.
 - [ ] Add parser tests that split request bytes across multiple `execute()` calls at request-line, header, and body boundaries.
-- [ ] Add malformed-request tests for invalid methods, malformed request lines, invalid headers, and unexpected EOF handling.
+- [ ] Add parser tests that split custom-method bytes across multiple `execute()` calls so method buffering is covered independently from URL and header buffering.
+- [ ] Add malformed-request tests for invalid method tokens, malformed request lines, invalid headers, and unexpected EOF handling.
 - [ ] Add oversized-URI, oversized-header-field, oversized-header-value, and total-buffer-limit tests.
+- [ ] Add method-boundary tests around the parser's current method-buffer limit so extension methods near the supported maximum length are either accepted or rejected in a deterministic, documented way.
 - [ ] Verify parser completion, keep-alive decisions, and repeated `execute(nullptr, 0)` or post-finish behavior.
 
 ### Event Recording And Error Mapping
 
 - [ ] Add a reusable `IPipelineHandler` recorder that captures message-begin, header, body, completion, and error callbacks in order.
+- [ ] Verify that recorded `onMessageBegin(...)` callbacks receive custom methods byte-for-byte unchanged rather than mapped to a fixed verb enum or normalized casing.
 - [ ] Verify llhttp error-code mapping to `PipelineErrorCode` for each library-level path currently exposed.
 - [ ] Freeze current body-chunk delivery semantics, including multiple body callbacks for one request.
 
 ### HttpRequest Lifecycle Coverage
 
 - [ ] Add tests that drive `HttpRequest` through starting-line completion, header completion, body delivery, and message completion.
+- [ ] Verify that `HttpRequest` exposes custom request methods unchanged after parser-driven request construction and through handler invocation.
 - [ ] Verify address propagation through `setAddresses(...)` and request accessors.
 - [ ] Verify item storage, URI-view caching behavior, and handler creation timing.
 - [ ] Verify when `handleStep()` is triggered relative to completed phases and response-writing callbacks.
@@ -61,3 +68,4 @@ High
 - `src/core/HttpRequestPhase.h`
 - `src/core/IHttpRequestHandlerFactory.h`
 - `src/llhttp/include/llhttp.h`
+- RFC 9110 Section 9.1
