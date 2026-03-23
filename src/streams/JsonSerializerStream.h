@@ -118,20 +118,18 @@ class JsonPullSerializer {
 
 ARDUINOJSON_END_PRIVATE_NAMESPACE
 
-ARDUINOJSON_BEGIN_PUBLIC_NAMESPACE
+namespace HttpServerAdvanced {
 
-class JsonSerializerStream : public HttpServerAdvanced::IByteSource {
+class JsonSerializerStream : public IByteSource {
  public:
-  explicit JsonSerializerStream(JsonDocument&& doc);
+  explicit JsonSerializerStream(ArduinoJson::JsonDocument&& doc);
 
-  HttpServerAdvanced::AvailableResult available() override;
-  size_t read(HttpServerAdvanced::span<uint8_t> buffer) override;
-  size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override;
-
-
+  AvailableResult available() override;
+  size_t read(span<uint8_t> buffer) override;
+  size_t peek(span<uint8_t> buffer) override;
 
  private:
-  detail::JsonPullSerializer serializer_;
+  ArduinoJson::detail::JsonPullSerializer serializer_;
 };
 
-ARDUINOJSON_END_PUBLIC_NAMESPACE
+}  // namespace HttpServerAdvanced

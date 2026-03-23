@@ -573,27 +573,27 @@ size_t JsonPullSerializer::read(uint8_t* output, size_t capacity) {
 
 ARDUINOJSON_END_PRIVATE_NAMESPACE
 
-ARDUINOJSON_BEGIN_PUBLIC_NAMESPACE
+namespace HttpServerAdvanced {
 
-JsonSerializerStream::JsonSerializerStream(JsonDocument&& doc)
-    : serializer_(detail::move(doc)) {}
+JsonSerializerStream::JsonSerializerStream(ArduinoJson::JsonDocument&& doc)
+    : serializer_(ArduinoJson::detail::move(doc)) {}
 
-HttpServerAdvanced::AvailableResult JsonSerializerStream::available() {
+AvailableResult JsonSerializerStream::available() {
   const int availableBytes = serializer_.available();
   if (availableBytes > 0)
-    return HttpServerAdvanced::AvailableBytes(static_cast<size_t>(availableBytes));
+    return AvailableBytes(static_cast<size_t>(availableBytes));
 
-  return HttpServerAdvanced::ExhaustedResult();
+  return ExhaustedResult();
 }
 
-size_t JsonSerializerStream::read(HttpServerAdvanced::span<uint8_t> buffer) {
+size_t JsonSerializerStream::read(span<uint8_t> buffer) {
   if (buffer.empty())
     return 0;
 
   return serializer_.read(buffer.data(), buffer.size());
 }
 
-size_t JsonSerializerStream::peek(HttpServerAdvanced::span<uint8_t> buffer) {
+size_t JsonSerializerStream::peek(span<uint8_t> buffer) {
   if (buffer.empty())
     return 0;
 
@@ -605,5 +605,4 @@ size_t JsonSerializerStream::peek(HttpServerAdvanced::span<uint8_t> buffer) {
   return 1;
 }
 
-
-ARDUINOJSON_END_PUBLIC_NAMESPACE
+}  // namespace HttpServerAdvanced
