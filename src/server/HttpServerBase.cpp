@@ -94,11 +94,11 @@ uint16_t HttpServerBase::localPort() const {
     return server_->port();
 }
 
-// std::map<String, std::any> &HttpServerBase::items() const {
+// std::map<std::string, std::any> &HttpServerBase::items() const {
 //     return items_;
 // }
 
-// bool HttpServerBase::hasService(const String &serviceName) const {
+// bool HttpServerBase::hasService(const std::string &serviceName) const {
 //     return items_.find(serviceName) != items_.end();
 // }
 
@@ -107,7 +107,7 @@ uint16_t HttpServerBase::localPort() const {
 //     return static_cast<HttpServerBase &>(*this);
 // }
 
-// void HttpServerBase::addService(HttpServerBase &server, const String &serviceName, std::any serviceInstance) {
+// void HttpServerBase::addService(HttpServerBase &server, const std::string &serviceName, std::any serviceInstance) {
 //     items_[serviceName] = serviceInstance;
 // }
 

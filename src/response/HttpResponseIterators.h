@@ -11,7 +11,7 @@ namespace HttpServerAdvanced
 {
 
   // Helper functions
-  String getHeaderDateValue();
+  std::string getHeaderDateValue();
 
   void EnsureRequiredHeaders(HttpHeaderCollection &headers, ssize_t body_size);
 

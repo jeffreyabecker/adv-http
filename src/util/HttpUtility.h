@@ -9,10 +9,6 @@
 
 #include "KeyValuePairView.h"
 
-#ifdef ARDUINO
-#include <Arduino.h>
-#endif
-
 namespace HttpServerAdvanced
 {
     class WebUtility

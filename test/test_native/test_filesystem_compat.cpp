@@ -2,8 +2,6 @@
 
 #include <unity.h>
 
-#include <Arduino.h>
-
 #include "../../src/compat/FileSystem.h"
 #include "../../src/compat/Stream.h"
 
@@ -145,7 +143,7 @@ namespace
     {
         FakeFs fs;
         FS &filesystem = fs;
-        String path("/www/app.js");
+        std::string path("/www/app.js");
 
         File file = filesystem.open(path, "r");
 

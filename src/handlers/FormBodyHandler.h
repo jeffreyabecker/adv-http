@@ -1,5 +1,4 @@
 #pragma once
-#include <Arduino.h>
 #include "BufferingHttpHandlerBase.h"
 #include "../util/KeyValuePairView.h"
 #include "../util/HttpUtility.h"

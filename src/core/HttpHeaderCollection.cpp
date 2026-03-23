@@ -51,18 +51,4 @@ namespace HttpServerAdvanced
         }
     }
 
-    void HttpHeaderCollection::set(const String &name, const String &value, bool forceOverwrite)
-    {
-        set(std::string_view(name.c_str(), name.length()), std::string_view(value.c_str(), value.length()), forceOverwrite);
-    }
-
-    void HttpHeaderCollection::remove(const String &name)
-    {
-        remove(std::string_view(name.c_str(), name.length()));
-    }
-
-    void HttpHeaderCollection::remove(const String &name, const String &value)
-    {
-        remove(std::string_view(name.c_str(), name.length()), std::string_view(value.c_str(), value.length()));
-    }
 } // namespace HttpServerAdvanced

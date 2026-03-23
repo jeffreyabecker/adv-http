@@ -1,5 +1,4 @@
 #pragma once
-#include <Arduino.h>
 #include <vector>
 #include <cstring>
 #include <algorithm>
@@ -34,12 +33,6 @@ namespace HttpServerAdvanced
         std::string_view contentType_;
         std::string_view partName_;
         MultipartStatus status_ = MultipartStatus::FirstChunk;
-        mutable String filenameCache_;
-        mutable String contentTypeCache_;
-        mutable String partNameCache_;
-        mutable bool filenameCacheValid_ = false;
-        mutable bool contentTypeCacheValid_ = false;
-        mutable bool partNameCacheValid_ = false;
 
     public:
         MultipartFormDataBuffer(const uint8_t *data, size_t size, std::string_view filename, std::string_view contentType, std::string_view name, MultipartStatus status)
@@ -57,33 +50,9 @@ namespace HttpServerAdvanced
         const uint8_t *begin() const { return data_.data(); }
         const uint8_t *end() const { return data_.data() + data_.size(); }
         const std::vector<uint8_t> &bytes() const { return data_; }
-        const String &filename() const
-        {
-            if (!filenameCacheValid_)
-            {
-                filenameCache_ = HttpHeaderDetail::ToArduinoString(filename_);
-                filenameCacheValid_ = true;
-            }
-            return filenameCache_;
-        }
-        const String &contentType() const
-        {
-            if (!contentTypeCacheValid_)
-            {
-                contentTypeCache_ = HttpHeaderDetail::ToArduinoString(contentType_);
-                contentTypeCacheValid_ = true;
-            }
-            return contentTypeCache_;
-        }
-        const String &name() const
-        {
-            if (!partNameCacheValid_)
-            {
-                partNameCache_ = HttpHeaderDetail::ToArduinoString(partName_);
-                partNameCacheValid_ = true;
-            }
-            return partNameCache_;
-        }
+        std::string_view filename() const { return filename_; }
+        std::string_view contentType() const { return contentType_; }
+        std::string_view name() const { return partName_; }
         std::string_view filenameView() const { return filename_; }
         std::string_view contentTypeView() const { return contentType_; }
         std::string_view nameView() const { return partName_; }

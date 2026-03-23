@@ -5,7 +5,7 @@
 
 namespace HttpServerAdvanced
 {
-    String getHeaderDateValue()
+    std::string getHeaderDateValue()
     {
         // This assumes the system time is correctly set using the NTP system
         struct tm tm_time;
@@ -18,7 +18,7 @@ namespace HttpServerAdvanced
 
         char buf[32];
         strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", &tm_time);
-        return String(buf);
+        return std::string(buf);
     }
 
     void EnsureRequiredHeaders(HttpHeaderCollection &headers, ssize_t body_size)
@@ -45,7 +45,7 @@ namespace HttpServerAdvanced
         {
             if (body_size >= 0)
             {
-                headers.set(HttpHeaderNames::ContentLength, String(static_cast<size_t>(body_size)));
+                headers.set(HttpHeaderNames::ContentLength, std::to_string(static_cast<size_t>(body_size)));
             }
             else
             {

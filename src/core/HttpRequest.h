@@ -38,10 +38,6 @@ namespace HttpServerAdvanced
         std::string method_;
         std::string version_;
         std::string url_;
-        mutable String versionCache_;
-        mutable String urlCache_;
-        mutable bool versionCacheValid_ = false;
-        mutable bool urlCacheValid_ = false;
         HttpHeaderCollection headers_;
         std::string remoteAddress_;
         uint16_t remotePort_;
@@ -51,29 +47,7 @@ namespace HttpServerAdvanced
 
         void invalidateTextCaches()
         {
-            versionCacheValid_ = false;
-            urlCacheValid_ = false;
             cachedUriView_.reset();
-        }
-
-        const String &versionAdapter() const
-        {
-            if (!versionCacheValid_)
-            {
-                versionCache_ = HttpHeaderDetail::ToArduinoString(version_);
-                versionCacheValid_ = true;
-            }
-            return versionCache_;
-        }
-
-        const String &urlAdapter() const
-        {
-            if (!urlCacheValid_)
-            {
-                urlCache_ = HttpHeaderDetail::ToArduinoString(url_);
-                urlCacheValid_ = true;
-            }
-            return urlCache_;
         }
 
         IHttpHandler *tryGetHandler()
@@ -185,11 +159,11 @@ namespace HttpServerAdvanced
         inline HttpRequestPhaseFlags completedPhases() const { return completedPhases_; }
 
         // Merged accessor methods from HttpRequest
-        inline const String &version() const { return versionAdapter(); }
+        inline std::string_view version() const { return versionView(); }
         inline std::string_view versionView() const { return std::string_view(version_.data(), version_.size()); }
         inline const char *method() const { return method_.c_str(); }
         inline std::string_view methodView() const { return std::string_view(method_.data(), method_.size()); }
-        inline const String &url() const { return urlAdapter(); }
+        inline std::string_view url() const { return urlView(); }
         inline std::string_view urlView() const { return std::string_view(url_.data(), url_.size()); }
         inline const HttpHeaderCollection &headers() const { return headers_; }
         inline std::string_view remoteAddress() const { return std::string_view(remoteAddress_.data(), remoteAddress_.size()); }

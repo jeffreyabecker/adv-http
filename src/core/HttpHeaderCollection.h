@@ -1,5 +1,4 @@
 #pragma once
-#include <Arduino.h>
 #include <vector>
 #include <optional>
 #include <algorithm>
@@ -39,14 +38,6 @@ namespace HttpServerAdvanced
       }
     }
 
-    HttpHeaderCollection(std::initializer_list<std::pair<const String &, const String &>> headers)
-    {
-      for (const auto &h : headers)
-      {
-        set(std::string_view(h.first.c_str(), h.first.length()), std::string_view(h.second.c_str(), h.second.length()));
-      }
-    }
-
     // Accept initializer lists of C-style string pairs to avoid ambiguity when using braced pairs
     HttpHeaderCollection(std::initializer_list<std::pair<const char *, const char *>> headers)
     {
@@ -54,11 +45,6 @@ namespace HttpServerAdvanced
       {
         set(std::string_view(h.first != nullptr ? h.first : ""), std::string_view(h.second != nullptr ? h.second : ""));
       }
-    }
-
-    std::optional<HttpHeader> find(const String &name) const
-    {
-      return find(std::string_view(name.c_str(), name.length()));
     }
 
     std::optional<HttpHeader> find(const char *name) const
@@ -77,12 +63,6 @@ namespace HttpServerAdvanced
       return std::nullopt;
     }
 
-    bool exists(const String &name) const
-    {
-      auto it = find(name);
-      return it.has_value();
-    }
-
     bool exists(const char *name) const
     {
       return exists(std::string_view(name != nullptr ? name : ""));
@@ -91,11 +71,6 @@ namespace HttpServerAdvanced
     bool exists(std::string_view name) const
     {
       return find(name).has_value();
-    }
-
-    bool exists(const String &name, const String &value) const
-    {
-      return exists(std::string_view(name.c_str(), name.length()), std::string_view(value.c_str(), value.length()));
     }
 
     bool exists(const char *name, const char *value) const
@@ -117,8 +92,6 @@ namespace HttpServerAdvanced
 
     void set(HttpHeader &&header, bool forceOverwrite = true);
 
-    void set(const String &name, const String &value, bool forceOverwrite = false);
-
     void set(const char *name, const char *value, bool forceOverwrite = false)
     {
       set(std::string_view(name != nullptr ? name : ""), std::string_view(value != nullptr ? value : ""), forceOverwrite);
@@ -128,8 +101,6 @@ namespace HttpServerAdvanced
     {
       set(HttpHeader(name, value), forceOverwrite);
     }
-
-    void remove(const String &name);
 
     void remove(const char *name)
     {
@@ -142,8 +113,6 @@ namespace HttpServerAdvanced
                            { return HttpHeaderCollectionDetail::EqualsIgnoreCase(h.nameView(), name); }),
             end());
     }
-
-    void remove(const String &name, const String &value);
 
     void remove(const char *name, const char *value)
     {

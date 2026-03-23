@@ -1,5 +1,4 @@
 #pragma once
-#include <Arduino.h>
 #include <functional>
 #include "../core/Defines.h"
 #include "../routing/HandlerProviderRegistry.h"

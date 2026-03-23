@@ -9,15 +9,16 @@
 
 #include <algorithm>
 #include <cstring>
+#include <string>
 #include <vector>
 
 using namespace HttpServerAdvanced;
 
 namespace
 {
-    String ReadByteSourceAsString(IByteSource &source)
+    std::string ReadByteSourceAsString(IByteSource &source)
     {
-        String result;
+        std::string result;
         uint8_t buffer[16] = {};
         while (true)
         {
@@ -36,9 +37,9 @@ namespace
         return result;
     }
 
-    String DrainByteSourceWithAvailability(IByteSource &source, std::size_t maxUnavailablePolls = 8)
+    std::string DrainByteSourceWithAvailability(IByteSource &source, std::size_t maxUnavailablePolls = 8)
     {
-        String result;
+        std::string result;
         uint8_t buffer[16] = {};
         std::size_t unavailablePolls = 0;
 
@@ -263,8 +264,8 @@ namespace
     {
         auto body = std::make_unique<VectorByteSource>("ok");
 
-        const String content = ReadByteSourceAsString(*body);
-        TEST_ASSERT_TRUE(content == String("ok"));
+        const std::string content = ReadByteSourceAsString(*body);
+        TEST_ASSERT_EQUAL_STRING("ok", content.c_str());
     }
 
     void test_byte_source_reports_temporarily_unavailable()
@@ -278,8 +279,8 @@ namespace
     {
         auto body = ChunkedHttpResponseBodyStream::create(std::make_unique<VectorByteSource>("Hi"));
 
-        const String content = ReadByteSourceAsString(*body);
-        TEST_ASSERT_TRUE(content == String("2\r\nHi\r\n0\r\n\r\n"));
+        const std::string content = ReadByteSourceAsString(*body);
+        TEST_ASSERT_EQUAL_STRING("2\r\nHi\r\n0\r\n\r\n", content.c_str());
     }
 
     void test_http_response_accepts_byte_source_body()
@@ -288,8 +289,8 @@ namespace
         HttpResponse response(HttpStatus::Ok(), std::make_unique<VectorByteSource>("body"), std::move(headers));
 
         auto body = response.getBody();
-        const String content = ReadByteSourceAsString(*body);
-        TEST_ASSERT_TRUE(content == String("body"));
+        const std::string content = ReadByteSourceAsString(*body);
+        TEST_ASSERT_EQUAL_STRING("body", content.c_str());
     }
 
     void test_create_response_stream_serializes_direct_response_exactly()
@@ -300,9 +301,9 @@ namespace
             MakeDeterministicResponseHeaders());
 
         auto source = CreateResponseStream(std::move(response));
-        const String content = ReadByteSourceAsString(*source);
+        const std::string content = ReadByteSourceAsString(*source);
 
-        TEST_ASSERT_TRUE(content == String(
+        TEST_ASSERT_EQUAL_STRING(
             "HTTP/1.1 200 OK\r\n"
             "Date: Thu, 01 Jan 1970 00:00:00 GMT\r\n"
             "Server: UnitTest\r\n"
@@ -310,7 +311,7 @@ namespace
             "Connection: close\r\n"
             "Content-Length: 2\r\n"
             "\r\n"
-            "Hi"));
+            "Hi", content.c_str());
     }
 
     void test_create_response_stream_serializes_chunked_response_exactly()
@@ -321,9 +322,9 @@ namespace
             MakeDeterministicResponseHeaders());
 
         auto source = CreateResponseStream(std::move(response));
-        const String content = DrainByteSourceWithAvailability(*source);
+        const std::string content = DrainByteSourceWithAvailability(*source);
 
-        TEST_ASSERT_TRUE(content == String(
+        TEST_ASSERT_EQUAL_STRING(
             "HTTP/1.1 200 OK\r\n"
             "Date: Thu, 01 Jan 1970 00:00:00 GMT\r\n"
             "Server: UnitTest\r\n"
@@ -333,7 +334,7 @@ namespace
             "\r\n"
             "2\r\n"
             "Hi\r\n"
-            "0\r\n\r\n"));
+            "0\r\n\r\n", content.c_str());
     }
 
     void test_chunked_response_stream_handles_temporary_unavailability_between_chunks()
@@ -341,8 +342,8 @@ namespace
         auto body = ChunkedHttpResponseBodyStream::create(
             std::make_unique<ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"Hi", false}, {"", true}, {"!", false}}));
 
-        const String content = DrainByteSourceWithAvailability(*body);
-        TEST_ASSERT_TRUE(content == String("2\r\nHi\r\n1\r\n!\r\n0\r\n\r\n"));
+        const std::string content = DrainByteSourceWithAvailability(*body);
+        TEST_ASSERT_EQUAL_STRING("2\r\nHi\r\n1\r\n!\r\n0\r\n\r\n", content.c_str());
     }
 
     int runUnitySuite()

@@ -1,10 +1,11 @@
+2026-03-23 - Copilot: removed obsolete public `String` overloads from the active core and routing surface, updated native tests to assert STL text behavior, and narrowed the remaining Phase 8 work to umbrella, builder, and example cleanup.
 2026-03-21 - Copilot: created detailed Phase 8 public API compatibility and cleanup backlog.
 
 # No-Arduino Phase 8 Public API Compatibility And Cleanup Backlog
 
 ## Summary
 
-This phase reconciles the internal seam refactors with the public Arduino-facing API. By this point the internals should already be moving toward standard-library ownership and library-owned compatibility seams, but the umbrella headers, convenience builders, and example-facing aliases still need to present a coherent migration story for users. The goal is to preserve practical Arduino ergonomics where they still matter, isolate compatibility overloads, and clean up public headers so non-Arduino consumers do not inherit unnecessary Arduino coupling.
+This phase reconciles the internal seam refactors with the public Arduino-facing API. By this point the internals should already be moving toward standard-library ownership and library-owned compatibility seams, but the umbrella headers, convenience builders, and example-facing aliases still need to present a coherent migration story for users. The latest cleanup slice removed the obsolete `String` caches and `String` overloads from the validated core-text and routing surface, so the remaining work is less about internal text ownership and more about deciding what Arduino-facing convenience remains justified at the boundary. The goal is to preserve practical Arduino ergonomics where they still matter, isolate compatibility overloads, and clean up public headers so non-Arduino consumers do not inherit unnecessary Arduino coupling.
 
 ## Goal / Acceptance Criteria
 
@@ -24,10 +25,13 @@ This phase reconciles the internal seam refactors with the public Arduino-facing
 
 ### Compatibility Overload Review
 
-- [ ] Inventory public APIs that currently accept Arduino `String` and classify which should remain as compatibility overloads.
+- [x] Inventory public APIs that currently accept Arduino `String` and classify which should remain as compatibility overloads.
 - [ ] Prefer `const char *` for borrowed Arduino-friendly inputs where ownership is not required.
 - [ ] Keep `String` overloads only where compatibility or ownership semantics materially justify them.
 - [ ] Record which overloads are candidates for future deprecation once migration completes.
+
+Current note:
+The first cleanup sweep removed obsolete `String` overloads and adapters from `HttpHeader`, `HttpHeaderCollection`, `HttpRequest`, `BasicAuthentication`, `CrossOriginRequestSharing`, and multipart metadata accessors. Remaining compatibility review is now concentrated in umbrella exports, builder or helper APIs, example-facing entry points, and any Arduino-specific consumer guidance that still assumes implicit `String` support.
 
 ### Builder And Routing Surface Cleanup
 

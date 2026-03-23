@@ -1,6 +1,5 @@
 #pragma once
 // https://github.com/nodejs/llhttp
-#include <Arduino.h>
 #include "../llhttp/include/llhttp.h"
 #include <cstddef>
 #include <cstdint>

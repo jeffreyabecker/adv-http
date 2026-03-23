@@ -1,5 +1,4 @@
 #pragma once
-#include <Arduino.h>
 #include <optional>
 #include <utility>
 #include <vector>

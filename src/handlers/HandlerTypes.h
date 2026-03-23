@@ -1,5 +1,4 @@
 #pragma once
-#include <Arduino.h>
 #include <vector>
 #include "IHttpHandler.h"
 #include "../response/IHttpResponse.h"

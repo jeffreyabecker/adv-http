@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Arduino.h>
 #include "../core/Defines.h"
 #include "../core/HttpRequest.h"
 #include "../response/HttpResponse.h"
@@ -16,16 +15,6 @@ namespace HttpServerAdvanced
 {
     namespace BasicAuthImpl
     {
-        inline String toArduinoString(std::string_view value)
-        {
-            return HttpHeaderDetail::ToArduinoString(value);
-        }
-
-        inline std::string toStdString(const String &value)
-        {
-            return std::string(value.c_str(), value.length());
-        }
-
         inline bool CheckBasicAuthCredentials(HttpRequest &context, std::function<bool(std::string_view, std::string_view)> validator,
                               std::function<void(std::string_view, std::string_view)> onSuccess)
         {
@@ -91,45 +80,6 @@ namespace HttpServerAdvanced
         };
     }
 
-    inline IHttpHandler::InterceptorCallback BasicAuth(std::function<bool(const String &, const String &)> validator, const String &realm = "Restricted Area",
-                                                       std::function<void(const String &, const String &)> onSuccess = nullptr,
-                                                       std::function<std::unique_ptr<IHttpResponse>(HttpRequest &context, const String &)> onFailure = nullptr)
-    {
-        std::function<void(std::string_view, std::string_view)> wrappedOnSuccess;
-        if (onSuccess)
-        {
-            wrappedOnSuccess = [onSuccess](std::string_view username, std::string_view password)
-            {
-                onSuccess(BasicAuthImpl::toArduinoString(username), BasicAuthImpl::toArduinoString(password));
-            };
-        }
-
-        std::function<std::unique_ptr<IHttpResponse>(HttpRequest &, std::string_view)> wrappedOnFailure;
-        if (onFailure)
-        {
-            wrappedOnFailure = [onFailure](HttpRequest &context, std::string_view realmValue)
-            {
-                return onFailure(context, BasicAuthImpl::toArduinoString(realmValue));
-            };
-        }
-        else
-        {
-            wrappedOnFailure = [](HttpRequest &context, std::string_view realmValue)
-            {
-                return defaultOnFailure(context, realmValue);
-            };
-        }
-
-        return BasicAuth(
-            [validator](std::string_view foundUsername, std::string_view foundPassword)
-            {
-                return validator(BasicAuthImpl::toArduinoString(foundUsername), BasicAuthImpl::toArduinoString(foundPassword));
-            },
-            std::string_view(realm.c_str(), realm.length()),
-            std::move(wrappedOnSuccess),
-            std::move(wrappedOnFailure));
-    }
-
     inline IHttpHandler::InterceptorCallback BasicAuth(std::string_view expectedUsername, std::string_view expectedPassword, std::string_view realm = "Restricted Area",
                                                        std::function<void(std::string_view, std::string_view)> onSuccess = nullptr,
                                                        std::function<std::unique_ptr<IHttpResponse>(HttpRequest &context, std::string_view)> onFailure = defaultOnFailure)
@@ -142,54 +92,6 @@ namespace HttpServerAdvanced
             realm,
             std::move(onSuccess),
             std::move(onFailure));
-    }
-
-    inline IHttpHandler::InterceptorCallback BasicAuth(const String &expectedUsername, const String &expectedPassword, const String &realm = "Restricted Area",
-                                                       std::function<void(const String &, const String &)> onSuccess = nullptr,
-                                                       std::function<std::unique_ptr<IHttpResponse>(HttpRequest &context, const String &)> onFailure = nullptr)
-    {
-        std::function<void(std::string_view, std::string_view)> wrappedOnSuccess;
-        if (onSuccess)
-        {
-            wrappedOnSuccess = [onSuccess](std::string_view username, std::string_view password)
-            {
-                onSuccess(BasicAuthImpl::toArduinoString(username), BasicAuthImpl::toArduinoString(password));
-            };
-        }
-
-        std::function<std::unique_ptr<IHttpResponse>(HttpRequest &, std::string_view)> wrappedOnFailure;
-        if (onFailure)
-        {
-            wrappedOnFailure = [onFailure](HttpRequest &context, std::string_view realmValue)
-            {
-                return onFailure(context, BasicAuthImpl::toArduinoString(realmValue));
-            };
-        }
-        else
-        {
-            wrappedOnFailure = [](HttpRequest &context, std::string_view realmValue)
-            {
-                return defaultOnFailure(context, realmValue);
-            };
-        }
-
-        return BasicAuth(
-            std::string_view(expectedUsername.c_str(), expectedUsername.length()),
-            std::string_view(expectedPassword.c_str(), expectedPassword.length()),
-            std::string_view(realm.c_str(), realm.length()),
-            std::move(wrappedOnSuccess),
-            std::move(wrappedOnFailure));
-    }
-
-    inline IHttpHandler::InterceptorCallback BasicAuth(const char *expectedUsername, const char *expectedPassword, const char *realm = "Restricted Area",
-                                                       std::function<void(const String &, const String &)> onSuccess = nullptr,
-                                                       std::function<std::unique_ptr<IHttpResponse>(HttpRequest &context, const String &)> onFailure = nullptr)
-    {
-        return BasicAuth(String(expectedUsername != nullptr ? expectedUsername : ""),
-                         String(expectedPassword != nullptr ? expectedPassword : ""),
-                         String(realm != nullptr ? realm : "Restricted Area"),
-                         onSuccess,
-                         onFailure);
     }
 } // namespace HttpServerAdvanced
 

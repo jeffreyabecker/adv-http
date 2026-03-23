@@ -1,5 +1,4 @@
 #pragma once
-#include <Arduino.h>
 #include <functional>
 #include <memory>
 #include <string>
@@ -44,19 +43,6 @@ namespace HttpServerAdvanced
                 headers.set(HttpHeaderNames::AccessControlRequestMethod, requestMethodsValue.c_str());
             return resp;
         };
-    }
-
-    inline HttpResponse::ResponseFilter CrossOriginRequestSharing(const String &allowedOrigins, const String &allowedMethods, const String &allowedHeaders,
-                                                                  const String &allowedCredentials = "", const String &exposeHeaders = "", const int maxAge = -1, const String &requestHeaders = "", const String &requestMethods = "")
-    {
-        return CrossOriginRequestSharing(std::string_view(allowedOrigins.c_str(), allowedOrigins.length()),
-                                         std::string_view(allowedMethods.c_str(), allowedMethods.length()),
-                                         std::string_view(allowedHeaders.c_str(), allowedHeaders.length()),
-                                         std::string_view(allowedCredentials.c_str(), allowedCredentials.length()),
-                                         std::string_view(exposeHeaders.c_str(), exposeHeaders.length()),
-                                         maxAge,
-                                         std::string_view(requestHeaders.c_str(), requestHeaders.length()),
-                                         std::string_view(requestMethods.c_str(), requestMethods.length()));
     }
 
     inline HttpResponse::ResponseFilter CrossOriginRequestSharing(const char *allowedOrigins, const char *allowedMethods, const char *allowedHeaders,
