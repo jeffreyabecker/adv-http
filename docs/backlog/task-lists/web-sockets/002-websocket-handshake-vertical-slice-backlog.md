@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: aligned Phase 2 backlog with accepted decisions for dedicated handshake handling and rejection-policy ownership.
 2026-03-23 - Copilot: created detailed Phase 2 WebSocket handshake vertical slice backlog.
 
 # WebSocket Phase 2 Handshake-Only Vertical Slice Backlog
@@ -8,44 +9,55 @@ This phase proves the upgrade seam with a complete HTTP-to-WebSocket handshake f
 
 ## Goal / Acceptance Criteria
 
-- Valid WebSocket upgrade requests are recognized and accepted through the new internal seam.
+- Valid WebSocket upgrade requests are recognized and accepted through the new internal seam using a dedicated WebSocket upgrade handler.
 - Invalid upgrade requests are rejected with deterministic HTTP responses and do not partially mutate pipeline state.
-- `Sec-WebSocket-Accept` generation is correct and stable.
+- `Sec-WebSocket-Accept` generation is correct, stable, and owned by the dedicated upgrade handler.
 - A successful handshake transfers control to a stub upgraded-session object that keeps the connection alive independently from the old HTTP response lifecycle.
+
+## Locked Decisions Applied Here
+
+- Use a dedicated WebSocket upgrade handler for validation and handshake result construction.
+- Generate `Sec-WebSocket-Accept` in that handler.
+- Standardize handshake rejection status codes during this phase rather than leaving them open-ended.
 
 ## Unit Test Coverage Targets
 
-- Add native handshake tests for accepted requests with canonical header ordering and mixed-case header names.
+- Add native handshake tests for accepted requests with canonical header ordering and mixed-case header names through the dedicated upgrade handler path.
 - Add rejection tests for wrong method, missing `Connection`, missing `Upgrade`, unsupported version, invalid key length, malformed base64 key text, and duplicate or conflicting headers.
 - Verify parser-split delivery across request-line, header-name, and header-value boundaries for accepted and rejected handshake requests.
 - Verify exact `101` response headers, including `Upgrade`, `Connection`, and `Sec-WebSocket-Accept` values.
-- Verify that rejection paths do not instantiate the upgraded-session stub and that accepted paths do.
+- Verify that rejection paths do not instantiate the upgraded-session stub and that accepted paths do, both at the handler level and at the pipeline seam.
 
 ## Tasks
 
 ### Handshake Validation
 
-- [ ] Add a dedicated validator for WebSocket upgrade request requirements.
-- [ ] Decide whether validation lives in a WebSocket-specific upgrade handler or in a narrow routed upgrade branch and keep that placement explicit.
+- [ ] Add the dedicated WebSocket upgrade handler and keep validation logic owned there.
+- [ ] Implement validator logic in that handler for method, required headers, supported version, and key presence or shape.
 - [ ] Reuse existing header parsing and case-insensitive lookup behavior rather than introducing a separate handshake header store.
 
 ### Handshake Response Generation
 
-- [ ] Implement `Sec-WebSocket-Accept` generation from `Sec-WebSocket-Key`.
+- [ ] Implement `Sec-WebSocket-Accept` generation from `Sec-WebSocket-Key` in the dedicated upgrade handler.
 - [ ] Add the `101 Switching Protocols` response path and ensure it is clearly separated from standard HTTP response helpers.
-- [ ] Confirm the handshake path does not require a normal response body stream.
+- [ ] Confirm the handshake path produces a `RequestHandlingResult` upgrade outcome rather than a normal response body stream.
 
 ### Parser And Request Integration
 
 - [ ] Review `src/pipeline/RequestParser.h` and `src/pipeline/RequestParser.cpp` for any upgrade-relevant state that must be surfaced more explicitly.
 - [ ] Ensure header access in `HttpRequest` is sufficient for handshake validation without introducing parser-specific leakage into the public surface.
-- [ ] Hand the accepted request into a stub upgraded session through the Phase 1 seam.
+- [ ] Hand the accepted request into a stub upgraded session through the Phase 1 result-object and `IConnectionSession` seam.
 
 ### Rejection Behavior
 
-- [ ] Define the HTTP status codes used for malformed or unsupported upgrade attempts.
+- [ ] Define and freeze the HTTP status codes used for malformed or unsupported upgrade attempts in the dedicated upgrade handler.
 - [ ] Ensure partial validation failure does not leave the pipeline in upgraded mode.
-- [ ] Keep handshake errors deterministic and easy to test from fake transports.
+- [ ] Keep handshake errors deterministic and easy to test both directly at the handler boundary and through fake transports.
+
+## Decision Follow-Through
+
+- Item 4 in the pre-implementation decision backlog fixes handshake validation ownership in a dedicated upgrade handler.
+- Item 5 should refine the exact rejection matrix, but this phase now owns where that policy is applied.
 
 ## Owner
 
@@ -69,3 +81,4 @@ High
 - `src/pipeline/HttpPipeline.h`
 - `src/pipeline/HttpPipeline.cpp`
 - RFC 6455 Section 4
+- `docs/backlog/task-lists/web-sockets/008-websocket-pre-implementation-decisions-backlog.md`
