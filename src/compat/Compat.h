@@ -2,8 +2,6 @@
 
 #include "Clock.h"
 #include "IFileSystem.h"
-#include "FileSystem.h"
-#include "Stream.h"
 
 #ifdef ARDUINO
 #include "ArduinoFileSystemAdapter.h"
@@ -13,7 +11,7 @@ namespace HttpServerAdvanced
 {
     namespace Compat
     {
-        // Canonical home for Arduino alias-or-shim types.
+        // Canonical home for the supported compatibility seams.
         //
         // Boundary rules:
         // - Core headers should depend on compatibility headers rather than
@@ -21,5 +19,8 @@ namespace HttpServerAdvanced
         // - Compatibility leaf headers own the ARDUINO/non-ARDUINO split.
         // - Arduino adapters may still include Arduino headers directly when
         //   bridging to framework types.
+        // - Legacy Arduino-shaped shims such as compat/FileSystem.h and
+        //   compat/Stream.h are opt-in compatibility headers, not part of
+        //   the default umbrella surface.
     }
 }

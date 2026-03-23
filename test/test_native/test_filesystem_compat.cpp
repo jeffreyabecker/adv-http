@@ -5,9 +5,11 @@
 #include <Arduino.h>
 
 #include "../../src/compat/FileSystem.h"
+#include "../../src/compat/Stream.h"
 
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 using namespace HttpServerAdvanced;
@@ -119,26 +121,24 @@ namespace
         TEST_ASSERT_EQUAL_INT(0, file.available());
         TEST_ASSERT_EQUAL_INT(-1, file.peek());
         TEST_ASSERT_EQUAL_INT(-1, file.read());
-        TEST_ASSERT_EQUAL_UINT64(0, file.write('x'));
         TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(file.size()));
         TEST_ASSERT_EQUAL_STRING("", file.fullName());
         TEST_ASSERT_EQUAL_UINT32(0, file.getLastWrite());
     }
 
-    void test_file_wraps_copyable_value_handle_and_has_noop_write_surface()
+    void test_file_wraps_copyable_value_handle_without_stream_inheritance()
     {
         File file(std::make_shared<FakeFileImpl>("/www/index.html", "ab", 99));
         File copy = file;
 
+        TEST_ASSERT_FALSE((std::is_base_of_v<Compat::Stream, File>));
         TEST_ASSERT_TRUE(static_cast<bool>(file));
         TEST_ASSERT_TRUE(static_cast<bool>(copy));
         TEST_ASSERT_EQUAL_STRING("/www/index.html", copy.fullName());
         TEST_ASSERT_EQUAL_UINT32(99, copy.getLastWrite());
-        TEST_ASSERT_EQUAL_UINT64(0, copy.write("cd", 2));
-        TEST_ASSERT_EQUAL_UINT64(0, copy.write(reinterpret_cast<const uint8_t *>("ef"), 2));
-        TEST_ASSERT_EQUAL_INT(0, copy.availableForWrite());
-        copy.flush();
         TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(file.size()));
+        TEST_ASSERT_EQUAL_INT('a', copy.read());
+        TEST_ASSERT_EQUAL_INT('b', file.peek());
     }
 
     void test_fs_open_returns_file_by_value_and_accepts_string_like_paths()
@@ -160,7 +160,7 @@ namespace
     {
         UNITY_BEGIN();
         RUN_TEST(test_default_file_is_invalid_and_safe);
-        RUN_TEST(test_file_wraps_copyable_value_handle_and_has_noop_write_surface);
+        RUN_TEST(test_file_wraps_copyable_value_handle_without_stream_inheritance);
         RUN_TEST(test_fs_open_returns_file_by_value_and_accepts_string_like_paths);
         return UNITY_END();
     }

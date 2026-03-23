@@ -5,8 +5,6 @@
 #include <memory>
 #include <type_traits>
 
-#include "Stream.h"
-
 #ifdef ARDUINO
 #include <FS.h>
 #endif
@@ -36,14 +34,12 @@ namespace HttpServerAdvanced
             virtual uint32_t getLastWrite() const = 0;
         };
 
-        class File : public Stream
+        class File
         {
         private:
             std::shared_ptr<FileImpl> impl_;
 
         public:
-            using Stream::write;
-
             File() = default;
             explicit File(std::shared_ptr<FileImpl> impl) : impl_(std::move(impl)) {}
 
@@ -55,34 +51,19 @@ namespace HttpServerAdvanced
                 return impl_ != nullptr && impl_->isValid();
             }
 
-            int available() override
+            int available()
             {
                 return impl_ != nullptr ? impl_->available() : 0;
             }
 
-            int read() override
+            int read()
             {
                 return impl_ != nullptr ? impl_->read() : -1;
             }
 
-            int peek() override
+            int peek()
             {
                 return impl_ != nullptr ? impl_->peek() : -1;
-            }
-
-            std::size_t write(uint8_t byte) override
-            {
-                static_cast<void>(byte);
-                return 0;
-            }
-
-            void flush() override
-            {
-            }
-
-            int availableForWrite() override
-            {
-                return 0;
             }
 
             bool isDirectory() const

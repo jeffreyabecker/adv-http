@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: removed the non-Arduino legacy `Compat::File : Stream` inheritance, kept the compatibility wrapper as a plain value handle, and marked the file-inherits-stream cleanup task complete.
 2026-03-22 - Copilot: moved `StaticFilesBuilder` onto `IFileSystem` and added Arduino adapter helpers so sketch-facing `StaticFiles(fs::FS&, ...)` usage remains available without re-coupling the builder headers.
 2026-03-22 - Copilot: migrated static-file locators and handler metadata usage onto `IFileSystem` and `IFile`, and added native POSIX coverage for the new seam.
 2026-03-22 - Copilot: recorded the proposed `IFileSystem` and `IFile` seam, including `IByteChannel` inheritance and explicit open-mode selection.
@@ -8,7 +9,7 @@
 
 ## Summary
 
-This phase narrows the filesystem dependency to the actual operations static-file serving needs and detaches file-backed responses from Arduino filesystem types. The repository already has `compat/FileSystem.h`, a POSIX adapter, and a `FileByteSource` bridge in the static-file handler, so file-backed responses already flow through the Phase 5 byte-source response path. The remaining work is to narrow the filesystem seam itself, stop treating `File` as a core-facing legacy `Stream`, and preserve board behavior through adapters.
+This phase narrows the filesystem dependency to the actual operations static-file serving needs and detaches file-backed responses from Arduino filesystem types. The repository already has `compat/FileSystem.h`, a POSIX adapter, and a `FileByteSource` bridge in the static-file handler, so file-backed responses already flow through the Phase 5 byte-source response path. The remaining work is to tighten adapter and metadata semantics, preserve board behavior through adapters, and broaden filesystem regression coverage.
 
 ## Goal / Acceptance Criteria
 
@@ -24,7 +25,7 @@ This phase narrows the filesystem dependency to the actual operations static-fil
 - [x] Decide whether `src/compat/FileSystem.h` evolves in place or is replaced by a narrower `IFile` and `IFileSystem` contract.
 - [x] Define the minimum file operations required for static-file serving: open, validity, directory check, close, size, name/path, last-write metadata, and readable-byte access.
 - [x] Decide how file readability participates in the new stream or byte-source contract so filesystem work aligns with Phase 5.
-- [ ] Eliminate the assumption that `File` must be a subclass of the legacy compat `Stream` type.
+- [x] Eliminate the assumption that `File` must be a subclass of the legacy compat `Stream` type.
 
 Selected contract direction:
 Replace `src/compat/FileSystem.h` in core-facing code with `IFileSystem::open(path, FileOpenMode)` returning `std::unique_ptr<IFile>`, where `IFile` extends `IByteChannel` and carries directory, size, path, and last-write metadata. Keep static-file handler logic read-only even though the file seam exposes broader channel behavior.

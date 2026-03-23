@@ -6,12 +6,12 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include "IHttpHandler.h"
 #include "../response/HttpResponse.h"
 #include "../response/StringResponse.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
-#include "../core/Buffer.h"
 #include "../core/Defines.h"
 #include "HandlerRestrictions.h"
 #include "../routing/HandlerMatcher.h"
@@ -26,9 +26,10 @@ namespace HttpServerAdvanced
         Completed        // All multipart data processed
     };
 
-    class MultipartFormDataBuffer : public Buffer
+    class MultipartFormDataBuffer
     {
     private:
+        std::vector<uint8_t> data_;
         std::string_view filename_;
         std::string_view contentType_;
         std::string_view partName_;
@@ -42,7 +43,20 @@ namespace HttpServerAdvanced
 
     public:
         MultipartFormDataBuffer(const uint8_t *data, size_t size, std::string_view filename, std::string_view contentType, std::string_view name, MultipartStatus status)
-            : Buffer(data, size), filename_(filename), contentType_(contentType), partName_(name), status_(status) {}
+            : data_(), filename_(filename), contentType_(contentType), partName_(name), status_(status)
+        {
+            if (data != nullptr && size > 0)
+            {
+                data_.assign(data, data + size);
+            }
+        }
+        MultipartFormDataBuffer(std::vector<uint8_t> data, std::string_view filename, std::string_view contentType, std::string_view name, MultipartStatus status)
+            : data_(std::move(data)), filename_(filename), contentType_(contentType), partName_(name), status_(status) {}
+        const uint8_t *data() const { return data_.data(); }
+        size_t size() const { return data_.size(); }
+        const uint8_t *begin() const { return data_.data(); }
+        const uint8_t *end() const { return data_.data() + data_.size(); }
+        const std::vector<uint8_t> &bytes() const { return data_; }
         const String &filename() const
         {
             if (!filenameCacheValid_)
@@ -177,13 +191,13 @@ namespace HttpServerAdvanced
                     {
                         MultipartStatus finalStatus = partStarted_ ? MultipartStatus::FinalChunk : MultipartStatus::FirstChunk;
                         response_ = handler_(context, params_,
-                                             MultipartFormDataBuffer(partData_.data(), partData_.size(),
+                                             MultipartFormDataBuffer(std::move(partData_),
                                                                      filename_, contentType_, partName_, finalStatus));
                     }
 
                     // Reset for next part
                     partStarted_ = false;
-                    partData_.clear();
+                    partData_ = {};
                     filename_.clear();
                     contentType_.clear();
                     partName_.clear();
@@ -214,13 +228,13 @@ namespace HttpServerAdvanced
                         // Invoke handler with accumulated data to stream it
                         MultipartStatus chunkStatus = partStarted_ ? MultipartStatus::SubsequentChunk : MultipartStatus::FirstChunk;
                         response_ = handler_(context, params_,
-                                             MultipartFormDataBuffer(partData_.data(), partData_.size(),
+                                             MultipartFormDataBuffer(std::move(partData_),
                                                                      filename_, contentType_, partName_, chunkStatus));
 
                         if (!response_)
                         {
                             partStarted_ = true; // Mark that we've emitted at least one chunk
-                            partData_.clear();
+                            partData_ = {};
                         }
                     }
 
@@ -237,7 +251,7 @@ namespace HttpServerAdvanced
                 {
                     MultipartStatus finalStatus = partStarted_ ? MultipartStatus::FinalChunk : MultipartStatus::FirstChunk;
                     response_ = handler_(context, params_,
-                                         MultipartFormDataBuffer(partData_.data(), partData_.size(),
+                                         MultipartFormDataBuffer(std::move(partData_),
                                                                  filename_, contentType_, partName_, finalStatus));
                     if (response_)
                     {
@@ -251,11 +265,11 @@ namespace HttpServerAdvanced
                     filename_.clear();
                     contentType_.clear();
                     partName_.clear();
-                    partData_.clear();
+                    partData_ = {};
                     bufferLength_ = 0;
                     parsingHeaders_ = true;
                     partStarted_ = false;
-                    response_ = handler_(context, params_, MultipartFormDataBuffer(nullptr, 0, filename_, contentType_, partName_, MultipartStatus::Completed));
+                    response_ = handler_(context, params_, MultipartFormDataBuffer({}, filename_, contentType_, partName_, MultipartStatus::Completed));
                 }
                 return;
             }
