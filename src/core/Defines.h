@@ -1,5 +1,8 @@
 #pragma once
-#include <Arduino.h>
+
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
 
 namespace HttpServerAdvanced
 {
