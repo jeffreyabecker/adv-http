@@ -83,9 +83,6 @@ namespace
             });
 
         auto pipelineHandler = HttpRequest::createPipelineHandler(server, factory);
-        pipelineHandler->setResponseStreamCallback([](std::unique_ptr<IByteSource>)
-        {
-        });
 
         const std::uint8_t body[] = {'o', 'k'};
 

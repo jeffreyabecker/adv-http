@@ -7,6 +7,7 @@
 #include "../core/HttpRequestPhase.h"
 #include "../handlers/IHttpHandler.h"
 #include "../pipeline/PipelineError.h"
+#include "../pipeline/RequestHandlingResult.h"
 #include "../streams/ByteStream.h"
 #include "../util/UriView.h"
 #include "IHttpRequestHandlerFactory.h"
@@ -26,12 +27,10 @@ namespace HttpServerAdvanced
 
     private:
         std::unique_ptr<IHttpHandler> handler_;
-        std::unique_ptr<IHttpResponse> response_;
-        bool haveSentResponse_ = false;
+        RequestHandlingResult pendingResult_;
         HttpServerAdvanced::HttpServerBase &server_;
         size_t bodyBytesReceived_ = 0;
         HttpRequestPhaseFlags completedPhases_ = 0;
-        std::function<void(std::unique_ptr<IByteSource>)> onStreamReady_;
         mutable std::map<std::string, std::any> items_;
 
         // Merged from HttpRequest
@@ -91,6 +90,10 @@ namespace HttpServerAdvanced
         void handleStep();
 
         void sendResponse();
+        void setPendingResult(RequestHandlingResult result)
+        {
+            pendingResult_ = std::move(result);
+        }
         virtual int onMessageBegin(const char *method, uint16_t versionMajor, uint16_t versionMinor, std::string_view url) override
         {
             method_ = method != nullptr ? method : "";
@@ -142,10 +145,6 @@ namespace HttpServerAdvanced
         {
             completedWritingResponse();
         }
-        void setResponseStreamCallback(std::function<void(std::unique_ptr<IByteSource>)> onStreamReady) override
-        {
-            onStreamReady_ = onStreamReady;
-        }
         HttpRequest(HttpServerAdvanced::HttpServerBase &server, IHttpRequestHandlerFactory& handlerFactory)
             : server_(server), handlerFactory_(handlerFactory), handler_(nullptr), completedPhases_(0),
               method_(), version_(), url_(), headers_(),
@@ -181,6 +180,16 @@ namespace HttpServerAdvanced
                 cachedUriView_ = std::make_unique<UriView>(url_);
             }
             return *cachedUriView_;
+        }
+        bool hasPendingResult() const override
+        {
+            return pendingResult_.hasValue();
+        }
+        RequestHandlingResult takeResult() override
+        {
+            RequestHandlingResult result = std::move(pendingResult_);
+            pendingResult_ = RequestHandlingResult();
+            return result;
         }
         // void sendResponse(std::unique_ptr<IHttpResponse> response);
 

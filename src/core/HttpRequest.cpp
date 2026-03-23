@@ -23,34 +23,37 @@ namespace HttpServerAdvanced
 
     void HttpRequest::handleStep()
     {
+        if (pendingResult_.hasValue())
+        {
+            return;
+        }
+
         auto handler = tryGetHandler();
         if (handler)
         {
             auto newResponse = handler->handleStep(*this);
-            if (newResponse && !haveSentResponse_)
+            if (newResponse)
             {
-                response_ = std::move(newResponse);
+                setPendingResult(RequestHandlingResult::response(CreateResponseStream(std::move(newResponse))));
                 sendResponse();
+                return;
             }
+        }
+
+        if ((completedPhases_ & HttpRequestPhase::CompletedReadingMessage) != 0 && !pendingResult_.hasValue())
+        {
+            setPendingResult(RequestHandlingResult::noResponse());
         }
     }
 
     void HttpRequest::sendResponse()
     {
-        haveSentResponse_ = true;
-        bool hasResponse = (response_ != nullptr);
-
-        if (!response_)
-        {
-            response_ = handlerFactory_.createResponse(HttpStatus::InternalServerError(), "Internal Server Error: No response generated");
-        }
         completedPhases_ |= HttpRequestPhase::WritingResponseStarted;
-        onStreamReady_(CreateResponseStream(std::move(response_)));
     }
 
     void HttpRequest::onError(HttpServerAdvanced::PipelineError error)
     {
-        if (!haveSentResponse_)
+        if (!pendingResult_.hasValue())
         {
             HttpStatus status;
             std::string message;
@@ -82,7 +85,8 @@ namespace HttpServerAdvanced
                 break;
             }
 
-            response_ = handlerFactory_.createResponse(status, message + std::string(error.message()));
+            std::unique_ptr<IHttpResponse> response = handlerFactory_.createResponse(status, message + std::string(error.message()));
+            setPendingResult(RequestHandlingResult::response(CreateResponseStream(std::move(response))));
             sendResponse();
         }
     }

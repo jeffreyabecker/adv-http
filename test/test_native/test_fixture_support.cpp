@@ -73,11 +73,6 @@ namespace
         TestSupport::PipelineEventRecorder recorder;
         std::string deliveredBody;
 
-        recorder.setResponseStreamCallback([&deliveredBody](std::unique_ptr<IByteSource> source)
-        {
-            deliveredBody = TestSupport::ReadByteSourceAsStdString(*source);
-        });
-
         const std::uint8_t bodyBytes[] = {'o', 'k'};
         TEST_ASSERT_EQUAL_INT(0, recorder.onMessageBegin("POST", 1, 1, "/submit"));
         recorder.setAddresses("10.0.0.2", 2345, "10.0.0.1", 8080);
@@ -89,9 +84,14 @@ namespace
         recorder.onResponseCompleted();
         recorder.onClientDisconnected();
         recorder.onError(PipelineError(PipelineErrorCode::BadRequest));
-        recorder.emitResponseStream(std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("response")));
+        recorder.emitResponseResult(std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("response")));
 
-        TEST_ASSERT_TRUE(recorder.hasResponseStreamCallback());
+        TEST_ASSERT_TRUE(recorder.hasPendingResult());
+        RequestHandlingResult result = recorder.takeResult();
+        TEST_ASSERT_TRUE(result.kind == RequestHandlingResult::Kind::Response);
+        TEST_ASSERT_NOT_NULL(result.responseStream.get());
+        deliveredBody = TestSupport::ReadByteSourceAsStdString(*result.responseStream);
+
         TEST_ASSERT_EQUAL_STRING("POST", recorder.method().c_str());
         TEST_ASSERT_EQUAL_STRING("/submit", recorder.url().c_str());
         TEST_ASSERT_EQUAL_UINT16(1, recorder.versionMajor());
@@ -116,7 +116,7 @@ namespace
         TEST_ASSERT_TRUE(recorder.events()[0].kind == TestSupport::PipelineEventKind::MessageBegin);
         TEST_ASSERT_TRUE(recorder.events()[1].kind == TestSupport::PipelineEventKind::AddressesSet);
         TEST_ASSERT_TRUE(recorder.events()[2].kind == TestSupport::PipelineEventKind::Header);
-        TEST_ASSERT_TRUE(recorder.events()[10].kind == TestSupport::PipelineEventKind::ResponseStreamDelivered);
+        TEST_ASSERT_TRUE(recorder.events()[10].kind == TestSupport::PipelineEventKind::RequestResultDelivered);
     }
 
     void test_fake_client_supports_scripted_reads_partial_writes_and_disconnect_tracking()

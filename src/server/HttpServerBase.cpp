@@ -29,8 +29,12 @@ void HttpServerBase::handleClient() {
         if (!accepted) {
             break;
         }
-        PipelineHandlerPtr handler = pipelineHandlerFactory_(*this);
-        pipelines_.emplace_back(std::make_unique<HttpPipeline>(std::move(accepted), *this, timeouts_, std::move(handler), clock()));
+        pipelines_.emplace_back(std::make_unique<HttpPipeline>(
+            std::move(accepted),
+            *this,
+            timeouts_,
+            [this]() { return pipelineHandlerFactory_(*this); },
+            clock()));
     }
 
     // Service existing pipelines. Remove finished ones.

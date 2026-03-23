@@ -54,9 +54,6 @@ namespace
               }),
               pipeline_(HttpRequest::createPipelineHandler(*server_, factory_))
         {
-            pipeline_->setResponseStreamCallback([](std::unique_ptr<IByteSource>)
-            {
-            });
         }
 
         void prepare(std::string_view method, std::string_view url)

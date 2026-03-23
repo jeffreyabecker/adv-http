@@ -56,14 +56,6 @@ namespace
               }),
               pipeline_(HttpRequest::createPipelineHandler(server_, factory_))
         {
-            pipeline_->setResponseStreamCallback([this](std::unique_ptr<IByteSource> responseStream)
-            {
-                ++responseStreamCount_;
-                if (responseStream)
-                {
-                    responseText_ = TestSupport::ReadByteSourceAsStdString(*responseStream);
-                }
-            });
         }
 
         template <typename HandlerT>
@@ -85,6 +77,7 @@ namespace
         void completeHeaders()
         {
             TEST_ASSERT_EQUAL_INT(0, pipeline_->onHeadersComplete());
+            capturePendingResult();
         }
 
         void addBody(std::string_view text)
@@ -94,11 +87,13 @@ namespace
                 pipeline_->onBody(
                     reinterpret_cast<const std::uint8_t *>(text.data()),
                     text.size()));
+            capturePendingResult();
         }
 
         void completeMessage()
         {
             TEST_ASSERT_EQUAL_INT(0, pipeline_->onMessageComplete());
+            capturePendingResult();
         }
 
         std::size_t responseStreamCount() const
@@ -112,6 +107,21 @@ namespace
         }
 
     private:
+        void capturePendingResult()
+        {
+            if (!pipeline_->hasPendingResult())
+            {
+                return;
+            }
+
+            RequestHandlingResult result = pipeline_->takeResult();
+            if (result.kind == RequestHandlingResult::Kind::Response && result.responseStream)
+            {
+                ++responseStreamCount_;
+                responseText_ = TestSupport::ReadByteSourceAsStdString(*result.responseStream);
+            }
+        }
+
         HttpServerBase server_;
         std::unique_ptr<IHttpHandler> pendingHandler_;
         IHttpHandler *handlerPtr_ = nullptr;

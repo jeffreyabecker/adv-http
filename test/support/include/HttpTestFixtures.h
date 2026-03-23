@@ -156,7 +156,7 @@ namespace HttpServerAdvanced::TestSupport
         ResponseStarted,
         ResponseCompleted,
         ClientDisconnected,
-        ResponseStreamDelivered
+        RequestResultDelivered
     };
 
     struct RecordedPipelineEvent
@@ -189,12 +189,6 @@ namespace HttpServerAdvanced::TestSupport
             localAddress_ = std::string(localAddress);
             localPort_ = localPort;
             events_.push_back({PipelineEventKind::AddressesSet, remoteAddress_, localAddress_, remotePort, localPort, PipelineErrorCode::None});
-        }
-
-        void setResponseStreamCallback(std::function<void(std::unique_ptr<IByteSource>)> onStreamReady) override
-        {
-            responseStreamCallback_ = std::move(onStreamReady);
-            hasResponseStreamCallback_ = static_cast<bool>(responseStreamCallback_);
         }
 
         int onHeader(std::string_view field, std::string_view value) override
@@ -249,18 +243,22 @@ namespace HttpServerAdvanced::TestSupport
             events_.push_back({PipelineEventKind::ClientDisconnected, {}, {}, 0, 0, PipelineErrorCode::None});
         }
 
-        bool hasResponseStreamCallback() const
+        bool hasPendingResult() const override
         {
-            return hasResponseStreamCallback_;
+            return pendingResult_.hasValue();
         }
 
-        void emitResponseStream(std::unique_ptr<IByteSource> responseStream)
+        RequestHandlingResult takeResult() override
         {
-            if (responseStreamCallback_)
-            {
-                events_.push_back({PipelineEventKind::ResponseStreamDelivered, {}, {}, 0, 0, PipelineErrorCode::None});
-                responseStreamCallback_(std::move(responseStream));
-            }
+            RequestHandlingResult result = std::move(pendingResult_);
+            pendingResult_ = RequestHandlingResult();
+            return result;
+        }
+
+        void emitResponseResult(std::unique_ptr<IByteSource> responseStream)
+        {
+            pendingResult_ = RequestHandlingResult::response(std::move(responseStream));
+            events_.push_back({PipelineEventKind::RequestResultDelivered, {}, {}, 0, 0, PipelineErrorCode::None});
         }
 
         const std::vector<RecordedPipelineEvent> &events() const
@@ -367,8 +365,7 @@ namespace HttpServerAdvanced::TestSupport
         std::vector<std::pair<std::string, std::string>> headers_;
         std::vector<std::vector<std::uint8_t>> bodyChunks_;
         std::vector<PipelineErrorCode> errors_;
-        std::function<void(std::unique_ptr<IByteSource>)> responseStreamCallback_;
-        bool hasResponseStreamCallback_ = false;
+        RequestHandlingResult pendingResult_;
         std::size_t headersCompleteCount_ = 0;
         std::size_t messageCompleteCount_ = 0;
         std::size_t responseStartedCount_ = 0;

@@ -6,37 +6,54 @@
 namespace HttpServerAdvanced
 {
     HttpPipeline::HttpPipeline(std::unique_ptr<HttpServerAdvanced::IClient> client, HttpServerBase &server,
-                                                             const HttpTimeouts &timeouts, PipelineHandlerPtr parserEventHandler,
+                                                             const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,
                                                              const Compat::Clock &clock)
-                : requestParser_(*parserEventHandler),
-                    client_(std::move(client)),
+                : client_(std::move(client)),
                     server_(server),
                     clock_(clock),
+                    handlerFactory_(std::move(handlerFactory)),
                     responseStream_(nullptr),
-                    handler_(std::move(parserEventHandler)),
-          timeouts_(timeouts),
-          completedRequestRead_(false),
-          completedResponseWrite_(false),
-          haveStartedWritingResponse_(false),
-          aborted_(false),
-          erroredUnrecoverably_(false),
-          timedOutUnrecoverably_(false),
-          lastActivityMillis_(0),
-          loopCount_(0),
-          startMillis_(0)
+                    activeSession_(nullptr),
+                    handler_(nullptr),
+                    connectionState_(ConnectionState::ReadingHttpRequest),
+                    requestReadCompleted_(false),
+                    responseStartedNotified_(false),
+                    disconnectNotified_(false),
+                    timedOutUnrecoverably_(false),
+                    lastActivityMillis_(0),
+                    startMillis_(0),
+                    loopCount_(0),
+                    timeouts_(timeouts)
     {
+        createRequestHandler();
+    }
+
+    void HttpPipeline::createRequestHandler()
+    {
+        handler_ = handlerFactory_ ? handlerFactory_() : PipelineHandlerPtr(nullptr, [](IPipelineHandler *) {});
+        if (!handler_)
+        {
+            setConnectionState(ConnectionState::Error);
+            return;
+        }
+
         handler_->setAddresses(
             client_->remoteAddress(),
             client_->remotePort(),
             client_->localAddress(),
             client_->localPort());
-        handler_->setResponseStreamCallback([this](std::unique_ptr<IByteSource> stream)
-                                            { this->setResponseStream(std::move(stream)); });
+        requestParser_ = std::make_unique<RequestParser>(*handler_);
+        responseStream_.reset();
+        activeSession_.reset();
+        requestReadCompleted_ = false;
+        responseStartedNotified_ = false;
+        disconnectNotified_ = false;
+        setConnectionState(ConnectionState::ReadingHttpRequest);
     }
 
     void HttpPipeline::readFromClientIntoParser()
     {
-        if (completedRequestRead_)
+        if (connectionState_ != ConnectionState::ReadingHttpRequest || requestReadCompleted_ || !requestParser_)
         {
             return;
         }
@@ -52,16 +69,33 @@ namespace HttpServerAdvanced
             }
 
             startActivity();
-            size_t bytesParsed = requestParser_.execute(buffer, bytesRead);
+            size_t bytesParsed = requestParser_->execute(buffer, bytesRead);
             if (bytesParsed < bytesRead)
             {
                 setErroredUnrecoverably();
                 return;
             }
 
-            if (requestParser_.currentEvent() == RequestParserEvent::MessageComplete)
+            if (handler_ && handler_->hasPendingResult())
+            {
+                consumePendingRequestResult();
+                if (connectionState_ != ConnectionState::ReadingHttpRequest)
+                {
+                    return;
+                }
+            }
+
+            if (requestParser_->currentEvent() == RequestParserEvent::MessageComplete)
             {
                 markRequestReadCompleted();
+                if (handler_ && handler_->hasPendingResult())
+                {
+                    consumePendingRequestResult();
+                }
+                else
+                {
+                    setErroredUnrecoverably();
+                }
                 return;
             }
 
@@ -73,20 +107,20 @@ namespace HttpServerAdvanced
 
         if (available.isExhausted() && !client_->connected())
         {
-            markRequestReadCompleted();
+            requestReadCompleted_ = true;
         }
     }
 
     void HttpPipeline::writeResponseToClientFromStream()
     {
-        if (responseStream_ == nullptr || completedResponseWrite_)
+        if (connectionState_ != ConnectionState::WritingHttpResponse || responseStream_ == nullptr)
         {
             return;
         }
-        // Mark that response writing has started before emitting bytes
-        if (!haveStartedWritingResponse_)
+
+        if (!responseStartedNotified_)
         {
-            haveStartedWritingResponse_ = true;
+            responseStartedNotified_ = true;
             if (handler_)
             {
                 handler_->onResponseStarted();
@@ -120,8 +154,120 @@ namespace HttpServerAdvanced
         }
         if (available.isExhausted())
         {
-            markResponseWriteCompleted(true);
+            responseStream_.reset();
+            if (handler_ && responseStartedNotified_)
+            {
+                handler_->onResponseCompleted();
+            }
+            responseStartedNotified_ = false;
+            if (!beginNextKeepAliveRequest())
+            {
+                setConnectionState(ConnectionState::Completed);
+            }
         }
+    }
+
+    void HttpPipeline::handleActiveSession()
+    {
+        if (connectionState_ != ConnectionState::UpgradedSessionActive)
+        {
+            return;
+        }
+
+        if (!activeSession_)
+        {
+            setErroredUnrecoverably();
+            return;
+        }
+
+        const ConnectionSessionResult result = activeSession_->handle(*client_, clock_);
+        startActivity();
+
+        switch (result)
+        {
+        case ConnectionSessionResult::Continue:
+            return;
+        case ConnectionSessionResult::Completed:
+            activeSession_.reset();
+            setConnectionState(ConnectionState::Completed);
+            return;
+        case ConnectionSessionResult::AbortConnection:
+            client_->stop();
+            setConnectionState(ConnectionState::Aborted);
+            return;
+        case ConnectionSessionResult::ProtocolError:
+        default:
+            setErroredUnrecoverably();
+            return;
+        }
+    }
+
+    void HttpPipeline::consumePendingRequestResult()
+    {
+        if (!handler_ || !handler_->hasPendingResult())
+        {
+            return;
+        }
+
+        RequestHandlingResult result = handler_->takeResult();
+        switch (result.kind)
+        {
+        case RequestHandlingResult::Kind::Response:
+            requestReadCompleted_ = true;
+            responseStream_ = std::move(result.responseStream);
+            if (!responseStream_)
+            {
+                setErroredUnrecoverably();
+                return;
+            }
+            setConnectionState(ConnectionState::WritingHttpResponse);
+            return;
+        case RequestHandlingResult::Kind::Upgrade:
+            requestReadCompleted_ = true;
+            activeSession_ = std::move(result.upgradedSession);
+            if (!activeSession_)
+            {
+                setErroredUnrecoverably();
+                return;
+            }
+            setConnectionState(ConnectionState::UpgradedSessionActive);
+            return;
+        case RequestHandlingResult::Kind::NoResponse:
+            requestReadCompleted_ = true;
+            if (!beginNextKeepAliveRequest())
+            {
+                setConnectionState(ConnectionState::Completed);
+            }
+            return;
+        case RequestHandlingResult::Kind::Error:
+            setErroredUnrecoverably();
+            return;
+        case RequestHandlingResult::Kind::None:
+        default:
+            return;
+        }
+    }
+
+    bool HttpPipeline::beginNextKeepAliveRequest()
+    {
+        if (!requestParser_ || !requestParser_->shouldKeepAlive() || !client_->connected())
+        {
+            return false;
+        }
+
+        createRequestHandler();
+        return connectionState_ == ConnectionState::ReadingHttpRequest;
+    }
+
+    void HttpPipeline::markRequestReadCompleted()
+    {
+        if (requestReadCompleted_ || !requestParser_)
+        {
+            return;
+        }
+
+        requestParser_->execute(nullptr, 0);
+        requestReadCompleted_ = true;
     }
 
     void HttpPipeline::setupPipeline()
@@ -131,61 +277,80 @@ namespace HttpServerAdvanced
         client_->setTimeout(timeouts_.getReadTimeout());
     }
 
-    PipelineHandleClientResult HttpPipeline::_checkStateInHandleClient()
+    PipelineHandleClientResult HttpPipeline::checkStateInHandleClient()
     {
         const Compat::ClockMillis currentMillis = this->currentMillis();
         if (currentMillis - startMillis_ > timeouts_.getTotalRequestLengthMs())
         {
             timedOutUnrecoverably_ = true;
-            // If we already started sending the response, close connection and abort immediately.
-            if (haveStartedWritingResponse_)
-            {
-                if (handler_)
-                {
-                    handler_->onError(PipelineError(PipelineErrorCode::Timeout));
-                }
-                // Force close the connection and abort pipeline
-                client_->stop();
-                abort();
-                return PipelineHandleClientResult::TimedOutUnrecoverably;
-            }
-            // Otherwise, notify handler and allow the pipeline to transition to timed-out state
             if (handler_)
             {
                 handler_->onError(PipelineError(PipelineErrorCode::Timeout));
             }
+
+            if (connectionState_ == ConnectionState::WritingHttpResponse || connectionState_ == ConnectionState::UpgradedSessionActive)
+            {
+                client_->stop();
+            }
+
+            setConnectionState(ConnectionState::Error);
             return PipelineHandleClientResult::TimedOutUnrecoverably;
         }
         if (timedOutUnrecoverably_)
         {
             return PipelineHandleClientResult::TimedOutUnrecoverably;
         }
-        if (aborted_)
+        if (connectionState_ == ConnectionState::Aborted)
         {
             return PipelineHandleClientResult::Aborted;
         }
-        if (erroredUnrecoverably_)
+        if (connectionState_ == ConnectionState::Error)
         {
             return PipelineHandleClientResult::ErroredUnrecoverably;
         }
-        if (completedRequestRead_ && completedResponseWrite_)
+        if (connectionState_ == ConnectionState::Completed)
         {
             return PipelineHandleClientResult::Completed;
         }
         if (!client_->connected())
         {
-            if (handler_)
+            if (!disconnectNotified_ && handler_)
             {
                 handler_->onClientDisconnected();
+                disconnectNotified_ = true;
             }
+            setConnectionState(ConnectionState::Closing);
             return PipelineHandleClientResult::ClientDisconnected;
         }
-        return PipelineHandleClientResult::Processing; // Default case
+
+        if (connectionState_ == ConnectionState::Closing)
+        {
+            return PipelineHandleClientResult::ClientDisconnected;
+        }
+
+        return PipelineHandleClientResult::Processing;
     }
 
     bool HttpPipeline::isFirstLoop() const
     {
         return loopCount_ == 0;
+    }
+
+    bool HttpPipeline::isTerminalState() const
+    {
+        switch (connectionState_)
+        {
+        case ConnectionState::Completed:
+        case ConnectionState::Aborted:
+        case ConnectionState::Error:
+        case ConnectionState::Closing:
+            return true;
+        case ConnectionState::ReadingHttpRequest:
+        case ConnectionState::WritingHttpResponse:
+        case ConnectionState::UpgradedSessionActive:
+        default:
+            return false;
+        }
     }
 
     void HttpPipeline::startActivity()
@@ -198,18 +363,16 @@ namespace HttpServerAdvanced
         const Compat::ClockMillis currentMillis = this->currentMillis();
         if (currentMillis - lastActivityMillis_ > timeouts_.getActivityTimeout())
         {
-            // Activity timeout: notify handler and mark pipeline as timed out
             if (handler_)
             {
                 handler_->onError(PipelineError(PipelineErrorCode::Timeout));
             }
             timedOutUnrecoverably_ = true;
-            // If response already started, close the connection
-            if (haveStartedWritingResponse_)
+            if (connectionState_ == ConnectionState::WritingHttpResponse || connectionState_ == ConnectionState::UpgradedSessionActive)
             {
                 client_->stop();
-                abort();
             }
+            setConnectionState(ConnectionState::Error);
             return false;
         }
         return true;
@@ -217,14 +380,17 @@ namespace HttpServerAdvanced
 
     bool HttpPipeline::checkIdleTimeout()
     {
-        if (completedRequestRead_ && (completedResponseWrite_ || responseStream_ == nullptr))
+        if (isTerminalState())
         {
             return true;
         }
 
         const Compat::ClockMillis currentMillis = this->currentMillis();
-        const bool hasPendingResponse = responseStream_ != nullptr || haveStartedWritingResponse_;
-        const Compat::ClockMillis timeout = hasPendingResponse ? timeouts_.getActivityTimeout() : timeouts_.getReadTimeout();
+        Compat::ClockMillis timeout = timeouts_.getReadTimeout();
+        if (connectionState_ == ConnectionState::WritingHttpResponse || connectionState_ == ConnectionState::UpgradedSessionActive)
+        {
+            timeout = timeouts_.getActivityTimeout();
+        }
         if (currentMillis - lastActivityMillis_ <= timeout)
         {
             return true;
@@ -236,46 +402,25 @@ namespace HttpServerAdvanced
         }
 
         timedOutUnrecoverably_ = true;
-        if (hasPendingResponse)
+        if (connectionState_ == ConnectionState::WritingHttpResponse || connectionState_ == ConnectionState::UpgradedSessionActive)
         {
             client_->stop();
-            abort();
         }
+        setConnectionState(ConnectionState::Error);
 
         return false;
     }
 
     void HttpPipeline::setErroredUnrecoverably()
     {
-        erroredUnrecoverably_ = true;
-        markRequestReadCompleted();
-        markResponseWriteCompleted();
-    }
-
-    void HttpPipeline::markRequestReadCompleted()
-    {
-        if (completedRequestRead_)
-        {
-            return;
-        }
-
-        requestParser_.execute(nullptr, 0); // Signal end of input to parser
-        completedRequestRead_ = true;
-    }
-
-    void HttpPipeline::markResponseWriteCompleted(bool notifyHandler)
-    {
-        if (completedResponseWrite_)
-        {
-            return;
-        }
-
-        completedResponseWrite_ = true;
         responseStream_ = nullptr;
-        if (notifyHandler && haveStartedWritingResponse_ && handler_)
-        {
-            handler_->onResponseCompleted();
-        }
+        activeSession_.reset();
+        setConnectionState(ConnectionState::Error);
+    }
+
+    void HttpPipeline::setConnectionState(ConnectionState state)
+    {
+        connectionState_ = state;
     }
 
     Compat::ClockMillis HttpPipeline::currentMillis() const
@@ -285,21 +430,12 @@ namespace HttpServerAdvanced
 
     bool HttpPipeline::isFinished() const
     {
-        return requestParser_.isFinished();
+        return isTerminalState();
     }
 
     bool HttpPipeline::shouldKeepAlive() const
     {
-        return requestParser_.shouldKeepAlive();
-    }
-
-    void HttpPipeline::setResponseStream(std::unique_ptr<IByteSource> responseStream)
-    {
-        if (haveStartedWritingResponse_)
-        {
-            assert(false && "Response writing already started");
-        }
-        responseStream_ = std::move(responseStream);
+        return requestParser_ != nullptr && requestParser_->shouldKeepAlive();
     }
 
     PipelineHandleClientResult HttpPipeline::handleClient()
@@ -310,33 +446,49 @@ namespace HttpServerAdvanced
         }
         loopCount_++;
 
-        auto validationResult = _checkStateInHandleClient();
+        auto validationResult = checkStateInHandleClient();
         if (isPipelineHandleClientResultFinal(validationResult))
         {
             return validationResult;
         }
 
-        readFromClientIntoParser();
-        validationResult = _checkStateInHandleClient();
-        if (isPipelineHandleClientResultFinal(validationResult))
+        if (connectionState_ == ConnectionState::ReadingHttpRequest)
         {
-            return validationResult;
+            readFromClientIntoParser();
+            validationResult = checkStateInHandleClient();
+            if (isPipelineHandleClientResultFinal(validationResult))
+            {
+                return validationResult;
+            }
         }
 
-        writeResponseToClientFromStream();
-        validationResult = _checkStateInHandleClient();
-        if (isPipelineHandleClientResultFinal(validationResult))
+        if (connectionState_ == ConnectionState::WritingHttpResponse)
         {
-            return validationResult;
+            writeResponseToClientFromStream();
+            validationResult = checkStateInHandleClient();
+            if (isPipelineHandleClientResultFinal(validationResult))
+            {
+                return validationResult;
+            }
+        }
+
+        if (connectionState_ == ConnectionState::UpgradedSessionActive)
+        {
+            handleActiveSession();
+            validationResult = checkStateInHandleClient();
+            if (isPipelineHandleClientResultFinal(validationResult))
+            {
+                return validationResult;
+            }
         }
 
         checkIdleTimeout();
-        return _checkStateInHandleClient();
+        return checkStateInHandleClient();
     }
 
     void HttpPipeline::abort()
     {
-        aborted_ = true;
+        setConnectionState(ConnectionState::Aborted);
         abortReadingRequest();
         abortWritingResponse();
     }
@@ -348,7 +500,16 @@ namespace HttpServerAdvanced
 
     void HttpPipeline::abortWritingResponse()
     {
-        markResponseWriteCompleted();
+        responseStream_.reset();
+        activeSession_.reset();
+
+        if (connectionState_ == ConnectionState::WritingHttpResponse || connectionState_ == ConnectionState::UpgradedSessionActive)
+        {
+            if (!beginNextKeepAliveRequest())
+            {
+                setConnectionState(ConnectionState::Completed);
+            }
+        }
     }
 
     Compat::ClockMillis HttpPipeline::startedAt() const
@@ -359,6 +520,11 @@ namespace HttpServerAdvanced
     HttpServerAdvanced::IClient &HttpPipeline::client()
     {
         return *client_;
+    }
+
+    HttpPipeline::ConnectionState HttpPipeline::connectionState() const
+    {
+        return connectionState_;
     }
 
 } // namespace HttpServerAdvanced

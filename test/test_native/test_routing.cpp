@@ -148,9 +148,6 @@ namespace
               }),
               pipeline_(HttpRequest::createPipelineHandler(*server_, factory_))
         {
-            pipeline_->setResponseStreamCallback([](std::unique_ptr<IByteSource>)
-            {
-            });
         }
 
         void start(std::string_view method, std::string_view url)

@@ -226,6 +226,12 @@ namespace HttpServerAdvanced
                 result = llhttp_execute(&parser_, reinterpret_cast<const char *>(data), length);
                 if (result != HPE_OK)
                 {
+                    if (result == HPE_PAUSED_UPGRADE)
+                    {
+                        finished_ = true;
+                        return length;
+                    }
+
                     // If we already flagged an error (e.g., buffer overflow) the handler has been notified.
                     if (currentEvent_ != RequestParserEvent::Error)
                     {
@@ -242,6 +248,19 @@ namespace HttpServerAdvanced
                 }
             }
             return (result == HPE_OK) ? length : 0;
+        }
+
+        void reset()
+        {
+            currentEvent_ = RequestParserEvent::None;
+            finished_ = false;
+            headerCount_ = 0;
+            method_.clear();
+            versionMajor_ = 1;
+            versionMinor_ = 1;
+            resetBuffer();
+            llhttp_init(&parser_, HTTP_REQUEST, &settings_);
+            parser_.data = this;
         }
 
         const char *method() const { return method_.c_str(); }
