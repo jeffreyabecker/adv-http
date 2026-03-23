@@ -55,6 +55,9 @@
 
 // Static file serving
 #include "staticfiles/AggregateFileLocator.h"
+#ifdef ARDUINO
+#include "staticfiles/ArduinoStaticFiles.h"
+#endif
 #include "staticfiles/DefaultFileLocator.h"
 #include "staticfiles/FileLocator.h"
 #include "staticfiles/StaticFileHandler.h"

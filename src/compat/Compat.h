@@ -5,6 +5,10 @@
 #include "FileSystem.h"
 #include "Stream.h"
 
+#ifdef ARDUINO
+#include "ArduinoFileSystemAdapter.h"
+#endif
+
 namespace HttpServerAdvanced
 {
     namespace Compat

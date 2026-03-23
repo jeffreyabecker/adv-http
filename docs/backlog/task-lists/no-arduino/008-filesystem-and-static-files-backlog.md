@@ -1,3 +1,4 @@
+2026-03-22 - Copilot: moved `StaticFilesBuilder` onto `IFileSystem` and added Arduino adapter helpers so sketch-facing `StaticFiles(fs::FS&, ...)` usage remains available without re-coupling the builder headers.
 2026-03-22 - Copilot: migrated static-file locators and handler metadata usage onto `IFileSystem` and `IFile`, and added native POSIX coverage for the new seam.
 2026-03-22 - Copilot: recorded the proposed `IFileSystem` and `IFile` seam, including `IByteChannel` inheritance and explicit open-mode selection.
 2026-03-22 - Copilot: refreshed the phase summary after Phase 5 response work, marked the file-backed byte-source wrapper task complete, and aligned the backlog wording with the current `FileByteSource` implementation.
@@ -51,9 +52,9 @@ Replace `src/compat/FileSystem.h` in core-facing code with `IFileSystem::open(pa
 
 ### Builder And Public Wiring
 
-- [ ] Refactor `src/staticfiles/StaticFilesBuilder.h` and `src/staticfiles/StaticFilesBuilder.cpp` so builder code consumes the narrowed filesystem contract.
-- [ ] Review any `WebServerBuilder` coupling introduced by static-file helper entrypoints and keep the filesystem seam from leaking raw Arduino headers back into those builders.
-- [ ] Ensure existing Arduino example ergonomics remain feasible through adapter helpers or transitional overloads.
+- [x] Refactor `src/staticfiles/StaticFilesBuilder.h` and `src/staticfiles/StaticFilesBuilder.cpp` so builder code consumes the narrowed filesystem contract.
+- [x] Review any `WebServerBuilder` coupling introduced by static-file helper entrypoints and keep the filesystem seam from leaking raw Arduino headers back into those builders.
+- [x] Ensure existing Arduino example ergonomics remain feasible through adapter helpers or transitional overloads.
 
 ### Host-Side Validation
 
