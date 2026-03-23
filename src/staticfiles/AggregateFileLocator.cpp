@@ -25,20 +25,20 @@ namespace HttpServerAdvanced
         locators_.push_back(std::move(locator));
     }
 
-    File AggregateFileLocator::getFile(HttpRequest &context)
+    FileHandle AggregateFileLocator::getFile(HttpRequest &context)
     {
         for (auto &locator : locators_)
         {
             if (locator->canHandle(context.url()))
             {
-                File file = locator->getFile(context);
+                FileHandle file = locator->getFile(context);
                 if (file)
                 {
                     return file;
                 }
             }
         }
-        return File();
+        return nullptr;
     }
 
     bool AggregateFileLocator::canHandle(const String &path)

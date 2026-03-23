@@ -1,3 +1,4 @@
+2026-03-22 - Copilot: migrated static-file locators and handler metadata usage onto `IFileSystem` and `IFile`, and added native POSIX coverage for the new seam.
 2026-03-22 - Copilot: recorded the proposed `IFileSystem` and `IFile` seam, including `IByteChannel` inheritance and explicit open-mode selection.
 2026-03-22 - Copilot: refreshed the phase summary after Phase 5 response work, marked the file-backed byte-source wrapper task complete, and aligned the backlog wording with the current `FileByteSource` implementation.
 2026-03-21 - Copilot: created detailed Phase 6 filesystem and static files backlog.
@@ -36,16 +37,16 @@ Replace `src/compat/FileSystem.h` in core-facing code with `IFileSystem::open(pa
 
 ### Static File Locator Migration
 
-- [ ] Refactor `src/staticfiles/FileLocator.h` to return the new file abstraction.
-- [ ] Refactor `src/staticfiles/DefaultFileLocator.h` and `src/staticfiles/DefaultFileLocator.cpp` to use the narrowed filesystem interface.
-- [ ] Refactor `src/staticfiles/AggregateFileLocator.h` and `src/staticfiles/AggregateFileLocator.cpp` to aggregate the new file abstraction cleanly.
-- [ ] Preserve current index-file fallback and `.gz` fallback behavior during the migration.
+- [x] Refactor `src/staticfiles/FileLocator.h` to return the new file abstraction.
+- [x] Refactor `src/staticfiles/DefaultFileLocator.h` and `src/staticfiles/DefaultFileLocator.cpp` to use the narrowed filesystem interface.
+- [x] Refactor `src/staticfiles/AggregateFileLocator.h` and `src/staticfiles/AggregateFileLocator.cpp` to aggregate the new file abstraction cleanly.
+- [x] Preserve current index-file fallback and `.gz` fallback behavior during the migration.
 
 ### Static File Handler Migration
 
 - [x] Refactor `src/staticfiles/StaticFileHandler.h` and `src/staticfiles/StaticFileHandler.cpp` so file-backed responses wrap the new file or byte-source abstraction instead of legacy `Stream` inheritance.
-- [ ] Rework ETag and last-modified helpers so they use the narrowed metadata contract.
-- [ ] Decide how file name or full path should be exposed for gzip detection without overspecifying the file interface.
+- [x] Rework ETag and last-modified helpers so they use the narrowed metadata contract.
+- [x] Decide how file name or full path should be exposed for gzip detection without overspecifying the file interface.
 - [ ] Preserve content-length, ETag, last-modified, and content-type behavior.
 
 ### Builder And Public Wiring

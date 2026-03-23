@@ -1,11 +1,82 @@
 #include "DefaultFileLocator.h"
 
+#include <string_view>
+
+namespace
+{
+    HttpServerAdvanced::FileHandle OpenFile(HttpServerAdvanced::IFileSystem &filesystem, const String &path)
+    {
+        return filesystem.open(std::string_view(path.c_str(), path.length()), HttpServerAdvanced::FileOpenMode::Read);
+    }
+
+    bool StartsWith(const String &value, std::string_view prefix)
+    {
+        const std::string_view view(value.c_str(), value.length());
+        return view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0;
+    }
+
+    String TrimMappedPath(const String &root, const String &path)
+    {
+        std::string_view pathView(path.c_str(), path.length());
+        while (!pathView.empty() && pathView.back() == '/')
+        {
+            pathView.remove_suffix(1);
+        }
+
+        while (!pathView.empty() && pathView.front() == '/')
+        {
+            pathView.remove_prefix(1);
+        }
+
+        String mappedPath = root + "/";
+        if (!pathView.empty())
+        {
+            mappedPath += String(pathView.data(), pathView.size());
+        }
+
+        return mappedPath;
+    }
+
+    String NormalizeRequestPath(const String &url)
+    {
+        std::string_view path(url.c_str(), url.length());
+        const std::size_t queryIndex = path.find('?');
+        if (queryIndex != std::string_view::npos)
+        {
+            path = path.substr(0, queryIndex);
+        }
+
+        while (path.size() >= 2 && path[0] == '/' && path[1] == '/')
+        {
+            path.remove_prefix(1);
+        }
+
+        while (!path.empty() && path.back() == '/')
+        {
+            path.remove_suffix(1);
+        }
+
+        return String(path.data(), path.size());
+    }
+
+    String TrimTrailingSlashes(const String &path)
+    {
+        std::string_view trimmed(path.c_str(), path.length());
+        while (!trimmed.empty() && trimmed.back() == '/')
+        {
+            trimmed.remove_suffix(1);
+        }
+
+        return String(trimmed.data(), trimmed.size());
+    }
+}
+
 namespace HttpServerAdvanced {
 
 DefaultFileLocator::RequestPathPredicate DefaultFileLocator::createPathPredicate(const String &includePrefix, const String &excludePrefix) {
     return [includePrefix, excludePrefix](const String &path) {
-        if (includePrefix.isEmpty() || path.startsWith(includePrefix)) {
-            if (!excludePrefix.isEmpty() && path.startsWith(excludePrefix)) {
+        if (includePrefix.isEmpty() || StartsWith(path, std::string_view(includePrefix.c_str(), includePrefix.length()))) {
+            if (!excludePrefix.isEmpty() && StartsWith(path, std::string_view(excludePrefix.c_str(), excludePrefix.length()))) {
                 return false;
             }
             return true;
@@ -16,38 +87,18 @@ DefaultFileLocator::RequestPathPredicate DefaultFileLocator::createPathPredicate
 
 DefaultFileLocator::RequestPathMapper DefaultFileLocator::createPathMapper(const String &root) {
     return [root](const String &path) {
-        String mappedPath = path;
-        while (mappedPath.endsWith("/")) {
-            mappedPath = mappedPath.substring(0, mappedPath.length() - 1);
-        }
-        while (mappedPath.startsWith("/")) {
-            mappedPath = mappedPath.substring(1);
-        }
-        mappedPath = root + "/" + mappedPath;
-        return mappedPath;
+        return TrimMappedPath(root, path);
     };
 }
 
 String DefaultFileLocator::getLocalPath(const HttpRequest &context) {
-    String path = context.url();
-
-    int queryIndex = path.indexOf('?');
-    if (queryIndex != -1) {
-        path = path.substring(0, queryIndex);
-    }
-    while (path.startsWith("//")) {
-        path = path.substring(1);
-    }
-    while (path.endsWith("/")) {
-        path = path.substring(0, path.length() - 1);
-    }
-    return path;
+    return NormalizeRequestPath(context.url());
 }
 
-DefaultFileLocator::DefaultFileLocator(FS &fs)
+DefaultFileLocator::DefaultFileLocator(IFileSystem &fs)
     : filesystem_(fs), pathPredicate_(createPathPredicate(DefaultIncludePrefix, DefaultExcludePrefix)), pathMapper_(createPathMapper(DefaultFSRoot)) {}
 
-DefaultFileLocator::DefaultFileLocator(FS &fs, RequestPathPredicate predicate, RequestPathMapper mapper)
+DefaultFileLocator::DefaultFileLocator(IFileSystem &fs, RequestPathPredicate predicate, RequestPathMapper mapper)
     : filesystem_(fs), pathPredicate_(predicate), pathMapper_(mapper) {}
 
 void DefaultFileLocator::setPathPredicate(RequestPathPredicate predicate) { pathPredicate_ = predicate; }
@@ -60,34 +111,29 @@ void DefaultFileLocator::setRequestPathPrefixes(const String &includePrefix, con
 
 void DefaultFileLocator::setFilesystemContentRoot(const String &root) { setPathMapper(createPathMapper(root)); }
 
-File DefaultFileLocator::getFile(HttpRequest &context) {
+FileHandle DefaultFileLocator::getFile(HttpRequest &context) {
     String path = this->getLocalPath(context);
     if (pathMapper_) {
         path = pathMapper_(path);
     }
 
-    File file = filesystem_.open(path, "r");
+    FileHandle file = OpenFile(filesystem_, path);
     if (!file) {
-        // Try .gz version if original file not found
         String gzPath = path + ".gz";
-        file = filesystem_.open(gzPath, "r");
+        file = OpenFile(filesystem_, gzPath);
         if (file) {
             return file;
         }
         return file;
     }
-    if (file.isDirectory()) {
-        String indexPath = path;
-        while (indexPath.endsWith("/")) {
-            indexPath = indexPath.substring(0, indexPath.length() - 1);
-        }
+    if (file->isDirectory()) {
+        String indexPath = TrimTrailingSlashes(path);
         indexPath += "/index.html";
-        file.close();
-        file = filesystem_.open(indexPath, "r");
+        file->close();
+        file = OpenFile(filesystem_, indexPath);
         if (!file) {
-            // Try .gz version of index.html if not found
             String gzIndexPath = indexPath + ".gz";
-            file = filesystem_.open(gzIndexPath, "r");
+            file = OpenFile(filesystem_, gzIndexPath);
         }
     }
     return file;

@@ -1,5 +1,5 @@
 #pragma once
-#include "../compat/FileSystem.h"
+#include "../compat/IFileSystem.h"
 #include "../streams/ByteStream.h"
 #include <Arduino.h>
 
@@ -16,23 +16,10 @@ namespace HttpServerAdvanced
     {
     private:
         HttpServerAdvanced::HttpContentTypes &contentTypes_;
-        FileLocator &fileLocator_;
+        FileLocator *fileLocator_;
 
-        class FileByteSource : public IByteSource
-        {
-        private:
-            File file_;
-
-        public:
-            explicit FileByteSource(File file);
-            AvailableResult available() override;
-            size_t read(HttpServerAdvanced::span<uint8_t> buffer) override;
-            size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override;
-            File &getFile();
-        };
-
-        static String getEtag(File &file_);
-        static String getLastWriteValue(File &file_);
+        static std::optional<String> getEtag(const IFile &file);
+        static std::optional<String> getLastWriteValue(const IFile &file);
         String getUrlPath(const String &url);
 
     public:

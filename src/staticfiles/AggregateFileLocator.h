@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../compat/FileSystem.h"
+#include "../compat/IFileSystem.h"
 #include <Arduino.h>
 #include <memory>
 #include <vector>
@@ -18,7 +18,7 @@ namespace HttpServerAdvanced
         void add(FileLocator *locator, bool takeOwnership = true);
         void add(FileLocator &locator);
         void add(std::shared_ptr<FileLocator> locator);
-        File getFile(HttpRequest &context) override;
+        FileHandle getFile(HttpRequest &context) override;
         bool canHandle(const String &path) override;
     };
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "../compat/FileSystem.h"
+#include "../compat/IFileSystem.h"
 #include <Arduino.h>
 
 #include "FileLocator.h"
@@ -22,7 +22,7 @@ namespace HttpServerAdvanced
     private:
         RequestPathPredicate pathPredicate_;
         RequestPathMapper pathMapper_;
-        FS &filesystem_;
+        IFileSystem &filesystem_;
 
         static RequestPathPredicate createPathPredicate(const String &includePrefix, const String &excludePrefix);
 
@@ -31,8 +31,8 @@ namespace HttpServerAdvanced
         virtual String getLocalPath(const HttpRequest &context);
 
     public:
-        DefaultFileLocator(FS &fs);
-        DefaultFileLocator(FS &fs, RequestPathPredicate predicate, RequestPathMapper mapper);
+        DefaultFileLocator(IFileSystem &fs);
+        DefaultFileLocator(IFileSystem &fs, RequestPathPredicate predicate, RequestPathMapper mapper);
 
         virtual void setPathPredicate(RequestPathPredicate predicate);
 
@@ -42,7 +42,7 @@ namespace HttpServerAdvanced
 
         virtual void setFilesystemContentRoot(const String &root);
 
-        virtual File getFile(HttpRequest &context) override;
+        virtual FileHandle getFile(HttpRequest &context) override;
 
         virtual bool canHandle(const String& path) override;
     };

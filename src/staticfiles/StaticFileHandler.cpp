@@ -3,123 +3,101 @@
 #include "../response/StringResponse.h"
 #include <ctime>
 
+#include <string_view>
+
+namespace
+{
+    String ToArduinoString(std::string_view value)
+    {
+        return String(value.data(), value.size());
+    }
+
+    bool EndsWith(std::string_view value, std::string_view suffix)
+    {
+        return value.size() >= suffix.size() &&
+               value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
+    }
+
+    String NormalizeUrlPath(const String &url)
+    {
+        std::string_view path(url.c_str(), url.length());
+        const std::size_t queryIndex = path.find('?');
+        if (queryIndex != std::string_view::npos)
+        {
+            path = path.substr(0, queryIndex);
+        }
+
+        while (path.size() >= 2 && path[0] == '/' && path[1] == '/')
+        {
+            path.remove_prefix(1);
+        }
+
+        return String(path.data(), path.size());
+    }
+}
+
 namespace HttpServerAdvanced
 {
-    // FileByteSource implementation
-    StaticFileHandlerFactory::FileByteSource::FileByteSource(File file)
-        : file_(std::move(file))
+    std::optional<String> StaticFileHandlerFactory::getEtag(const IFile &file)
     {
-    }
-
-    AvailableResult StaticFileHandlerFactory::FileByteSource::available()
-    {
-        const int count = file_.available();
-        if (count > 0)
+        const std::optional<std::size_t> size = file.size();
+        const std::optional<uint32_t> lastWrite = file.lastWriteEpochSeconds();
+        if (!size.has_value() || !lastWrite.has_value())
         {
-            return AvailableBytes(static_cast<size_t>(count));
+            return std::nullopt;
         }
 
-        return count == 0 ? ExhaustedResult() : TemporarilyUnavailableResult();
-    }
-
-    size_t StaticFileHandlerFactory::FileByteSource::read(HttpServerAdvanced::span<uint8_t> buffer)
-    {
-        size_t totalRead = 0;
-        while (totalRead < buffer.size())
-        {
-            const int value = file_.read();
-            if (value < 0)
-            {
-                break;
-            }
-
-            buffer[totalRead++] = static_cast<uint8_t>(value);
-        }
-
-        return totalRead;
-    }
-
-    size_t StaticFileHandlerFactory::FileByteSource::peek(HttpServerAdvanced::span<uint8_t> buffer)
-    {
-        if (buffer.empty())
-        {
-            return 0;
-        }
-
-        const int value = file_.peek();
-        if (value < 0)
-        {
-            return 0;
-        }
-
-        buffer[0] = static_cast<uint8_t>(value);
-        return 1;
-    }
-
-    File &StaticFileHandlerFactory::FileByteSource::getFile()
-    {
-        return file_;
-    }
-
-    // Static helper methods
-    String StaticFileHandlerFactory::getEtag(File &file_)
-    {
-        size_t nameLen = strlen(file_.fullName());
-        size_t size = file_.size();
-        uint32_t combined = (static_cast<uint32_t>(size) << 16) | (nameLen & 0x0000FFFF);
-        uint32_t lastWrite = file_.getLastWrite();
-        uint64_t etagValue = (static_cast<uint64_t>(combined) << 32) | (static_cast<uint64_t>(lastWrite));
+        const std::size_t nameLen = file.path().size();
+        const uint32_t combined = (static_cast<uint32_t>(*size) << 16) | (static_cast<uint32_t>(nameLen) & 0x0000FFFF);
+        uint64_t etagValue = (static_cast<uint64_t>(combined) << 32) | static_cast<uint64_t>(*lastWrite);
         char hex[17];
         snprintf(hex, sizeof(hex), "%016llx", etagValue);
         return String(hex);
     }
 
-    String StaticFileHandlerFactory::getLastWriteValue(File &file_)
+    std::optional<String> StaticFileHandlerFactory::getLastWriteValue(const IFile &file)
     {
-        time_t lastWrite = file_.getLastWrite();
-        if (lastWrite == 0)
+        const std::optional<uint32_t> lastWrite = file.lastWriteEpochSeconds();
+        if (!lastWrite.has_value())
         {
-            return "Thu, 01 Jan 1970 00:00:00 GMT"; // Default value for epoch
+            return std::nullopt;
         }
+
         char buffer[30];
-        struct tm *tm_info = gmtime(&lastWrite);
+        const time_t lastWriteTime = static_cast<time_t>(*lastWrite);
+        struct tm *tm_info = gmtime(&lastWriteTime);
+        if (tm_info == nullptr)
+        {
+            return std::nullopt;
+        }
+
         strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", tm_info);
         return String(buffer);
     }
 
     String StaticFileHandlerFactory::getUrlPath(const String &url)
     {
-        String path = url;
-        int queryIndex = path.indexOf('?');
-        if (queryIndex != -1)
-        {
-            path = path.substring(0, queryIndex);
-        }
-        while (path.startsWith("//"))
-        {
-            path = path.substring(1);
-        }
-        return path;
+        return NormalizeUrlPath(url);
     }
 
     // Public methods
     StaticFileHandlerFactory::StaticFileHandlerFactory(FileLocator &fileLocator, HttpServerAdvanced::HttpContentTypes &contentTypes)
-        : fileLocator_(fileLocator), contentTypes_(contentTypes)
+        : fileLocator_(&fileLocator), contentTypes_(contentTypes)
     {
     }
 
     bool StaticFileHandlerFactory::canHandle(HttpRequest &context)
     {
-        if (!fileLocator_.canHandle(context.url()))
+        if (fileLocator_ == nullptr || !fileLocator_->canHandle(context.url()))
         {
             return false;
         }
-        File file = fileLocator_.getFile(context);
+        FileHandle file = fileLocator_->getFile(context);
         if (!file)
         {
             return false;
         }
-        file.close();
+        file->close();
         return true;
     }
 
@@ -136,50 +114,70 @@ namespace HttpServerAdvanced
                                        {std::move(HttpHeader::Allow("GET, HEAD"))}));
         }
 
-        File file = fileLocator_.getFile(context);
+        if (fileLocator_ == nullptr)
+        {
+            return nullptr;
+        }
 
-        // Check if the file is gzipped (ends with .gz)
-        String fullName = file.fullName();
-        bool isGzipped = fullName.endsWith(".gz");
+        FileHandle file = fileLocator_->getFile(context);
+        if (!file)
+        {
+            const String notFoundBody("Not Found");
+            return HttpHandler::create(
+                StringResponse::create(HttpStatus::NotFound(),
+                                       notFoundBody,
+                                       {}));
+        }
 
-        // Get content type from filename without .gz extension if gzipped
+        const std::string_view filePath = file->path();
+        const bool isGzipped = EndsWith(filePath, ".gz");
+        const String fullPath = ToArduinoString(filePath);
+
         String contentType;
         if (isGzipped)
         {
-            String nameWithoutGz = fullName.substring(0, fullName.length() - 3);
+            String nameWithoutGz = ToArduinoString(filePath.substr(0, filePath.size() - 3));
             contentType = contentTypes_.getContentTypeFromPath(nameWithoutGz.c_str());
         }
         else
         {
-            contentType = contentTypes_.getContentTypeFromPath(fullName.c_str());
+            contentType = contentTypes_.getContentTypeFromPath(fullPath.c_str());
         }
 
-        // Build headers
         HttpHeaderCollection headers;
         headers.push_back(HttpHeader::ContentType(contentType));
-        headers.push_back(HttpHeader::ContentLength(String(file.size())));
-        headers.push_back(HttpHeader::ETag(getEtag(file)));
-        headers.push_back(HttpHeader::LastModified(getLastWriteValue(file)));
+        if (const std::optional<std::size_t> fileSize = file->size(); fileSize.has_value())
+        {
+            const std::string contentLength = std::to_string(*fileSize);
+            headers.push_back(HttpHeader::ContentLength(contentLength.c_str()));
+        }
 
-        // Add Content-Encoding header if gzipped
+        if (const std::optional<String> etag = getEtag(*file); etag.has_value())
+        {
+            headers.push_back(HttpHeader::ETag(*etag));
+        }
+
+        if (const std::optional<String> lastModified = getLastWriteValue(*file); lastModified.has_value())
+        {
+            headers.push_back(HttpHeader::LastModified(*lastModified));
+        }
+
         if (isGzipped)
         {
             headers.push_back(HttpHeader::ContentEncoding("gzip"));
         }
 
-        String path = getUrlPath(context.url());
-        bool isHeadRequest = (HttpMethod::Head == context.method());
-
+        std::unique_ptr<IByteSource> body = std::move(file);
         return HttpHandler::create(
             std::make_unique<HttpResponse>(
                 HttpStatus::Ok(),
-                std::make_unique<FileByteSource>(file),
+                std::move(body),
                 std::move(headers)));
     }
 
     void StaticFileHandlerFactory::setFileLocator(FileLocator &fileLocator)
     {
-        fileLocator_ = fileLocator;
+        fileLocator_ = &fileLocator;
     }
 
 } // namespace HttpServerAdvanced

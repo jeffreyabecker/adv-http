@@ -1,5 +1,5 @@
 #pragma once
-#include "../compat/FileSystem.h"
+#include "../compat/IFileSystem.h"
 #include <Arduino.h>
 #include "../core/HttpRequest.h"
 
@@ -12,7 +12,7 @@ namespace HttpServerAdvanced
     {
     public:
         virtual ~FileLocator() = default;
-        virtual File getFile(HttpRequest &context) = 0;
+        virtual FileHandle getFile(HttpRequest &context) = 0;
         virtual bool canHandle(const String &path) = 0;
     };
 

@@ -2,7 +2,7 @@
 
 namespace HttpServerAdvanced
 {
-    StaticFilesBuilder::StaticFilesBuilder(FS &fs, HttpServerAdvanced::HttpContentTypes &contentTypes, std::function<void(StaticFilesBuilder &)> setupFunc)
+    StaticFilesBuilder::StaticFilesBuilder(IFileSystem &fs, HttpServerAdvanced::HttpContentTypes &contentTypes, std::function<void(StaticFilesBuilder &)> setupFunc)
         : setupFunc_(setupFunc),
           fileLocator_(fs),
           fileHandlerFactory_(fileLocator_, contentTypes)
@@ -20,7 +20,7 @@ namespace HttpServerAdvanced
             setupFunc_(*this);
         }
         auto &handlerFactory = coreBuilder.handlerProviders();
-        handlerFactory.add(fileHandlerFactory_, HandlerProviderRegistry::AddAt::Beginning);
+        handlerFactory.add(fileHandlerFactory_, 0);
     }
 
     StaticFilesBuilder &StaticFilesBuilder::setPathPredicate(std::function<bool(const String &)> predicate)
@@ -47,7 +47,7 @@ namespace HttpServerAdvanced
         return *this;
     }
 
-    std::function<void(WebServerBuilder &)> &StaticFiles(FS &fs, std::function<void(StaticFilesBuilder &)> setupFunc)
+    std::function<void(WebServerBuilder &)> &StaticFiles(IFileSystem &fs, std::function<void(StaticFilesBuilder &)> setupFunc)
     {
         static std::function<void(WebServerBuilder &)> *instance = nullptr;
         if (instance == nullptr)

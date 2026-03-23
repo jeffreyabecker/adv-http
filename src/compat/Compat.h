@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Clock.h"
+#include "IFileSystem.h"
 #include "FileSystem.h"
 #include "Stream.h"
 
