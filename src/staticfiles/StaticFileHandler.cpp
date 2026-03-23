@@ -77,8 +77,9 @@ namespace HttpServerAdvanced
 
     std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::create(HttpRequest &context)
     {
-        bool isGet = (HttpMethod::Get == context.method());
-        bool isHead = (HttpMethod::Head == context.method());
+        const std::string_view method = context.methodView();
+        bool isGet = (method == HttpMethod::Get);
+        bool isHead = (method == HttpMethod::Head);
 
         if (!isGet && !isHead)
         {
