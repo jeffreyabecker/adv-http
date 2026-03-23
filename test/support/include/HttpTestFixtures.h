@@ -438,6 +438,7 @@ namespace HttpServerAdvanced::TestSupport
 
         bool connected() override
         {
+            ++connectedCheckCount_;
             if (connected_)
             {
                 return true;
@@ -470,11 +471,22 @@ namespace HttpServerAdvanced::TestSupport
         void setTimeout(std::uint32_t timeoutMs) override
         {
             timeoutMs_ = timeoutMs;
+            timeoutHistory_.push_back(timeoutMs);
         }
 
         std::uint32_t getTimeout() const override
         {
             return timeoutMs_;
+        }
+
+        std::size_t connectedCheckCount() const
+        {
+            return connectedCheckCount_;
+        }
+
+        const std::vector<std::uint32_t> &timeoutHistory() const
+        {
+            return timeoutHistory_;
         }
 
         void disconnect()
@@ -522,12 +534,14 @@ namespace HttpServerAdvanced::TestSupport
         bool connected_ = true;
         bool stopped_ = false;
         std::uint32_t timeoutMs_ = 0;
+        std::vector<std::uint32_t> timeoutHistory_;
         std::vector<std::size_t> writeScript_;
         std::size_t writeScriptIndex_ = 0;
         std::vector<std::uint8_t> written_;
         std::vector<std::size_t> writeSizes_;
         std::size_t flushCount_ = 0;
         std::size_t stopCount_ = 0;
+        std::size_t connectedCheckCount_ = 0;
     };
 
     class FakeServer : public IServer

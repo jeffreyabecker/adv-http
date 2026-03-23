@@ -63,9 +63,10 @@ namespace HttpServerAdvanced
         bool isFirstLoop() const;
         void startActivity();
         bool checkActivityTimeout();
+        bool checkIdleTimeout();
         void setErroredUnrecoverably();
         void markRequestReadCompleted();
-        void markResponseWriteCompleted();
+        void markResponseWriteCompleted(bool notifyHandler = false);
         Compat::ClockMillis currentMillis() const;
 
 

@@ -40,25 +40,38 @@ namespace HttpServerAdvanced
         {
             return;
         }
-        startActivity();
+
         uint8_t buffer[HttpServerAdvanced::PIPELINE_STACK_BUFFER_SIZE];
         AvailableResult available = TemporarilyUnavailableResult();
         while ((available = client_->available()).hasBytes())
         {
             std::size_t bytesRead = client_->read(HttpServerAdvanced::span<uint8_t>(buffer, sizeof(buffer)));
+            if (bytesRead == 0)
+            {
+                break;
+            }
 
+            startActivity();
             size_t bytesParsed = requestParser_.execute(buffer, bytesRead);
             if (bytesParsed < bytesRead)
             {
                 setErroredUnrecoverably();
                 return;
             }
+
+            if (requestParser_.currentEvent() == RequestParserEvent::MessageComplete)
+            {
+                markRequestReadCompleted();
+                return;
+            }
+
             if (!checkActivityTimeout())
             {
                 return;
             }
         }
-        if (available.isExhausted())
+
+        if (available.isExhausted() && !client_->connected())
         {
             markRequestReadCompleted();
         }
@@ -80,7 +93,6 @@ namespace HttpServerAdvanced
             }
         }
 
-        startActivity();
         uint8_t buffer[HttpServerAdvanced::PIPELINE_STACK_BUFFER_SIZE];
         AvailableResult available = TemporarilyUnavailableResult();
         while ((available = responseStream_->available()).hasBytes())
@@ -90,6 +102,7 @@ namespace HttpServerAdvanced
             if (bytesRead > 0)
             {
                 auto written = client_->write(HttpServerAdvanced::span<const uint8_t>(buffer, bytesRead));
+                startActivity();
                 if (written < bytesRead)
                 {
                     setErroredUnrecoverably();
@@ -107,28 +120,20 @@ namespace HttpServerAdvanced
         }
         if (available.isExhausted())
         {
-            markResponseWriteCompleted();
+            markResponseWriteCompleted(true);
         }
     }
 
     void HttpPipeline::setupPipeline()
     {
         startMillis_ = currentMillis();
-        client_->setTimeout(timeouts_.getActivityTimeout());
+        lastActivityMillis_ = startMillis_;
+        client_->setTimeout(timeouts_.getReadTimeout());
     }
 
     PipelineHandleClientResult HttpPipeline::_checkStateInHandleClient()
     {
         const Compat::ClockMillis currentMillis = this->currentMillis();
-        if (!client_->connected())
-        {
-            if (handler_)
-            {
-                handler_->onClientDisconnected();
-            }
-            return PipelineHandleClientResult::ClientDisconnected;
-        }
-
         if (currentMillis - startMillis_ > timeouts_.getTotalRequestLengthMs())
         {
             timedOutUnrecoverably_ = true;
@@ -151,6 +156,10 @@ namespace HttpServerAdvanced
             }
             return PipelineHandleClientResult::TimedOutUnrecoverably;
         }
+        if (timedOutUnrecoverably_)
+        {
+            return PipelineHandleClientResult::TimedOutUnrecoverably;
+        }
         if (aborted_)
         {
             return PipelineHandleClientResult::Aborted;
@@ -162,6 +171,14 @@ namespace HttpServerAdvanced
         if (completedRequestRead_ && completedResponseWrite_)
         {
             return PipelineHandleClientResult::Completed;
+        }
+        if (!client_->connected())
+        {
+            if (handler_)
+            {
+                handler_->onClientDisconnected();
+            }
+            return PipelineHandleClientResult::ClientDisconnected;
         }
         return PipelineHandleClientResult::Processing; // Default case
     }
@@ -198,6 +215,36 @@ namespace HttpServerAdvanced
         return true;
     }
 
+    bool HttpPipeline::checkIdleTimeout()
+    {
+        if (completedRequestRead_ && (completedResponseWrite_ || responseStream_ == nullptr))
+        {
+            return true;
+        }
+
+        const Compat::ClockMillis currentMillis = this->currentMillis();
+        const bool hasPendingResponse = responseStream_ != nullptr || haveStartedWritingResponse_;
+        const Compat::ClockMillis timeout = hasPendingResponse ? timeouts_.getActivityTimeout() : timeouts_.getReadTimeout();
+        if (currentMillis - lastActivityMillis_ <= timeout)
+        {
+            return true;
+        }
+
+        if (handler_)
+        {
+            handler_->onError(PipelineError(PipelineErrorCode::Timeout));
+        }
+
+        timedOutUnrecoverably_ = true;
+        if (hasPendingResponse)
+        {
+            client_->stop();
+            abort();
+        }
+
+        return false;
+    }
+
     void HttpPipeline::setErroredUnrecoverably()
     {
         erroredUnrecoverably_ = true;
@@ -207,14 +254,28 @@ namespace HttpServerAdvanced
 
     void HttpPipeline::markRequestReadCompleted()
     {
+        if (completedRequestRead_)
+        {
+            return;
+        }
+
         requestParser_.execute(nullptr, 0); // Signal end of input to parser
         completedRequestRead_ = true;
     }
 
-    void HttpPipeline::markResponseWriteCompleted()
+    void HttpPipeline::markResponseWriteCompleted(bool notifyHandler)
     {
+        if (completedResponseWrite_)
+        {
+            return;
+        }
+
         completedResponseWrite_ = true;
         responseStream_ = nullptr;
+        if (notifyHandler && haveStartedWritingResponse_ && handler_)
+        {
+            handler_->onResponseCompleted();
+        }
     }
 
     Compat::ClockMillis HttpPipeline::currentMillis() const
@@ -243,20 +304,34 @@ namespace HttpServerAdvanced
 
     PipelineHandleClientResult HttpPipeline::handleClient()
     {
-        loopCount_++;
-
         if (isFirstLoop())
         {
             setupPipeline();
         }
+        loopCount_++;
+
         auto validationResult = _checkStateInHandleClient();
         if (isPipelineHandleClientResultFinal(validationResult))
         {
             return validationResult;
         }
+
         readFromClientIntoParser();
+        validationResult = _checkStateInHandleClient();
+        if (isPipelineHandleClientResultFinal(validationResult))
+        {
+            return validationResult;
+        }
+
         writeResponseToClientFromStream();
-        return PipelineHandleClientResult::Processing;
+        validationResult = _checkStateInHandleClient();
+        if (isPipelineHandleClientResultFinal(validationResult))
+        {
+            return validationResult;
+        }
+
+        checkIdleTimeout();
+        return _checkStateInHandleClient();
     }
 
     void HttpPipeline::abort()
