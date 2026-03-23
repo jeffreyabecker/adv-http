@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: updated task checkboxes to reflect completed phases 1, 2, 4, 5, 6, 7, 8; phase 3 request parser remains in progress.
 2026-03-23 - Copilot: added detailed unit-testing phase backlogs 001 through 009 and aligned the index file with the renumbered phase layout.
 2026-03-23 - Copilot: created the initial socket-free unit-testing backlog and mapped the first high-level test areas from the current codebase.
 
@@ -29,10 +30,16 @@ This backlog defines the high-level unit-testing plan for the library with a str
 
 ## Current Coverage Snapshot
 
-- Native test infrastructure already exists under `test/test_native/`.
-- Current suites already exercise portions of utilities, stream behavior, response streams, clock behavior, and filesystem compatibility.
-- `test/test_native/native_portable_sources.cpp` already curates a growing set of production sources for host-side compilation.
-- The major remaining gaps are request parsing, request lifecycle handling, body-handler behavior, provider or routing composition, and higher-level pipeline state transitions.
+- Native test infrastructure is in place under `test/test_native/` with a consolidated runner entry point.
+- Shared fixtures (`ByteStreamFixtures.h`, `HttpTestFixtures.h`) cover scripted byte sources, recording channels, fake clients, fake servers, response capture, and request-factory recorders.
+- Core HTTP primitive and utility tests are complete (Phase 2).
+- Response construction, body streaming, and response iterator tests are complete (Phase 4).
+- Body handler tests for buffered, raw, form, multipart, and JSON request bodies are complete (Phase 5).
+- Routing, provider composition, authentication, and CORS tests are complete (Phase 6).
+- Static file and filesystem-backed behavior tests are complete (Phase 7).
+- Pipeline loop and fake-transport tests for partial IO, keep-alive, aborts, disconnects, and timeouts are complete (Phase 8).
+- Production sources are compiled directly from `src/` via `platformio/native.ini` rather than an aggregation file.
+- The major remaining gap is request parsing and request-lifecycle coverage (Phase 3): parser fixture suites, event recorder, error-code mapping, address propagation, item storage, and response dispatch interactions.
 
 ## High-Level Test Areas
 
@@ -92,14 +99,14 @@ This backlog defines the high-level unit-testing plan for the library with a str
 
 ## Tasks
 
-- [ ] Create a shared native-fixture baseline for scripted byte sources, fake clients, fake clocks, and handler or response capture.
-- [ ] Expand core HTTP primitive and utility tests until the remaining edge cases are explicitly frozen.
+- [x] Create a shared native-fixture baseline for scripted byte sources, fake clients, fake clocks, and handler or response capture.
+- [x] Expand core HTTP primitive and utility tests until the remaining edge cases are explicitly frozen.
 - [ ] Add request parser fixtures and request-lifecycle tests that run entirely from in-memory byte input.
-- [ ] Extend response and stream serialization coverage for direct, chunked, and temporarily unavailable body sources.
-- [ ] Add dedicated handler-body parsing tests for buffered, raw, form, multipart, and JSON request bodies.
-- [ ] Add routing and provider-composition tests covering matcher rules, interceptors, default handlers, auth, and CORS.
-- [ ] Expand static-file and filesystem tests using portable adapters or host-backed implementations only.
-- [ ] Add fake-transport pipeline tests for partial IO, keep-alive, aborts, disconnects, and timeout behavior.
+- [x] Extend response and stream serialization coverage for direct, chunked, and temporarily unavailable body sources.
+- [x] Add dedicated handler-body parsing tests for buffered, raw, form, multipart, and JSON request bodies.
+- [x] Add routing and provider-composition tests covering matcher rules, interceptors, default handlers, auth, and CORS.
+- [x] Expand static-file and filesystem tests using portable adapters or host-backed implementations only.
+- [x] Add fake-transport pipeline tests for partial IO, keep-alive, aborts, disconnects, and timeout behavior.
 - [x] Split detailed backlog files out of each major phase so implementation can proceed phase-by-phase.
 
 ## Owner

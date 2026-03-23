@@ -44,6 +44,34 @@ This repository keeps host-side unit coverage under a single consolidated native
 - Advance time explicitly in the test body; do not use sleeps or wall-clock delays.
 - When a server-facing test needs deterministic time, inject the manual clock through `HttpServerBase::setClock(...)` before exercising the code under test.
 
+## In-Scope vs Out-of-Scope Coverage
+
+**In-scope for the native lane:**
+
+- Parser and request-lifecycle behavior driven by raw in-memory byte input.
+- Response construction, header emission, body streaming, and chunk framing.
+- Body handler input processing (buffering, form-field parsing, JSON, multipart, raw bytes).
+- Routing, provider composition, authentication header parsing, and CORS header construction.
+- Static file lookup and metadata using the portable filesystem seam and POSIX-backed or fake FS objects.
+- Pipeline control flow using scripted fake `IClient` objects for partial read, partial write, disconnect, reuse, and timeout scenarios under a manual clock.
+- Core HTTP value types, utility functions, and any other host-portable production logic.
+
+**Out of scope for the native lane:**
+
+- Real socket bind, connect, listen, or accept operations.
+- Board-specific or OS-specific network stacks (Wi-Fi, lwIP, etc.).
+- Flash filesystem access on embedded targets.
+- Hardware or timing behavior that cannot be deterministically reproduced through a fake clock and scripted byte sources.
+- End-to-end integration sequences that require a living server and a real HTTP client over a real transport.
+
+Board-specific or integration behavior belongs in dedicated hardware test sketches or live integration setups, not in this lane.
+
+## Regression Review Rules
+
+- Before freezing observed behavior into a test, confirm that behavior is correct, not merely existing.
+- Temporary compatibility behaviors that are known to be revisited later should be marked with a `// TODO(regression):` comment in the test so they are easy to find.
+- When revisiting phase priorities after significant coverage lands, update `docs/backlog/task-lists/unit-testing/000-unit-test-areas.md` to reflect current state.
+
 ## Commands
 
 - Primary native test command: `./tools/run_native_tests.ps1`
