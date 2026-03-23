@@ -4,13 +4,21 @@
 #include <unity.h>
 
 #include "../../src/response/ChunkedHttpResponseBodyStream.h"
+#include "../../src/response/FormResponse.h"
 #include "../../src/response/HttpResponse.h"
+#include "../../src/response/StringResponse.h"
 #include "../../src/streams/ByteStream.h"
 #include "../../src/streams/Streams.h"
 
 #include <algorithm>
+#include <map>
 #include <string>
 #include <vector>
+
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#include <ArduinoJson.h>
+#include "../../src/response/JsonResponse.h"
+#endif
 
 using namespace HttpServerAdvanced;
 
@@ -68,6 +76,139 @@ namespace
         const std::string content = TestSupport::ReadByteSourceAsStdString(*body);
         TEST_ASSERT_EQUAL_STRING("body", content.c_str());
     }
+
+    void test_http_response_returns_status_and_mutable_headers()
+    {
+        HttpHeaderCollection headers;
+        headers.set(HttpHeader::ContentType("application/custom"));
+
+        HttpResponse response(HttpStatus::Accepted(), std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("body")), std::move(headers));
+
+        TEST_ASSERT_EQUAL(202, static_cast<int>(response.status()));
+        TEST_ASSERT_TRUE(response.headers().exists(HttpHeaderNames::ContentType, "application/custom"));
+
+        response.headers().set(HttpHeader::Connection("keep-alive"));
+        TEST_ASSERT_TRUE(response.headers().exists(HttpHeaderNames::Connection, "keep-alive"));
+    }
+
+    void test_http_response_transfers_body_ownership_once()
+    {
+        HttpHeaderCollection headers;
+        HttpResponse response(HttpStatus::Ok(), std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("abc")), std::move(headers));
+
+        auto firstBody = response.getBody();
+        TEST_ASSERT_NOT_NULL(firstBody.get());
+        TEST_ASSERT_EQUAL_STRING("abc", TestSupport::ReadByteSourceAsStdString(*firstBody).c_str());
+
+        auto secondBody = response.getBody();
+        TEST_ASSERT_NULL(secondBody.get());
+    }
+
+    void test_http_response_accepts_empty_body_source()
+    {
+        HttpHeaderCollection headers;
+        HttpResponse response(HttpStatus::Ok(), std::make_unique<TestSupport::ScriptedByteSource>(), std::move(headers));
+
+        auto body = response.getBody();
+        TEST_ASSERT_NOT_NULL(body.get());
+        TEST_ASSERT_EQUAL_STRING("", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+    }
+
+    void test_string_response_sets_default_headers_and_preserves_custom_content_type()
+    {
+        auto response = StringResponse::create(
+            HttpStatus::Created(),
+            "body",
+            {
+                HttpHeader::ContentType("application/custom"),
+                HttpHeader::Connection("keep-alive")
+            });
+
+        TEST_ASSERT_EQUAL(201, static_cast<int>(response->status()));
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::ContentType, "application/custom"));
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::ContentLength, "4"));
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::Connection, "keep-alive"));
+
+        auto body = response->getBody();
+        TEST_ASSERT_EQUAL_STRING("body", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+    }
+
+    void test_string_response_content_type_overload_keeps_exact_body_bytes()
+    {
+        const uint8_t bytes[] = {0x41, 0x00, 0x42};
+        auto binaryResponse = StringResponse::create(HttpStatus::Ok(), bytes, sizeof(bytes));
+        auto binaryBody = binaryResponse->getBody();
+        const std::vector<uint8_t> binaryContent = ReadAsVector(*binaryBody);
+
+        TEST_ASSERT_EQUAL_UINT64(sizeof(bytes), binaryContent.size());
+        TEST_ASSERT_EQUAL_UINT8_ARRAY(bytes, binaryContent.data(), sizeof(bytes));
+
+        auto typedResponse = StringResponse::create(HttpStatus::Accepted(), "text/csv", std::string("a,b"));
+        TEST_ASSERT_TRUE(typedResponse->headers().exists(HttpHeaderNames::ContentType, "text/csv"));
+        TEST_ASSERT_TRUE(typedResponse->headers().exists(HttpHeaderNames::ContentLength, "3"));
+
+        auto typedBody = typedResponse->getBody();
+        TEST_ASSERT_EQUAL_STRING("a,b", TestSupport::ReadByteSourceAsStdString(*typedBody).c_str());
+    }
+
+    void test_form_response_sets_defaults_and_preserves_explicit_headers()
+    {
+        FormResponse::FieldCollection fields;
+        fields.emplace_back("greeting", "hello world");
+        fields.emplace_back("symbol", "1+1");
+
+        auto response = FormResponse::create(
+            HttpStatus::Ok(),
+            fields,
+            {
+                HttpHeader::ContentType("application/custom-form"),
+                HttpHeader::Connection("keep-alive")
+            });
+
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::ContentType, "application/custom-form"));
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::Connection, "keep-alive"));
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::ContentLength, "33"));
+
+        auto body = response->getBody();
+        TEST_ASSERT_EQUAL_STRING("greeting=hello+world&symbol=1%2B1", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+    }
+
+    void test_form_response_map_overload_preserves_key_order_from_map()
+    {
+        FormResponse::FieldMap fields;
+        fields.emplace("beta", "2");
+        fields.emplace("alpha", "1");
+
+        auto response = FormResponse::create(HttpStatus::Ok(), fields);
+        auto body = response->getBody();
+
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::ContentType, "application/x-www-form-urlencoded"));
+        TEST_ASSERT_EQUAL_STRING("alpha=1&beta=2", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+    }
+
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+    void test_json_response_sets_default_headers_and_preserves_explicit_headers()
+    {
+        JsonDocument document;
+        document["message"] = "ok";
+
+        auto response = JsonResponse::create(
+            HttpStatus::Accepted(),
+            document,
+            {
+                HttpHeader::ContentType("application/merge-patch+json"),
+                HttpHeader::Connection("keep-alive")
+            });
+
+        TEST_ASSERT_EQUAL(202, static_cast<int>(response->status()));
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::ContentType, "application/merge-patch+json"));
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::ContentLength, "16"));
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::Connection, "keep-alive"));
+
+        auto body = response->getBody();
+        TEST_ASSERT_EQUAL_STRING("{\"message\":\"ok\"}", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+    }
+#endif
 
     void test_create_response_stream_serializes_direct_response_exactly()
     {
@@ -153,6 +294,16 @@ namespace
         RUN_TEST(test_byte_source_reports_temporarily_unavailable);
         RUN_TEST(test_chunked_response_body_stream_reads_from_byte_source);
         RUN_TEST(test_http_response_accepts_byte_source_body);
+        RUN_TEST(test_http_response_returns_status_and_mutable_headers);
+        RUN_TEST(test_http_response_transfers_body_ownership_once);
+        RUN_TEST(test_http_response_accepts_empty_body_source);
+        RUN_TEST(test_string_response_sets_default_headers_and_preserves_custom_content_type);
+        RUN_TEST(test_string_response_content_type_overload_keeps_exact_body_bytes);
+        RUN_TEST(test_form_response_sets_defaults_and_preserves_explicit_headers);
+        RUN_TEST(test_form_response_map_overload_preserves_key_order_from_map);
+    #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+        RUN_TEST(test_json_response_sets_default_headers_and_preserves_explicit_headers);
+    #endif
         RUN_TEST(test_create_response_stream_serializes_direct_response_exactly);
         RUN_TEST(test_create_response_stream_serializes_chunked_response_exactly);
         RUN_TEST(test_chunked_response_stream_handles_temporary_unavailability_between_chunks);

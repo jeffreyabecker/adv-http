@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: completed core response object helper coverage in native tests.
 2026-03-23 - Copilot: created detailed Phase 4 response construction and body streaming backlog.
 
 # Unit Testing Phase 4 Response Construction And Body Streaming Backlog
@@ -16,9 +17,9 @@ This phase expands response-side coverage beyond the stream-specific tests that 
 
 ### Core Response Objects
 
-- [ ] Expand `HttpResponse` coverage for status, headers, body ownership transfer, and empty-body cases.
-- [ ] Add direct tests for `StringResponse`, `FormResponse`, and `JsonResponse` creation helpers and header defaults.
-- [ ] Verify that response helpers preserve caller-provided headers and body content exactly.
+- [x] Expand `HttpResponse` coverage for status, headers, body ownership transfer, and empty-body cases.
+- [x] Add direct tests for `StringResponse`, `FormResponse`, and `JsonResponse` creation helpers and header defaults.
+- [x] Verify that response helpers preserve caller-provided headers and body content exactly.
 
 ### Serialization And Iteration
 
