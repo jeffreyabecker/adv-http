@@ -327,7 +327,6 @@
                 "USBD_MAX_POWER_MA=250",
                 "PICO_CYW43_SUPPORTED=1",
                 "CYW43_PIN_WL_DYNAMIC=1",
-                "HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON=1",
                 "ARDUINO_ARCH_RP2040",
                 "ARDUINO=10810",
                 "ARDUINO_ARCH_RP2040",

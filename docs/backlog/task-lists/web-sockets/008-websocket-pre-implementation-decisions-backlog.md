@@ -402,9 +402,9 @@ Decision criteria:
 
 ### 3. Pipeline State Model
 
-- [ ] Decide the explicit connection states that replace the current implicit request or response completion model.
-- [ ] Decide how upgraded-session activity interacts with keep-alive and finished-state reporting.
-- [ ] Decide what constitutes terminal completion for an upgraded connection versus a recoverable loop iteration.
+- [x] Decide the explicit connection states that replace the current implicit request or response completion model.
+- [x] Decide how upgraded-session activity interacts with keep-alive and finished-state reporting.
+- [x] Decide what constitutes terminal completion for an upgraded connection versus a recoverable loop iteration.
 
 Option sketches:
 
@@ -533,13 +533,47 @@ Initial recommendation:
 - Use a very small number of supplemental flags only when a condition is truly orthogonal to lifecycle stage.
 - Avoid full state objects until the upgraded path is proven and the pipeline is demonstrably too complex for a single enum-based coordinator.
 
+Decision:
+
+- Chosen option: Option A, single explicit connection state enum.
+- Status: Accepted for Phase 1 planning.
+
+Why this option fits the current codebase:
+
+- The current pipeline already behaves as a coordinator, but its lifecycle is spread across booleans that will become harder to reason about once upgrade is added.
+- One authoritative enum matches the dedicated result object from item 1 and the single-step session interface from item 2.
+- It gives Phase 1 a clear refactor target without forcing the heavier abstraction of per-mode state objects.
+
+Authoritative state rule:
+
+- The connection state enum is the primary representation of lifecycle stage.
+- Supplemental flags are allowed only for truly orthogonal details that are not themselves lifecycle stages.
+- The pipeline should not derive major lifecycle meaning by combining multiple booleans where an enum value would be clearer.
+
+Keep-alive and terminal-completion rule:
+
+- A normal HTTP response may transition from `WritingHttpResponse` back to `ReadingHttpRequest` when keep-alive remains valid.
+- An upgraded connection does not re-enter HTTP request-reading mode; `UpgradedSessionActive` is a one-way transition from the HTTP lifecycle.
+- Terminal states are `Completed`, `Aborted`, and `Error`, with `Closing` used only for in-progress shutdown work.
+
+Implications for Phase 1:
+
+- Phase 1 should replace the current scattered completion booleans with an explicit connection-state model as part of the pipeline refactor.
+- Pipeline tests should assert state transitions directly rather than inferring them from mixed field combinations.
+- Any remaining boolean flags should be justified as orthogonal details, not leftover lifecycle surrogates.
+
+Alternatives not chosen:
+
+- Option B, top-level state plus phase flags: rejected because it preserves too much of the ambiguity the refactor is supposed to remove.
+- Option C, state objects per major mode: rejected because the extra indirection is not justified before the upgraded path has been proven in code.
+
 Suggested decision record for item 3:
 
-- Chosen state model:
-- Which states are authoritative:
-- Which details, if any, remain supplemental flags:
-- How keep-alive re-entry works after a normal HTTP response:
-- What transitions are considered terminal:
+- Chosen state model: Single explicit connection state enum.
+- Which states are authoritative: `ReadingHttpRequest`, `WritingHttpResponse`, `UpgradedSessionActive`, `Closing`, `Completed`, `Aborted`, and `Error`.
+- Which details, if any, remain supplemental flags: Only orthogonal details that do not redefine lifecycle stage.
+- How keep-alive re-entry works after a normal HTTP response: The pipeline may transition from `WritingHttpResponse` back to `ReadingHttpRequest` when the HTTP connection remains reusable.
+- What transitions are considered terminal: `Completed`, `Aborted`, and `Error`.
 
 Decision criteria:
 - State transitions should be auditable and hard to mis-sequence.
@@ -548,9 +582,174 @@ Decision criteria:
 
 ### 4. Handshake Validation Placement
 
-- [ ] Decide whether handshake validation lives in a dedicated WebSocket upgrade handler, in routing, or in a narrow pipeline-owned branch fed by routed intent.
-- [ ] Decide where `Sec-WebSocket-Accept` generation lives.
-- [ ] Decide whether handshake rejection status codes are standardized now or left partially open.
+- [x] Decide whether handshake validation lives in a dedicated WebSocket upgrade handler, in routing, or in a narrow pipeline-owned branch fed by routed intent.
+- [x] Decide where `Sec-WebSocket-Accept` generation lives.
+- [x] Decide whether handshake rejection status codes are standardized now or left partially open.
+
+Option sketches:
+
+#### Option A: Dedicated WebSocket Upgrade Handler
+
+Routing selects a WebSocket-aware internal handler, and that handler owns validation plus handshake response construction.
+
+Sketch:
+
+```cpp
+class WebSocketUpgradeHandler
+{
+public:
+	RequestHandlingResult handleUpgradeRequest(const HttpRequest &request,
+											   IWebSocketRoute &route);
+};
+```
+
+How it would flow:
+
+- Normal routing resolves the request path to a WebSocket route candidate.
+- The upgrade handler validates HTTP method and required headers.
+- The handler generates `Sec-WebSocket-Accept` and returns an upgrade result or rejection response.
+- `HttpPipeline` only consumes the already-decided result object.
+
+Why it is attractive:
+
+- Keeps WebSocket-specific validation logic out of generic parser and pipeline code.
+- Makes handshake behavior easy to test as a focused unit.
+- Fits naturally with later public route registration work in Phase 5.
+
+Why it may be awkward:
+
+- If introduced too early, it may force route concepts into Phase 2 before the routing API is fully settled.
+- There is some risk of duplicating request-selection or dispatch logic if the boundary is not kept narrow.
+- The handler can become a catch-all if it also absorbs too much session-factory or rejection-policy logic.
+
+#### Option B: Routing-Level Validation Branch
+
+Routing itself recognizes a WebSocket endpoint and performs enough validation to decide whether the request should become an upgrade result.
+
+Sketch:
+
+```cpp
+struct RoutedUpgradeDecision
+{
+	bool matched;
+	RequestHandlingResult result;
+};
+
+RoutedUpgradeDecision HandlerProviderRegistry::tryResolveWebSocket(const HttpRequest &request);
+```
+
+How it would flow:
+
+- The routing layer matches a candidate endpoint and validates upgrade requirements in the same decision path.
+- If validation passes, routing returns an upgrade result.
+- If validation fails, routing returns a rejection response result.
+- The pipeline remains unaware of handshake details beyond the final result object.
+
+Why it is attractive:
+
+- Keeps route matching and route-specific validation in one place.
+- Avoids adding another internal handler abstraction if routing already owns endpoint selection.
+- Can make WebSocket route behavior feel consistent with other route resolution logic.
+
+Why it may be awkward:
+
+- It pushes protocol-specific logic into routing, which can blur the line between endpoint selection and HTTP/WebSocket semantics.
+- The routing layer may become harder to reuse or reason about if it starts owning handshake rules.
+- Tests may become broader and more coupled than necessary because matching and validation are fused.
+
+#### Option C: Narrow Pipeline-Owned Handshake Branch Fed By Routed Intent
+
+Routing only decides that a request targets a WebSocket endpoint; the pipeline-side upgrade branch performs the actual protocol validation and handshake construction.
+
+Sketch:
+
+```cpp
+struct UpgradeIntent
+{
+	IWebSocketRoute *route;
+};
+
+std::optional<UpgradeIntent> HttpRequest::takeUpgradeIntent();
+RequestHandlingResult HttpPipeline::buildUpgradeResult(const HttpRequest &request,
+													   const UpgradeIntent &intent);
+```
+
+How it would flow:
+
+- Routing marks the request as targeting a WebSocket-capable endpoint.
+- The pipeline-side upgrade branch validates required headers and method semantics.
+- The same branch generates `Sec-WebSocket-Accept`, rejection responses, and the final upgrade result.
+
+Why it is attractive:
+
+- Keeps route matching separate from low-level protocol validation.
+- Makes handshake construction sit close to the upgrade seam chosen in items 1 and 2.
+- Avoids forcing a distinct WebSocket handler abstraction too early.
+
+Why it may be awkward:
+
+- It puts more protocol-specific logic into pipeline-adjacent code, which can grow if not kept very narrow.
+- There is a risk of the pipeline learning too much about WebSocket details rather than just consuming results.
+- Handshake testing may need more pipeline scaffolding than a dedicated handler approach.
+
+Working comparison:
+
+- Dedicated WebSocket upgrade handler: best focused ownership of protocol validation, with modest extra abstraction.
+- Routing-level validation branch: most compact if routing is already the semantic owner, but easiest to blur responsibilities.
+- Narrow pipeline-owned branch fed by routed intent: close to the upgrade seam, but risks growing pipeline protocol knowledge.
+
+Initial recommendation:
+
+- Prefer the dedicated WebSocket upgrade handler as the cleanest place for validation and `Sec-WebSocket-Accept` generation.
+- Prefer the narrow pipeline-owned branch only if Phase 2 needs a slimmer internal path before the route layer grows WebSocket-specific helper types.
+- Avoid routing-level validation as the primary home unless the team explicitly wants routing to own protocol-level acceptance rules.
+
+Decision:
+
+- Chosen option: Option A, dedicated WebSocket upgrade handler.
+- Status: Accepted for Phase 2 planning.
+
+Why this option fits the current codebase:
+
+- It keeps WebSocket protocol validation out of both generic parser code and the core pipeline coordinator.
+- It gives Phase 2 a focused unit of behavior for request validation, handshake response construction, and upgrade-result production.
+- It lines up cleanly with later route registration work, where a WebSocket route can hand off into a dedicated upgrade-specific path.
+
+Responsibility split:
+
+- Routing decides whether a request targets a WebSocket-capable endpoint.
+- The dedicated upgrade handler validates method and headers, generates `Sec-WebSocket-Accept`, and returns either an upgrade result or a rejection response result.
+- `HttpPipeline` consumes only the final `RequestHandlingResult` and does not own handshake-specific rules.
+
+`Sec-WebSocket-Accept` placement rule:
+
+- `Sec-WebSocket-Accept` generation lives in the dedicated WebSocket upgrade handler.
+- The generation helper can be factored into a smaller protocol utility if needed, but the handler remains the semantic owner of when it is used.
+
+Rejection-policy rule:
+
+- Rejection status codes should be standardized during Phase 2 rather than left open-ended.
+- The dedicated upgrade handler should be the place where those codes are selected consistently.
+- Follow-up item 5 can refine the exact code matrix and response shape, but the ownership of that policy is now fixed.
+
+Implications for Phase 2 and Phase 5:
+
+- Phase 2 should introduce a narrow internal WebSocket upgrade handler rather than embedding validation into routing or pipeline code.
+- Handshake-native tests should target that handler directly where possible, with pipeline tests reserved for seam integration.
+- Phase 5 should assume WebSocket routing resolves to an upgrade-capable path that then hands off to the dedicated handler.
+
+Alternatives not chosen:
+
+- Option B, routing-level validation branch: rejected because it blurs endpoint selection with protocol validation and would make routing more protocol-aware than necessary.
+- Option C, narrow pipeline-owned branch fed by routed intent: rejected because it teaches the pipeline too much about WebSocket-specific handshake rules.
+
+Suggested decision record for item 4:
+
+- Chosen validation home: Dedicated WebSocket upgrade handler.
+- Where `Sec-WebSocket-Accept` is generated: In the upgrade handler, optionally via a small helper it owns semantically.
+- Where rejection status codes are defined: In the upgrade handler, with exact response policy refined in item 5.
+- What routing decides versus what handshake validation decides: Routing decides endpoint intent; the upgrade handler decides protocol acceptance or rejection.
+- Which Phase 2 tasks should be updated once this is chosen: Handshake validation, response generation, parser/request integration, and rejection-behavior tasks should all assume a dedicated handler-owned handshake path.
 
 Decision criteria:
 - Keep validation logic close to the upgrade seam but not tangled into generic parser code.
