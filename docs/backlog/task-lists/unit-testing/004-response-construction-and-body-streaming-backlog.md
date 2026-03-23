@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: completed chunked body framing coverage and closed the remaining helper inconsistency review.
 2026-03-23 - Copilot: completed response serialization coverage and documented current no-content length behavior.
 2026-03-23 - Copilot: completed core response object helper coverage in native tests.
 2026-03-23 - Copilot: created detailed Phase 4 response construction and body streaming backlog.
@@ -30,18 +31,19 @@ This phase expands response-side coverage beyond the stream-specific tests that 
 
 ### Chunked Output
 
-- [ ] Extend `ChunkedHttpResponseBodyStream` coverage for empty chunks, final terminator behavior, and varying source chunk sizes.
-- [ ] Add temporarily unavailable source cases that cross chunk boundaries.
-- [ ] Verify that chunk framing remains byte-for-byte stable for existing response semantics.
+- [x] Extend `ChunkedHttpResponseBodyStream` coverage for empty chunks, final terminator behavior, and varying source chunk sizes.
+- [x] Add temporarily unavailable source cases that cross chunk boundaries.
+- [x] Verify that chunk framing remains byte-for-byte stable for existing response semantics.
 
 ### Regression Documentation
 
 - [x] Record any currently odd but intentional response serialization behaviors before pipeline tests lock them in more broadly.
-- [ ] Flag any response-helper inconsistencies that should be corrected before adding API-facing examples or docs coverage.
+- [x] Flag any response-helper inconsistencies that should be corrected before adding API-facing examples or docs coverage.
 
 ## Notes
 
 - Native coverage now freezes the current `204 No Content` serialization behavior: required headers are inferred before no-body statuses suppress payload bytes, so an implicit `Content-Length` can still reflect the original body size even though no body bytes are emitted.
+- Native helper construction coverage did not expose additional `StringResponse`, `FormResponse`, or `JsonResponse` header/default inconsistencies beyond the no-body serialization quirk above.
 
 ## Owner
 

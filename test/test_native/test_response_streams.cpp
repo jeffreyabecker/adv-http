@@ -67,6 +67,46 @@ namespace
         TEST_ASSERT_EQUAL_STRING("2\r\nHi\r\n0\r\n\r\n", content.c_str());
     }
 
+    void test_chunked_response_body_stream_emits_final_terminator_for_empty_source()
+    {
+        auto body = ChunkedHttpResponseBodyStream::create(std::make_unique<TestSupport::ScriptedByteSource>());
+
+        const std::string content = TestSupport::ReadByteSourceAsStdString(*body);
+        TEST_ASSERT_EQUAL_STRING("0\r\n\r\n", content.c_str());
+        TEST_ASSERT_TRUE(body->available().isExhausted());
+
+        std::uint8_t byte = 0;
+        TEST_ASSERT_EQUAL_UINT64(0, body->read(HttpServerAdvanced::span<std::uint8_t>(&byte, 1)));
+    }
+
+    void test_chunked_response_body_stream_preserves_varying_source_chunk_sizes()
+    {
+        auto body = ChunkedHttpResponseBodyStream::create(
+            std::make_unique<TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"A", false}, {"BCD", false}, {"EF", false}}));
+
+        const std::string content = TestSupport::ReadByteSourceAsStdString(*body);
+        TEST_ASSERT_EQUAL_STRING("1\r\nA\r\n3\r\nBCD\r\n2\r\nEF\r\n0\r\n\r\n", content.c_str());
+    }
+
+    void test_chunked_response_body_stream_splits_large_available_span_at_frame_boundary()
+    {
+        const std::string payload(HttpServerAdvanced::ETHERNET_FRAME_BUFFER_SIZE + 3, 'a');
+        auto body = ChunkedHttpResponseBodyStream::create(
+            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText(payload)));
+
+        const std::string content = TestSupport::ReadByteSourceAsStdString(*body);
+
+        std::string expected;
+        expected.reserve(payload.size() + 32);
+        expected += "59c\r\n";
+        expected.append(HttpServerAdvanced::ETHERNET_FRAME_BUFFER_SIZE, 'a');
+        expected += "\r\n3\r\n";
+        expected.append(3, 'a');
+        expected += "\r\n0\r\n\r\n";
+
+        TEST_ASSERT_EQUAL_STRING(expected.c_str(), content.c_str());
+    }
+
     void test_http_response_accepts_byte_source_body()
     {
         HttpHeaderCollection headers;
@@ -384,6 +424,15 @@ namespace
         TEST_ASSERT_EQUAL_STRING("2\r\nHi\r\n1\r\n!\r\n0\r\n\r\n", content.c_str());
     }
 
+    void test_chunked_response_stream_handles_temporary_unavailability_across_multiple_boundaries()
+    {
+        auto body = ChunkedHttpResponseBodyStream::create(
+            std::make_unique<TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"AB", false}, {"", true}, {"CD", false}, {"", true}, {"E", false}}));
+
+        const std::string content = TestSupport::DrainByteSourceWithAvailability(*body);
+        TEST_ASSERT_EQUAL_STRING("2\r\nAB\r\n2\r\nCD\r\n1\r\nE\r\n0\r\n\r\n", content.c_str());
+    }
+
     void test_recording_byte_channel_captures_written_bytes_and_flushes()
     {
         TestSupport::RecordingByteChannel channel;
@@ -414,6 +463,9 @@ namespace
         RUN_TEST(test_byte_source_reads_direct_body_content);
         RUN_TEST(test_byte_source_reports_temporarily_unavailable);
         RUN_TEST(test_chunked_response_body_stream_reads_from_byte_source);
+        RUN_TEST(test_chunked_response_body_stream_emits_final_terminator_for_empty_source);
+        RUN_TEST(test_chunked_response_body_stream_preserves_varying_source_chunk_sizes);
+        RUN_TEST(test_chunked_response_body_stream_splits_large_available_span_at_frame_boundary);
         RUN_TEST(test_http_response_accepts_byte_source_body);
         RUN_TEST(test_http_response_returns_status_and_mutable_headers);
         RUN_TEST(test_http_response_transfers_body_ownership_once);
@@ -432,6 +484,7 @@ namespace
         RUN_TEST(test_create_response_stream_peek_and_small_reads_cross_header_body_boundary);
         RUN_TEST(test_create_response_stream_serializes_chunked_response_exactly);
         RUN_TEST(test_chunked_response_stream_handles_temporary_unavailability_between_chunks);
+        RUN_TEST(test_chunked_response_stream_handles_temporary_unavailability_across_multiple_boundaries);
         RUN_TEST(test_recording_byte_channel_captures_written_bytes_and_flushes);
         RUN_TEST(test_recording_byte_channel_can_expose_scripted_input);
         return UNITY_END();
