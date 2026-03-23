@@ -171,6 +171,11 @@ namespace HttpServerAdvanced
             {
                 return result;
             }
+
+            // URL has been consumed by onMessageBegin; release shared buffer space for headers.
+            self->writePos_ = 0;
+            self->urlPos_ = 0;
+            self->urlLen_ = 0;
         }
         return 0;
     }
@@ -182,6 +187,11 @@ namespace HttpServerAdvanced
         {
             // Copy method from buffer to method_ string
             self->method_.assign(self->buffer_.data() + self->methodPos_, self->methodLen_);
+
+            // Method is now stored independently; free shared buffer space for URL/header parsing.
+            self->writePos_ = 0;
+            self->methodPos_ = 0;
+            self->methodLen_ = 0;
         }
         return 0;
     }
@@ -242,6 +252,9 @@ namespace HttpServerAdvanced
                 std::string_view(self->buffer_.data() + self->headerValuePos_, self->headerValueLen_));
             
             // Reset header field and value lengths for next header
+            self->writePos_ = 0;
+            self->headerFieldPos_ = 0;
+            self->headerValuePos_ = 0;
             self->headerFieldLen_ = 0;
             self->headerValueLen_ = 0;
             

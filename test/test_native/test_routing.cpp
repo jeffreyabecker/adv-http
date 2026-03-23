@@ -13,6 +13,8 @@
 #include "../../src/routing/ProviderRegistryBuilder.h"
 #include "../../src/response/StringResponse.h"
 #include "../../src/server/HttpServerBase.h"
+#include "../../src/server/WebServerBuilder.h"
+#include "../../src/server/WebServerConfig.h"
 
 #include <any>
 #include <cstddef>
@@ -500,6 +502,225 @@ namespace
         TEST_ASSERT_EQUAL_INT(0, filterCallCount);
     }
 
+    void test_provider_registry_builder_on_factory_overload_registers_for_builder_and_web_server_config()
+    {
+        RequestContextHarness builderHarness;
+        prepareRequest(builderHarness, "GET", "/legacy/path");
+
+        HandlerProviderRegistry builderRegistry;
+        ProviderRegistryBuilder builder(builderRegistry);
+        const std::string builderPattern = std::string("/legacy/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+        HandlerMatcher builderMatcher(builderPattern, "GET");
+        std::size_t builderFactoryCalls = 0;
+        builder.on(builderMatcher, [&builderFactoryCalls](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+        {
+            ++builderFactoryCalls;
+            return std::make_unique<HttpHandler>(
+                createResponse(HttpStatus::Ok(), "builder-on"),
+                [](const HttpRequest &)
+                {
+                    return true;
+                });
+        });
+
+        auto builderHandler = builderRegistry.createContextHandler(builderHarness.context());
+        const auto builderResponse = captureHandlerResponse(*builderHandler, builderHarness.context());
+        TEST_ASSERT_EQUAL_UINT64(1, builderFactoryCalls);
+        TEST_ASSERT_EQUAL_STRING("builder-on", builderResponse.body.c_str());
+
+        RequestContextHarness configHarness;
+        prepareRequest(configHarness, "GET", "/config/path");
+
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        WebServerBuilder webBuilder(server);
+        WebServerConfig config(server, webBuilder);
+        const std::string configPattern = std::string("/config/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+        HandlerMatcher configMatcher(configPattern, "GET");
+        std::size_t configFactoryCalls = 0;
+        config.on(configMatcher, [&configFactoryCalls](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+        {
+            ++configFactoryCalls;
+            return std::make_unique<HttpHandler>(
+                createResponse(HttpStatus::Ok(), "config-on"),
+                [](const HttpRequest &)
+                {
+                    return true;
+                });
+        });
+
+        auto configHandler = config.handlerProviders().createContextHandler(configHarness.context());
+        const auto configResponse = captureHandlerResponse(*configHandler, configHarness.context());
+        TEST_ASSERT_EQUAL_UINT64(1, configFactoryCalls);
+        TEST_ASSERT_EQUAL_STRING("config-on", configResponse.body.c_str());
+
+        RequestContextHarness nonMatchHarness;
+        prepareRequest(nonMatchHarness, "GET", "/unmatched");
+        auto nonMatchHandler = config.handlerProviders().createContextHandler(nonMatchHarness.context());
+        const auto nonMatchResponse = captureHandlerResponse(*nonMatchHandler, nonMatchHarness.context());
+        TEST_ASSERT_EQUAL_UINT16(404, nonMatchResponse.status.code());
+    }
+
+    void test_handler_provider_registry_supports_indexed_insertion_and_out_of_range_clamping()
+    {
+        StaticResponseProvider firstProvider("first", [](HttpRequest &request)
+        {
+            return request.headers().exists("X-Match", "first");
+        });
+        StaticResponseProvider secondProvider("second", [](HttpRequest &request)
+        {
+            return request.headers().exists("X-Match", "second");
+        });
+        StaticResponseProvider indexedProvider("indexed", [](HttpRequest &request)
+        {
+            return request.headers().exists("X-Match", "indexed");
+        });
+
+        HandlerProviderRegistry indexedRegistry;
+        indexedRegistry.add(firstProvider, HandlerProviderRegistry::AddAt::End);
+        indexedRegistry.add(secondProvider, HandlerProviderRegistry::AddAt::End);
+        indexedRegistry.add(indexedProvider, 1);
+
+        RequestContextHarness hitIndexedHarness;
+        prepareRequest(hitIndexedHarness, "GET", "/registry/indexed", {{"X-Match", "indexed"}});
+        auto indexedHandler = indexedRegistry.createContextHandler(hitIndexedHarness.context());
+        const auto indexedResponse = captureHandlerResponse(*indexedHandler, hitIndexedHarness.context());
+        TEST_ASSERT_EQUAL_STRING("indexed", indexedResponse.body.c_str());
+        TEST_ASSERT_EQUAL_UINT64(1, firstProvider.canHandleCount());
+        TEST_ASSERT_EQUAL_UINT64(1, indexedProvider.canHandleCount());
+        TEST_ASSERT_EQUAL_UINT64(0, secondProvider.canHandleCount());
+
+        StaticResponseProvider endFirst("end-first", [](HttpRequest &request)
+        {
+            return request.headers().exists("X-Match", "end-first");
+        });
+        StaticResponseProvider endLast("end-last", [](HttpRequest &request)
+        {
+            return request.headers().exists("X-Match", "end-last");
+        });
+
+        HandlerProviderRegistry clampedRegistry;
+        clampedRegistry.add(endFirst, HandlerProviderRegistry::AddAt::End);
+        clampedRegistry.add(endLast, 99);
+
+        RequestContextHarness hitFirstHarness;
+        prepareRequest(hitFirstHarness, "GET", "/registry/clamped", {{"X-Match", "end-first"}});
+        auto firstHandler = clampedRegistry.createContextHandler(hitFirstHarness.context());
+        const auto firstResponse = captureHandlerResponse(*firstHandler, hitFirstHarness.context());
+        TEST_ASSERT_EQUAL_STRING("end-first", firstResponse.body.c_str());
+
+        RequestContextHarness hitLastHarness;
+        prepareRequest(hitLastHarness, "GET", "/registry/clamped", {{"X-Match", "end-last"}});
+        auto lastHandler = clampedRegistry.createContextHandler(hitLastHarness.context());
+        const auto lastResponse = captureHandlerResponse(*lastHandler, hitLastHarness.context());
+        TEST_ASSERT_EQUAL_STRING("end-last", lastResponse.body.c_str());
+    }
+
+    void test_handler_provider_registry_uses_default_not_found_response_when_no_match_exists()
+    {
+        RequestContextHarness harness;
+        prepareRequest(harness, "GET", "/missing");
+
+        HandlerProviderRegistry registry;
+        auto handler = registry.createContextHandler(harness.context());
+        const auto response = captureHandlerResponse(*handler, harness.context());
+
+        TEST_ASSERT_EQUAL_UINT16(404, response.status.code());
+        TEST_ASSERT_EQUAL_STRING("404 Not Found", response.body.c_str());
+    }
+
+    void test_handler_matcher_mutators_override_runtime_checker_and_extractor_behavior()
+    {
+        RequestContextHarness harness;
+        prepareRequest(
+            harness,
+            "PATCH",
+            "/custom/path?mode=test",
+            {{"Content-Type", "text/plain"}, {"X-Custom", "yes"}});
+
+        HandlerMatcher matcher("/initial", "GET", {"application/json"});
+        matcher.setUriPattern("/custom/*");
+        matcher.setAllowedMethods("PATCH");
+        matcher.setAllowedContentTypes({"text/plain"});
+
+        std::size_t methodChecks = 0;
+        std::size_t uriChecks = 0;
+        std::size_t contentTypeChecks = 0;
+        std::size_t extractCalls = 0;
+
+        matcher.setMethodChecker([&methodChecks](std::string_view allowedMethods, std::string_view method)
+        {
+            ++methodChecks;
+            TEST_ASSERT_EQUAL_STRING("PATCH", std::string(allowedMethods).c_str());
+            TEST_ASSERT_EQUAL_STRING("PATCH", std::string(method).c_str());
+            return true;
+        });
+        matcher.setUriPatternChecker([&uriChecks](std::string_view uri, std::string_view pattern)
+        {
+            ++uriChecks;
+            TEST_ASSERT_EQUAL_STRING("/custom/*", std::string(pattern).c_str());
+            return uri.find("/custom/path") != std::string_view::npos;
+        });
+        matcher.setContentTypeChecker([&contentTypeChecks](HttpRequest &request, const std::vector<std::string> &allowedContentTypes)
+        {
+            ++contentTypeChecks;
+            TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(allowedContentTypes.size()));
+            return request.headers().exists("X-Custom", "yes");
+        });
+        matcher.setArgsExtractor([&extractCalls](HttpRequest &, std::string_view pattern)
+        {
+            ++extractCalls;
+            TEST_ASSERT_EQUAL_STRING("/custom/*", std::string(pattern).c_str());
+            return RouteParameters{"segment", "value"};
+        });
+
+        TEST_ASSERT_TRUE(matcher.canHandle(harness.context()));
+        const RouteParameters params = matcher.extractParameters(harness.context());
+        TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(params.size()));
+        TEST_ASSERT_EQUAL_STRING("segment", params[0].c_str());
+        TEST_ASSERT_EQUAL_STRING("value", params[1].c_str());
+        TEST_ASSERT_EQUAL_UINT64(1, methodChecks);
+        TEST_ASSERT_EQUAL_UINT64(1, uriChecks);
+        TEST_ASSERT_EQUAL_UINT64(1, contentTypeChecks);
+        TEST_ASSERT_EQUAL_UINT64(1, extractCalls);
+    }
+
+    void test_default_uri_pattern_matching_uses_path_and_ignores_query_string_with_wildcards()
+    {
+        const std::string pattern = std::string("/docs/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+        TEST_ASSERT_TRUE(defaultCheckUriPattern("/docs/readme?version=1", pattern));
+        TEST_ASSERT_FALSE(defaultCheckUriPattern("/doc/readme?version=1", pattern));
+    }
+
+    void test_handler_provider_registry_ignores_null_callbacks_in_composition_chain()
+    {
+        RequestContextHarness harness;
+        prepareRequest(harness, "GET", "/registry/null-callbacks");
+
+        HandlerProviderRegistry registry;
+        registry.filterRequest(nullptr);
+        registry.with(nullptr);
+        registry.apply(nullptr);
+        registry.add(
+            [](HttpRequest &)
+            {
+                return true;
+            },
+            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            {
+                return std::make_unique<HttpHandler>(
+                    createResponse(HttpStatus::Ok(), "safe"),
+                    [](const HttpRequest &)
+                    {
+                        return true;
+                    });
+            });
+
+        auto handler = registry.createContextHandler(harness.context());
+        const auto response = captureHandlerResponse(*handler, harness.context());
+        TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
+        TEST_ASSERT_EQUAL_STRING("safe", response.body.c_str());
+    }
+
     void test_handler_builder_composes_matchers_predicates_interceptors_and_filters()
     {
         HandlerProviderRegistry registry;
@@ -739,6 +960,12 @@ namespace
         RUN_TEST(test_handler_provider_registry_honors_beginning_and_end_order_and_custom_default_handler);
         RUN_TEST(test_handler_provider_registry_applies_filters_interceptors_and_body_forwarding_for_matches);
         RUN_TEST(test_handler_provider_registry_response_filters_only_run_for_non_null_responses);
+        RUN_TEST(test_provider_registry_builder_on_factory_overload_registers_for_builder_and_web_server_config);
+        RUN_TEST(test_handler_provider_registry_supports_indexed_insertion_and_out_of_range_clamping);
+        RUN_TEST(test_handler_provider_registry_uses_default_not_found_response_when_no_match_exists);
+        RUN_TEST(test_handler_matcher_mutators_override_runtime_checker_and_extractor_behavior);
+        RUN_TEST(test_default_uri_pattern_matching_uses_path_and_ignores_query_string_with_wildcards);
+        RUN_TEST(test_handler_provider_registry_ignores_null_callbacks_in_composition_chain);
         RUN_TEST(test_handler_builder_composes_matchers_predicates_interceptors_and_filters);
         RUN_TEST(test_basic_auth_rejects_missing_malformed_and_separatorless_credentials_with_challenge_header);
         RUN_TEST(test_basic_auth_accepts_valid_credentials_for_fixed_and_validator_overloads);

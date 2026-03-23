@@ -688,6 +688,75 @@ namespace
         TEST_ASSERT_TRUE(writeAbortedHarness.client().writtenText().empty());
     }
 
+    void test_http_pipeline_progresses_response_writing_across_temporarily_unavailable_cycles()
+    {
+        static constexpr const char *RequestText = "GET /stream HTTP/1.1\r\nHost: example.test\r\nConnection: close\r\n\r\n";
+
+        PipelineHarness harness(
+            {{RequestText, false}},
+            [](ScenarioHandler &handler)
+            {
+                handler.setOnMessageComplete([](ScenarioHandler &scenario)
+                {
+                    scenario.emitResponse(std::make_unique<TestSupport::ScriptedByteSource>(
+                        std::initializer_list<std::pair<const char *, bool>>{{"ab", false}, {"", true}, {"cd", false}, {"", true}, {"ef", false}}));
+                });
+            });
+
+        PipelineHandleClientResult result = harness.pipeline().handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::WritingHttpResponse), static_cast<int>(harness.pipeline().connectionState()));
+        TEST_ASSERT_EQUAL_STRING("ab", harness.client().writtenText().c_str());
+        TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(harness.handlerAt(0).responseStartedCount()));
+        TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(harness.handlerAt(0).responseCompletedCount()));
+
+        result = harness.pipeline().handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::WritingHttpResponse), static_cast<int>(harness.pipeline().connectionState()));
+        TEST_ASSERT_EQUAL_STRING("abcd", harness.client().writtenText().c_str());
+        TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(harness.handlerAt(0).responseStartedCount()));
+        TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(harness.handlerAt(0).responseCompletedCount()));
+
+        result = harness.pipeline().handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::ReadingHttpRequest), static_cast<int>(harness.pipeline().connectionState()));
+        TEST_ASSERT_EQUAL_STRING("abcdef", harness.client().writtenText().c_str());
+        TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(harness.handlerAt(0).responseStartedCount()));
+        TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(harness.handlerAt(0).responseCompletedCount()));
+    }
+
+    void test_http_pipeline_reports_disconnect_during_writing_and_does_not_complete_response()
+    {
+        static constexpr const char *RequestText = "GET /disconnect-while-writing HTTP/1.1\r\nHost: example.test\r\nConnection: close\r\n\r\n";
+
+        PipelineHarness harness(
+            {{RequestText, false}},
+            [](ScenarioHandler &handler)
+            {
+                handler.setOnMessageComplete([](ScenarioHandler &scenario)
+                {
+                    scenario.emitResponse(std::make_unique<TestSupport::ScriptedByteSource>(
+                        std::initializer_list<std::pair<const char *, bool>>{{"ab", false}, {"", true}, {"cd", false}}));
+                });
+            });
+
+        PipelineHandleClientResult result = harness.pipeline().handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::WritingHttpResponse), static_cast<int>(harness.pipeline().connectionState()));
+        TEST_ASSERT_EQUAL_STRING("ab", harness.client().writtenText().c_str());
+        TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(harness.handlerAt(0).responseStartedCount()));
+        TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(harness.handlerAt(0).responseCompletedCount()));
+
+        harness.client().disconnect();
+        result = harness.pipeline().handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::ClientDisconnected), static_cast<int>(result));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::Closing), static_cast<int>(harness.pipeline().connectionState()));
+        TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(harness.handlerAt(0).clientDisconnectedCount()));
+        TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(harness.handlerAt(0).responseStartedCount()));
+        TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(harness.handlerAt(0).responseCompletedCount()));
+        TEST_ASSERT_EQUAL_STRING("ab", harness.client().writtenText().c_str());
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -703,6 +772,8 @@ namespace
         RUN_TEST(test_http_pipeline_times_out_waiting_for_more_request_bytes);
         RUN_TEST(test_http_pipeline_times_out_waiting_for_response_bytes_and_stops_client);
         RUN_TEST(test_http_pipeline_abort_helpers_drive_expected_state_transitions);
+        RUN_TEST(test_http_pipeline_progresses_response_writing_across_temporarily_unavailable_cycles);
+        RUN_TEST(test_http_pipeline_reports_disconnect_during_writing_and_does_not_complete_response);
         return UNITY_END();
     }
 }

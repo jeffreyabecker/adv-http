@@ -42,7 +42,15 @@ namespace HttpServerAdvanced
             providerRegistry_.add(predicate, invocation, position);
         }
 
-        void on(HandlerMatcher &request, IHttpHandler::Factory handler);
+        inline void on(HandlerMatcher &request, IHttpHandler::Factory handler)
+        {
+            providerRegistry_.add(
+                [&request](HttpRequest &context)
+                {
+                    return request.canHandle(context);
+                },
+                std::move(handler));
+        }
 
         // Template methods for handler registration
         template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>

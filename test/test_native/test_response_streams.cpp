@@ -322,6 +322,107 @@ namespace
             content.c_str());
     }
 
+    void test_create_response_stream_informational_and_not_modified_statuses_suppress_body()
+    {
+        {
+            auto response = std::make_unique<HttpResponse>(
+                HttpStatus::Continue(),
+                std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("body")),
+                MakeDeterministicResponseHeaders());
+
+            auto source = CreateResponseStream(std::move(response));
+            const std::string content = TestSupport::ReadByteSourceAsStdString(*source);
+
+            TEST_ASSERT_EQUAL_STRING(
+                "HTTP/1.1 100 Continue\r\n"
+                "Date: Thu, 01 Jan 1970 00:00:00 GMT\r\n"
+                "Server: UnitTest\r\n"
+                "Content-Type: text/plain\r\n"
+                "Connection: close\r\n"
+                "Content-Length: 4\r\n"
+                "\r\n",
+                content.c_str());
+        }
+
+        {
+            auto response = std::make_unique<HttpResponse>(
+                HttpStatus::NotModified(),
+                std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("body")),
+                MakeDeterministicResponseHeaders());
+
+            auto source = CreateResponseStream(std::move(response));
+            const std::string content = TestSupport::ReadByteSourceAsStdString(*source);
+
+            TEST_ASSERT_EQUAL_STRING(
+                "HTTP/1.1 304 Not Modified\r\n"
+                "Date: Thu, 01 Jan 1970 00:00:00 GMT\r\n"
+                "Server: UnitTest\r\n"
+                "Content-Type: text/plain\r\n"
+                "Connection: close\r\n"
+                "Content-Length: 4\r\n"
+                "\r\n",
+                content.c_str());
+        }
+    }
+
+    void test_create_response_stream_preserves_explicit_transfer_encoding_with_null_body_source()
+    {
+        HttpHeaderCollection headers;
+        headers.set(HttpHeader::Date("Thu, 01 Jan 1970 00:00:00 GMT"));
+        headers.set(HttpHeader::Server("UnitTest"));
+        headers.set(HttpHeader::ContentType("text/plain"));
+        headers.set(HttpHeader::Connection("close"));
+        headers.set(HttpHeader::TransferEncoding("chunked"));
+
+        auto response = std::make_unique<HttpResponse>(HttpStatus::Ok(), nullptr, std::move(headers));
+
+        auto source = CreateResponseStream(std::move(response));
+        const std::string content = TestSupport::ReadByteSourceAsStdString(*source);
+
+        TEST_ASSERT_EQUAL_STRING(
+            "HTTP/1.1 200 OK\r\n"
+            "Date: Thu, 01 Jan 1970 00:00:00 GMT\r\n"
+            "Server: UnitTest\r\n"
+            "Content-Type: text/plain\r\n"
+            "Connection: close\r\n"
+            "Transfer-Encoding: chunked\r\n"
+            "\r\n",
+            content.c_str());
+    }
+
+    void test_create_response_stream_preserves_explicit_content_length_and_transfer_encoding_conflict()
+    {
+        HttpHeaderCollection headers;
+        headers.set(HttpHeader::Date("Thu, 01 Jan 1970 00:00:00 GMT"));
+        headers.set(HttpHeader::Server("UnitTest"));
+        headers.set(HttpHeader::ContentType("text/plain"));
+        headers.set(HttpHeader::Connection("close"));
+        headers.set(HttpHeader::ContentLength("999"));
+        headers.set(HttpHeader::TransferEncoding("chunked"));
+
+        auto response = std::make_unique<HttpResponse>(
+            HttpStatus::Ok(),
+            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("Hi")),
+            std::move(headers));
+
+        auto source = CreateResponseStream(std::move(response));
+        const std::string content = TestSupport::ReadByteSourceAsStdString(*source);
+
+        TEST_ASSERT_EQUAL_STRING(
+            "HTTP/1.1 200 OK\r\n"
+            "Date: Thu, 01 Jan 1970 00:00:00 GMT\r\n"
+            "Server: UnitTest\r\n"
+            "Content-Type: text/plain\r\n"
+            "Connection: close\r\n"
+            "Content-Length: 999\r\n"
+            "Transfer-Encoding: chunked\r\n"
+            "\r\n"
+            "2\r\n"
+            "Hi\r\n"
+            "0\r\n\r\n",
+            content.c_str());
+    }
+
     void test_create_response_stream_preserves_header_insertion_order()
     {
         HttpHeaderCollection headers;
@@ -480,6 +581,9 @@ namespace
         RUN_TEST(test_create_response_stream_serializes_direct_response_exactly);
         RUN_TEST(test_create_response_stream_serializes_empty_response_without_body);
         RUN_TEST(test_create_response_stream_no_content_status_suppresses_body_but_keeps_length_header);
+        RUN_TEST(test_create_response_stream_informational_and_not_modified_statuses_suppress_body);
+        RUN_TEST(test_create_response_stream_preserves_explicit_transfer_encoding_with_null_body_source);
+        RUN_TEST(test_create_response_stream_preserves_explicit_content_length_and_transfer_encoding_conflict);
         RUN_TEST(test_create_response_stream_preserves_header_insertion_order);
         RUN_TEST(test_create_response_stream_peek_and_small_reads_cross_header_body_boundary);
         RUN_TEST(test_create_response_stream_serializes_chunked_response_exactly);

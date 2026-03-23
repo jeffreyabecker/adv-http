@@ -56,6 +56,12 @@ Covered well:
 4. Response lifecycle interruption gap.
 - Missing assertions around callback and state behavior after `onResponseStarted` when writes are interrupted before completion, including connectivity transitions while writing.
 
+#### Response Policy Notes (Locked By Tests)
+
+- Body-suppressed statuses (`1xx`, `204`, `304`) keep serialized headers but do not emit response body bytes.
+- `Transfer-Encoding: chunked` is preserved when explicitly set, even when the response body source is null.
+- If both `Content-Length` and `Transfer-Encoding` are explicitly present, current serialization preserves both headers and applies chunk framing when a body source is present.
+
 ### Request Parser
 
 1. Parser limit coverage gap (URI/header name/header value/header count).

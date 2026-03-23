@@ -93,6 +93,11 @@ namespace HttpServerAdvanced
 
     void HandlerProviderRegistry::filterRequest(IHttpHandler::Predicate predicate)
     {
+        if (!predicate)
+        {
+            return;
+        }
+
         if( globalRequestFilter_)
         {
             auto previousFilter = globalRequestFilter_;
@@ -107,6 +112,11 @@ namespace HttpServerAdvanced
     }
     void HandlerProviderRegistry::apply(IHttpResponse::ResponseFilter filter)
     {
+        if (!filter)
+        {
+            return;
+        }
+
         if (globalResponseFilter_)
         {
             auto previousFilter = globalResponseFilter_;
@@ -122,6 +132,11 @@ namespace HttpServerAdvanced
     }
     void HandlerProviderRegistry::with(IHttpHandler::InterceptorCallback interceptor)
     {
+        if (!interceptor)
+        {
+            return;
+        }
+
         if (globalRequestInterceptor_)
         {
             auto previousInterceptor = globalRequestInterceptor_;

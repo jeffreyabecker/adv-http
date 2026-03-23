@@ -3,6 +3,7 @@
 
 #include <unity.h>
 
+#include "../../src/core/Defines.h"
 #include "../../src/pipeline/RequestParser.h"
 
 #include <cstdint>
@@ -16,6 +17,35 @@ namespace
 {
     constexpr std::string_view MaxSupportedCustomMethod = "UNSUBSCRIBE";
     static_assert(MaxSupportedCustomMethod.size() == HttpServerAdvanced::MAX_REQUEST_METHOD_LENGTH);
+
+    class CallbackReturnRecorder : public TestSupport::PipelineEventRecorder
+    {
+    public:
+        int onHeadersComplete() override
+        {
+            const int baseResult = TestSupport::PipelineEventRecorder::onHeadersComplete();
+            (void)baseResult;
+            return headersCompleteReturnCode;
+        }
+
+        int onBody(const std::uint8_t *at, std::size_t length) override
+        {
+            const int baseResult = TestSupport::PipelineEventRecorder::onBody(at, length);
+            (void)baseResult;
+            return bodyReturnCode;
+        }
+
+        int onMessageComplete() override
+        {
+            const int baseResult = TestSupport::PipelineEventRecorder::onMessageComplete();
+            (void)baseResult;
+            return messageCompleteReturnCode;
+        }
+
+        int headersCompleteReturnCode = 0;
+        int bodyReturnCode = 0;
+        int messageCompleteReturnCode = 0;
+    };
 
     void localSetUp()
     {
@@ -36,9 +66,47 @@ namespace
         return request;
     }
 
+    std::string BuildRequestWithHeaders(
+        std::string_view requestLine,
+        const std::vector<std::pair<std::string, std::string>> &headers,
+        std::string_view body = {})
+    {
+        std::string request;
+        request.append(requestLine);
+        request.append("\r\n");
+        for (const auto &header : headers)
+        {
+            request.append(header.first);
+            request.append(": ");
+            request.append(header.second);
+            request.append("\r\n");
+        }
+        request.append("\r\n");
+        request.append(body);
+        return request;
+    }
+
+    std::string RepeatChar(char value, std::size_t count)
+    {
+        return std::string(count, value);
+    }
+
     std::size_t ExecuteText(RequestParser &parser, std::string_view text)
     {
         return parser.execute(reinterpret_cast<const std::uint8_t *>(text.data()), text.size());
+    }
+
+    std::size_t FirstEventIndex(const std::vector<TestSupport::RecordedPipelineEvent> &events, TestSupport::PipelineEventKind kind)
+    {
+        for (std::size_t i = 0; i < events.size(); ++i)
+        {
+            if (events[i].kind == kind)
+            {
+                return i;
+            }
+        }
+
+        return events.size();
     }
 
     void test_request_parser_accepts_custom_method_verbatim()
@@ -126,6 +194,304 @@ namespace
         TEST_ASSERT_TRUE(recorder.events()[0].kind == TestSupport::PipelineEventKind::Error);
     }
 
+    void test_request_parser_accepts_uri_exactly_at_limit_and_rejects_uri_past_limit()
+    {
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+
+            const std::string uri = "/" + RepeatChar('u', HttpServerAdvanced::MAX_REQUEST_URI_LENGTH - 1);
+            const std::string request = BuildRequest("GET", uri);
+            const std::size_t consumed = ExecuteText(parser, request);
+
+            TEST_ASSERT_EQUAL_UINT64(request.size(), consumed);
+            TEST_ASSERT_EQUAL_STRING(uri.c_str(), recorder.url().c_str());
+            TEST_ASSERT_TRUE(recorder.errors().empty());
+        }
+
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+
+            const std::string uri = "/" + RepeatChar('u', HttpServerAdvanced::MAX_REQUEST_URI_LENGTH);
+            const std::string request = BuildRequest("GET", uri);
+            const std::size_t consumed = ExecuteText(parser, request);
+
+            TEST_ASSERT_EQUAL_UINT64(0, consumed);
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
+            TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::UriTooLong);
+        }
+    }
+
+    void test_request_parser_accepts_header_name_and_value_at_limits_and_rejects_overflow()
+    {
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+
+            const std::string headerName = RepeatChar('N', HttpServerAdvanced::MAX_REQUEST_HEADER_NAME_LENGTH);
+            const std::string headerValue = RepeatChar('V', HttpServerAdvanced::MAX_REQUEST_HEADER_VALUE_LENGTH);
+            const std::string request = BuildRequestWithHeaders(
+                "GET /limit HTTP/1.1",
+                {
+                    {headerName, headerValue}
+                });
+            const std::size_t consumed = ExecuteText(parser, request);
+
+            TEST_ASSERT_EQUAL_UINT64(request.size(), consumed);
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.headers().size());
+            TEST_ASSERT_EQUAL_STRING(headerName.c_str(), recorder.headers()[0].first.c_str());
+            TEST_ASSERT_EQUAL_STRING(headerValue.c_str(), recorder.headers()[0].second.c_str());
+            TEST_ASSERT_TRUE(recorder.errors().empty());
+        }
+
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+
+            const std::string tooLongHeaderName = RepeatChar('N', HttpServerAdvanced::MAX_REQUEST_HEADER_NAME_LENGTH + 1);
+            const std::string request = BuildRequestWithHeaders(
+                "GET /overflow-name HTTP/1.1",
+                {
+                    {tooLongHeaderName, "ok"}
+                });
+            const std::size_t consumed = ExecuteText(parser, request);
+
+            TEST_ASSERT_EQUAL_UINT64(0, consumed);
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
+            TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::HeaderTooLarge);
+        }
+
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+
+            const std::string tooLongHeaderValue = RepeatChar('V', HttpServerAdvanced::MAX_REQUEST_HEADER_VALUE_LENGTH + 1);
+            const std::string request = BuildRequestWithHeaders(
+                "GET /overflow-value HTTP/1.1",
+                {
+                    {"X-Name", tooLongHeaderValue}
+                });
+            const std::size_t consumed = ExecuteText(parser, request);
+
+            TEST_ASSERT_EQUAL_UINT64(0, consumed);
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
+            TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::HeaderTooLarge);
+        }
+    }
+
+    void test_request_parser_accepts_header_count_at_limit_and_rejects_overflow_header_count()
+    {
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+
+            std::vector<std::pair<std::string, std::string>> headers;
+            headers.reserve(HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT);
+            for (std::size_t i = 0; i < HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT; ++i)
+            {
+                headers.emplace_back("X-H" + std::to_string(i), "v");
+            }
+
+            const std::string request = BuildRequestWithHeaders("GET /header-limit HTTP/1.1", headers);
+            const std::size_t consumed = ExecuteText(parser, request);
+
+            TEST_ASSERT_EQUAL_UINT64(request.size(), consumed);
+            TEST_ASSERT_EQUAL_UINT64(HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT, recorder.headers().size());
+            TEST_ASSERT_TRUE(recorder.errors().empty());
+        }
+
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+
+            std::vector<std::pair<std::string, std::string>> headers;
+            headers.reserve(HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT + 1);
+            for (std::size_t i = 0; i < HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT + 1; ++i)
+            {
+                headers.emplace_back("X-O" + std::to_string(i), "v");
+            }
+
+            const std::string request = BuildRequestWithHeaders("GET /header-overflow HTTP/1.1", headers);
+            const std::size_t consumed = ExecuteText(parser, request);
+
+            TEST_ASSERT_EQUAL_UINT64(0, consumed);
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
+            TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::HeaderTooLarge);
+        }
+    }
+
+    void test_request_parser_maps_malformed_request_errors_for_url_header_token_content_length_and_version()
+    {
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+            const std::string request = "GET /bad url HTTP/1.1\r\nHost: example.test\r\n\r\n";
+
+            TEST_ASSERT_EQUAL_UINT64(0, ExecuteText(parser, request));
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
+            TEST_ASSERT_TRUE(
+                recorder.errors()[0] == PipelineErrorCode::InvalidUrlError ||
+                recorder.errors()[0] == PipelineErrorCode::InvalidConstantError ||
+                recorder.errors()[0] == PipelineErrorCode::ParseError);
+        }
+
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+            const std::string request = "GET /ok HTTP/1.1\r\nBad[Header: value\r\n\r\n";
+
+            TEST_ASSERT_EQUAL_UINT64(0, ExecuteText(parser, request));
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
+            TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::InvalidHeaderTokenError);
+        }
+
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+            const std::string request = "GET /ok HTTP/1.1\r\nContent-Length: nope\r\n\r\n";
+
+            TEST_ASSERT_EQUAL_UINT64(0, ExecuteText(parser, request));
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
+            TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::InvalidContentLengthError);
+        }
+
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+            const std::string request = "GET /ok HTTP/12.1\r\nHost: example.test\r\n\r\n";
+
+            TEST_ASSERT_EQUAL_UINT64(0, ExecuteText(parser, request));
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
+            TEST_ASSERT_TRUE(recorder.errors()[0] != PipelineErrorCode::None);
+        }
+    }
+
+    void test_request_parser_orders_events_and_stitches_split_headers_and_body_chunks()
+    {
+        TestSupport::PipelineEventRecorder recorder;
+        RequestParser parser(recorder);
+
+        const std::string chunk1 = "POST";
+        const std::string chunk2 = " /order HTTP/1.1\r\n";
+        const std::string chunk3 = "Host: e";
+        const std::string chunk4 = "xample.test\r\nX-Nam";
+        const std::string chunk5 = "e: a";
+        const std::string chunk6 = "bc\r\nContent-Length: 5\r\n\r\nhe";
+        const std::string chunk7 = "llo";
+
+        TEST_ASSERT_EQUAL_UINT64(chunk1.size(), ExecuteText(parser, chunk1));
+        TEST_ASSERT_EQUAL_UINT64(chunk2.size(), ExecuteText(parser, chunk2));
+        TEST_ASSERT_EQUAL_UINT64(chunk3.size(), ExecuteText(parser, chunk3));
+        TEST_ASSERT_EQUAL_UINT64(chunk4.size(), ExecuteText(parser, chunk4));
+        TEST_ASSERT_EQUAL_UINT64(chunk5.size(), ExecuteText(parser, chunk5));
+        TEST_ASSERT_EQUAL_UINT64(chunk6.size(), ExecuteText(parser, chunk6));
+        TEST_ASSERT_EQUAL_UINT64(chunk7.size(), ExecuteText(parser, chunk7));
+
+        TEST_ASSERT_EQUAL_STRING("POST", recorder.method().c_str());
+        TEST_ASSERT_EQUAL_STRING("/order", recorder.url().c_str());
+        TEST_ASSERT_EQUAL_UINT64(3, recorder.headers().size());
+        TEST_ASSERT_EQUAL_STRING("Host", recorder.headers()[0].first.c_str());
+        TEST_ASSERT_EQUAL_STRING("example.test", recorder.headers()[0].second.c_str());
+        TEST_ASSERT_EQUAL_STRING("X-Name", recorder.headers()[1].first.c_str());
+        TEST_ASSERT_EQUAL_STRING("abc", recorder.headers()[1].second.c_str());
+        TEST_ASSERT_EQUAL_STRING("hello", recorder.bodyText().c_str());
+        TEST_ASSERT_EQUAL_UINT64(1, recorder.headersCompleteCount());
+        TEST_ASSERT_EQUAL_UINT64(1, recorder.messageCompleteCount());
+        TEST_ASSERT_TRUE(recorder.errors().empty());
+
+        const auto &events = recorder.events();
+        const std::size_t messageBeginIndex = FirstEventIndex(events, TestSupport::PipelineEventKind::MessageBegin);
+        const std::size_t headersCompleteIndex = FirstEventIndex(events, TestSupport::PipelineEventKind::HeadersComplete);
+        const std::size_t bodyIndex = FirstEventIndex(events, TestSupport::PipelineEventKind::BodyChunk);
+        const std::size_t messageCompleteIndex = FirstEventIndex(events, TestSupport::PipelineEventKind::MessageComplete);
+
+        TEST_ASSERT_TRUE(messageBeginIndex < headersCompleteIndex);
+        TEST_ASSERT_TRUE(headersCompleteIndex < bodyIndex);
+        TEST_ASSERT_TRUE(bodyIndex < messageCompleteIndex);
+    }
+
+    void test_request_parser_propagates_non_zero_return_codes_from_callback_points_as_parse_error()
+    {
+        {
+            CallbackReturnRecorder recorder;
+            recorder.headersCompleteReturnCode = -1;
+            RequestParser parser(recorder);
+            const std::string request = "GET /headers-complete HTTP/1.1\r\nHost: example.test\r\n\r\n";
+
+            TEST_ASSERT_EQUAL_UINT64(0, ExecuteText(parser, request));
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
+            TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::ParseError);
+        }
+
+        {
+            CallbackReturnRecorder recorder;
+            recorder.bodyReturnCode = -2;
+            RequestParser parser(recorder);
+            const std::string request = "POST /body HTTP/1.1\r\nHost: example.test\r\nContent-Length: 3\r\n\r\nabc";
+
+            TEST_ASSERT_EQUAL_UINT64(0, ExecuteText(parser, request));
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
+            TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::ParseError);
+        }
+
+        {
+            CallbackReturnRecorder recorder;
+            recorder.messageCompleteReturnCode = -3;
+            RequestParser parser(recorder);
+            const std::string request = "GET /complete HTTP/1.1\r\nHost: example.test\r\n\r\n";
+
+            TEST_ASSERT_EQUAL_UINT64(0, ExecuteText(parser, request));
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
+            TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::ParseError);
+        }
+    }
+
+    void test_request_parser_reset_allows_reuse_for_subsequent_request()
+    {
+        TestSupport::PipelineEventRecorder recorder;
+        RequestParser parser(recorder);
+
+        const std::string firstRequest = BuildRequest("GET", "/first");
+        TEST_ASSERT_EQUAL_UINT64(firstRequest.size(), ExecuteText(parser, firstRequest));
+        TEST_ASSERT_EQUAL_UINT64(1, recorder.messageCompleteCount());
+        TEST_ASSERT_EQUAL_STRING("/first", recorder.url().c_str());
+
+        parser.reset();
+
+        const std::string secondRequest = BuildRequest("POST", "/second");
+        TEST_ASSERT_EQUAL_UINT64(secondRequest.size(), ExecuteText(parser, secondRequest));
+        TEST_ASSERT_EQUAL_UINT64(2, recorder.messageCompleteCount());
+        TEST_ASSERT_EQUAL_STRING("POST", recorder.method().c_str());
+        TEST_ASSERT_EQUAL_STRING("/second", recorder.url().c_str());
+        TEST_ASSERT_TRUE(recorder.errors().empty());
+    }
+
+    void test_request_parser_end_of_input_finishes_complete_messages_and_errors_on_incomplete_input()
+    {
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+
+            const std::string request = BuildRequest("GET", "/eof-ok");
+            TEST_ASSERT_EQUAL_UINT64(request.size(), ExecuteText(parser, request));
+            TEST_ASSERT_EQUAL_UINT64(0, parser.execute(nullptr, 0));
+            TEST_ASSERT_TRUE(recorder.errors().empty());
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.messageCompleteCount());
+        }
+
+        {
+            TestSupport::PipelineEventRecorder recorder;
+            RequestParser parser(recorder);
+
+            const std::string incomplete = "GET /eof-fail HTTP/1.1\r\n";
+            TEST_ASSERT_EQUAL_UINT64(incomplete.size(), ExecuteText(parser, incomplete));
+            TEST_ASSERT_EQUAL_UINT64(0, parser.execute(nullptr, 0));
+            TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
+            TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::InvalidEofStateError);
+        }
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -134,6 +500,14 @@ namespace
         RUN_TEST(test_request_parser_rejects_invalid_custom_method_token);
         RUN_TEST(test_request_parser_accepts_custom_method_at_explicit_limit);
         RUN_TEST(test_request_parser_rejects_custom_method_past_explicit_limit);
+        RUN_TEST(test_request_parser_accepts_uri_exactly_at_limit_and_rejects_uri_past_limit);
+        RUN_TEST(test_request_parser_accepts_header_name_and_value_at_limits_and_rejects_overflow);
+        RUN_TEST(test_request_parser_accepts_header_count_at_limit_and_rejects_overflow_header_count);
+        RUN_TEST(test_request_parser_maps_malformed_request_errors_for_url_header_token_content_length_and_version);
+        RUN_TEST(test_request_parser_orders_events_and_stitches_split_headers_and_body_chunks);
+        RUN_TEST(test_request_parser_propagates_non_zero_return_codes_from_callback_points_as_parse_error);
+        RUN_TEST(test_request_parser_reset_allows_reuse_for_subsequent_request);
+        RUN_TEST(test_request_parser_end_of_input_finishes_complete_messages_and_errors_on_incomplete_input);
         return UNITY_END();
     }
 }
