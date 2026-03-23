@@ -1,5 +1,6 @@
 2026-03-23 - Copilot: split the WebSocket implementation backlog into phase-specific backlog files with unit test coverage targets.
 2026-03-23 - Copilot: created detailed WebSocket support implementation backlog from the architecture plan.
+2026-03-23 - Copilot: added a pre-implementation decision punch list for design work that does not require code changes.
 
 # WebSocket Support Implementation Backlog
 
@@ -26,6 +27,10 @@ This file is the umbrella backlog for WebSocket support. The detailed work is no
 - Phase 6 limits, errors, and hardening: `docs/backlog/task-lists/web-sockets/006-websocket-limits-errors-and-hardening-backlog.md`
 - Phase 7 documentation and examples: `docs/backlog/task-lists/web-sockets/007-websocket-documentation-and-examples-backlog.md`
 
+## Supporting Planning
+
+- Pre-implementation design decision punch list: `docs/backlog/task-lists/web-sockets/008-websocket-pre-implementation-decisions-backlog.md`
+
 ## Scope Guardrails
 
 - [ ] Keep first implementation limited to HTTP/1.1 upgrade requests.
@@ -44,6 +49,7 @@ This file is the umbrella backlog for WebSocket support. The detailed work is no
 ## Tasks
 
 - [x] Split the umbrella WebSocket plan into phase-specific backlog files.
+- [ ] Work through the pre-implementation decision punch list before Phase 1 code changes begin.
 - [ ] Implement Phase 1 using the dedicated upgrade-seam backlog before touching public APIs.
 - [ ] Keep unit test additions aligned with each implementation phase rather than deferring coverage until the end.
 - [ ] Revisit this umbrella backlog when new phases need to be inserted or renumbered.
@@ -74,5 +80,6 @@ High
 - `docs/backlog/task-lists/web-sockets/005-websocket-routing-and-builder-api-backlog.md`
 - `docs/backlog/task-lists/web-sockets/006-websocket-limits-errors-and-hardening-backlog.md`
 - `docs/backlog/task-lists/web-sockets/007-websocket-documentation-and-examples-backlog.md`
+- `docs/backlog/task-lists/web-sockets/008-websocket-pre-implementation-decisions-backlog.md`
 - `test/test_native/`
 - RFC 6455
