@@ -11,7 +11,7 @@ namespace HttpServerAdvanced
 
     namespace
     {
-        HttpHeaderCollection buildHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength)
+        HttpHeaderCollection buildJsonHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength)
         {
             HttpHeaderCollection headersCollection;
             for (const auto &header : headers)
@@ -37,7 +37,7 @@ namespace HttpServerAdvanced
         std::string body;
         body.reserve(measureJson(doc));
         serializeJson(doc, body);
-        auto headersCollection = buildHeaders(headers, body.size());
+        auto headersCollection = buildJsonHeaders(headers, body.size());
         auto bodySource = std::make_unique<StdStringByteSource>(std::move(body));
         return std::make_unique<HttpResponse>(status, std::move(bodySource), std::move(headersCollection));
     }

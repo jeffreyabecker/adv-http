@@ -3,6 +3,9 @@
 #include "../../src/streams/UriStream.cpp"
 #include "../../src/response/StringResponse.cpp"
 #include "../../src/response/FormResponse.cpp"
+#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#include "../../src/response/JsonResponse.cpp"
+#endif
 #include "../../src/response/HttpResponse.cpp"
 #include "../../src/response/ChunkedHttpResponseBodyStream.cpp"
 #include "../../src/response/HttpResponseIterators.cpp"
