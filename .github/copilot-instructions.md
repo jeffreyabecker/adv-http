@@ -36,6 +36,7 @@ static constexpr <type> [CompilerConstant] = HTTPSERVER_ADVANCED_[COMPILER_CONST
 - Pick the smallest unused numeric prefix in `docs/backlog/task-lists` when adding a new item.
 - Minimal template: Title, short Summary (2–4 sentences), Goal/Acceptance Criteria, Tasks (checklist), Owner, Priority, References.
 - Keep items focused; split large efforts into multiple backlog files.
+- After successfully completing work covered by a backlog/task-list item, update that file before finishing: mark completed checklist items, adjust status/notes to match the new state, and add the changelog note for the update.
 - When updating a backlog file, add a one-line changelog note (date + author) at the top.
 
 (For automation, run a quick directory listing to find the next free prefix.)
