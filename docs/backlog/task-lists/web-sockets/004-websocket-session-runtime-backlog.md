@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: added locked decisions for message delivery (7), outbound send model (8), and control-frame exposure (9); updated tasks accordingly.
 2026-03-23 - Copilot: aligned Phase 4 backlog with the accepted single-step session boundary.
 2026-03-23 - Copilot: created detailed Phase 4 WebSocket session runtime backlog.
 
@@ -18,6 +19,9 @@ This phase turns the handshake and codec pieces into a long-lived upgraded conne
 
 - Use a single-step `IConnectionSession` interface driven once per pipeline loop iteration.
 - Keep timeout tracking, disconnect detection, and final cleanup pipeline-owned.
+- Assemble continuation frames into a complete message in the session runtime using a bounded working buffer; fire callbacks only when the final fragment (FIN) arrives.
+- Use synchronous direct write in the pipeline loop with partial-write resume state tracked across loop iterations; no per-session outbound queue.
+- Keep PING and PONG handling fully internal; expose only `onClose(code, reason)` for connection close events.
 
 ## Unit Test Coverage Targets
 
@@ -37,14 +41,14 @@ This phase turns the handshake and codec pieces into a long-lived upgraded conne
 
 ### Outbound Send Policy
 
-- [ ] Decide whether writes are synchronous in the pipeline loop or buffered in a bounded session-owned queue.
-- [ ] Document the tradeoff that drove the first implementation choice.
+- [ ] Implement synchronous direct write in the pipeline loop with no per-session outbound queue.
+- [ ] Track partial-write resume state across loop iterations so interrupted writes drain the remaining serialized bytes on the next `handle()` call without re-entering user callbacks.
 - [ ] Keep the policy narrow enough that later public send APIs cannot violate backpressure assumptions.
 
 ### Control Frames And Shutdown
 
-- [ ] Add automatic control-frame handling needed for the first release.
-- [ ] Implement close sequencing and terminal state rules.
+- [ ] Implement automatic PONG generation for any incoming PING frame during a session step; no PING or PONG observation callback is exposed in the first release.
+- [ ] Implement close sequencing: remote-initiated CLOSE completes the handshake and fires `onClose(code, reason)`; abnormal disconnect or timeout fires `onError` then `onClose(1006, "")`.
 - [ ] Ensure remote disconnect and transport failure collapse into deterministic session cleanup.
 
 ### Pipeline Integration
@@ -55,8 +59,10 @@ This phase turns the handshake and codec pieces into a long-lived upgraded conne
 
 ## Decision Follow-Through
 
-- Item 2 in the pre-implementation decision backlog fixes this phase to a single-step session boundary.
-- If later fairness problems emerge, solve them inside the session runtime first before widening this interface.
+- Item 2 in the pre-implementation decision backlog fixes this phase to a single-step session boundary; if later fairness problems emerge, solve them inside the session runtime first before widening this interface.
+- Item 7 in the pre-implementation decision backlog fixes this phase to complete-message assembly using a bounded working buffer; enforce `WsMaxMessageSize` as a hard limit with an immediate 1009 close on excess.
+- Item 8 in the pre-implementation decision backlog fixes this phase to synchronous direct write with partial-write resume state across loop iterations.
+- Item 9 in the pre-implementation decision backlog fixes the control-frame exposure: PING/PONG handled internally; `onClose` fires with the raw close code and reason for graceful and abnormal close.
 
 ## Owner
 

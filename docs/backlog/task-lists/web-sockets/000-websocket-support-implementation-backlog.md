@@ -1,5 +1,6 @@
 2026-03-23 - Copilot: split the WebSocket implementation backlog into phase-specific backlog files with unit test coverage targets.
 2026-03-23 - Copilot: created detailed WebSocket support implementation backlog from the architecture plan.
+2026-03-23 - Copilot: marked pre-implementation decisions complete; updated scope guardrail to reflect complete-message assembly choice.
 2026-03-23 - Copilot: added a pre-implementation decision punch list for design work that does not require code changes.
 
 # WebSocket Support Implementation Backlog
@@ -36,7 +37,7 @@ This file is the umbrella backlog for WebSocket support. The detailed work is no
 - [ ] Keep first implementation limited to HTTP/1.1 upgrade requests.
 - [ ] Do not add WebSocket extensions or per-message compression in this phase.
 - [ ] Do not add subprotocol negotiation unless a concrete use case is approved.
-- [ ] Prefer incremental parsing and bounded buffers over whole-message accumulation by default.
+- [ ] Use complete-message assembly with a bounded working buffer (capped at `WsMaxMessageSize`) for the first release; keep the codec itself a pure-transform layer with no assembly responsibility.
 - [ ] Keep transport supervision, timeouts, and disconnect cleanup centralized in the pipeline rather than in per-route code.
 
 ## Unit Test Strategy
@@ -49,7 +50,7 @@ This file is the umbrella backlog for WebSocket support. The detailed work is no
 ## Tasks
 
 - [x] Split the umbrella WebSocket plan into phase-specific backlog files.
-- [ ] Work through the pre-implementation decision punch list before Phase 1 code changes begin.
+- [x] Work through the pre-implementation decision punch list before Phase 1 code changes begin.
 - [ ] Implement Phase 1 using the dedicated upgrade-seam backlog before touching public APIs.
 - [ ] Keep unit test additions aligned with each implementation phase rather than deferring coverage until the end.
 - [ ] Revisit this umbrella backlog when new phases need to be inserted or renumbered.

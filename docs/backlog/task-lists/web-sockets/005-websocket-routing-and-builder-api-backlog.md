@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: added locked decisions for route registration shape (10) and public callback surface (11); updated tasks accordingly.
 2026-03-23 - Copilot: aligned Phase 5 backlog with the accepted dedicated upgrade-handler ownership split.
 2026-03-23 - Copilot: created detailed Phase 5 WebSocket routing and builder API backlog.
 
@@ -18,6 +19,8 @@ This phase exposes WebSocket support through the server builder and route-select
 
 - Routing decides WebSocket endpoint intent, not low-level handshake acceptance.
 - The dedicated WebSocket upgrade handler owns protocol validation and handshake response construction.
+- Register WebSocket routes through a dedicated `.websocket(path, WebSocketCallbacks)` method on `ProviderRegistryBuilder`; do not extend the `on<THandler>` template path.
+- The public callback surface is a `WebSocketCallbacks` aggregate of five `std::function` fields: `onOpen`, `onText`, `onBinary`, `onClose`, and `onError`.
 
 ## Unit Test Coverage Targets
 
@@ -31,14 +34,14 @@ This phase exposes WebSocket support through the server builder and route-select
 
 ### Public Registration Shape
 
-- [ ] Design a WebSocket-specific registration API rather than extending normal `IHttpHandler` body-processing semantics.
-- [ ] Keep the first callback surface limited to the minimum useful lifecycle and message hooks.
+- [ ] Implement the `.websocket(path, WebSocketCallbacks)` method on `ProviderRegistryBuilder` as the sole registration entry point for WebSocket endpoints.
+- [ ] Define `WebSocketCallbacks` as a struct of five `std::function` fields: `onOpen`, `onText`, `onBinary`, `onClose`, and `onError`.
 - [ ] Prefer straightforward ownership and explicit factories over compatibility shims or layered adapter types.
 
 ### Builder Integration
 
 - [ ] Update `src/server/WebServerBuilder.h` to register WebSocket endpoints through the same overall server composition path.
-- [ ] Introduce the registry or factory types needed to store WebSocket routes and create session instances.
+- [ ] Wire `.websocket()` into the builder's route-registration path so it produces an upgrade-capable handler factory backed by the dedicated upgrade handler from Phase 2.
 - [ ] Ensure the builder still initializes a unified pipeline path that can serve both HTTP and upgraded connections while routing WebSocket matches into the dedicated upgrade handler.
 
 ### Routing Behavior
@@ -49,8 +52,9 @@ This phase exposes WebSocket support through the server builder and route-select
 
 ## Decision Follow-Through
 
-- Item 4 in the pre-implementation decision backlog fixes the routing-to-handshake split this phase must respect.
-- Public API design should not leak handshake-validation policy back into the route matcher.
+- Item 4 in the pre-implementation decision backlog fixes the routing-to-handshake split this phase must respect; public API design must not leak handshake-validation policy back into the route matcher.
+- Item 10 in the pre-implementation decision backlog fixes the registration entry point to `.websocket()` on `ProviderRegistryBuilder`.
+- Item 11 in the pre-implementation decision backlog fixes the callback surface to a `WebSocketCallbacks` struct of five `std::function` fields.
 
 ## Owner
 

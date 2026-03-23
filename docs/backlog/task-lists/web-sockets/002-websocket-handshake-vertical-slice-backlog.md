@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: added decision 5 (RFC-aligned rejection codes) to locked decisions and updated rejection-behavior task.
 2026-03-23 - Copilot: aligned Phase 2 backlog with accepted decisions for dedicated handshake handling and rejection-policy ownership.
 2026-03-23 - Copilot: created detailed Phase 2 WebSocket handshake vertical slice backlog.
 
@@ -18,7 +19,7 @@ This phase proves the upgrade seam with a complete HTTP-to-WebSocket handshake f
 
 - Use a dedicated WebSocket upgrade handler for validation and handshake result construction.
 - Generate `Sec-WebSocket-Accept` in that handler.
-- Standardize handshake rejection status codes during this phase rather than leaving them open-ended.
+- Use RFC-aligned per-failure status codes with a single shared `rejectUpgrade(UpgradeFailure)` helper that maps each failure kind to its correct HTTP status.
 
 ## Unit Test Coverage Targets
 
@@ -50,14 +51,14 @@ This phase proves the upgrade seam with a complete HTTP-to-WebSocket handshake f
 
 ### Rejection Behavior
 
-- [ ] Define and freeze the HTTP status codes used for malformed or unsupported upgrade attempts in the dedicated upgrade handler.
+- [ ] Implement the `UpgradeFailure` enum and the shared `rejectUpgrade(UpgradeFailure)` helper in the dedicated upgrade handler; map each case to its RFC-aligned status code (405 for wrong method, 426 for missing upgrade intent, 400 for malformed headers or key).
 - [ ] Ensure partial validation failure does not leave the pipeline in upgraded mode.
 - [ ] Keep handshake errors deterministic and easy to test both directly at the handler boundary and through fake transports.
 
 ## Decision Follow-Through
 
 - Item 4 in the pre-implementation decision backlog fixes handshake validation ownership in a dedicated upgrade handler.
-- Item 5 should refine the exact rejection matrix, but this phase now owns where that policy is applied.
+- Item 5 in the pre-implementation decision backlog defines the RFC-aligned rejection matrix; this phase must implement the `UpgradeFailure` enum and `rejectUpgrade()` helper according to that policy.
 
 ## Owner
 

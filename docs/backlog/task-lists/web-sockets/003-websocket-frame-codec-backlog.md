@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: added locked decisions for codec IO model (decision 6) and fragmentation/delivery model (decision 7); updated tasks accordingly.
 2026-03-23 - Copilot: created detailed Phase 3 WebSocket frame codec backlog.
 
 # WebSocket Phase 3 Core Protocol Types And Frame Codec Backlog
@@ -12,6 +13,11 @@ This phase adds the protocol primitives that make an upgraded connection useful:
 - A reader can parse client frames incrementally from byte-channel input with correct masking and payload-length behavior.
 - A writer can encode server frames for text, binary, continuation, ping, pong, and close operations.
 - Fragmentation and control-frame validation rules are enforced consistently.
+
+## Locked Decisions Applied Here
+
+- Use a pure-transform codec (`WebSocketFrameParser` / `WebSocketFrameSerializer`) that operates on caller-supplied byte spans with no transport dependency; the session runtime owns all IO and read-buffer staging.
+- Multi-frame message assembly across continuation frames lives in the session runtime (Phase 4), not in the codec.
 
 ## Unit Test Coverage Targets
 
@@ -31,20 +37,19 @@ This phase adds the protocol primitives that make an upgraded connection useful:
 
 ### Frame Reader
 
-- [ ] Add a frame reader built on `IByteChannel` or compatible byte-source semantics rather than a concrete client implementation.
+- [ ] Add a pure-transform `WebSocketFrameParser` that parses one frame from a caller-supplied input span and returns the number of bytes consumed; no transport dependency.
 - [ ] Support incremental parse state for header bytes, extended lengths, mask bytes, and payload consumption.
 - [ ] Enforce masking and payload-length validation as part of parse, not as a later policy pass.
 
 ### Frame Writer
 
-- [ ] Add a frame writer for text, binary, continuation, ping, pong, and close frames.
-- [ ] Ensure the writer emits correct FIN, opcode, and payload-length fields for server frames.
-- [ ] Decide whether the writer returns owned buffers, byte sources, or direct write commands for later runtime integration.
+- [ ] Add a pure-transform `WebSocketFrameSerializer` that fills a caller-supplied output span with a framed payload and returns the number of bytes written.
+- [ ] Ensure the serializer emits correct FIN, opcode, and payload-length encoding for server-side frames (text, binary, continuation, ping, pong, close).
 
 ### Fragmentation And Validation
 
-- [ ] Implement continuation tracking across fragmented messages.
-- [ ] Enforce control-frame restrictions on FIN, payload length, and fragmentation.
+- [ ] Enforce continuation-sequence protocol rules in the codec: a non-control frame during an open continuation sequence is a protocol error; an orphan continuation frame with no preceding unfragmented sequence is a protocol error.
+- [ ] Keep multi-frame message assembly out of the codec; it belongs in the session runtime (Phase 4).
 - [ ] Keep error reporting deterministic so later phases can map codec failures into close behavior cleanly.
 
 ## Owner

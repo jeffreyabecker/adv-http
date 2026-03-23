@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: added locked decision for documentation gate (14); updated scope and example tasks to match merge requirements.
 2026-03-23 - Copilot: created detailed Phase 7 WebSocket documentation and examples backlog.
 
 # WebSocket Phase 7 Documentation And Example Follow-Through Backlog
@@ -13,6 +14,11 @@ This phase documents the actual shipped WebSocket surface after the internal arc
 - Any example added reflects the stable API rather than a transitional shape.
 - Documentation matches the resource and protocol limits that the code enforces.
 
+## Locked Decisions Applied Here
+
+- The unsupported-feature list must be present in `LIBRARY_DOCUMENTATION.md` before the implementation is merged; this is a hard merge-gate requirement.
+- A minimal echo example is a follow-up backlog item filed after the Phase 5 API stabilizes; it is explicitly not a merge-gate requirement.
+
 ## Unit Test Coverage Targets
 
 - Verify that documentation examples compile in the native lane or through a documentation-specific smoke check if an example is added.
@@ -23,9 +29,16 @@ This phase documents the actual shipped WebSocket surface after the internal arc
 
 ### Scope And Behavior Documentation
 
-- [ ] Document the first shipped scope: HTTP/1.1 upgrade only, no extensions, no compression, and no subprotocol negotiation unless added deliberately.
-- [ ] Document supported frame behavior, close behavior, timeout expectations, and configured limits.
-- [ ] Call out deferred or unsupported RFC features explicitly.
+- [ ] Add the unsupported-feature section to `LIBRARY_DOCUMENTATION.md` as a merge gate, covering all of the following:
+  - WebSocket extensions (permessage-deflate and all RFC 7692+ extensions).
+  - Subprotocol negotiation (`Sec-WebSocket-Protocol` accepted but ignored).
+  - Multiplexing (one WebSocket per TCP connection).
+  - Server-initiated PING frames.
+  - Messages exceeding `WsMaxMessageSize` (rejected with close code 1009).
+  - PING and PONG observation callbacks.
+  - Outbound sends from outside the pipeline loop.
+- [ ] Document supported frame behavior, close behavior, timeout expectations, and the four configured limit constants.
+- [ ] Validate documentation against the actual native test assertions and constant values rather than aspirational descriptions.
 
 ### Developer Documentation
 
@@ -35,7 +48,7 @@ This phase documents the actual shipped WebSocket surface after the internal arc
 
 ### Examples And Cross-Links
 
-- [ ] Add a minimal WebSocket example only after the public API stops moving materially.
+- [ ] Add a minimal echo-server WebSocket example as a follow-up after the Phase 5 public API is confirmed stable; this is explicitly not a merge-gate requirement for the initial implementation PR.
 - [ ] Review existing docs pages and add cross-links where WebSocket discoverability matters.
 - [ ] Keep examples narrow and aligned with the documented first-release scope.
 

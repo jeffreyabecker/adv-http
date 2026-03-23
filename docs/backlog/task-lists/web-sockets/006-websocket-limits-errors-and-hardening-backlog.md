@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: added locked decisions for limits naming (12) and centralized error-mapping policy (13); updated tasks accordingly.
 2026-03-23 - Copilot: created detailed Phase 6 WebSocket limits, errors, and hardening backlog.
 
 # WebSocket Phase 6 Limits, Errors, And Hardening Backlog
@@ -13,6 +14,11 @@ This phase tightens resource and failure behavior so the initial WebSocket imple
 - Memory and buffer ownership remain bounded and reviewable on RP2040 and ESP-class targets.
 - Stuck or malformed clients cannot leave the pipeline in a half-live state indefinitely.
 
+## Locked Decisions Applied Here
+
+- All WebSocket limits are compile-time `HTTPSERVER_ADVANCED_WEBSOCKET_*` overrideable constants defined in `src/core/Defines.h`, following the existing `#ifndef / constexpr / #else / constexpr / #endif` pattern.
+- All codec and transport failures map through a centralized `WsErrorCategory` enum and a single `policyFor(WsErrorCategory)` mapping table.
+
 ## Unit Test Coverage Targets
 
 - Add native tests for frame-size, message-size, queue-depth, and idle-lifetime limit enforcement.
@@ -25,15 +31,16 @@ This phase tightens resource and failure behavior so the initial WebSocket imple
 
 ### Limits And Constants
 
-- [ ] Add overrideable compile-time constants for payload, message, queue, and idle-lifetime limits using the project macro-plus-`static constexpr` pattern.
-- [ ] Ensure production code reads the `static constexpr` symbols rather than raw macros except in preprocessor branches.
-- [ ] Review whether limits belong globally, per session, or in a future server configuration object.
+- [ ] Add the four authoritative WebSocket limit constants to `src/core/Defines.h`: `WsMaxFramePayloadSize` (default 4096), `WsMaxMessageSize` (default 8192), `WsIdleTimeoutMs` (default 30000), `WsCloseTimeoutMs` (default 2000).
+- [ ] Follow the `#ifndef HTTPSERVER_ADVANCED_WEBSOCKET_* / static constexpr / #else / static constexpr / #endif` pattern for each constant.
+- [ ] Ensure all production code reads the `constexpr` variable names, never the raw `HTTPSERVER_ADVANCED_WEBSOCKET_*` macros except in `#if`/`#ifndef` preprocessor branches.
 
 ### Error Mapping And Close Policy
 
-- [ ] Map codec and transport failures into deterministic close status or forced disconnect behavior.
-- [ ] Distinguish clean remote close, protocol error, internal error, timeout, and transport failure in code paths where the distinction matters.
-- [ ] Keep error handling centralized enough that later features do not fork close behavior inconsistently.
+- [ ] Define the `WsErrorCategory` enum with all seven categories: `FrameParseError`, `ProtocolViolation`, `MessageTooLarge`, `WriteFailure`, `IdleTimeout`, `CloseHandshakeTimeout`, `RemoteDisconnect`.
+- [ ] Implement the centralized `policyFor(WsErrorCategory)` mapping function using the authoritative table from the pre-implementation decision backlog (item 13).
+- [ ] Add a safe default policy (no close handshake, code 1006) for any unmapped category to prevent silent undefined behavior.
+- [ ] Cover the full policy table exhaustively in the native test suite.
 
 ### Embedded Resource Review
 
