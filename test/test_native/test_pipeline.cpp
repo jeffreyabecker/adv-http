@@ -4,6 +4,7 @@
 #include <unity.h>
 
 #include "../../src/compat/Clock.h"
+#include "../../src/core/HttpRequest.h"
 #include "../../src/core/HttpTimeouts.h"
 #include "../../src/pipeline/HttpPipeline.h"
 #include "../../src/pipeline/IPipelineHandler.h"
@@ -13,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <string>
@@ -757,6 +759,97 @@ namespace
         TEST_ASSERT_EQUAL_STRING("ab", harness.client().writtenText().c_str());
     }
 
+    void test_http_pipeline_websocket_accept_path_transitions_to_upgraded_session_and_writes_handshake()
+    {
+        static constexpr const char *RequestText =
+            "GET /chat HTTP/1.1\r\n"
+            "Host: example.test\r\n"
+            "Connection: Upgrade\r\n"
+            "Upgrade: websocket\r\n"
+            "Sec-WebSocket-Version: 13\r\n"
+            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+            "\r\n";
+
+        Compat::ManualClock clock(1000);
+        HttpTimeouts timeouts;
+        timeouts.setReadTimeout(25);
+        timeouts.setActivityTimeout(40);
+        timeouts.setTotalRequestLengthMs(200);
+
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        TestSupport::RecordingRequestHandlerFactory requestFactory(
+            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            {
+                return nullptr;
+            });
+
+        auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
+        TestSupport::FakeClient *clientPtr = client.get();
+
+        HttpPipeline pipeline(
+            std::move(client),
+            server,
+            timeouts,
+            [&server, &requestFactory]()
+            {
+                return HttpRequest::createPipelineHandler(server, requestFactory);
+            },
+            clock);
+
+        const PipelineHandleClientResult firstResult = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(firstResult));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
+        TEST_ASSERT_NOT_NULL(strstr(clientPtr->writtenText().c_str(), "HTTP/1.1 101 Switching Protocols"));
+        TEST_ASSERT_NOT_NULL(strstr(clientPtr->writtenText().c_str(), "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo="));
+
+        const PipelineHandleClientResult secondResult = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(secondResult));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
+    }
+
+    void test_http_pipeline_websocket_rejection_path_stays_http_and_never_enters_upgraded_session()
+    {
+        static constexpr const char *RequestText =
+            "GET /chat HTTP/1.1\r\n"
+            "Host: example.test\r\n"
+            "Connection: Upgrade\r\n"
+            "Upgrade: websocket\r\n"
+            "Sec-WebSocket-Version: 12\r\n"
+            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+            "\r\n";
+
+        Compat::ManualClock clock(1000);
+        HttpTimeouts timeouts;
+        timeouts.setReadTimeout(25);
+        timeouts.setActivityTimeout(40);
+        timeouts.setTotalRequestLengthMs(200);
+
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        TestSupport::RecordingRequestHandlerFactory requestFactory(
+            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            {
+                return nullptr;
+            });
+
+        auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
+        TestSupport::FakeClient *clientPtr = client.get();
+
+        HttpPipeline pipeline(
+            std::move(client),
+            server,
+            timeouts,
+            [&server, &requestFactory]()
+            {
+                return HttpRequest::createPipelineHandler(server, requestFactory);
+            },
+            clock);
+
+        const PipelineHandleClientResult result = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+        TEST_ASSERT_TRUE(pipeline.connectionState() != HttpPipeline::ConnectionState::UpgradedSessionActive);
+        TEST_ASSERT_NOT_NULL(strstr(clientPtr->writtenText().c_str(), "HTTP/1.1 400 Bad Request"));
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -774,6 +867,8 @@ namespace
         RUN_TEST(test_http_pipeline_abort_helpers_drive_expected_state_transitions);
         RUN_TEST(test_http_pipeline_progresses_response_writing_across_temporarily_unavailable_cycles);
         RUN_TEST(test_http_pipeline_reports_disconnect_during_writing_and_does_not_complete_response);
+        RUN_TEST(test_http_pipeline_websocket_accept_path_transitions_to_upgraded_session_and_writes_handshake);
+        RUN_TEST(test_http_pipeline_websocket_rejection_path_stays_http_and_never_enters_upgraded_session);
         return UNITY_END();
     }
 }

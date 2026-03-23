@@ -3,12 +3,16 @@
 
 #include <unity.h>
 
+#include "../../src/compat/Clock.h"
 #include "../../src/core/HttpRequest.h"
 #include "../../src/core/HttpRequestPhase.h"
+#include "../../src/pipeline/RequestParser.h"
 #include "../../src/server/HttpServerBase.h"
 
 #include <memory>
+#include <cstring>
 #include <string>
+#include <string_view>
 #include <vector>
 
 using namespace HttpServerAdvanced;
@@ -117,10 +121,256 @@ namespace
         TEST_ASSERT_TRUE((factory.lastCreateContext()->completedPhases() & HttpRequestPhase::CompletedReadingMessage) != 0);
     }
 
+    std::string ExecuteAndCaptureResponseText(
+        std::string_view method,
+        std::string_view path,
+        const std::vector<std::pair<std::string, std::string>> &headers,
+        TestSupport::RecordingRequestHandlerFactory &factory,
+        RequestHandlingResult::Kind expectedKind)
+    {
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        auto pipelineHandler = HttpRequest::createPipelineHandler(server, factory);
+        RequestParser parser(*pipelineHandler);
+
+        std::string request;
+        request.append(method);
+        request.append(" ");
+        request.append(path);
+        request.append(" HTTP/1.1\r\n");
+        for (const auto &header : headers)
+        {
+            request.append(header.first);
+            request.append(": ");
+            request.append(header.second);
+            request.append("\r\n");
+        }
+        request.append("\r\n");
+
+        TEST_ASSERT_EQUAL_UINT64(request.size(), parser.execute(reinterpret_cast<const std::uint8_t *>(request.data()), request.size()));
+        TEST_ASSERT_TRUE(pipelineHandler->hasPendingResult());
+
+        RequestHandlingResult result = pipelineHandler->takeResult();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(expectedKind), static_cast<int>(result.kind));
+
+        if (result.kind == RequestHandlingResult::Kind::Response)
+        {
+            TEST_ASSERT_NOT_NULL(result.responseStream.get());
+            TEST_ASSERT_NULL(result.upgradedSession.get());
+            return TestSupport::ReadByteSourceAsStdString(*result.responseStream);
+        }
+
+        return std::string();
+    }
+
+    void test_http_request_websocket_upgrade_accepts_split_request_and_returns_upgrade_session()
+    {
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        TestSupport::RecordingRequestHandlerFactory factory(
+            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            {
+                return nullptr;
+            });
+
+        auto pipelineHandler = HttpRequest::createPipelineHandler(server, factory);
+        RequestParser parser(*pipelineHandler);
+
+        const std::vector<std::string> chunks = {
+            "GET /chat HTTP/1.1\r\nHo",
+            "st: example.test\r\ncOnNe",
+            "ction: Up",
+            "grade\r\nupgra",
+            "de: webs",
+            "ocket\r\nSec-Web",
+            "Socket-Vers",
+            "ion: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n"
+        };
+
+        for (const auto &chunk : chunks)
+        {
+            TEST_ASSERT_EQUAL_UINT64(chunk.size(), parser.execute(reinterpret_cast<const std::uint8_t *>(chunk.data()), chunk.size()));
+        }
+
+        TEST_ASSERT_TRUE(factory.createCount() >= 1);
+        TEST_ASSERT_TRUE(pipelineHandler->hasPendingResult());
+
+        RequestHandlingResult result = pipelineHandler->takeResult();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(RequestHandlingResult::Kind::Upgrade), static_cast<int>(result.kind));
+        TEST_ASSERT_NOT_NULL(result.upgradedSession.get());
+        TEST_ASSERT_NULL(result.responseStream.get());
+
+        TestSupport::FakeClient client;
+        Compat::ManualClock clock(1000);
+        const ConnectionSessionResult firstStep = result.upgradedSession->handle(client, clock);
+
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(ConnectionSessionResult::Continue), static_cast<int>(firstStep));
+        TEST_ASSERT_EQUAL_STRING(
+            "HTTP/1.1 101 Switching Protocols\r\n"
+            "Upgrade: websocket\r\n"
+            "Connection: Upgrade\r\n"
+            "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n",
+            client.writtenText().c_str());
+    }
+
+    void test_http_request_websocket_upgrade_rejects_invalid_requests_with_deterministic_statuses()
+    {
+        {
+            TestSupport::RecordingRequestHandlerFactory factory;
+            const std::string responseText = ExecuteAndCaptureResponseText(
+                "POST",
+                "/chat",
+                {
+                    {"Host", "example.test"},
+                    {"Connection", "Upgrade"},
+                    {"Upgrade", "websocket"},
+                    {"Sec-WebSocket-Version", "13"},
+                    {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
+                },
+                factory,
+                RequestHandlingResult::Kind::Response);
+
+            TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 405 Method Not Allowed"));
+            TEST_ASSERT_TRUE(factory.createCount() >= 1);
+        }
+
+        {
+            TestSupport::RecordingRequestHandlerFactory factory;
+            const std::string responseText = ExecuteAndCaptureResponseText(
+                "GET",
+                "/chat",
+                {
+                    {"Host", "example.test"},
+                    {"Upgrade", "websocket"},
+                    {"Sec-WebSocket-Version", "13"},
+                    {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
+                },
+                factory,
+                RequestHandlingResult::Kind::Response);
+
+            TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 426 Upgrade Required"));
+            TEST_ASSERT_TRUE(factory.createCount() >= 1);
+        }
+
+        {
+            TestSupport::RecordingRequestHandlerFactory factory;
+            const std::string responseText = ExecuteAndCaptureResponseText(
+                "GET",
+                "/chat",
+                {
+                    {"Host", "example.test"},
+                    {"Connection", "Upgrade"},
+                    {"Sec-WebSocket-Version", "13"},
+                    {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
+                },
+                factory,
+                RequestHandlingResult::Kind::Response);
+
+            TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 426 Upgrade Required"));
+            TEST_ASSERT_TRUE(factory.createCount() >= 1);
+        }
+
+        {
+            TestSupport::RecordingRequestHandlerFactory factory;
+            const std::string responseText = ExecuteAndCaptureResponseText(
+                "GET",
+                "/chat",
+                {
+                    {"Host", "example.test"},
+                    {"Connection", "Upgrade"},
+                    {"Upgrade", "websocket"},
+                    {"Sec-WebSocket-Version", "12"},
+                    {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
+                },
+                factory,
+                RequestHandlingResult::Kind::Response);
+
+            TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
+            TEST_ASSERT_TRUE(factory.createCount() >= 1);
+        }
+
+        {
+            TestSupport::RecordingRequestHandlerFactory factory;
+            const std::string responseText = ExecuteAndCaptureResponseText(
+                "GET",
+                "/chat",
+                {
+                    {"Host", "example.test"},
+                    {"Connection", "Upgrade"},
+                    {"Upgrade", "websocket"},
+                    {"Sec-WebSocket-Version", "13"},
+                    {"Sec-WebSocket-Key", "short"}
+                },
+                factory,
+                RequestHandlingResult::Kind::Response);
+
+            TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
+            TEST_ASSERT_TRUE(factory.createCount() >= 1);
+        }
+
+        {
+            TestSupport::RecordingRequestHandlerFactory factory;
+            const std::string responseText = ExecuteAndCaptureResponseText(
+                "GET",
+                "/chat",
+                {
+                    {"Host", "example.test"},
+                    {"Connection", "Upgrade"},
+                    {"Upgrade", "websocket"},
+                    {"Sec-WebSocket-Version", "13"},
+                    {"Sec-WebSocket-Key", "!!!!!!!!!!!!!!!!!!!!!!!!"}
+                },
+                factory,
+                RequestHandlingResult::Kind::Response);
+
+            TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
+            TEST_ASSERT_TRUE(factory.createCount() >= 1);
+        }
+
+        {
+            TestSupport::RecordingRequestHandlerFactory factory;
+            const std::string responseText = ExecuteAndCaptureResponseText(
+                "GET",
+                "/chat",
+                {
+                    {"Host", "example.test"},
+                    {"Connection", "Upgrade"},
+                    {"Upgrade", "websocket,other"},
+                    {"Sec-WebSocket-Version", "13"},
+                    {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
+                },
+                factory,
+                RequestHandlingResult::Kind::Response);
+
+            TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
+            TEST_ASSERT_TRUE(factory.createCount() >= 1);
+        }
+
+        {
+            TestSupport::RecordingRequestHandlerFactory factory;
+            const std::string responseText = ExecuteAndCaptureResponseText(
+                "GET",
+                "/chat",
+                {
+                    {"Host", "example.test"},
+                    {"Connection", "Upgrade"},
+                    {"Upgrade", "websocket"},
+                    {"Sec-WebSocket-Version", "13"},
+                    {"Sec-WebSocket-Version", "12"},
+                    {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
+                },
+                factory,
+                RequestHandlingResult::Kind::Response);
+
+            TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
+            TEST_ASSERT_TRUE(factory.createCount() >= 1);
+        }
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
         RUN_TEST(test_http_request_preserves_custom_method_through_factory_and_handler_steps);
+        RUN_TEST(test_http_request_websocket_upgrade_accepts_split_request_and_returns_upgrade_session);
+        RUN_TEST(test_http_request_websocket_upgrade_rejects_invalid_requests_with_deterministic_statuses);
         return UNITY_END();
     }
 }

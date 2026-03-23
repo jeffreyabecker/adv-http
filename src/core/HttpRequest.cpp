@@ -1,6 +1,7 @@
 #include "../core/HttpRequest.h"
 #include "../handlers/IHttpHandler.h"
 #include "IHttpRequestHandlerFactory.h"
+#include "../websocket/WebSocketUpgradeHandler.h"
 
 namespace HttpServerAdvanced
 {
@@ -26,6 +27,28 @@ namespace HttpServerAdvanced
         if (pendingResult_.hasValue())
         {
             return;
+        }
+
+        if ((completedPhases_ & HttpRequestPhase::CompletedReadingHeaders) != 0)
+        {
+            if (WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(*this))
+            {
+                WebSocketUpgradeHandler upgradeHandler;
+                RequestHandlingResult upgradeResult = upgradeHandler.handle(*this, handlerFactory_);
+                if (upgradeResult.hasValue())
+                {
+                    if (upgradeResult.kind == RequestHandlingResult::Kind::Response)
+                    {
+                        setPendingResult(std::move(upgradeResult));
+                        sendResponse();
+                    }
+                    else
+                    {
+                        setPendingResult(std::move(upgradeResult));
+                    }
+                    return;
+                }
+            }
         }
 
         auto handler = tryGetHandler();
