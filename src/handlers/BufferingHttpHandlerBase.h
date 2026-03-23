@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <optional>
 #include <string_view>
+#include "../core/HttpRequest.h"
 
 namespace HttpServerAdvanced
 {
@@ -20,9 +21,6 @@ namespace HttpServerAdvanced
         auto result = std::from_chars(begin, end, parsedLength);
         return result.ec == std::errc() && result.ptr == end;
     }
-
-    // Forward declaration
-    class HttpRequest;
 
     // Template base for handlers that buffer request bodies.
     // MaxBuffered defaults to the library-configured value `MAX_BUFFERED_BODY_LENGTH`.

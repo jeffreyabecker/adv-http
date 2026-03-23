@@ -27,9 +27,10 @@ This repository keeps host-side unit coverage under a single consolidated native
 
 ## Native Source Admission Rule
 
-- Add a production `.cpp` file to `test/test_native/native_portable_sources.cpp` when a new native test depends on that translation unit and the production source is host-safe.
+- The native PlatformIO environment now compiles production sources directly from `src/` via `platformio/native.ini`.
+- Keep `build_src_filter` in `platformio/native.ini` aligned with the intended native scope; prefer broad directory-based inclusion over translation-unit aggregation.
 - Do not include production `.cpp` files directly from individual suite files.
-- If a production source is not yet host-safe, keep the test blocked at the backlog level rather than hiding the dependency with ad hoc local includes.
+- If a production source is not yet host-safe, fix the guard or dependency issue in production code or narrow `platformio/native.ini` deliberately; do not hide the dependency with ad hoc local includes.
 
 ## Request-Driving Strategy
 
