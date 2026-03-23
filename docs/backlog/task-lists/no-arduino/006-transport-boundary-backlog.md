@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: removed the stale reference to the retired transport planning doc after the backlog became the canonical migration record.
 2026-03-22 - Copilot: removed the remaining compatibility-layer network address shim and deleted the old Arduino-style address type from the repo entirely.
 2026-03-22 - Copilot: documented that `connected()` is a boolean liveness gate that must remain true while unread buffered request bytes can still be drained, and updated the core interface return type from `std::uint8_t` to `bool`.
 2026-03-22 - Copilot: removed `IClient::available()`, promoted result-based transport availability to the sole pure-abstract ingress readiness API, and updated the in-tree caller to consume it directly.
@@ -138,4 +139,3 @@ High
 - `src/server/HttpServerBase.cpp`
 - `src/server/StandardHttpServer.h`
 - `src/server/WiFiHttpServer.h`
-- `docs/plans/no-arduino/in-tree-transport-plan.md`

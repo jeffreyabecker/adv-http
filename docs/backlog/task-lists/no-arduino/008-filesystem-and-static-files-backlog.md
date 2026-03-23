@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: recorded removal of the legacy compat filesystem wrapper, dropped the Arduino static-files umbrella helper, and retired stale references to the old plan docs and deleted compat test.
 2026-03-23 - Copilot: removed the non-Arduino legacy `Compat::File : Stream` inheritance, kept the compatibility wrapper as a plain value handle, and marked the file-inherits-stream cleanup task complete.
 2026-03-22 - Copilot: moved `StaticFilesBuilder` onto `IFileSystem` and added Arduino adapter helpers so sketch-facing `StaticFiles(fs::FS&, ...)` usage remains available without re-coupling the builder headers.
 2026-03-22 - Copilot: migrated static-file locators and handler metadata usage onto `IFileSystem` and `IFile`, and added native POSIX coverage for the new seam.
@@ -9,31 +10,31 @@
 
 ## Summary
 
-This phase narrows the filesystem dependency to the actual operations static-file serving needs and detaches file-backed responses from Arduino filesystem types. The repository already has `compat/FileSystem.h`, a POSIX adapter, and a `FileByteSource` bridge in the static-file handler, so file-backed responses already flow through the Phase 5 byte-source response path. The remaining work is to tighten adapter and metadata semantics, preserve board behavior through adapters, and broaden filesystem regression coverage.
+This phase narrows the filesystem dependency to the actual operations static-file serving needs and detaches file-backed responses from Arduino filesystem types. The repository now uses `IFileSystem`, `IFile`, and the POSIX adapter directly in the static-file path, and the legacy compat `FileSystem.h` wrapper plus Arduino static-files umbrella helper have been removed. File-backed responses already flow through the Phase 5 byte-source response path. The remaining work is to tighten metadata semantics, decide what if any sketch-facing Arduino helper should survive as an opt-in boundary adapter, and broaden filesystem regression coverage.
 
 ## Goal / Acceptance Criteria
 
 - Static-file serving depends on a minimal filesystem/file contract rather than raw Arduino `fs::FS` and `fs::File` behavior.
 - File-backed responses work through the library-owned read abstraction without reintroducing Arduino inheritance into the core.
-- Arduino filesystem behavior remains available through a thin adapter.
+- Arduino filesystem behavior, if retained, is expressed only through an explicit boundary adapter rather than a core umbrella include.
 - Host-side tests can validate static-file behavior through POSIX-backed implementations.
 
 ## Tasks
 
 ### Interface Definition
 
-- [x] Decide whether `src/compat/FileSystem.h` evolves in place or is replaced by a narrower `IFile` and `IFileSystem` contract.
+- [x] Decide whether the old filesystem compatibility wrapper evolves in place or is replaced by a narrower `IFile` and `IFileSystem` contract.
 - [x] Define the minimum file operations required for static-file serving: open, validity, directory check, close, size, name/path, last-write metadata, and readable-byte access.
 - [x] Decide how file readability participates in the new stream or byte-source contract so filesystem work aligns with Phase 5.
 - [x] Eliminate the assumption that `File` must be a subclass of the legacy compat `Stream` type.
 
 Selected contract direction:
-Replace `src/compat/FileSystem.h` in core-facing code with `IFileSystem::open(path, FileOpenMode)` returning `std::unique_ptr<IFile>`, where `IFile` extends `IByteChannel` and carries directory, size, path, and last-write metadata. Keep static-file handler logic read-only even though the file seam exposes broader channel behavior.
+Replace the old core-facing filesystem wrapper with `IFileSystem::open(path, FileOpenMode)` returning `std::unique_ptr<IFile>`, where `IFile` extends `IByteChannel` and carries directory, size, path, and last-write metadata. Keep static-file handler logic read-only even though the file seam exposes broader channel behavior.
 
 ### Adapter Strategy
 
-- [ ] Preserve direct Arduino aliasing under `ARDUINO` only where it does not leak raw framework types into the core-facing headers.
-- [ ] Define the Arduino filesystem adapter layer and decide whether it wraps `fs::FS` and `fs::File` directly or continues to alias them through compatibility types.
+- [x] Preserve direct Arduino aliasing under `ARDUINO` only where it does not leak raw framework types into the core-facing headers.
+- [ ] Decide whether any Arduino filesystem adapter layer should remain at all, and if so, keep it opt-in rather than exported through the umbrella static-files include surface.
 - [ ] Review `src/compat/PosixFileAdapter.h` and align it with the final file-interface contract.
 - [ ] Ensure the POSIX adapter exposes metadata with the same best-effort semantics expected by the static-file layer.
 
@@ -55,7 +56,7 @@ Replace `src/compat/FileSystem.h` in core-facing code with `IFileSystem::open(pa
 
 - [x] Refactor `src/staticfiles/StaticFilesBuilder.h` and `src/staticfiles/StaticFilesBuilder.cpp` so builder code consumes the narrowed filesystem contract.
 - [x] Review any `WebServerBuilder` coupling introduced by static-file helper entrypoints and keep the filesystem seam from leaking raw Arduino headers back into those builders.
-- [x] Ensure existing Arduino example ergonomics remain feasible through adapter helpers or transitional overloads.
+- [ ] Decide whether existing Arduino example ergonomics need a replacement helper now that the umbrella `StaticFiles(fs::FS&, ...)` entry point is gone.
 
 ### Host-Side Validation
 
@@ -78,7 +79,7 @@ High
 
 ## References
 
-- `src/compat/FileSystem.h`
+- `src/compat/IFileSystem.h`
 - `src/compat/PosixFileAdapter.h`
 - `src/staticfiles/FileLocator.h`
 - `src/staticfiles/DefaultFileLocator.h`
@@ -89,6 +90,4 @@ High
 - `src/staticfiles/StaticFileHandler.cpp`
 - `src/staticfiles/StaticFilesBuilder.h`
 - `src/staticfiles/StaticFilesBuilder.cpp`
-- `test/test_native/test_filesystem_compat.cpp`
 - `test/test_native/test_filesystem_posix.cpp`
-- `docs/plans/no-arduino/filesystem-interface-plan.md`

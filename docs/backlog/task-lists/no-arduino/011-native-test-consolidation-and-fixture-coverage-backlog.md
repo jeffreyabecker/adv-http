@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: removed the stale reference to the deleted legacy filesystem compat test and retired testing-plan doc after the backlog became the canonical record.
 2026-03-21 - Copilot: recorded the Phase 3 follow-on that timeout fixture tests should drive the injected server clock via `HttpServerBase::setClock(...)` and `Compat::ManualClock`.
 2026-03-21 - Copilot: created detailed Phase 9 native test consolidation and fixture coverage backlog.
 
@@ -74,7 +75,5 @@ Medium
 - `test/test_native/native_portable_sources.cpp`
 - `test/test_native/test_stream_available.cpp`
 - `test/test_native/test_stream_utilities.cpp`
-- `test/test_native/test_filesystem_compat.cpp`
 - `test/test_native/test_filesystem_posix.cpp`
 - `test/support/include/ConsolidatedNativeSuite.h`
-- `docs/plans/no-arduino/testing-refactor-plan.md`

@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: recorded removal of the legacy compat `Stream` wrapper header and retired the stale plan-doc reference from the Phase 5 backlog.
 2026-03-22 - Copilot: removed test-only helper classes from `src/streams/Streams.*`, rewired native coverage onto byte-source primitives, and narrowed the surviving surface to `ReadStream` plus `ReadAsString`.
 2026-03-22 - Copilot: removed the unused `NonOwningMemoryStream` helper and its dedicated native coverage so the in-tree legacy writable `Stream` surface shrank further.
 2026-03-22 - Copilot: added exact-output regression coverage for direct and chunked response serialization, including a temporary-unavailability chunk boundary, and marked the serializer-behavior preservation task complete.
@@ -13,7 +14,7 @@
 
 ## Summary
 
-This phase is the architectural seam change for the response path. The repository originally modeled response production, transform layers, file-backed output, and pipeline response callbacks around `std::unique_ptr<Stream>`, with a compat fallback that still mirrors Arduino `Stream` semantics. The library-owned contract layer now exists in `src/streams/ByteStream.h`, and response bodies, response assembly, pipeline callbacks, and static-file bodies already flow through `IByteSource`. The remaining work is concentrated in the legacy stream utility layer, duplex stream review, adapter cleanup, and the last regression gaps around composed response behavior.
+This phase is the architectural seam change for the response path. The repository originally modeled response production, transform layers, file-backed output, and pipeline response callbacks around `std::unique_ptr<Stream>`, with a compat fallback that mirrored Arduino `Stream` semantics. The library-owned contract layer now exists in `src/streams/ByteStream.h`, response bodies, response assembly, pipeline callbacks, and static-file bodies already flow through `IByteSource`, and the last legacy compat `Stream` wrapper header has been removed. The remaining work is concentrated in adapter-boundary documentation and the last regression gaps around composed response behavior.
 
 ## Goal / Acceptance Criteria
 
@@ -71,7 +72,7 @@ Follow-up: the old test-oriented helper types in `src/streams/Streams.*` (`Empty
 ### File-Backed And Adapter Interactions
 
 - [x] Coordinate with the filesystem phase so file-backed responses can consume file data through the new readable contract without reintroducing `Stream` inheritance into the core.
-- [ ] Keep Arduino `Stream` and `Print` usage confined to adapter code once the migration stabilizes.
+- [x] Keep Arduino `Stream` and `Print` usage confined to adapter code once the migration stabilizes.
 
 ### Validation
 
@@ -89,7 +90,6 @@ High
 
 ## References
 
-- `src/compat/Stream.h`
 - `src/compat/Availability.h`
 - `src/streams/ByteStream.h`
 - `src/streams/Streams.h`
@@ -112,4 +112,3 @@ High
 - `test/test_native/test_response_streams.cpp`
 - `test/test_native/test_stream_available.cpp`
 - `test/test_native/test_stream_utilities.cpp`
-- `docs/plans/no-arduino/stream-replacement-plan.md`

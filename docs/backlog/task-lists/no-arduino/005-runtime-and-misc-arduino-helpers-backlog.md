@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: removed stale references to the retired no-Arduino plan docs after the backlog became the canonical migration record.
 2026-03-21 - Copilot: decided to keep logging example-only for now and moved shared helper logging/timing behavior behind a new `examples/ExampleRuntime.h` boundary used by `examples/WifiSetup.h`.
 2026-03-21 - Copilot: aligned `HttpTimeouts` with `Compat::ClockMillis`, completed the residual runtime-helper scan for `src/`, and documented the injected clock seam follow-on for native timeout fixtures.
 2026-03-21 - Copilot: migrated `HttpPipeline` timekeeping onto the injected clock seam, removed core `F()` literal usage from `HttpUtility.cpp`, and added native seam regression tests.
@@ -77,5 +78,3 @@ High
 - `src/pipeline/HttpPipeline.cpp`
 - `src/core/HttpTimeouts.h`
 - `src/util/HttpUtility.cpp`
-- `docs/plans/no-arduino/arduino-other-dependencies.md`
-- `docs/plans/no-arduino/testing-refactor-plan.md`

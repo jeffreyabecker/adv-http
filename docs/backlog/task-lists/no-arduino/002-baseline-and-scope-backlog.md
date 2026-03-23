@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: refreshed the baseline after removing the legacy compat stream/filesystem wrappers, dropping the Arduino static-files umbrella helper, and retiring the old no-Arduino plan docs.
 2026-03-21 - Copilot: completed source-backed Phase 0 baseline, dependency classification, and scope lock for no-Arduino migration.
 
 # No-Arduino Phase 0 Baseline And Scope Backlog
@@ -15,12 +16,12 @@ This backlog captures the Phase 0 work needed before implementation-heavy no-Ard
 
 ## Current Validated Baseline
 
-- `src/compat/` already exists and contains `Availability.h`, `Clock.h`, `Compat.h`, `FileSystem.h`, `PosixFileAdapter.h`, `Span.h`, `span.hpp`, and `Stream.h`.
+- `src/compat/` now centers on the surviving portability seams: `Availability.h`, `Clock.h`, `Compat.h`, `IFileSystem.h`, `PosixFileAdapter.h`, `Span.h`, and `span.hpp`. The old legacy compat wrappers `FileSystem.h`, `Stream.h`, and `ArduinoFileSystemAdapter.h` have been removed.
 - `src/compat/Compat.h` establishes the intended rule that core headers should depend on compatibility headers instead of directly including Arduino headers.
-- `src/compat/Stream.h` already aliases Arduino `Stream` under `ARDUINO` and provides a minimal non-Arduino abstract fallback, but large parts of the core still include `Arduino.h` directly and still traffic in `std::unique_ptr<Stream>`.
-- `src/compat/FileSystem.h` already aliases `fs::File` and `fs::FS` under `ARDUINO` and provides a host fallback plus `PosixFileAdapter.h`, but the fallback still models `File` as a `Stream` subclass, which couples filesystem migration to the current stream abstraction.
+- The old `src/compat/Stream.h` seam is no longer part of the repository; response and pipeline surfaces now traffic in byte-source contracts rather than `std::unique_ptr<Stream>`.
+- The old `src/compat/FileSystem.h` seam is no longer part of the repository; static-file serving now uses `IFileSystem` plus `IFile` and the host-side POSIX adapter.
 - The old compatibility-layer network address shim has been removed; transport contracts now rely on textual address accessors instead.
-- `src/compat/Clock.h` is only a forward declaration, so the time seam exists only as intent, not as an implemented abstraction.
+- `src/compat/Clock.h` is now a concrete seam used by the pipeline and remains the only direct `Arduino.h` include left in validated `src/` code.
 - `platformio.ini` already pulls in `platformio/common.ini`, `platformio/rp2040.ini`, `platformio/esp32.ini`, `platformio/esp8266.ini`, and `platformio/native.ini`.
 - `platformio/native.ini` already has a consolidated native test lane with `test_build_src = no`.
 - `test/test_native/test_main.cpp` already provides a shared consolidated runner and hook routing.
@@ -41,7 +42,7 @@ This backlog captures the Phase 0 work needed before implementation-heavy no-Ard
 - `Stream` should remain a compatibility seam during migration but be pushed to adapter boundaries once byte-source and byte-sink contracts exist.
 - `Print` should remain adapter-only and should not become a new core abstraction.
 - Public transport/core contracts should stay on textual address accessors rather than reintroducing a separate binary address compatibility value.
-- `FS` and `File` should remain compatibility seams during migration, with static-file serving eventually depending on a narrower filesystem contract.
+- `FS` and `File` should not return as broad compatibility wrappers in core-facing headers; filesystem support should stay on the narrower `IFileSystem` and `IFile` contract, with any Arduino bridge kept opt-in and boundary-only.
 - Timing/clock access should move behind a concrete compatibility seam and stop calling `millis()` directly in core code.
 - Example logging and sketch runtime concerns should remain Arduino-facing adapters rather than core library behavior.
 
@@ -147,8 +148,7 @@ High
 
 - `src/compat/Compat.h`
 - `src/compat/Clock.h`
-- `src/compat/Stream.h`
-- `src/compat/FileSystem.h`
+- `src/compat/IFileSystem.h`
 - `src/compat/PosixFileAdapter.h`
 - `src/pipeline/NetClient.h`
 - `src/pipeline/HttpPipeline.cpp`

@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: recorded the umbrella-header cleanup that removed the Arduino static-files convenience include from `HttpServerAdvanced.h`.
 2026-03-23 - Copilot: removed obsolete public `String` overloads from the active core and routing surface, updated native tests to assert STL text behavior, and narrowed the remaining Phase 8 work to umbrella, builder, and example cleanup.
 2026-03-21 - Copilot: created detailed Phase 8 public API compatibility and cleanup backlog.
 
@@ -18,10 +19,13 @@ This phase reconciles the internal seam refactors with the public Arduino-facing
 
 ### Umbrella Header Audit
 
-- [ ] Audit `src/HttpServerAdvanced.h` for headers, typedefs, and aliases that should no longer be part of the always-on public surface.
+- [x] Audit `src/HttpServerAdvanced.h` for headers, typedefs, and aliases that should no longer be part of the always-on public surface.
 - [ ] Group includes by core, compat, optional features, and Arduino convenience layers.
 - [ ] Decide whether some includes should move out of the umbrella header into opt-in headers to reduce coupling.
 - [ ] Ensure removed or optional features are not exported unconditionally through the umbrella surface.
+
+Current note:
+The latest umbrella cleanup removed the always-on Arduino static-files convenience include, so `HttpServerAdvanced.h` no longer re-exports `StaticFiles(fs::FS&, ...)` through an Arduino-only header. Further umbrella work is still open around grouping, optional features, and any remaining convenience aliases.
 
 ### Compatibility Overload Review
 

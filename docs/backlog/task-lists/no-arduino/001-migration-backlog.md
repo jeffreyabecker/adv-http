@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: removed the legacy compat filesystem and stream wrapper headers, dropped the Arduino static-files umbrella helper, and updated the no-Arduino backlog references after retiring the old planning docs.
 2026-03-23 - Copilot: removed remaining core and routing Arduino `String` usage in the active no-Arduino surface, refreshed Phase 2 and Phase 8 progress notes, and recorded the latest native validation pass.
 2026-03-23 - Copilot: removed the non-Arduino legacy `Compat::File : Stream` inheritance and closed the remaining Phase 6 file-inherits-stream cleanup item.
 2026-03-23 - Copilot: reconciled the umbrella no-Arduino backlog with the detailed phase files, marked Phase 7 complete, and refreshed the remaining Phase 5 and Phase 6 work items.
@@ -13,17 +14,17 @@
 
 ## Summary
 
-This backlog replaces the deleted de-arduinofication task list with a single implementation-oriented program backlog derived from the current planning set under `docs/plans/no-arduino/`. The goal remains to move the HTTP core, parsing, routing, response streaming, and static-file paths onto platform-neutral C++17 interfaces while preserving Arduino support through thin compatibility adapters. The work has now progressed well beyond initial seam scaffolding: the baseline, build-matrix, text, runtime, transport, stream, and optional-feature phases are complete at the backlog level, and the filesystem phase has its core seam and builder migration in place. The latest Phase 2 and Phase 8 slice removed the remaining active core-model and routing `String` adapters from the validated native surface, updated the exact-output response serializer to standard text, and kept the native lane green. The remaining work is now concentrated in filesystem adapter or metadata cleanup, broader native validation, umbrella or builder cleanup, and final enforcement or documentation.
+This backlog replaces the deleted de-arduinofication task list with a single implementation-oriented program backlog derived from the now-retired no-Arduino planning set. The goal remains to move the HTTP core, parsing, routing, response streaming, and static-file paths onto platform-neutral C++17 interfaces while preserving Arduino support only where an explicit boundary still justifies it. The work has now progressed well beyond initial seam scaffolding: the baseline, build-matrix, text, runtime, transport, stream, and optional-feature phases are complete at the backlog level, and the filesystem phase has its core seam and builder migration in place. The latest Phase 2, 5, 6, and 8 slices removed the remaining active core-model and routing `String` adapters, retired the legacy compat `Stream` and `FileSystem` wrappers, dropped the Arduino static-files umbrella helper, and kept the native lane green. The remaining work is now concentrated in metadata semantics, broader native validation, the last direct Arduino runtime seam in `compat/Clock.h`, and final enforcement or documentation.
 
 ## Current Progress Snapshot
 
 - Phase 0 baseline and scope lock is complete.
 - Phase 1 build and validation harness is complete at the backlog level: build-matrix expectations, JSON build-policy direction, and native-lane purpose are documented.
-- Phase 2 text and utility migration is effectively complete for the validated native surface: URI and query parsing, `HttpHeader*`, `HttpRequest*`, handler parameter plumbing, auth/CORS entry points, and string-based response helpers now use standard-text-first internals, and the recent cleanup removed the active core-model `String` caches and routing `String` overloads. The main remaining umbrella item is finishing the last non-text `Arduino.h` cleanup in low-level support headers such as `core/Defines.h` and any remaining transitive include cleanup outside the validated core-text slice.
+- Phase 2 text and utility migration is effectively complete for the validated native surface: URI and query parsing, `HttpHeader*`, `HttpRequest*`, handler parameter plumbing, auth/CORS entry points, and string-based response helpers now use standard-text-first internals, and the recent cleanup removed the active core-model `String` caches and routing `String` overloads. The `core/Defines.h` include cleanup is now complete; the main remaining non-text Arduino seam in validated `src/` code is the runtime clock branch in `compat/Clock.h`.
 - Phase 3 runtime-helper cleanup is effectively complete for implementation: the concrete clock seam exists, pipeline timekeeping uses it, `F()` has been removed from the core path, and example runtime concerns sit under `examples/`. Remaining follow-on work is deeper timeout-semantics validation in later native fixture coverage.
 - Phase 4 transport cleanup is largely complete: textual address accessors replaced the old address shim, transport semantics were documented, and the core-facing seam no longer depends on Arduino-shaped wrappers. Remaining work is focused on transport-specific validation and any out-of-tree implementer guidance.
-- Phase 5 stream and response refactoring is largely complete: the byte-source seam exists, response bodies and pipeline callbacks use it, exact-output serializer regression coverage has landed, and unused legacy helper streams have been removed. Remaining work is concentrated in confining Arduino stream or print usage to adapters and closing the last composed-response regression gaps.
-- Phase 6 filesystem and static-file migration is largely complete: static-file locators, handlers, and builder wiring now target `IFileSystem` or `IFile`, Arduino adapter helpers exist for sketch-facing usage, and POSIX-backed native coverage exercises the new seam. Remaining work centers on tightening adapter and metadata semantics and broadening filesystem regression coverage.
+- Phase 5 stream and response refactoring is largely complete: the byte-source seam exists, response bodies and pipeline callbacks use it, exact-output serializer regression coverage has landed, unused legacy helper streams have been removed, and the last legacy compat `Stream` wrapper header has been deleted. Remaining work is concentrated in documenting the final adapter boundary and closing the last composed-response regression gaps.
+- Phase 6 filesystem and static-file migration is largely complete: static-file locators, handlers, and builder wiring now target `IFileSystem` or `IFile`, POSIX-backed native coverage exercises the new seam, and the legacy compat `FileSystem` wrapper plus Arduino static-files umbrella helper have been removed. Remaining work centers on tightening metadata semantics, deciding whether any sketch-facing Arduino filesystem helper should return in a narrower form, and broadening filesystem regression coverage.
 - Phase 7 optional-feature and removal-scope cleanup is complete at the backlog level: JSON enablement is explicit, JSON-disabled native validation exists, and stale secure-scope docs or metadata have been removed. Phase 8 has now made a concrete first cut through public text compatibility cleanup by removing obsolete `String` overloads from the active core and routing surface, but umbrella-header cleanup, example alignment, and broader API guidance still remain. Phases 9 and 10 are still open for broader native fixtures and final guardrails or documentation.
 
 ## Goal / Acceptance Criteria
@@ -75,7 +76,7 @@ This backlog replaces the deleted de-arduinofication task list with a single imp
 - [x] Update URI and query parsing helpers, including `util/UriView.*` and related utilities, to use `std::string` plus `std::string_view` semantics instead of Arduino-owned text.
 - [x] Move core owned text models such as `HttpHeader`, `HttpHeaderCollection`, `HttpRequest`, and parser-owned request/header storage onto `std::string`.
 - [x] Keep Arduino-facing overloads only as compatibility shims, with a bias toward `const char *` for borrowed-input APIs.
-- [ ] Remove `Arduino.h` from low-level utility and core model headers once replacement types are in place.
+- [x] Remove `Arduino.h` from low-level utility and core model headers once replacement types are in place.
 
 ### Phase 3: Runtime And Miscellaneous Arduino Helpers
 
@@ -154,10 +155,4 @@ High
 
 ## References
 
-- `docs/plans/no-arduino/arduino-decoupling-plan.md`
-- `docs/plans/no-arduino/arduino-other-dependencies.md`
-- `docs/plans/no-arduino/filesystem-interface-plan.md`
-- `docs/plans/no-arduino/in-tree-transport-plan.md`
-- `docs/plans/no-arduino/stream-replacement-plan.md`
-- `docs/plans/no-arduino/testing-refactor-plan.md`
 - `platformio.ini`
