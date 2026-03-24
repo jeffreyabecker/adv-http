@@ -7,8 +7,6 @@
 #include "../core/HttpHeaderCollection.h"
 #include "../core/HttpRequest.h"
 #include "../core/HttpStatus.h"
-#include "../core/IHttpRequestHandlerFactory.h"
-#include "../response/HttpResponse.h"
 #include "../util/HttpUtility.h"
 
 #include <algorithm>
@@ -334,21 +332,21 @@ namespace HttpServerAdvanced
         return false;
     }
 
-    RequestHandlingResult WebSocketUpgradeHandler::handle(HttpRequest &request, IHttpRequestHandlerFactory &handlerFactory, const WebSocketCallbacks &callbacks) const
+    HandlerResult WebSocketUpgradeHandler::handle(HttpRequest &request, const WebSocketCallbacks &callbacks) const
     {
         std::string key;
         const std::optional<UpgradeFailure> failure = validateUpgradeRequest(request, key);
         if (failure.has_value())
         {
-            return rejectUpgrade(*failure, handlerFactory);
+            return rejectUpgrade(request, *failure);
         }
 
         const std::string acceptValue = createWebSocketAcceptValue(key);
         auto session = std::make_unique<WebSocketSessionRuntime>(createHandshakeResponseText(acceptValue), callbacks);
-        return RequestHandlingResult::upgrade(std::move(session));
+        return HandlerResult::upgradeResult(std::move(session));
     }
 
-    RequestHandlingResult WebSocketUpgradeHandler::rejectUpgrade(UpgradeFailure failure, IHttpRequestHandlerFactory &handlerFactory)
+    HandlerResult WebSocketUpgradeHandler::rejectUpgrade(HttpRequest &request, UpgradeFailure failure)
     {
         HttpStatus status = HttpStatus::BadRequest();
         std::string message = "WebSocket upgrade rejected: malformed headers or key";
@@ -381,7 +379,6 @@ namespace HttpServerAdvanced
             break;
         }
 
-        std::unique_ptr<IHttpResponse> response = handlerFactory.createResponse(status, message);
-        return RequestHandlingResult::response(CreateResponseStream(std::move(response)));
+        return HandlerResult::responseResult(request.createResponse(status, message));
     }
 }

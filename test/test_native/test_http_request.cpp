@@ -6,6 +6,7 @@
 #include "../../src/compat/Clock.h"
 #include "../../src/core/HttpRequest.h"
 #include "../../src/core/HttpRequestPhase.h"
+#include "../../src/handlers/HttpHandler.h"
 #include "../../src/pipeline/RequestParser.h"
 #include "../../src/routing/HandlerMatcher.h"
 #include "../../src/server/HttpServerBase.h"
@@ -73,19 +74,23 @@ namespace
     {
     }
 
-    TestSupport::RecordingRequestHandlerFactory::RequestResultFactoryCallback createWebSocketUpgradeCallback(
+    TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback createWebSocketUpgradeHandlerFactory(
         std::string_view path,
         WebSocketCallbacks callbacks = {})
     {
-        return [registeredPath = std::string(path), callbacks = std::move(callbacks)](HttpRequest &context, IHttpRequestHandlerFactory &factory)
+        return [registeredPath = std::string(path), callbacks = std::move(callbacks)](HttpRequest &)
         {
-            if (!WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(context) || !defaultCheckUriPattern(context.uriView().path(), registeredPath))
-            {
-                return RequestHandlingResult();
-            }
+            return std::make_unique<HttpHandler>(
+                [registeredPath, callbacks](HttpRequest &context) mutable -> IHttpHandler::HandlerResult
+                {
+                    if (!WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(context) || !defaultCheckUriPattern(context.uriView().path(), registeredPath))
+                    {
+                        return nullptr;
+                    }
 
-            WebSocketUpgradeHandler upgradeHandler;
-            return upgradeHandler.handle(context, factory, callbacks);
+                    WebSocketUpgradeHandler upgradeHandler;
+                    return upgradeHandler.handle(context, callbacks);
+                });
         };
     }
 
@@ -185,11 +190,7 @@ namespace
     {
         HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
         TestSupport::RecordingRequestHandlerFactory factory(
-            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
-            {
-                return nullptr;
-            },
-            createWebSocketUpgradeCallback("/chat"));
+            createWebSocketUpgradeHandlerFactory("/chat"));
 
         auto pipelineHandler = HttpRequest::createPipelineHandler(server, factory);
         RequestParser parser(*pipelineHandler);
@@ -211,7 +212,6 @@ namespace
         }
 
         TEST_ASSERT_TRUE(factory.createCount() >= 1);
-        TEST_ASSERT_TRUE(factory.requestResultCreateCount() >= 1);
         TEST_ASSERT_TRUE(pipelineHandler->hasPendingResult());
 
         RequestHandlingResult result = pipelineHandler->takeResult();
@@ -235,7 +235,7 @@ namespace
     void test_http_request_websocket_upgrade_rejects_invalid_requests_with_deterministic_statuses()
     {
         {
-            TestSupport::RecordingRequestHandlerFactory factory(nullptr, createWebSocketUpgradeCallback("/chat"));
+            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "POST",
                 "/chat",
@@ -251,11 +251,10 @@ namespace
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 405 Method Not Allowed"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
-            TEST_ASSERT_TRUE(factory.requestResultCreateCount() >= 1);
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(nullptr, createWebSocketUpgradeCallback("/chat"));
+            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -270,11 +269,10 @@ namespace
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 426 Upgrade Required"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
-            TEST_ASSERT_TRUE(factory.requestResultCreateCount() >= 1);
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(nullptr, createWebSocketUpgradeCallback("/chat"));
+            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -289,11 +287,10 @@ namespace
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 426 Upgrade Required"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
-            TEST_ASSERT_TRUE(factory.requestResultCreateCount() >= 1);
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(nullptr, createWebSocketUpgradeCallback("/chat"));
+            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -309,11 +306,10 @@ namespace
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
-            TEST_ASSERT_TRUE(factory.requestResultCreateCount() >= 1);
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(nullptr, createWebSocketUpgradeCallback("/chat"));
+            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -329,11 +325,10 @@ namespace
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
-            TEST_ASSERT_TRUE(factory.requestResultCreateCount() >= 1);
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(nullptr, createWebSocketUpgradeCallback("/chat"));
+            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -349,11 +344,10 @@ namespace
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
-            TEST_ASSERT_TRUE(factory.requestResultCreateCount() >= 1);
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(nullptr, createWebSocketUpgradeCallback("/chat"));
+            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -369,11 +363,10 @@ namespace
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
-            TEST_ASSERT_TRUE(factory.requestResultCreateCount() >= 1);
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(nullptr, createWebSocketUpgradeCallback("/chat"));
+            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -390,7 +383,6 @@ namespace
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
-            TEST_ASSERT_TRUE(factory.requestResultCreateCount() >= 1);
         }
     }
 

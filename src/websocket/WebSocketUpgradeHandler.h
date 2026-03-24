@@ -1,12 +1,11 @@
 #pragma once
 
-#include "../pipeline/RequestHandlingResult.h"
+#include "../handlers/HandlerResult.h"
 #include "WebSocketCallbacks.h"
 
 namespace HttpServerAdvanced
 {
     class HttpRequest;
-    class IHttpRequestHandlerFactory;
 
     class WebSocketUpgradeHandler
     {
@@ -22,9 +21,9 @@ namespace HttpServerAdvanced
         };
 
         static bool isWebSocketUpgradeCandidate(const HttpRequest &request);
-        RequestHandlingResult handle(HttpRequest &request, IHttpRequestHandlerFactory &handlerFactory, const WebSocketCallbacks &callbacks) const;
+        HandlerResult handle(HttpRequest &request, const WebSocketCallbacks &callbacks) const;
 
     private:
-        static RequestHandlingResult rejectUpgrade(UpgradeFailure failure, IHttpRequestHandlerFactory &handlerFactory);
+        static HandlerResult rejectUpgrade(HttpRequest &request, UpgradeFailure failure);
     };
 }

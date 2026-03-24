@@ -1,13 +1,7 @@
 #pragma once
 #include "IHttpRequestHandlerFactory.h"
 #include "../routing/HandlerProviderRegistry.h"
-#include "../response/HttpResponse.h"
 #include "../response/StringResponse.h"
-#include "../routing/HandlerMatcher.h"
-#include "../websocket/WebSocketRoute.h"
-#include "../websocket/WebSocketUpgradeHandler.h"
-
-#include <vector>
 
 namespace HttpServerAdvanced
 {
@@ -60,12 +54,10 @@ namespace HttpServerAdvanced
     {
     private:
         HandlerProviderRegistry &providerRegistry_;
-        const std::vector<WebSocketRoute> *webSocketRoutes_ = nullptr;
 
     public:
-        HttpRequestHandlerFactory(HandlerProviderRegistry &providerRegistry, const std::vector<WebSocketRoute> *webSocketRoutes = nullptr)
-            : providerRegistry_(providerRegistry),
-              webSocketRoutes_(webSocketRoutes) {}
+        HttpRequestHandlerFactory(HandlerProviderRegistry &providerRegistry)
+            : providerRegistry_(providerRegistry) {}
         
         
 
@@ -73,32 +65,6 @@ namespace HttpServerAdvanced
         {
             static_cast<void>(context);
             return std::make_unique<DeferredRegistryHandler>(providerRegistry_);
-        }
-
-        RequestHandlingResult tryCreateRequestResult(HttpRequest &context) override
-        {
-            if (!WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(context) || webSocketRoutes_ == nullptr)
-            {
-                return RequestHandlingResult();
-            }
-
-            const WebSocketCallbacks *matchedCallbacks = nullptr;
-            for (const auto &route : *webSocketRoutes_)
-            {
-                if (defaultCheckUriPattern(context.uriView().path(), route.path))
-                {
-                    matchedCallbacks = &route.callbacks;
-                    break;
-                }
-            }
-
-            if (matchedCallbacks == nullptr)
-            {
-                return RequestHandlingResult();
-            }
-
-            WebSocketUpgradeHandler upgradeHandler;
-            return upgradeHandler.handle(context, *this, *matchedCallbacks);
         }
 
         virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string body) override

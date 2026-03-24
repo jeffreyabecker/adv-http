@@ -172,6 +172,10 @@ namespace HttpServerAdvanced
         inline std::map<std::string, std::any> &items() const{
             return items_;
         }
+        inline std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string body)
+        {
+            return handlerFactory_.createResponse(status, std::move(body));
+        }
 
         UriView &uriView() const
         {

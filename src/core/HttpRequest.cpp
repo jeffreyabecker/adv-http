@@ -28,25 +28,6 @@ namespace HttpServerAdvanced
             return;
         }
 
-        if ((completedPhases_ & HttpRequestPhase::CompletedReadingHeaders) != 0)
-        {
-            RequestHandlingResult factoryResult = handlerFactory_.tryCreateRequestResult(*this);
-            if (factoryResult.hasValue())
-            {
-                if (factoryResult.kind == RequestHandlingResult::Kind::Response)
-                {
-                    setPendingResult(std::move(factoryResult));
-                    sendResponse();
-                }
-                else
-                {
-                    setPendingResult(std::move(factoryResult));
-                }
-
-                return;
-            }
-        }
-
         auto handler = tryGetHandler();
         if (handler)
         {

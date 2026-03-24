@@ -403,16 +403,27 @@ namespace
         TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback handlerFactory = nullptr)
     {
         return TestSupport::RecordingRequestHandlerFactory(
-            std::move(handlerFactory),
-            [registeredPath = std::string(path), callbacks = std::move(callbacks)](HttpRequest &context, IHttpRequestHandlerFactory &factory)
+            [registeredPath = std::string(path), callbacks = std::move(callbacks), handlerFactory = std::move(handlerFactory)](HttpRequest &context) mutable -> std::unique_ptr<IHttpHandler>
             {
-                if (!WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(context) || !defaultCheckUriPattern(context.uriView().path(), registeredPath))
+                if (handlerFactory)
                 {
-                    return RequestHandlingResult();
+                    if (std::unique_ptr<IHttpHandler> innerHandler = handlerFactory(context))
+                    {
+                        return innerHandler;
+                    }
                 }
 
-                WebSocketUpgradeHandler upgradeHandler;
-                return upgradeHandler.handle(context, factory, callbacks);
+                return std::make_unique<HttpHandler>(
+                    [registeredPath, callbacks](HttpRequest &innerContext) mutable -> IHttpHandler::HandlerResult
+                    {
+                        if (!WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(innerContext) || !defaultCheckUriPattern(innerContext.uriView().path(), registeredPath))
+                        {
+                            return nullptr;
+                        }
+
+                        WebSocketUpgradeHandler upgradeHandler;
+                        return upgradeHandler.handle(innerContext, callbacks);
+                    });
             });
     }
 

@@ -7,12 +7,13 @@
 #include "../handlers/HandlerRestrictions.h"
 #include "HandlerProviderRegistry.h"
 #include "HandlerBuilder.h"
-#include "../websocket/WebSocketRoute.h"
+#include "../websocket/WebSocketCallbacks.h"
+#include "../websocket/WebSocketUpgradeHandler.h"
 
+#include <cstddef>
 #include <string>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 namespace HttpServerAdvanced
 {
@@ -31,13 +32,11 @@ namespace HttpServerAdvanced
 
     private:
         HandlerProviderRegistry &providerRegistry_;
-        std::vector<WebSocketRoute> *webSocketRoutes_;
-        std::vector<std::unique_ptr<IHandlerProvider>> handlerItems_;
+        std::size_t websocketHandlerCount_ = 0;
 
     public:
-        ProviderRegistryBuilder(HandlerProviderRegistry &factory, std::vector<WebSocketRoute> *webSocketRoutes = nullptr)
-            : providerRegistry_(factory),
-              webSocketRoutes_(webSocketRoutes)
+        ProviderRegistryBuilder(HandlerProviderRegistry &factory)
+            : providerRegistry_(factory)
         {
         }
         ~ProviderRegistryBuilder() = default;
@@ -63,10 +62,23 @@ namespace HttpServerAdvanced
 
         ProviderRegistryBuilder &websocket(std::string_view path, WebSocketCallbacks callbacks)
         {
-            if (webSocketRoutes_ != nullptr)
-            {
-                webSocketRoutes_->push_back(WebSocketRoute{std::string(path), std::move(callbacks)});
-            }
+            std::string registeredPath(path);
+            providerRegistry_.add(
+                [registeredPath](HttpRequest &context)
+                {
+                    return WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(context) && defaultCheckUriPattern(context.uriView().path(), registeredPath);
+                },
+                [callbacks = std::move(callbacks)](HttpRequest &) mutable -> std::unique_ptr<IHttpHandler>
+                {
+                    return std::make_unique<HttpHandler>(
+                        [callbacks = std::move(callbacks)](HttpRequest &context) mutable -> IHttpHandler::HandlerResult
+                        {
+                            WebSocketUpgradeHandler upgradeHandler;
+                            return upgradeHandler.handle(context, callbacks);
+                        });
+                },
+                static_cast<AddPosition>(websocketHandlerCount_));
+            ++websocketHandlerCount_;
 
             return *this;
         }

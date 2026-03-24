@@ -3,6 +3,7 @@
 
 #include <unity.h>
 
+#include "../../src/compat/Clock.h"
 #include "../../src/core/HttpHeader.h"
 #include "../../src/core/HttpRequest.h"
 #include "../../src/handlers/HandlerTypes.h"
@@ -16,7 +17,6 @@
 #include "../../src/server/WebServerBuilder.h"
 #include "../../src/server/WebServerConfig.h"
 #include "../../src/websocket/WebSocketCallbacks.h"
-#include "../../src/websocket/WebSocketRoute.h"
 
 #include <any>
 #include <cstddef>
@@ -228,13 +228,13 @@ namespace
     AuthInvocationResult invokeAuth(IHttpHandler::InterceptorCallback interceptor, HttpRequest &context)
     {
         AuthInvocationResult result;
-        auto response = interceptor(context, [&result](HttpRequest &) -> std::unique_ptr<IHttpResponse>
+        HandlerResult response = interceptor(context, [&result](HttpRequest &) -> HandlerResult
         {
             result.nextCalled = true;
-            return createResponse(HttpStatus::Ok(), "authorized");
+            return HandlerResult::responseResult(createResponse(HttpStatus::Ok(), "authorized"));
         });
 
-        if (response)
+        if (response.isResponse())
         {
             result.response = TestSupport::CaptureResponse(std::move(response));
         }
@@ -562,11 +562,10 @@ namespace
         TEST_ASSERT_EQUAL_UINT16(404, nonMatchResponse.status.code());
     }
 
-    void test_provider_registry_builder_websocket_registration_captures_route_and_callbacks()
+    void test_provider_registry_builder_websocket_registration_creates_upgrade_handler()
     {
         HandlerProviderRegistry registry;
-        std::vector<WebSocketRoute> routes;
-        ProviderRegistryBuilder builder(registry, &routes);
+        ProviderRegistryBuilder builder(registry);
 
         bool openCalled = false;
         WebSocketCallbacks callbacks;
@@ -575,13 +574,33 @@ namespace
             openCalled = true;
         };
 
-        builder.websocket("/ws/*", callbacks);
+        const std::string websocketPattern = std::string("/ws/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+        builder.websocket(websocketPattern, callbacks);
 
-        TEST_ASSERT_EQUAL_UINT64(1, routes.size());
-        TEST_ASSERT_EQUAL_STRING("/ws/*", routes[0].path.c_str());
-        TEST_ASSERT_TRUE(static_cast<bool>(routes[0].callbacks.onOpen));
+        RequestContextHarness harness;
+        prepareRequest(
+            harness,
+            "GET",
+            "/ws/chat",
+            {
+                {"Host", "example.test"},
+                {"Connection", "Upgrade"},
+                {"Upgrade", "websocket"},
+                {"Sec-WebSocket-Version", "13"},
+                {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
+            });
 
-        routes[0].callbacks.onOpen();
+        auto handler = registry.createContextHandler(harness.context());
+        HandlerResult result = handler->handleStep(harness.context());
+
+        TEST_ASSERT_TRUE(result.isUpgrade());
+        TEST_ASSERT_NOT_NULL(result.upgradedSession.get());
+
+        TestSupport::FakeClient client;
+        Compat::ManualClock clock(1000);
+        const ConnectionSessionResult firstStep = result.upgradedSession->handle(client, clock);
+
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(ConnectionSessionResult::Continue), static_cast<int>(firstStep));
         TEST_ASSERT_TRUE(openCalled);
     }
 
@@ -986,7 +1005,7 @@ namespace
         RUN_TEST(test_handler_provider_registry_applies_filters_interceptors_and_body_forwarding_for_matches);
         RUN_TEST(test_handler_provider_registry_response_filters_only_run_for_non_null_responses);
         RUN_TEST(test_provider_registry_builder_on_factory_overload_registers_for_builder_and_web_server_config);
-        RUN_TEST(test_provider_registry_builder_websocket_registration_captures_route_and_callbacks);
+        RUN_TEST(test_provider_registry_builder_websocket_registration_creates_upgrade_handler);
         RUN_TEST(test_handler_provider_registry_supports_indexed_insertion_and_out_of_range_clamping);
         RUN_TEST(test_handler_provider_registry_uses_default_not_found_response_when_no_match_exists);
         RUN_TEST(test_handler_matcher_mutators_override_runtime_checker_and_extractor_behavior);
