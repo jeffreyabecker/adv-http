@@ -1,4 +1,4 @@
-2026-03-24 - Copilot: created backlog item from the websocket context implementation plan to track the `WebSocketContext` and `WebSocketProtocolExecution` refactor in implementation-sized slices.
+2026-03-24 - Copilot: created backlog item from the broader request-owned pipeline-state implementation plan to track the `WebSocketContext` and `WebSocketProtocolExecution` refactor in implementation-sized slices.
 
 # Implement WebSocket Context And Protocol Execution Backlog
 
@@ -99,7 +99,7 @@ The websocket Phase 4 design work now defines a clear target architecture: `WebS
 
 ## References
 
-- [docs/plans/websocket-context-implementation-plan.md](docs/plans/websocket-context-implementation-plan.md)
+- [docs/plans/externalize-request-owned-pipeline-state-implementation-plan.md](docs/plans/externalize-request-owned-pipeline-state-implementation-plan.md)
 - [docs/backlog/task-lists/web-sockets/011-design-websocket-context-and-send-api-backlog.md](docs/backlog/task-lists/web-sockets/011-design-websocket-context-and-send-api-backlog.md)
 - [docs/backlog/task-lists/web-sockets/012-externalize-request-owned-pipeline-state-for-peer-contexts-backlog.md](docs/backlog/task-lists/web-sockets/012-externalize-request-owned-pipeline-state-for-peer-contexts-backlog.md)
 - [src/websocket/WebSocketSessionRuntime.h](src/websocket/WebSocketSessionRuntime.h)
