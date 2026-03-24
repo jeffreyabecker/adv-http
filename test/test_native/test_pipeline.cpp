@@ -11,10 +11,11 @@
 #include "../../src/pipeline/IPipelineHandler.h"
 #include "../../src/pipeline/PipelineError.h"
 #include "../../src/pipeline/PipelineHandleClientResult.h"
+#include "../../src/routing/HandlerMatcher.h"
 #include "../../src/response/StringResponse.h"
 #include "../../src/server/HttpServerBase.h"
 #include "../../src/websocket/WebSocketCallbacks.h"
-#include "../../src/websocket/WebSocketRoute.h"
+#include "../../src/websocket/WebSocketUpgradeHandler.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -267,13 +268,12 @@ namespace
         std::size_t scriptedIndex_ = 0;
     };
 
-    PipelineHandlerPtr makePipelineHandler(std::unique_ptr<ScenarioHandler> handler)
+    PipelineHandlerPtr makePipelineHandler(ScenarioHandler *handler)
     {
         return PipelineHandlerPtr(
-            handler.release(),
-            [](IPipelineHandler *handlerPtr)
+            handler,
+            [](IPipelineHandler *)
             {
-                delete static_cast<ScenarioHandler *>(handlerPtr);
             });
     }
 
@@ -318,7 +318,6 @@ namespace
             timeouts_.setActivityTimeout(40);
             timeouts_.setTotalRequestLengthMs(200);
 
-            auto handler = std::make_unique<ScenarioHandler>();
             auto client = std::make_unique<TestSupport::FakeClient>(
                 readSteps,
                 std::move(remoteAddress),
@@ -339,8 +338,8 @@ namespace
                         configureHandler(*handler);
                     }
                     handler_ = handler.get();
-                    handlerHistory_.push_back(handler_);
-                    return makePipelineHandler(std::move(handler));
+                    handlerHistory_.push_back(std::move(handler));
+                    return makePipelineHandler(handler_);
                 },
                 clock_);
         }
@@ -387,7 +386,7 @@ namespace
         std::unique_ptr<HttpPipeline> pipeline_;
         TestSupport::FakeClient *client_ = nullptr;
         ScenarioHandler *handler_ = nullptr;
-        std::vector<ScenarioHandler *> handlerHistory_;
+        std::vector<std::unique_ptr<ScenarioHandler>> handlerHistory_;
     };
 
     void localSetUp()
@@ -396,6 +395,25 @@ namespace
 
     void localTearDown()
     {
+    }
+
+    TestSupport::RecordingRequestHandlerFactory createWebSocketAwareRequestFactory(
+        std::string_view path,
+        WebSocketCallbacks callbacks = {},
+        TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback handlerFactory = nullptr)
+    {
+        return TestSupport::RecordingRequestHandlerFactory(
+            std::move(handlerFactory),
+            [registeredPath = std::string(path), callbacks = std::move(callbacks)](HttpRequest &context, IHttpRequestHandlerFactory &factory)
+            {
+                if (!WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(context) || !defaultCheckUriPattern(context.uriView().path(), registeredPath))
+                {
+                    return RequestHandlingResult();
+                }
+
+                WebSocketUpgradeHandler upgradeHandler;
+                return upgradeHandler.handle(context, factory, callbacks);
+            });
     }
 
     bool hasBinarySuffix(const std::string &value, span<const std::uint8_t> suffix)
@@ -800,12 +818,13 @@ namespace
         timeouts.setTotalRequestLengthMs(200);
 
         HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
-        TestSupport::RecordingRequestHandlerFactory requestFactory(
+        auto requestFactory = createWebSocketAwareRequestFactory(
+            "/chat",
+            {},
             [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
-        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
 
         auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
         TestSupport::FakeClient *clientPtr = client.get();
@@ -814,9 +833,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory, &routes]()
+            [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
+                return HttpRequest::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -849,12 +868,13 @@ namespace
         timeouts.setTotalRequestLengthMs(200);
 
         HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
-        TestSupport::RecordingRequestHandlerFactory requestFactory(
+        auto requestFactory = createWebSocketAwareRequestFactory(
+            "/chat",
+            {},
             [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
-        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
 
         auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
         TestSupport::FakeClient *clientPtr = client.get();
@@ -863,9 +883,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory, &routes]()
+            [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
+                return HttpRequest::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -895,12 +915,13 @@ namespace
         timeouts.setTotalRequestLengthMs(200);
 
         HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
-        TestSupport::RecordingRequestHandlerFactory requestFactory(
+        auto requestFactory = createWebSocketAwareRequestFactory(
+            "/chat",
+            {},
             [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
-        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
 
         auto client = std::make_unique<TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {PingFrame, false}});
@@ -910,9 +931,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory, &routes]()
+            [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
+                return HttpRequest::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -948,12 +969,13 @@ namespace
         timeouts.setTotalRequestLengthMs(200);
 
         HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
-        TestSupport::RecordingRequestHandlerFactory requestFactory(
+        auto requestFactory = createWebSocketAwareRequestFactory(
+            "/chat",
+            {},
             [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
-        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
 
         auto client = std::make_unique<TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {CloseFrame, false}});
@@ -963,9 +985,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory, &routes]()
+            [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
+                return HttpRequest::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -1000,12 +1022,13 @@ namespace
         timeouts.setTotalRequestLengthMs(200);
 
         HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
-        TestSupport::RecordingRequestHandlerFactory requestFactory(
+        auto requestFactory = createWebSocketAwareRequestFactory(
+            "/chat",
+            {},
             [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
-        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
 
         auto client = std::make_unique<TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {InvalidUnmaskedFrame, false}});
@@ -1015,9 +1038,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory, &routes]()
+            [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
+                return HttpRequest::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -1051,12 +1074,13 @@ namespace
         timeouts.setTotalRequestLengthMs(200);
 
         HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
-        TestSupport::RecordingRequestHandlerFactory requestFactory(
+        auto requestFactory = createWebSocketAwareRequestFactory(
+            "/chat",
+            {},
             [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
-        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
 
         auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
         TestSupport::FakeClient *clientPtr = client.get();
@@ -1066,9 +1090,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory, &routes]()
+            [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
+                return HttpRequest::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -1111,13 +1135,6 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
-        TestSupport::RecordingRequestHandlerFactory requestFactory(
-            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
-            {
-                return nullptr;
-            });
-
         WebSocketCallbacks callbacks;
         callbacks.onOpen = [&callbackEvents]()
         {
@@ -1140,7 +1157,14 @@ namespace
             callbackEvents.push_back(std::string("error:") + std::string(message));
         };
 
-        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", callbacks}};
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        auto requestFactory = createWebSocketAwareRequestFactory(
+            "/chat",
+            callbacks,
+            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            {
+                return nullptr;
+            });
 
         auto client = std::make_unique<TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {TextFrame, false}, {BinaryFrame, false}, {CloseFrame, false}});
@@ -1149,9 +1173,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory, &routes]()
+            [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
+                return HttpRequest::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -1187,7 +1211,9 @@ namespace
         timeouts.setTotalRequestLengthMs(200);
 
         HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
-        TestSupport::RecordingRequestHandlerFactory requestFactory(
+        auto requestFactory = createWebSocketAwareRequestFactory(
+            "/other",
+            {},
             [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
             {
                 return std::make_unique<HttpHandler>(
@@ -1201,8 +1227,6 @@ namespace
                     });
             });
 
-        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/other", WebSocketCallbacks{}}};
-
         auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
         TestSupport::FakeClient *clientPtr = client.get();
 
@@ -1210,9 +1234,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory, &routes]()
+            [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
+                return HttpRequest::createPipelineHandler(server, requestFactory);
             },
             clock);
 

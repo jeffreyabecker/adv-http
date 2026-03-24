@@ -31,14 +31,14 @@ namespace HttpServerAdvanced
         void init()
         {
             server_.setPipelineHandlerFactory([this](HttpServerBase &server) {
-                return HttpRequest::createPipelineHandler(server, handlerFactory_, &webSocketRoutes_);
+                return HttpRequest::createPipelineHandler(server, handlerFactory_);
             });
         }
 
 
         WebServerBuilder(HttpServerBase &server)
             : handlersBuilder_(providerRegistry_, &webSocketRoutes_),
-              handlerFactory_(providerRegistry_),
+              handlerFactory_(providerRegistry_, &webSocketRoutes_),
               server_(server)
         {
         }

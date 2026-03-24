@@ -70,12 +70,16 @@ namespace HttpServerAdvanced::TestSupport
     public:
         using IHttpRequestHandlerFactory::createResponse;
         using HandlerFactoryCallback = std::function<std::unique_ptr<IHttpHandler>(HttpRequest &)>;
+        using RequestResultFactoryCallback = std::function<RequestHandlingResult(HttpRequest &, IHttpRequestHandlerFactory &)>;
         using ResponseFactoryCallback = std::function<std::unique_ptr<IHttpResponse>(HttpStatus, std::string)>;
 
         explicit RecordingRequestHandlerFactory(
             HandlerFactoryCallback handlerFactory = nullptr,
+            RequestResultFactoryCallback requestResultFactory = nullptr,
             ResponseFactoryCallback responseFactory = nullptr)
-            : handlerFactory_(std::move(handlerFactory)), responseFactory_(std::move(responseFactory))
+            : handlerFactory_(std::move(handlerFactory)),
+              requestResultFactory_(std::move(requestResultFactory)),
+              responseFactory_(std::move(responseFactory))
         {
         }
 
@@ -89,6 +93,17 @@ namespace HttpServerAdvanced::TestSupport
             }
 
             return nullptr;
+        }
+
+        RequestHandlingResult tryCreateRequestResult(HttpRequest &context) override
+        {
+            ++requestResultCreateCount_;
+            if (requestResultFactory_)
+            {
+                return requestResultFactory_(context, *this);
+            }
+
+            return RequestHandlingResult();
         }
 
         std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string body) override
@@ -119,6 +134,11 @@ namespace HttpServerAdvanced::TestSupport
             return responseCreateCount_;
         }
 
+        std::size_t requestResultCreateCount() const
+        {
+            return requestResultCreateCount_;
+        }
+
         const std::vector<HttpStatus> &responseStatuses() const
         {
             return responseStatuses_;
@@ -136,9 +156,11 @@ namespace HttpServerAdvanced::TestSupport
 
     private:
         HandlerFactoryCallback handlerFactory_;
+        RequestResultFactoryCallback requestResultFactory_;
         ResponseFactoryCallback responseFactory_;
         std::size_t createCount_ = 0;
         HttpRequest *lastCreateContext_ = nullptr;
+        std::size_t requestResultCreateCount_ = 0;
         std::size_t responseCreateCount_ = 0;
         std::vector<HttpStatus> responseStatuses_;
         std::vector<std::string> responseBodies_;

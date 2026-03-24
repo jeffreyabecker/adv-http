@@ -3,6 +3,7 @@
 #include <string_view>
 
 #include "../handlers/IHttpHandler.h"
+#include "../pipeline/RequestHandlingResult.h"
 #include "../response/HttpResponse.h"
 namespace HttpServerAdvanced
 {   
@@ -11,6 +12,10 @@ namespace HttpServerAdvanced
     public:
         static constexpr const char *ServiceName = "HttpRequestHandlerFactory";
         virtual std::unique_ptr<IHttpHandler> create(HttpRequest &context) = 0;
+        virtual RequestHandlingResult tryCreateRequestResult(HttpRequest &context)
+        {
+            return RequestHandlingResult();
+        }
         virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string body) = 0;
         virtual ~IHttpRequestHandlerFactory() = default;    
         virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string_view body)
