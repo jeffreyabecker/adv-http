@@ -1,3 +1,4 @@
+2026-03-24 - Copilot: completed Phase 2 by defining the slimmed-down HttpRequest shape, the HTTP runner abstraction, and the transitional IPipelineHandler adapter.
 2026-03-24 - Copilot: completed Phase 1 by documenting the HttpRequest ownership inventory, target HTTP context/runner seam, and locked behavior-test coverage for the split.
 2026-03-24 - Copilot: created design backlog for externalizing HttpRequest-owned pipeline state so future protocol contexts such as WebSocketContext can be peers rather than special cases.
 
@@ -145,6 +146,138 @@ Phase 1 conclusion:
 - Leave `HttpRequest` focused on parsed request data, helper services, and request-local storage.
 - Preserve the existing `IPipelineHandler` surface during this extraction so `HttpPipeline` does not need to change simultaneously.
 
+## Phase 2 Findings
+
+### Slimmed-Down HttpRequest Shape
+
+After the split, `HttpRequest` should be reduced to an HTTP context with these responsibilities:
+
+- parsed request metadata and addressing data
+  - method
+  - version
+  - URL
+  - headers
+  - remote/local address and port
+- request-local helper/state access
+  - `items()`
+  - `uriView()` and URI cache
+  - request-body byte count or equivalent body-progress view
+- lightweight service access needed by handlers
+  - `server()`
+  - `createResponse(...)`
+- read-only execution hints that handlers may still need
+  - a phase/progress view, if the handler model continues to depend on `HttpRequestPhase`
+
+It should no longer directly own:
+
+- cached route handler lifetime
+- pending pipeline result staging
+- parser-callback driven orchestration
+- `HandlerResult` to `RequestHandlingResult` translation
+- no-response finalization
+- parser-error to HTTP-response mapping
+
+### Proposed HTTP Runner Responsibility
+
+The HTTP runner becomes the execution object that owns everything currently implicit in `HttpRequest`'s private orchestration state:
+
+- hold the current `HttpRequest` context instance
+- lazily create the `IHttpHandler` through `IHttpRequestHandlerFactory`
+- maintain execution/phase state consumed by handlers
+- forward parser events into the context and drive handler execution at the correct seams
+- forward body chunks to `handleBodyChunk(...)`
+- translate `HandlerResult` into `RequestHandlingResult`
+- own pending result staging until `HttpPipeline` consumes it
+- synthesize parser/pipeline error responses through `IHttpRequestHandlerFactory::createResponse(...)`
+
+### Minimal Phase 2 Interface Sketch
+
+```cpp
+class HttpRequestRunner
+{
+public:
+    virtual ~HttpRequestRunner() = default;
+
+    virtual HttpRequest &context() = 0;
+
+    virtual int onMessageBegin(const char *method,
+                               std::uint16_t versionMajor,
+                               std::uint16_t versionMinor,
+                               std::string_view url) = 0;
+    virtual void setAddresses(std::string_view remoteAddress,
+                              std::uint16_t remotePort,
+                              std::string_view localAddress,
+                              std::uint16_t localPort) = 0;
+    virtual int onHeader(std::string_view field, std::string_view value) = 0;
+    virtual int onHeadersComplete() = 0;
+    virtual int onBody(const std::uint8_t *at, std::size_t length) = 0;
+    virtual int onMessageComplete() = 0;
+    virtual void onError(PipelineError error) = 0;
+
+    virtual void onResponseStarted() = 0;
+    virtual void onResponseCompleted() = 0;
+    virtual void onClientDisconnected() = 0;
+
+    virtual bool hasPendingResult() const = 0;
+    virtual RequestHandlingResult takeResult() = 0;
+};
+```
+
+This is intentionally close to `IPipelineHandler`, because the first extraction goal is to relocate ownership, not to redesign the pipeline callback contract at the same time.
+
+### Transitional Adapter Shape
+
+The safest migration move is a thin adapter that preserves the existing `IPipelineHandler` surface while delegating all behavior to the new runner.
+
+```cpp
+class HttpRequestPipelineAdapter : public IPipelineHandler
+{
+public:
+    explicit HttpRequestPipelineAdapter(std::unique_ptr<HttpRequestRunner> runner);
+
+    int onMessageBegin(const char *method,
+                       std::uint16_t versionMajor,
+                       std::uint16_t versionMinor,
+                       std::string_view url) override;
+    void setAddresses(std::string_view remoteAddress,
+                      std::uint16_t remotePort,
+                      std::string_view localAddress,
+                      std::uint16_t localPort) override;
+    int onHeader(std::string_view field, std::string_view value) override;
+    int onHeadersComplete() override;
+    int onBody(const std::uint8_t *at, std::size_t length) override;
+    int onMessageComplete() override;
+    void onError(PipelineError error) override;
+    void onResponseStarted() override;
+    void onResponseCompleted() override;
+    void onClientDisconnected() override;
+    bool hasPendingResult() const override;
+    RequestHandlingResult takeResult() override;
+
+private:
+    std::unique_ptr<HttpRequestRunner> runner_;
+};
+```
+
+With that transitional shape:
+
+- `HttpPipeline` continues to consume an `IPipelineHandler`
+- the runner owns orchestration and result staging
+- `HttpRequest::createPipelineHandler(...)` can become a compatibility factory that constructs the adapter plus runner, rather than directly making `HttpRequest` implement the pipeline contract
+
+### Phase 2 Design Constraints
+
+- The runner should continue to use `IHttpRequestHandlerFactory::create(HttpRequest &)` initially, to avoid simultaneously changing routing/factory seams.
+- `HttpRequestPhase` can remain exposed through `HttpRequest` in Phase 2, but the mutable phase state should move to the runner and be projected into the context rather than owned there directly.
+- `RequestHandlingResult` remains the runner-to-pipeline currency in Phase 2; redesigning that contract belongs to Phase 3.
+- Error-to-response mapping should move wholesale with the runner so HTTP failure behavior stays in one place.
+
+### Phase 2 Conclusion
+
+- The minimal viable split does not require `HttpPipeline` changes yet.
+- The key new object is an HTTP runner that mirrors the current `IPipelineHandler` lifecycle while owning orchestration state.
+- `HttpRequest` can be slimmed down immediately once the adapter/runner pair exists, because the current pipeline-facing methods do not need to stay on the context type itself.
+
 ### Phase 3: Generalize The Pipeline Execution Seam
 
 - Reevaluate the split between `IPipelineHandler` and `IConnectionSession` once HTTP orchestration is no longer embedded in `HttpRequest`.
@@ -186,9 +319,9 @@ Phase 1 conclusion:
 - [x] Phase 1: document the exact orchestration responsibilities currently owned by `HttpRequest` that are not inherently request-data responsibilities.
 - [x] Phase 1: classify current `HttpRequest` fields and methods into context-owned versus runner-owned responsibilities.
 - [x] Phase 1: identify and lock the HTTP behavior tests that must remain green through the split.
-- [ ] Phase 2: design a slimmed-down HTTP context shape that can survive without directly owning handler lifetime and pipeline-result translation.
-- [ ] Phase 2: design an HTTP runner/orchestrator abstraction that can own handler creation, phase advancement, and error-to-response mapping.
-- [ ] Phase 2: define the transitional adapter that preserves the existing `IPipelineHandler` integration while HTTP orchestration moves outward.
+- [x] Phase 2: design a slimmed-down HTTP context shape that can survive without directly owning handler lifetime and pipeline-result translation.
+- [x] Phase 2: design an HTTP runner/orchestrator abstraction that can own handler creation, phase advancement, and error-to-response mapping.
+- [x] Phase 2: define the transitional adapter that preserves the existing `IPipelineHandler` integration while HTTP orchestration moves outward.
 - [ ] Phase 3: decide whether the pipeline should generalize above `IPipelineHandler` and `IConnectionSession`, or whether one of those seams should absorb the peer-context design.
 - [ ] Phase 3: define the shared execution lifecycle and result contract required for peer protocol contexts.
 - [ ] Phase 4: define how a future `WebSocketContext` would map onto the chosen shared execution seam.
@@ -199,7 +332,7 @@ Phase 1 conclusion:
 
 ## Immediate Next Slice
 
-- Start Phase 2 by sketching the minimal HTTP runner interface and the slimmed-down `HttpRequest` surface it would need to drive.
+- Start Phase 3 by deciding whether the long-term shared execution seam should replace `IPipelineHandler`, replace `IConnectionSession`, or sit above both.
 
 ## Owner
 
