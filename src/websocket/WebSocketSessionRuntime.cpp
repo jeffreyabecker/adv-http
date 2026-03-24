@@ -1,6 +1,7 @@
 #include "WebSocketSessionRuntime.h"
 
 #include "../core/Defines.h"
+#include "WebSocketErrorPolicy.h"
 
 #include <algorithm>
 #include <array>
@@ -10,6 +11,29 @@
 
 namespace HttpServerAdvanced
 {
+    namespace
+    {
+        WsErrorCategory mapCodecErrorCategory(WebSocketCodecError error)
+        {
+            switch (error)
+            {
+            case WebSocketCodecError::ControlFrameFragmented:
+            case WebSocketCodecError::ControlFrameTooLarge:
+            case WebSocketCodecError::UnexpectedContinuationFrame:
+            case WebSocketCodecError::InterruptedContinuationSequence:
+            case WebSocketCodecError::UnmaskedClientFrame:
+                return WsErrorCategory::ProtocolViolation;
+            case WebSocketCodecError::InvalidReservedBits:
+            case WebSocketCodecError::InvalidOpcode:
+            case WebSocketCodecError::MalformedExtendedPayloadLength:
+            case WebSocketCodecError::MalformedClosePayload:
+            case WebSocketCodecError::None:
+            default:
+                return WsErrorCategory::FrameParseError;
+            }
+        }
+    }
+
     WebSocketSessionRuntime::WebSocketSessionRuntime(std::string handshakeResponse, WebSocketCallbacks callbacks)
         : parser_(true),
           pendingWrite_(handshakeResponse.begin(), handshakeResponse.end()),
@@ -21,10 +45,11 @@ namespace HttpServerAdvanced
     {
         if (!client.connected())
         {
+            const WsClosePolicy policy = policyFor(WsErrorCategory::RemoteDisconnect);
             notifyError("WebSocket disconnected");
-            notifyClose(1006, "");
+            notifyClose(policy.closeCode, "");
             closeState_ = CloseState::Closed;
-            return ConnectionSessionResult::Completed;
+            return ConnectionSessionResult::AbortConnection;
         }
 
         const bool hadPendingBeforeFlush = !pendingWrite_.empty();
@@ -74,9 +99,19 @@ namespace HttpServerAdvanced
 
                 if (parseResult.status == WebSocketCodecStatus::ProtocolError)
                 {
+                    const WsErrorCategory category = mapCodecErrorCategory(parseResult.error);
+                    const WsClosePolicy policy = policyFor(category);
                     notifyError("WebSocket protocol error");
-                    queueCloseFrame(WebSocketCloseCode::ProtocolError);
-                    closeCode_ = static_cast<std::uint16_t>(WebSocketCloseCode::ProtocolError);
+
+                    if (!policy.attemptCloseHandshake)
+                    {
+                        notifyClose(policy.closeCode, "");
+                        closeState_ = CloseState::Closed;
+                        return ConnectionSessionResult::AbortConnection;
+                    }
+
+                    queueCloseFrame(static_cast<WebSocketCloseCode>(policy.closeCode));
+                    closeCode_ = policy.closeCode;
                     closeReason_.clear();
                     closeState_ = CloseState::CloseQueued;
                     break;
@@ -179,6 +214,25 @@ namespace HttpServerAdvanced
 
     void WebSocketSessionRuntime::handleParsedFrame(const WebSocketFrame &frame)
     {
+        if (frame.header.payloadLength > WsMaxFramePayloadSize)
+        {
+            const WsClosePolicy policy = policyFor(WsErrorCategory::MessageTooLarge);
+            notifyError("WebSocket frame payload too large");
+            if (policy.attemptCloseHandshake)
+            {
+                queueCloseFrame(static_cast<WebSocketCloseCode>(policy.closeCode));
+                closeCode_ = policy.closeCode;
+                closeReason_.clear();
+                closeState_ = CloseState::CloseQueued;
+            }
+            else
+            {
+                notifyClose(policy.closeCode, "");
+                closeState_ = CloseState::Closed;
+            }
+            return;
+        }
+
         switch (frame.header.opcode)
         {
         case WebSocketOpcode::Ping:
@@ -227,11 +281,15 @@ namespace HttpServerAdvanced
             {
                 if (frame.payload.size() > WsMaxMessageSize)
                 {
+                    const WsClosePolicy policy = policyFor(WsErrorCategory::MessageTooLarge);
                     notifyError("WebSocket message too big");
-                    queueCloseFrame(WebSocketCloseCode::MessageTooBig);
-                    closeCode_ = static_cast<std::uint16_t>(WebSocketCloseCode::MessageTooBig);
-                    closeReason_.clear();
-                    closeState_ = CloseState::CloseQueued;
+                    if (policy.attemptCloseHandshake)
+                    {
+                        queueCloseFrame(static_cast<WebSocketCloseCode>(policy.closeCode));
+                        closeCode_ = policy.closeCode;
+                        closeReason_.clear();
+                        closeState_ = CloseState::CloseQueued;
+                    }
                     return;
                 }
 
@@ -257,11 +315,15 @@ namespace HttpServerAdvanced
             messageBuffer_.clear();
             if (!appendMessageFragment(span<const std::uint8_t>(frame.payload.data(), frame.payload.size())))
             {
+                const WsClosePolicy policy = policyFor(WsErrorCategory::MessageTooLarge);
                 notifyError("WebSocket message too big");
-                queueCloseFrame(WebSocketCloseCode::MessageTooBig);
-                closeCode_ = static_cast<std::uint16_t>(WebSocketCloseCode::MessageTooBig);
-                closeReason_.clear();
-                closeState_ = CloseState::CloseQueued;
+                if (policy.attemptCloseHandshake)
+                {
+                    queueCloseFrame(static_cast<WebSocketCloseCode>(policy.closeCode));
+                    closeCode_ = policy.closeCode;
+                    closeReason_.clear();
+                    closeState_ = CloseState::CloseQueued;
+                }
             }
             return;
         }
@@ -279,11 +341,15 @@ namespace HttpServerAdvanced
 
             if (!appendMessageFragment(span<const std::uint8_t>(frame.payload.data(), frame.payload.size())))
             {
+                const WsClosePolicy policy = policyFor(WsErrorCategory::MessageTooLarge);
                 notifyError("WebSocket message too big");
-                queueCloseFrame(WebSocketCloseCode::MessageTooBig);
-                closeCode_ = static_cast<std::uint16_t>(WebSocketCloseCode::MessageTooBig);
-                closeReason_.clear();
-                closeState_ = CloseState::CloseQueued;
+                if (policy.attemptCloseHandshake)
+                {
+                    queueCloseFrame(static_cast<WebSocketCloseCode>(policy.closeCode));
+                    closeCode_ = policy.closeCode;
+                    closeReason_.clear();
+                    closeState_ = CloseState::CloseQueued;
+                }
                 return;
             }
 

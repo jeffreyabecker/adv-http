@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: added authoritative websocket limit constants in Defines, introduced centralized WsErrorCategory/policyFor mapping, integrated runtime policy usage, and added exhaustive native policy-table tests.
 2026-03-23 - Copilot: added locked decisions for limits naming (12) and centralized error-mapping policy (13); updated tasks accordingly.
 2026-03-23 - Copilot: created detailed Phase 6 WebSocket limits, errors, and hardening backlog.
 
@@ -31,16 +32,16 @@ This phase tightens resource and failure behavior so the initial WebSocket imple
 
 ### Limits And Constants
 
-- [ ] Add the four authoritative WebSocket limit constants to `src/core/Defines.h`: `WsMaxFramePayloadSize` (default 4096), `WsMaxMessageSize` (default 8192), `WsIdleTimeoutMs` (default 30000), `WsCloseTimeoutMs` (default 2000).
-- [ ] Follow the `#ifndef HTTPSERVER_ADVANCED_WEBSOCKET_* / static constexpr / #else / static constexpr / #endif` pattern for each constant.
-- [ ] Ensure all production code reads the `constexpr` variable names, never the raw `HTTPSERVER_ADVANCED_WEBSOCKET_*` macros except in `#if`/`#ifndef` preprocessor branches.
+- [x] Add the four authoritative WebSocket limit constants to `src/core/Defines.h`: `WsMaxFramePayloadSize` (default 4096), `WsMaxMessageSize` (default 8192), `WsIdleTimeoutMs` (default 30000), `WsCloseTimeoutMs` (default 2000).
+- [x] Follow the `#ifndef HTTPSERVER_ADVANCED_WEBSOCKET_* / static constexpr / #else / static constexpr / #endif` pattern for each constant.
+- [x] Ensure all production code reads the `constexpr` variable names, never the raw `HTTPSERVER_ADVANCED_WEBSOCKET_*` macros except in `#if`/`#ifndef` preprocessor branches.
 
 ### Error Mapping And Close Policy
 
-- [ ] Define the `WsErrorCategory` enum with all seven categories: `FrameParseError`, `ProtocolViolation`, `MessageTooLarge`, `WriteFailure`, `IdleTimeout`, `CloseHandshakeTimeout`, `RemoteDisconnect`.
-- [ ] Implement the centralized `policyFor(WsErrorCategory)` mapping function using the authoritative table from the pre-implementation decision backlog (item 13).
-- [ ] Add a safe default policy (no close handshake, code 1006) for any unmapped category to prevent silent undefined behavior.
-- [ ] Cover the full policy table exhaustively in the native test suite.
+- [x] Define the `WsErrorCategory` enum with all seven categories: `FrameParseError`, `ProtocolViolation`, `MessageTooLarge`, `WriteFailure`, `IdleTimeout`, `CloseHandshakeTimeout`, `RemoteDisconnect`.
+- [x] Implement the centralized `policyFor(WsErrorCategory)` mapping function using the authoritative table from the pre-implementation decision backlog (item 13).
+- [x] Add a safe default policy (no close handshake, code 1006) for any unmapped category to prevent silent undefined behavior.
+- [x] Cover the full policy table exhaustively in the native test suite.
 
 ### Embedded Resource Review
 

@@ -68,6 +68,7 @@ int run_test_static_files();
 int run_test_stream_available();
 int run_test_stream_utilities();
 int run_test_utilities();
+int run_test_websocket_error_policy();
 int run_test_websocket_frame_codec();
 
 int main(int, char **)
@@ -86,6 +87,7 @@ int main(int, char **)
     failureCount += run_test_response_streams();
     failureCount += run_test_stream_available();
     failureCount += run_test_stream_utilities();
+    failureCount += run_test_websocket_error_policy();
     failureCount += run_test_websocket_frame_codec();
     failureCount += run_test_filesystem_posix();
     failureCount += run_test_utilities();
