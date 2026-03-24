@@ -258,6 +258,14 @@ DELETE /api/items/?    → Delete item
 
 ---
 
+## WebSocket Example Status
+
+- The websocket API is available via `builder.handlers().websocket(path, WebSocketCallbacks)`.
+- A minimal echo websocket example is tracked as a follow-up task after the Phase 5 API stabilization work.
+- It is intentionally not treated as a merge-gate requirement for core websocket implementation.
+
+---
+
 ### 5.2 WebDashboard
 **File**: `examples/WebDashboard/WebDashboard.ino`  
 **Features**: Full web application  

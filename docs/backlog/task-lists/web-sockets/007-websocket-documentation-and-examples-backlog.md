@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: documented websocket scope/unsupported list/limits/validation path in library docs and added websocket example-status notes; marked completed documentation tasks.
 2026-03-23 - Copilot: added locked decision for documentation gate (14); updated scope and example tasks to match merge requirements.
 2026-03-23 - Copilot: created detailed Phase 7 WebSocket documentation and examples backlog.
 
@@ -29,7 +30,7 @@ This phase documents the actual shipped WebSocket surface after the internal arc
 
 ### Scope And Behavior Documentation
 
-- [ ] Add the unsupported-feature section to `LIBRARY_DOCUMENTATION.md` as a merge gate, covering all of the following:
+- [x] Add the unsupported-feature section to `LIBRARY_DOCUMENTATION.md` as a merge gate, covering all of the following:
   - WebSocket extensions (permessage-deflate and all RFC 7692+ extensions).
   - Subprotocol negotiation (`Sec-WebSocket-Protocol` accepted but ignored).
   - Multiplexing (one WebSocket per TCP connection).
@@ -37,19 +38,19 @@ This phase documents the actual shipped WebSocket surface after the internal arc
   - Messages exceeding `WsMaxMessageSize` (rejected with close code 1009).
   - PING and PONG observation callbacks.
   - Outbound sends from outside the pipeline loop.
-- [ ] Document supported frame behavior, close behavior, timeout expectations, and the four configured limit constants.
-- [ ] Validate documentation against the actual native test assertions and constant values rather than aspirational descriptions.
+- [x] Document supported frame behavior, close behavior, timeout expectations, and the four configured limit constants.
+- [x] Validate documentation against the actual native test assertions and constant values rather than aspirational descriptions.
 
 ### Developer Documentation
 
-- [ ] Add notes that explain the upgrade seam and why WebSocket support is not modeled as a normal `IHttpHandler` variant.
-- [ ] Document the public route registration and callback model once it is stable.
-- [ ] Document the expected native validation path and any `native_portable_sources.cpp` updates required for host-side coverage.
+- [x] Add notes that explain the upgrade seam and why WebSocket support is not modeled as a normal `IHttpHandler` variant.
+- [x] Document the public route registration and callback model once it is stable.
+- [x] Document the expected native validation path and any `native_portable_sources.cpp` updates required for host-side coverage.
 
 ### Examples And Cross-Links
 
 - [ ] Add a minimal echo-server WebSocket example as a follow-up after the Phase 5 public API is confirmed stable; this is explicitly not a merge-gate requirement for the initial implementation PR.
-- [ ] Review existing docs pages and add cross-links where WebSocket discoverability matters.
+- [x] Review existing docs pages and add cross-links where WebSocket discoverability matters.
 - [ ] Keep examples narrow and aligned with the documented first-release scope.
 
 ## Owner

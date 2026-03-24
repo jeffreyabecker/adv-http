@@ -19,6 +19,7 @@ A comprehensive, pipeline-based HTTP server library for Arduino/RP2040 (Pico W) 
    - [Utilities](#9-utilities)
 3. [Class Relationships](#class-relationships)
 4. [Usage Patterns](#usage-patterns)
+5. [WebSocket Support Scope](#websocket-support-scope)
 
 ---
 
@@ -52,6 +53,74 @@ HttpServerAdvanced uses a **pipeline-based architecture** inspired by modern web
 - **Factory Pattern**: Handlers created on-demand per request
 - **Fluent Builder API**: Chainable configuration methods
 - **Static Buffers**: Configurable bounded memory for embedded constraints
+
+---
+
+## WebSocket Support Scope
+
+WebSocket support is implemented as an HTTP upgrade path plus a dedicated upgraded session runtime. It is intentionally not modeled as a normal `IHttpHandler` body variant.
+
+### Registration API
+
+- Register websocket endpoints with `ProviderRegistryBuilder::websocket(path, WebSocketCallbacks)`.
+- The callback surface is `WebSocketCallbacks` with five fields:
+    - `onOpen`
+    - `onText`
+    - `onBinary`
+    - `onClose`
+    - `onError`
+
+### Upgrade Seam
+
+- Routing first decides websocket endpoint intent by matching registered websocket paths.
+- Only matched websocket routes flow into the dedicated upgrade validation path.
+- The dedicated upgrade handler validates headers and generates `101 Switching Protocols` + `Sec-WebSocket-Accept`.
+- Unmatched websocket upgrade candidates continue through normal HTTP handler behavior.
+
+### Supported Frame/Session Behavior
+
+- Client-frame parsing with masking enforcement.
+- Text, binary, continuation, ping, pong, and close frame handling.
+- Automatic `PONG` generation for inbound `PING`.
+- Close sequencing with callback signaling.
+- Synchronous direct writes with partial-write resume across loop iterations.
+
+### Configured WebSocket Limits
+
+All limits are compile-time constants in `src/core/Defines.h` and can be overridden via build flags:
+
+- `WsMaxFramePayloadSize` (default `4096`)
+- `WsMaxMessageSize` (default `8192`)
+- `WsIdleTimeoutMs` (default `30000`)
+- `WsCloseTimeoutMs` (default `2000`)
+
+Messages exceeding `WsMaxMessageSize` are rejected with close code `1009`.
+
+### Unsupported Features (Merge-Gate List)
+
+The current implementation does **not** support:
+
+- WebSocket extensions, including `permessage-deflate` and RFC 7692+ extension negotiation.
+- Subprotocol negotiation (`Sec-WebSocket-Protocol` is treated as intent, but no negotiated subprotocol is selected).
+- Multiplexing (exactly one WebSocket per TCP connection).
+- Server-initiated `PING` frames.
+- `PING`/`PONG` observation callbacks.
+- Outbound sends from outside the pipeline loop.
+
+### Native Validation Path
+
+Use the native suite to validate websocket behavior:
+
+```powershell
+pio test -e native
+```
+
+Relevant websocket coverage currently lives in:
+
+- `test/test_native/test_http_request.cpp`
+- `test/test_native/test_pipeline.cpp`
+- `test/test_native/test_websocket_frame_codec.cpp`
+- `test/test_native/test_websocket_error_policy.cpp`
 
 ---
 
