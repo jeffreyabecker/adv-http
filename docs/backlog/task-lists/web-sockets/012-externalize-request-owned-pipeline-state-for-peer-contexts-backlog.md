@@ -1,3 +1,5 @@
+2026-03-24 - Copilot: clarified that websocket callback ownership should stay directly on `WebSocketContext` rather than being factored into a separate dispatch object.
+2026-03-24 - Copilot: aligned the peer-context naming plan so the target HTTP context class is `HttpContext`, with `HttpRequest` treated as the transitional current-code name until the split lands.
 2026-03-24 - Copilot: completed Phase 3 by comparing seam options, defining the shared execution lifecycle, and recommending a higher-level protocol execution abstraction above both existing pipeline seams.
 2026-03-24 - Copilot: completed Phase 2 by defining the slimmed-down HttpRequest shape, the HTTP runner abstraction, and the transitional IPipelineHandler adapter.
 2026-03-24 - Copilot: completed Phase 1 by documenting the HttpRequest ownership inventory, target HTTP context/runner seam, and locked behavior-test coverage for the split.
@@ -7,7 +9,7 @@
 
 ## Summary
 
-The current pipeline is structurally split in two stages, but the HTTP stage is still strongly centered on `HttpRequest`. `HttpPipeline` owns the transport loop and state machine, yet `HttpRequest` owns request parsing callbacks, lazy handler creation, request-phase progression, response/upgraded-session translation, and the lifetime of the current `IHttpHandler`. That makes HTTP feel like the built-in first-class context while upgraded protocols are forced into the narrower `IConnectionSession` slot after `HttpRequest` has already done the interesting orchestration work. This backlog item examines how far that ownership can be externalized so a future `WebSocketContext` can be a peer of `HttpRequest` instead of a child artifact created only after HTTP has finished deciding everything.
+The current pipeline is structurally split in two stages, but the HTTP stage is still strongly centered on `HttpRequest`. `HttpPipeline` owns the transport loop and state machine, yet `HttpRequest` owns request parsing callbacks, lazy handler creation, request-phase progression, response/upgraded-session translation, and the lifetime of the current `IHttpHandler`. That makes HTTP feel like the built-in first-class context while upgraded protocols are forced into the narrower `IConnectionSession` slot after `HttpRequest` has already done the interesting orchestration work. This backlog item examines how far that ownership can be externalized so a future `WebSocketContext` can be a peer of the HTTP activation context instead of a child artifact created only after HTTP has finished deciding everything. The target end-state name for that HTTP context should be `HttpContext`, with `HttpRequest` treated as the transitional current-code name until the split is complete.
 
 ## Goal / Acceptance Criteria
 
@@ -16,6 +18,7 @@ The current pipeline is structurally split in two stages, but the HTTP stage is 
 - The design identifies which responsibilities can move out of `HttpRequest` without regressing existing HTTP behavior.
 - The resulting architecture allows a future `WebSocketContext` to be modeled as a peer protocol context rather than only as an opaque `IConnectionSession` implementation.
 - The migration path is incremental and compatible with the existing pipeline/result model until a cleaner shared abstraction is ready.
+- The long-term naming plan is explicit: once orchestration is externalized, `HttpRequest` should be renamed to `HttpContext` so the HTTP and websocket context types use parallel names.
 
 ## Current Ownership Model
 
@@ -34,7 +37,7 @@ The current pipeline is structurally split in two stages, but the HTTP stage is 
 - Parser-error response synthesis can move out of `HttpRequest` into a protocol-runner or adapter object, leaving `HttpRequest` as data plus helper methods.
 - The pipeline-handler role can be separated from the request-context role so that parser callbacks mutate a context object but are implemented by an orchestrator that is free to own additional protocol state.
 
-## What Probably Stays With HttpRequest Or A Shared Base Context
+## What Probably Stays With HttpRequest / Future HttpContext Or A Shared Base Context
 
 - Parsed request metadata should remain on a context object: method, version, URL, headers, route items, remote/local addresses, and URI helpers.
 - Request-body accumulation bookkeeping should remain available to the HTTP context, even if body-phase control moves outward.
@@ -55,6 +58,30 @@ The current pipeline is structurally split in two stages, but the HTTP stage is 
 - A separate HTTP protocol runner owns handler creation, phase progression, error mapping, and `HandlerResult` to pipeline-result translation.
 - `HttpPipeline` drives protocol runners or protocol contexts through one shared execution seam rather than privileging HTTP with a richer orchestration object.
 - `WebSocketContext` can then own websocket-specific state such as outbound queue access, close-state observation, typed event dispatch, and per-connection items without being forced through a minimal session interface.
+
+## Naming Direction: HttpRequest Should Become HttpContext
+
+The current class name no longer matches the architecture being designed here.
+
+- In the target model, the HTTP-side object is not primarily just the raw request; it is the callback-facing HTTP context used during activation and request handling.
+- `WebSocketContext` is the peer protocol context name already implied by the websocket design.
+- Keeping the HTTP name as `HttpRequest` while the websocket side becomes `WebSocketContext` would preserve an unnecessary asymmetry in the public model.
+
+Recommended naming direction:
+
+- current code name during transition: `HttpRequest`
+- target architectural name after the split: `HttpContext`
+
+Why rename instead of keeping the old name:
+
+- It makes the HTTP and websocket sides read as peers: `HttpContext` and `WebSocketContext`.
+- It better describes the post-split responsibility set, which is context/state plus helper access rather than runner/orchestration ownership.
+- It reduces the chance that future API discussions accidentally treat the HTTP object as only raw request data while websocket gets the richer "context" framing.
+
+Migration implication:
+
+- Early slices can continue to discuss and use `HttpRequest` where required by current code.
+- Once the orchestration split is in place and the HTTP object is genuinely context-shaped, the class rename should be treated as part of the architecture completion work rather than as optional cleanup.
 
 ## Recommended Direction
 
@@ -378,13 +405,13 @@ Why forcing everything into one existing seam is less clean than it first appear
 
 One important constraint is fixed by the routing model:
 
-- activation predicates still need to run against `HttpContext` / `HttpRequest`
+- activation predicates still need to run against the HTTP activation context, which should ultimately be named `HttpContext` even though current code still calls it `HttpRequest`
 - the system cannot know which handler or upgraded protocol path is active until at least HTTP headers have been fully read
 - route activation therefore remains an HTTP-context concern even in the peer-context architecture
 
 Implications:
 
-- A future `WebSocketContext` should **not** replace `HttpRequest` as the object used for initial activation/routing decisions.
+- A future `WebSocketContext` should **not** replace the HTTP activation context as the object used for initial activation/routing decisions.
 - The HTTP runner remains responsible for driving request parsing to the header-complete seam, evaluating activation predicates against the HTTP context, and only then deciding whether execution stays in HTTP or hands off into a peer upgraded-protocol context.
 - This makes the "promote `IConnectionSession` into the main seam" option even less attractive, because it would blur the boundary between HTTP activation/routing and post-activation upgraded-protocol execution.
 - It also weakens the idea of making `IPipelineHandler` itself the permanent universal seam, because the HTTP activation stage and the post-activation websocket stage are meaningfully different lifecycle phases even if they share one higher-level execution model.
@@ -393,9 +420,9 @@ What this means for the recommendation:
 
 - The recommendation still stands: prefer a higher-level abstraction above both existing seams.
 - But that abstraction should model **staged protocol execution**, where:
-  - HTTP activation and handler selection happen first against `HttpRequest`
+  - HTTP activation and handler selection happen first against `HttpContext` in the target model, with `HttpRequest` serving as the transitional implementation name
   - the selected execution path may then continue as HTTP or transition into a peer protocol context such as `WebSocketContext`
-- In other words, `HttpRequest` remains the activation context, while `WebSocketContext` becomes the post-activation peer context for websocket execution.
+- In other words, `HttpContext` remains the activation context, while `WebSocketContext` becomes the post-activation peer context for websocket execution.
 
 ### Recommended Phase 3 Decision
 
@@ -462,8 +489,8 @@ Recommended naming split:
 
 - `IProtocolExecution`
   - the shared pipeline-facing lifecycle interface
-- `HttpRequest`
-  - the HTTP activation/request context
+- `HttpContext`
+  - the HTTP activation context
 - `HttpProtocolExecution`
   - the HTTP implementation of the shared execution seam
 - `WebSocketContext`
@@ -471,23 +498,28 @@ Recommended naming split:
 - `WebSocketProtocolExecution`
   - the websocket implementation of the shared execution seam
 
+Transitional note:
+
+- current code can continue to use `HttpRequest` while the split is underway
+- the design target should nevertheless be documented and discussed as `HttpContext` so the final naming shape stays consistent
+
 The shared seam should therefore be understood as spanning two stages:
 
-- an HTTP activation stage that parses enough of the request to select the execution path using `HttpRequest`
+- an HTTP activation stage that parses enough of the request to select the execution path using `HttpContext` in the target model, via the current `HttpRequest` implementation during transition
 - an execution stage that continues either as HTTP handling or as a peer upgraded-protocol context
 
 ### Phase 3 Conclusion
 
 - The higher-level abstraction route is the best long-term design.
 - It gives the cleanest `HttpPipeline` in semantic terms, because the pipeline becomes responsible for lifecycle progression rather than protocol-specific interface choice.
-- The added activation-predicate constraint makes this recommendation stronger, not weaker: `HttpRequest` still owns early activation/routing context, but it no longer needs to own the entire lifetime of post-activation execution.
+- The added activation-predicate constraint makes this recommendation stronger, not weaker: the HTTP activation context still owns early activation/routing context, but it no longer needs to own the entire lifetime of post-activation execution.
 - The cost is one more layer plus transitional adapters, but that cost buys a genuinely protocol-generic architecture instead of entrenching HTTP bias or session-loop bias.
 
 ### Phase 4: Introduce Peer WebSocket Context Ownership
 
 - Replace the websocket runtime's purely internal-context model with a first-class `WebSocketContext` shaped around the generalized execution seam.
 - Move websocket-specific mutable state such as outbound queue ownership, close-state inspection, callback context, and connection-local items behind that peer context.
-- Ensure `WebSocketContext` takes ownership of the HTTP activation data that remains relevant after upgrade, rather than forcing websocket callbacks to reach back into a no-longer-active `HttpRequest`.
+- Ensure `WebSocketContext` takes ownership of the HTTP activation data that remains relevant after upgrade, rather than forcing websocket callbacks to reach back into a no-longer-active `HttpContext` target object or the transitional `HttpRequest` implementation.
 - Keep the websocket protocol runtime logic, but make it operate on or through `WebSocketContext` rather than being the only public-facing runtime object.
 - Align the `WebSocketBuilder` and callback/send-api backlogs with the new peer-context model so event handlers target the new context directly.
 
@@ -516,9 +548,304 @@ Why this matters:
 
 Implication for the handoff:
 
-- the HTTP-to-websocket transition should not merely produce a websocket runner; it should construct a `WebSocketContext` that receives the relevant carried-forward state from `HttpRequest`
+- the HTTP-to-websocket transition should not merely produce a websocket runner; it should construct a `WebSocketContext` that receives the relevant carried-forward state from the HTTP activation context
 - this argues for an explicit handoff object or transfer step during upgrade, rather than leaving `WebSocketContext` to query stale HTTP state indirectly
 - ownership semantics should be documented clearly: copied data versus moved data versus shared references should be chosen intentionally for each category
+
+## Phase 4 Findings
+
+### Recommended Split: `WebSocketContext` vs `WebSocketProtocolExecution`
+
+The current `WebSocketSessionRuntime` mixes four responsibilities that should not stay fused once websocket becomes a peer protocol context:
+
+- carried-forward request/connection metadata
+- callback-facing websocket state and outbound operations
+- frame parser / serializer progression
+- connection-loop lifecycle decisions such as continue, completed, or abort
+
+Phase 4 should split those responsibilities as follows.
+
+`WebSocketContext` should own the callback-visible protocol state:
+
+- carried-forward HTTP activation data
+  - request items
+  - method
+  - version
+  - headers
+  - local/remote address and port
+- websocket session state that application callbacks may need to inspect
+  - whether open notification has occurred
+  - whether close has started
+  - received close code / reason once known
+  - connection-local items that survive after upgrade
+- the public outbound API surface
+  - `sendText(...)`
+  - `sendBinary(...)`
+  - `close(...)`
+  - possibly `sendPing(...)` if Phase 4 later decides that ping is public
+
+`WebSocketProtocolExecution` should own protocol progression and pipeline-facing lifecycle:
+
+- websocket frame parser progression
+- serializer coordination and write flushing
+- handshake-write completion
+- close-handshake state machine
+- mapping protocol errors to close/abort behavior
+- translating client I/O progression into the shared `IProtocolExecution` lifecycle
+
+This keeps the context focused on stable state and intentional operations while leaving transport/protocol driving in the execution object.
+
+### Do Not Expose `WebSocketSessionRuntime` Directly As The Long-Term Context
+
+`WebSocketSessionRuntime` is already doing too much to become the public peer context unchanged:
+
+- it owns `pendingWrite_` and `pendingWriteOffset_`, which are transport-progress details rather than callback-facing state
+- it owns parser state and fragmented-message assembly, which are execution concerns rather than context concerns
+- it owns `ConnectionSessionResult` decisions, which belong to the pipeline-facing execution contract rather than the callback surface
+
+That means the Phase 4 direction should not be "rename runtime to context". It should be "split the current runtime into a context plus an execution/runner object".
+
+### Suggested Handoff Shape
+
+The HTTP-to-websocket upgrade boundary should explicitly construct websocket-owned state instead of letting the execution layer pull from the HTTP activation context later.
+
+One workable sketch is:
+
+```cpp
+struct WebSocketActivationSnapshot
+{
+    ItemCollection items;
+    HttpMethod method;
+    HttpVersion version;
+    HttpHeaderCollection headers;
+    EndpointInfo localEndpoint;
+    EndpointInfo remoteEndpoint;
+};
+
+struct WebSocketUpgradeStart
+{
+    WebSocketActivationSnapshot activation;
+    std::string handshakeResponse;
+    WebSocketCallbacks callbacks;
+};
+```
+
+Then the runtime handoff becomes conceptually:
+
+- HTTP activation selects the websocket upgrade handler
+- the upgrade handler produces the handshake response plus websocket startup inputs
+- `WebSocketContext` is constructed from the carried-forward activation snapshot
+- `WebSocketProtocolExecution` is constructed around that context plus the websocket codec / write machinery
+
+The important point is not the exact type names. The important point is that the handoff data becomes explicit, testable, and owned by the websocket side after activation.
+
+### Suggested Responsibility Boundary
+
+The following split is the cleanest starting point.
+
+Responsibilities that should move into `WebSocketContext`:
+
+- callback registration or callback bundle ownership
+  - owned directly by `WebSocketContext`, not by a separate event-dispatch helper object
+- public send/close operations
+- websocket-visible close metadata
+- request-derived metadata needed after upgrade
+- application-scoped items associated with the upgraded connection
+
+Responsibilities that should remain in `WebSocketProtocolExecution`:
+
+- `handle(...)` / `onInboundProgress()`-style loop progression
+- parser incremental state
+- fragmented-message assembly buffers
+- pending serialized write buffer and flush offsets
+- automatic pong behavior unless Phase 4 explicitly promotes it to public API
+- close-handshake advancement rules and completion detection
+- mapping protocol faults to `notifyError`, close, or abort decisions
+
+Responsibilities that should be shared only through narrow methods rather than direct field access:
+
+- enqueueing outbound frames
+- starting close handshake
+- surfacing open/close/error notifications
+- querying whether application sends are still allowed
+
+This argues for `WebSocketContext` depending on a narrow outbound/session-control interface provided by the execution object, rather than directly owning raw write buffers.
+
+### Recommended Internal Interface Shape
+
+To keep `WebSocketContext` useful without letting it mutate transport details directly, the execution layer should expose a small internal control surface.
+
+For example:
+
+```cpp
+class IWebSocketSessionControl
+{
+public:
+    virtual ~IWebSocketSessionControl() = default;
+
+    virtual bool tryQueueText(std::string_view payload) = 0;
+    virtual bool tryQueueBinary(span<const std::uint8_t> payload) = 0;
+    virtual bool tryStartClose(WebSocketCloseCode code, span<const std::uint8_t> reason) = 0;
+    virtual bool canSend() const = 0;
+};
+```
+
+With that shape:
+
+- `WebSocketContext` can expose stable public methods without owning serialization buffers
+- `WebSocketProtocolExecution` remains the only object that knows about pending writes, close state transitions, and serializer failure
+- callback/send-api work in backlog `011` can define public behavior in terms of this narrow control seam instead of in terms of `WebSocketSessionRuntime` internals
+
+### Mapping To `IProtocolExecution`
+
+Under the Phase 3 recommendation, websocket should map to the shared execution seam like this:
+
+- `WebSocketProtocolExecution` implements `IProtocolExecution`
+- `WebSocketContext` is owned by `WebSocketProtocolExecution`
+- websocket callbacks receive `WebSocketContext &`
+- outbound sends mutate websocket execution indirectly through the session-control seam
+
+That means the pipeline sees one execution object, while application code sees one context object.
+
+This is the same architectural pattern proposed for HTTP:
+
+- the pipeline-facing object is the execution/runner
+- the protocol-facing object is the context
+
+That parallel structure is one of the main reasons this split is preferable to treating websocket runtime state as a hidden special case.
+
+### Impact On Backlog `011`
+
+The websocket context/send-api backlog should now be interpreted against this Phase 4 split.
+
+Specifically:
+
+- callback signatures should be designed around `WebSocketContext &`, not around direct access to `WebSocketSessionRuntime`
+- send semantics should be defined in terms of context operations delegating into execution-owned queue/control state
+- queue saturation, close-started behavior, and serializer failure should remain execution decisions surfaced through context return values or status objects
+- public API design should avoid exposing implementation details such as `pendingWrite_` or partial-flush offsets
+
+### Recommended Phase 4 Direction So Far
+
+- Model websocket the same way HTTP is being modeled: context plus execution, not one fused runtime object.
+- Make `WebSocketContext` the stable callback-facing owner of carried-forward activation data and websocket-visible session state.
+- Make `WebSocketProtocolExecution` the `IProtocolExecution` implementation that owns parser progress, outbound flushing, and pipeline completion rules.
+- Use a narrow internal session-control seam so context methods can request sends/closes without taking ownership of transport buffers.
+- Treat backlog `011` as defining the public shape of `WebSocketContext`, while this backlog defines the ownership and execution split underneath it.
+
+### Exact `WebSocketSessionRuntime` Member Mapping
+
+The current runtime fields in [src/websocket/WebSocketSessionRuntime.h](src/websocket/WebSocketSessionRuntime.h) should be split as follows.
+
+Members that should remain fully execution-owned in `WebSocketProtocolExecution`:
+
+- `parser_`
+  - websocket frame parsing progress is pure execution state
+- `pendingWrite_`
+  - serialized outbound buffer ownership is transport/write-progress state
+- `pendingWriteOffset_`
+  - partial flush offset is transport-progress state
+- `handshakeWritten_`
+  - handshake write completion is part of upgrade/output progression, not callback-visible context
+- `assemblingMessage_`
+  - fragmented-message assembly is execution-only parser state
+- `assembledMessageType_`
+  - current fragmented-message opcode is execution-only parser state
+- `messageBuffer_`
+  - fragmented payload accumulation is execution-only parser state
+- `receivedCloseFrame_`
+  - whether the peer close frame has arrived is part of close-handshake progression
+
+Members that should move primarily into `WebSocketContext`:
+
+- `callbacks_`
+  - callback bundle ownership belongs directly to the callback-facing protocol context
+- `closeCode_`
+  - final/observed close code is callback-visible session state
+- `closeReason_`
+  - final/observed close reason is callback-visible session state
+
+Members whose current meaning should be split between context-visible state and execution-only mechanics:
+
+- `openNotified_`
+  - the callback-visible fact that the websocket is open belongs on `WebSocketContext`
+  - the one-time delivery sequencing for `onOpen(...)` remains execution behavior
+- `closeState_`
+  - the public/session-visible portion becomes context state such as `isOpen()` / `isClosing()` / closed-state inspection
+  - the execution-only portion keeps the finer-grained handshake progression details currently represented by `CloseQueued` and `CloseSent`
+- `closeNotified_`
+  - at-most-once `onClose(...)` delivery is an execution concern
+  - any user-visible "close observed" state should be projected into context state rather than exposed as a raw delivery flag
+
+Stated differently:
+
+- `WebSocketContext` should own durable session facts that callbacks may inspect
+- `WebSocketProtocolExecution` should own parser progress, write progress, and callback-delivery sequencing
+- fields that currently conflate those two concerns should be replaced by a cleaner pair of states rather than copied verbatim into one new class
+
+### Recommended Replacement Shape For Split Members
+
+The members that should not survive unchanged are:
+
+- `closeState_`
+  - replace with a context-visible lifecycle state and a separate execution-only handshake stage
+- `openNotified_`
+  - replace with context-visible open state plus execution-managed first-open callback delivery
+- `closeNotified_`
+  - replace with execution-managed close-callback delivery bookkeeping only
+
+One workable shape is:
+
+```cpp
+enum class WebSocketLifecycleState
+{
+    Connecting,
+    Open,
+    Closing,
+    Closed
+};
+
+enum class WebSocketCloseHandshakeStage
+{
+    None,
+    CloseQueued,
+    CloseSent,
+    PeerCloseReceived,
+    Complete
+};
+```
+
+With that model:
+
+- `WebSocketContext` exposes `WebSocketLifecycleState`
+- `WebSocketProtocolExecution` tracks `WebSocketCloseHandshakeStage`
+- `closeCode_` and `closeReason_` live on context once known
+- callback delivery guards are not treated as public protocol state
+
+### Exact Current Methods And Their Target Home
+
+Current private methods on `WebSocketSessionRuntime` should also separate cleanly.
+
+Methods that stay execution-owned:
+
+- `handle(IClient &, const Compat::Clock &)`
+- `flushPendingWrite(IClient &)`
+- `queueSerializedFrame(...)`
+- `queueCloseFrame(...)`
+- `handleParsedFrame(...)`
+- `appendMessageFragment(...)`
+- `buildClosePayload(...)`
+
+Methods that conceptually become execution-to-context interaction points:
+
+- `notifyOpen()`
+  - execution decides when to fire it; context directly owns the callback bundle and open state
+- `notifyClose(...)`
+  - execution decides when final close notification is emitted; context directly owns the callback bundle and stores observable close metadata
+- `notifyError(...)`
+  - execution detects and routes the error; context directly owns the callback bundle and any callback-facing state
+
+That means the Phase 4 implementation should not migrate these helper methods wholesale into `WebSocketContext`. Instead, execution should call into callback/state surfaces owned directly by `WebSocketContext` at the appropriate lifecycle points.
 
 ### Phase 5: Cleanup And Surface Consolidation
 
@@ -552,15 +879,16 @@ Implication for the handoff:
 - [x] Phase 2: define the transitional adapter that preserves the existing `IPipelineHandler` integration while HTTP orchestration moves outward.
 - [x] Phase 3: decide whether the pipeline should generalize above `IPipelineHandler` and `IConnectionSession`, or whether one of those seams should absorb the peer-context design.
 - [x] Phase 3: define the shared execution lifecycle and result contract required for peer protocol contexts.
-- [ ] Phase 4: define how a future `WebSocketContext` would map onto the chosen shared execution seam.
+- [x] Phase 4: define how a future `WebSocketContext` would map onto the chosen shared execution seam.
 - [ ] Phase 4: update websocket context/send-api planning to align with the chosen peer-context architecture.
-- [ ] Phase 4: identify which websocket runtime responsibilities migrate into `WebSocketContext` versus remaining in a protocol runner.
+- [x] Phase 4: identify which websocket runtime responsibilities migrate into `WebSocketContext` versus remaining in a protocol runner.
 - [ ] Phase 5: identify which existing HTTP tests would need to move from `HttpRequest` behavior tests to protocol-runner behavior tests after the split.
+- [ ] Phase 5: plan the concrete rename from `HttpRequest` to `HttpContext` once the HTTP runner/context split is stable.
 - [ ] Phase 5: plan cleanup/removal of transitional adapters once both HTTP and websocket paths use the new model.
 
 ## Immediate Next Slice
 
-- Start Phase 4 by mapping websocket runtime responsibilities onto the proposed higher-level execution seam and deciding what becomes `WebSocketContext` state versus websocket-runner state.
+- Continue Phase 4 by turning the `WebSocketContext` versus `WebSocketProtocolExecution` split into concrete callback/send semantics and deciding whether public operations return `bool`, status enums, or richer send results.
 
 ## Owner
 
