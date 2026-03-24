@@ -1,3 +1,4 @@
+2026-03-24 - Copilot: completed Phase 1 by documenting the HttpRequest ownership inventory, target HTTP context/runner seam, and locked behavior-test coverage for the split.
 2026-03-24 - Copilot: created design backlog for externalizing HttpRequest-owned pipeline state so future protocol contexts such as WebSocketContext can be peers rather than special cases.
 
 # Externalize Request-Owned Pipeline State For Peer Contexts Backlog
@@ -62,6 +63,109 @@ The current pipeline is structurally split in two stages, but the HTTP stage is 
 - After that split, decide whether the pipeline should move to a generalized protocol-runner abstraction or whether upgraded protocols should gain a richer post-upgrade context contract.
 - Treat the new `WebSocketContext` as the websocket analogue of the future slimmed-down `HttpRequest`, not as a direct replacement for `WebSocketSessionRuntime`.
 
+## Phased Execution Plan
+
+### Phase 1: Isolate HttpRequest Responsibilities
+
+- Produce an ownership inventory for `HttpRequest` that explicitly separates request data, protocol orchestration, result translation, and error mapping.
+- Identify which `HttpRequest` fields belong to immutable or request-scoped context data versus runner-owned mutable execution state.
+- Freeze the expected externally visible HTTP behavior with tests before moving orchestration logic.
+- Define the target seam between a future HTTP context object and a future HTTP runner so later refactors do not drift.
+
+## Phase 1 Findings
+
+### HttpRequest Ownership Inventory
+
+| Member / Responsibility | Current Role | Recommended Owner After Split |
+| --- | --- | --- |
+| `method_`, `version_`, `url_` | parsed request metadata | HTTP context |
+| `headers_` | parsed request metadata | HTTP context |
+| `remoteAddress_`, `remotePort_`, `localAddress_`, `localPort_` | connection/request addressing metadata | HTTP context |
+| `items_` | request-scoped extension storage | HTTP context |
+| `cachedUriView_` | derived request helper cache | HTTP context |
+| `bodyBytesReceived_` | request-body progress bookkeeping | HTTP context, unless body-phase state is later generalized |
+| `server_` | request-local service access | HTTP context |
+| `handlerFactory_` | route-handler creation and response factory access | split responsibility: route-handler creation belongs to runner; response helper access may remain reachable through the context |
+| `handler_` | cached route handler instance for request lifetime | HTTP runner |
+| `pendingResult_` | pipeline-facing result staging | HTTP runner or pipeline adapter |
+| `completedPhases_` | execution/phase progression state consumed by handlers | HTTP runner-owned progression state, with read-only phase view exposed through context if still needed |
+| `tryGetHandler()` | lazy handler creation | HTTP runner |
+| `appendBodyContents(...)` | orchestrates body-phase transition and forwards body data | split: body bookkeeping to context, call sequencing to runner |
+| `handleStep()` | core orchestration entry point; invokes handler, translates results, finalizes no-response | HTTP runner |
+| `sendResponse()` | pipeline result/write-state transition helper | HTTP runner or pipeline adapter |
+| `completedStartingLine()`, `completedReadingHeaders()`, `completedReadingMessage()` | parser-phase progression hooks | HTTP runner |
+| `startedWritingResponse()`, `completedWritingResponse()` | response-write phase hooks | HTTP runner or pipeline adapter |
+| `onMessageBegin(...)`, `onHeader(...)`, `onBody(...)`, `onMessageComplete()` | parser callback entry points that mutate request state and advance execution | split: context mutation plus runner coordination |
+| `onError(...)` | parser/pipeline error to HTTP response mapping | HTTP runner |
+| `createPipelineHandler(...)` | binds `HttpRequest` to the `IPipelineHandler` seam | transitional adapter during the split; long-term likely replaced by runner creation |
+
+### Phase 1 Classification Summary
+
+- **HTTP context data**: request metadata, header collection, address data, URI helpers, request-scoped items, and lightweight service access helpers.
+- **HTTP orchestration state**: cached route handler, phase advancement, result staging, lazy handler creation, response-write callbacks, no-response finalization, and parser-error mapping.
+- **Pipeline/result adaptation**: `HandlerResult` to `RequestHandlingResult` translation, response-start/complete phase bridging, and the temporary `IPipelineHandler` adapter surface.
+
+### Target Phase 1 Seam
+
+The split should land on this boundary:
+
+- `HttpRequest` becomes an HTTP context object that holds parsed request data and request-local helpers.
+- A new HTTP runner owns execution state and is responsible for:
+  - creating the route handler
+  - advancing phases based on parser and response-write events
+  - invoking `handleStep(...)` and `handleBodyChunk(...)`
+  - translating `HandlerResult` into pipeline-consumable results
+  - mapping parser/pipeline errors into HTTP responses or terminal outcomes
+- During migration, the runner can still implement or back the existing `IPipelineHandler` seam so `HttpPipeline` does not need to be rewritten in the same slice.
+
+### Locked Behavior Tests For The Split
+
+These tests should be treated as the Phase 1 safety net and remain green while ownership moves out of `HttpRequest`:
+
+- Request-level HTTP/request-lifecycle tests in [test/test_native/test_http_request.cpp](test/test_native/test_http_request.cpp)
+  - `test_http_request_preserves_custom_method_through_factory_and_handler_steps`
+  - `test_http_request_websocket_upgrade_accepts_split_request_and_returns_upgrade_session`
+  - `test_http_request_websocket_upgrade_rejects_invalid_requests_with_deterministic_statuses`
+- Pipeline integration tests in [test/test_native/test_pipeline.cpp](test/test_native/test_pipeline.cpp)
+  - request/response completion, keep-alive reentry, parser-error propagation, timeout handling, response writing, upgrade transition, and unmatched-upgrade fallback coverage
+- Body-handler behavior that currently depends on `HttpRequest::createPipelineHandler(...)` in [test/test_native/test_body_handlers.cpp](test/test_native/test_body_handlers.cpp)
+- Routing harness coverage that exercises request-context creation through `HttpRequest::createPipelineHandler(...)` in [test/test_native/test_routing.cpp](test/test_native/test_routing.cpp)
+- Request utility behavior that depends on `items()` semantics in [test/test_native/test_utilities.cpp](test/test_native/test_utilities.cpp)
+
+Phase 1 conclusion:
+
+- The split is feasible without first changing `HttpPipeline`.
+- The immediate extraction target is not "replace `HttpRequest`" but "stop letting `HttpRequest` own orchestration state."
+- The cleanest transitional move is an HTTP runner that still satisfies the current pipeline callback expectations while delegating request data storage to `HttpRequest`.
+
+### Phase 2: Extract An HTTP Runner
+
+- Move handler lifetime ownership, lazy creation, phase-driven `handleStep(...)` calls, and `noResponse()` finalization out of `HttpRequest` into a dedicated HTTP runner/adapter.
+- Move `HandlerResult` to `RequestHandlingResult` translation and parser-error response synthesis into that same runner.
+- Leave `HttpRequest` focused on parsed request data, helper services, and request-local storage.
+- Preserve the existing `IPipelineHandler` surface during this extraction so `HttpPipeline` does not need to change simultaneously.
+
+### Phase 3: Generalize The Pipeline Execution Seam
+
+- Reevaluate the split between `IPipelineHandler` and `IConnectionSession` once HTTP orchestration is no longer embedded in `HttpRequest`.
+- Decide whether both HTTP and upgraded protocols should flow through a shared protocol-runner abstraction, or whether one existing seam should be widened to carry richer context ownership.
+- Define the minimum shared lifecycle needed by peer protocol contexts: startup, inbound progression, outbound progression, completion, abort, and error signaling.
+- Keep `RequestHandlingResult` only if it still cleanly represents the shared execution contract after this generalization.
+
+### Phase 4: Introduce Peer WebSocket Context Ownership
+
+- Replace the websocket runtime's purely internal-context model with a first-class `WebSocketContext` shaped around the generalized execution seam.
+- Move websocket-specific mutable state such as outbound queue ownership, close-state inspection, callback context, and connection-local items behind that peer context.
+- Keep the websocket protocol runtime logic, but make it operate on or through `WebSocketContext` rather than being the only public-facing runtime object.
+- Align the `WebSocketBuilder` and callback/send-api backlogs with the new peer-context model so event handlers target the new context directly.
+
+### Phase 5: Cleanup And Surface Consolidation
+
+- Remove transitional adapters once both HTTP and websocket flows use the new execution architecture.
+- Simplify documentation so the project describes one protocol-context model rather than one HTTP model plus websocket exceptions.
+- Reclassify tests around context behavior versus runner behavior so ownership boundaries stay clear.
+- Identify whether later upgraded protocols should be able to plug into the same peer-context seam without HTTP-specific assumptions.
+
 ## Incremental Migration Slices
 
 - Slice 1: document and isolate the current HTTP orchestration responsibilities that do not intrinsically belong to request data.
@@ -79,13 +183,23 @@ The current pipeline is structurally split in two stages, but the HTTP stage is 
 
 ## Tasks
 
-- [ ] Document the exact orchestration responsibilities currently owned by `HttpRequest` that are not inherently request-data responsibilities.
-- [ ] Design a slimmed-down HTTP context shape that can survive without directly owning handler lifetime and pipeline-result translation.
-- [ ] Design an HTTP runner/orchestrator abstraction that can own handler creation, phase advancement, and error-to-response mapping.
-- [ ] Decide whether the pipeline should generalize above `IPipelineHandler` and `IConnectionSession`, or whether one of those seams should absorb the peer-context design.
-- [ ] Define how a future `WebSocketContext` would map onto the chosen shared execution seam.
-- [ ] Identify which existing HTTP tests would need to move from `HttpRequest` behavior tests to protocol-runner behavior tests after the split.
-- [ ] Update websocket context/send-api planning to align with the chosen peer-context architecture.
+- [x] Phase 1: document the exact orchestration responsibilities currently owned by `HttpRequest` that are not inherently request-data responsibilities.
+- [x] Phase 1: classify current `HttpRequest` fields and methods into context-owned versus runner-owned responsibilities.
+- [x] Phase 1: identify and lock the HTTP behavior tests that must remain green through the split.
+- [ ] Phase 2: design a slimmed-down HTTP context shape that can survive without directly owning handler lifetime and pipeline-result translation.
+- [ ] Phase 2: design an HTTP runner/orchestrator abstraction that can own handler creation, phase advancement, and error-to-response mapping.
+- [ ] Phase 2: define the transitional adapter that preserves the existing `IPipelineHandler` integration while HTTP orchestration moves outward.
+- [ ] Phase 3: decide whether the pipeline should generalize above `IPipelineHandler` and `IConnectionSession`, or whether one of those seams should absorb the peer-context design.
+- [ ] Phase 3: define the shared execution lifecycle and result contract required for peer protocol contexts.
+- [ ] Phase 4: define how a future `WebSocketContext` would map onto the chosen shared execution seam.
+- [ ] Phase 4: update websocket context/send-api planning to align with the chosen peer-context architecture.
+- [ ] Phase 4: identify which websocket runtime responsibilities migrate into `WebSocketContext` versus remaining in a protocol runner.
+- [ ] Phase 5: identify which existing HTTP tests would need to move from `HttpRequest` behavior tests to protocol-runner behavior tests after the split.
+- [ ] Phase 5: plan cleanup/removal of transitional adapters once both HTTP and websocket paths use the new model.
+
+## Immediate Next Slice
+
+- Start Phase 2 by sketching the minimal HTTP runner interface and the slimmed-down `HttpRequest` surface it would need to drive.
 
 ## Owner
 
