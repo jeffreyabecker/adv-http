@@ -1,3 +1,4 @@
+2026-03-24 - Copilot: documented the concrete gap between receive-only callbacks and the private outbound queue in WebSocketSessionRuntime.
 2026-03-24 - Copilot: created backlog item for designing the WebSocket callback context and outbound send API.
 
 # Design WebSocket Context And Send API Backlog
@@ -22,6 +23,17 @@ The current `WebSocketCallbacks` surface is receive-only. User callbacks can obs
 - The builder-surface backlog already points toward callback signatures that accept a future `WebSocketContext &`.
 - Outbound behavior cannot be treated as an afterthought because send semantics affect queue depth, close sequencing, callback re-entrancy, and error reporting.
 
+## Current Gap
+
+- `WebSocketCallbacks` exposes only observation hooks: `onOpen`, `onText`, `onBinary`, `onClose`, and `onError`. None of those callbacks receives a runtime context, sender handle, or session object.
+- All outbound behavior is owned privately by `WebSocketSessionRuntime` through `pendingWrite_`, `flushPendingWrite(...)`, `queueSerializedFrame(...)`, and `queueCloseFrame(...)`.
+- The handshake response is also injected into that same private outbound buffer during `WebSocketSessionRuntime` construction, so the runtime already models HTTP-upgrade output and post-upgrade frame output as one write queue that user code cannot access.
+- The runtime currently allows only a single pending outbound buffer at a time. `queueSerializedFrame(...)` returns `false` immediately when `pendingWrite_` is non-empty, which means queue saturation and partial-write continuation already exist internally but have no public API contract.
+- Control-frame behavior is runtime-owned today. Incoming `Ping` frames trigger an automatic queued `Pong`, incoming `Close` frames trigger queued close-handshake behavior, and protocol/message-size failures can force internal close queuing without any callback-level send participation.
+- User callbacks can observe received messages, but they cannot intentionally send text, binary, close, ping, or pong frames in response. The only outbound effects available today are the runtime's built-in handshake, pong, and close paths.
+- Because callbacks have no sender/context, they also have no way to observe whether an outbound frame was queued, deferred by an existing pending write, rejected because close has started, or dropped because serialization failed.
+- This creates a design mismatch with the planned `WebSocketBuilder` direction: richer route/event registration can be expressed at the builder surface, but the runtime still lacks the callback-time context needed to make those event handlers useful for interactive protocols.
+
 ## Design Questions To Resolve
 
 - Should callbacks receive a full `WebSocketContext &`, a narrower sender interface, or different context types for route setup versus runtime events?
@@ -33,7 +45,7 @@ The current `WebSocketCallbacks` surface is receive-only. User callbacks can obs
 
 ## Tasks
 
-- [ ] Document the current gap between receive-only callbacks and the private outbound queue in `WebSocketSessionRuntime`.
+- [x] Document the current gap between receive-only callbacks and the private outbound queue in `WebSocketSessionRuntime`.
 - [ ] Define the minimum public outbound operations required for the first usable WebSocket callback context.
 - [ ] Decide whether the public callback signatures should be context-first (`WebSocketContext &`) across all events or mixed by event type.
 - [ ] Specify callback-time send semantics, including whether sends are synchronous, queued, best-effort, or explicitly backpressure-aware.
