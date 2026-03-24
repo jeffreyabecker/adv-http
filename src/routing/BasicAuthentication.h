@@ -70,13 +70,13 @@ namespace HttpServerAdvanced
     {
         std::string realmValue(realm);
 
-        return [validator = std::move(validator), realmValue = std::move(realmValue), onSuccess = std::move(onSuccess), onFailure = std::move(onFailure)](HttpRequest &context, IHttpHandler::InvocationCallback next)
+        return [validator = std::move(validator), realmValue = std::move(realmValue), onSuccess = std::move(onSuccess), onFailure = std::move(onFailure)](HttpRequest &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
         {
             if (BasicAuthImpl::CheckBasicAuthCredentials(context, validator, onSuccess))
             {
                 return next(context);
             }
-            return onFailure(context, realmValue);
+            return IHttpHandler::HandlerResult::responseResult(onFailure(context, realmValue));
         };
     }
 

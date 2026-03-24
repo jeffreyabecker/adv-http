@@ -29,12 +29,12 @@ namespace HttpServerAdvanced
 
         HttpHandler(std::unique_ptr<IHttpResponse> response, std::function<bool(const HttpRequest &)> filter)
             : invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpRequest &) mutable -> IHttpHandler::HandlerResult
-                          { return std::move(*resp); }),
+                          { return HandlerResult::responseResult(std::move(*resp)); }),
               filter_(filter) {}
 
         HttpHandler(std::unique_ptr<IHttpResponse> response)
             : invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpRequest &) mutable -> IHttpHandler::HandlerResult
-                          { return std::move(*resp); }),
+                          { return HandlerResult::responseResult(std::move(*resp)); }),
               filter_([](const HttpRequest & req) { return true; }) {} // will be set via setPhaseFilter
 
         template <typename... Args>

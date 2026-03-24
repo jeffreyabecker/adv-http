@@ -53,7 +53,13 @@ namespace HttpServerAdvanced
         return [filter, handler](HttpRequest &context, RouteParameters &&params, JsonDocument &&jsonData)
         {
             auto response = handler(context, std::move(params), std::move(jsonData));
-            return filter(std::move(response));
+            if (!response.isResponse())
+            {
+                return response;
+            }
+
+            response.response = filter(std::move(response.response));
+            return response;
         };
     }
 } // namespace HttpServerAdvanced

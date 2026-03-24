@@ -1,3 +1,4 @@
+2026-03-24 - Copilot: completed the first handler-result normalization slice, including IHttpHandler result expansion and green native tests.
 2026-03-24 - Copilot: created backlog item for normalizing WebSocket routing and upgrade flow behind IHttpHandler.
 
 # Normalize WebSocket Flow Behind IHttpHandler Backlog
@@ -17,9 +18,9 @@ The current WebSocket implementation still uses a parallel route-registration an
 
 ## Tasks
 
-- [ ] Define the normalized handler result model needed for both HTTP responses and connection upgrades.
-- [ ] Decide whether `IHttpHandler` should return a new handler-layer result type or the existing `RequestHandlingResult`, and document the boundary tradeoffs.
-- [ ] Update `IHttpHandler`, `HttpHandler`, and related handler utilities to support the chosen result model without making ordinary HTTP handlers awkward to implement.
+- [x] Define the normalized handler result model needed for both HTTP responses and connection upgrades.
+- [x] Decide whether `IHttpHandler` should return a new handler-layer result type or the existing `RequestHandlingResult`, and document the boundary tradeoffs.
+- [x] Update `IHttpHandler`, `HttpHandler`, and related handler utilities to support the chosen result model without making ordinary HTTP handlers awkward to implement.
 - [ ] Introduce a WebSocket handler/provider implementation that performs upgrade-candidate checks, validates the handshake, and returns either an HTTP response or an upgraded session.
 - [ ] Refactor `ProviderRegistryBuilder::websocket(...)` to register WebSocket behavior through `HandlerProviderRegistry` instead of storing `WebSocketRoute` records.
 - [ ] Remove `WebSocketRoute`-driven matching and `tryCreateRequestResult(...)`-style WebSocket routing from `HttpRequestHandlerFactory` once handler-backed routing exists.

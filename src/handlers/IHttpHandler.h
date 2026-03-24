@@ -4,16 +4,17 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "HandlerResult.h"
+
 namespace HttpServerAdvanced
 {
     class HttpRequest;
-    class IHttpResponse;
     class IHttpHandler
     {
     public:
-        using HandlerResult = std::unique_ptr<IHttpResponse>;
-        using InvocationCallback = std::function<IHttpHandler::HandlerResult(HttpRequest &context)>;
-        using InterceptorCallback = std::function<IHttpHandler::HandlerResult(HttpRequest &context, InvocationCallback next)>;
+        using HandlerResult = HttpServerAdvanced::HandlerResult;
+        using InvocationCallback = std::function<HandlerResult(HttpRequest &context)>;
+        using InterceptorCallback = std::function<HandlerResult(HttpRequest &context, InvocationCallback next)>;
         using Predicate = std::function<bool(HttpRequest &)>;
         using Factory = std::function<std::unique_ptr<IHttpHandler>(HttpRequest &)>;        
         virtual ~IHttpHandler() = default;

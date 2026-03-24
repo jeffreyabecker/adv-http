@@ -52,6 +52,16 @@ namespace HttpServerAdvanced::TestSupport
         return captured;
     }
 
+    inline CapturedResponse CaptureResponse(HandlerResult result)
+    {
+        if (!result.isResponse())
+        {
+            throw std::invalid_argument("CaptureResponse requires a response result");
+        }
+
+        return CaptureResponse(std::move(result.response));
+    }
+
     inline std::optional<std::string> FindCapturedHeader(const CapturedResponse &response, std::string_view name)
     {
         for (const auto &header : response.headers)

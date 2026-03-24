@@ -66,7 +66,13 @@ namespace HttpServerAdvanced
             return [filter, handler](HttpRequest &context, RouteParameters &&params)
             {
                 auto response = handler(context, std::move(params));
-                return filter(std::move(response));
+                if (!response.isResponse())
+                {
+                    return response;
+                }
+
+                response.response = filter(std::move(response.response));
+                return response;
             };
         }
         static void restrict(HandlerMatcher &baseUri)

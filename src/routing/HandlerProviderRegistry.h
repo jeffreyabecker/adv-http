@@ -54,9 +54,9 @@ namespace HttpServerAdvanced
                 IHttpHandler::HandlerResult response = interceptor_ ? interceptor_(context, [this](HttpRequest &context)
                                                                                    { return innerHandler_->handleStep(context); })
                                                                     : innerHandler_->handleStep(context);
-                if (response && filter_)
+                if (response.isResponse() && filter_)
                 {
-                    response = filter_(std::move(response));
+                    response = HandlerResult::responseResult(filter_(std::move(response.response)));
                 }
                 return response;
             }

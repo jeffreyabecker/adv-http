@@ -388,14 +388,14 @@ namespace
             return request.headers().exists("X-Allow", "yes");
         });
 
-        registry.with([&trace](HttpRequest &request, IHttpHandler::InvocationCallback next) -> std::unique_ptr<IHttpResponse>
+        registry.with([&trace](HttpRequest &request, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
         {
             trace.push_back("interceptor-1-before");
             auto response = next(request);
             trace.push_back("interceptor-1-after");
             return response;
         });
-        registry.with([&trace](HttpRequest &request, IHttpHandler::InvocationCallback next) -> std::unique_ptr<IHttpResponse>
+        registry.with([&trace](HttpRequest &request, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
         {
             trace.push_back("interceptor-2-before");
             auto response = next(request);
@@ -793,7 +793,7 @@ namespace
                 })
                 .allowMethods("get")
                 .allowContentTypes({"Application/Json"})
-                .with([](HttpRequest &request, IHttpHandler::InvocationCallback next) -> std::unique_ptr<IHttpResponse>
+                .with([](HttpRequest &request, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
                 {
                     request.items()["builder-interceptor"] = true;
                     return next(request);

@@ -50,11 +50,23 @@ namespace HttpServerAdvanced
         auto handler = tryGetHandler();
         if (handler)
         {
-            auto newResponse = handler->handleStep(*this);
-            if (newResponse)
+            auto handlerResult = handler->handleStep(*this);
+            if (handlerResult.hasValue())
             {
-                setPendingResult(RequestHandlingResult::response(CreateResponseStream(std::move(newResponse))));
-                sendResponse();
+                switch (handlerResult.kind)
+                {
+                case HandlerResult::Kind::Response:
+                    setPendingResult(RequestHandlingResult::response(CreateResponseStream(std::move(handlerResult.response))));
+                    sendResponse();
+                    break;
+                case HandlerResult::Kind::Upgrade:
+                    setPendingResult(RequestHandlingResult::upgrade(std::move(handlerResult.upgradedSession)));
+                    break;
+                case HandlerResult::Kind::None:
+                default:
+                    break;
+                }
+
                 return;
             }
         }
