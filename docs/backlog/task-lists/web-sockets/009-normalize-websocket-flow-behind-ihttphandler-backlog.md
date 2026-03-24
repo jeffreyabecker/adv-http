@@ -21,12 +21,18 @@ The current WebSocket implementation still uses a parallel route-registration an
 - [x] Define the normalized handler result model needed for both HTTP responses and connection upgrades.
 - [x] Decide whether `IHttpHandler` should return a new handler-layer result type or the existing `RequestHandlingResult`, and document the boundary tradeoffs.
 - [x] Update `IHttpHandler`, `HttpHandler`, and related handler utilities to support the chosen result model without making ordinary HTTP handlers awkward to implement.
+- [ ] Change handler selection timing so header-dependent handlers can be selected through the registry without relying on the current WebSocket factory side channel.
 - [ ] Introduce a WebSocket handler/provider implementation that performs upgrade-candidate checks, validates the handshake, and returns either an HTTP response or an upgraded session.
 - [ ] Refactor `ProviderRegistryBuilder::websocket(...)` to register WebSocket behavior through `HandlerProviderRegistry` instead of storing `WebSocketRoute` records.
 - [ ] Remove `WebSocketRoute`-driven matching and `tryCreateRequestResult(...)`-style WebSocket routing from `HttpRequestHandlerFactory` once handler-backed routing exists.
 - [ ] Simplify `HttpRequest` request handling so HTTP and WebSocket routes follow the same handler execution path before the pipeline consumes the final result.
 - [ ] Update request-level and pipeline-level native tests to assert the normalized handler flow rather than the current factory side-channel behavior.
 - [ ] Update WebSocket design and implementation documentation to describe the normalized handler seam.
+
+## Immediate Next Slices
+
+- Slice 2: move handler selection to a point where header-dependent handlers, including WebSocket upgrade handlers, can be chosen through `HandlerProviderRegistry` without a separate pre-handler factory seam.
+- Slice 3: replace `ProviderRegistryBuilder::websocket(...)` side-table registration with a real handler/provider registration, then remove `WebSocketRoute` and the WebSocket-specific logic from `HttpRequestHandlerFactory`.
 
 ## Owner
 
