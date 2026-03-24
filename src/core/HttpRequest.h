@@ -11,11 +11,13 @@
 #include "../streams/ByteStream.h"
 #include "../util/UriView.h"
 #include "IHttpRequestHandlerFactory.h"
+#include "../websocket/WebSocketRoute.h"
 
 #include <any>
 #include <map>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace HttpServerAdvanced
 {   
@@ -43,6 +45,7 @@ namespace HttpServerAdvanced
         std::string localAddress_;
         uint16_t localPort_;
         IHttpRequestHandlerFactory& handlerFactory_;
+        const std::vector<WebSocketRoute> *webSocketRoutes_ = nullptr;
 
         void invalidateTextCaches()
         {
@@ -145,8 +148,8 @@ namespace HttpServerAdvanced
         {
             completedWritingResponse();
         }
-        HttpRequest(HttpServerAdvanced::HttpServerBase &server, IHttpRequestHandlerFactory& handlerFactory)
-            : server_(server), handlerFactory_(handlerFactory), handler_(nullptr), completedPhases_(0),
+        HttpRequest(HttpServerAdvanced::HttpServerBase &server, IHttpRequestHandlerFactory& handlerFactory, const std::vector<WebSocketRoute> *webSocketRoutes)
+            : server_(server), handlerFactory_(handlerFactory), webSocketRoutes_(webSocketRoutes), handler_(nullptr), completedPhases_(0),
               method_(), version_(), url_(), headers_(),
               remoteAddress_(), remotePort_(0), localAddress_(), localPort_(0) {}
         mutable std::unique_ptr<UriView> cachedUriView_;
@@ -199,13 +202,13 @@ namespace HttpServerAdvanced
         static std::unique_ptr<
             HttpServerAdvanced::IPipelineHandler,
             std::function<void(HttpServerAdvanced::IPipelineHandler *)>>
-        createPipelineHandler(HttpServerAdvanced::HttpServerBase &server, IHttpRequestHandlerFactory& handlerFactory)
+        createPipelineHandler(HttpServerAdvanced::HttpServerBase &server, IHttpRequestHandlerFactory& handlerFactory, const std::vector<WebSocketRoute> *webSocketRoutes = nullptr)
         {
 
             return std::unique_ptr<
                 HttpServerAdvanced::IPipelineHandler,
                 std::function<void(HttpServerAdvanced::IPipelineHandler *)>>(
-                new HttpRequest(server, handlerFactory),
+                new HttpRequest(server, handlerFactory, webSocketRoutes),
                 [](HttpServerAdvanced::IPipelineHandler *p)
                 { delete static_cast<HttpRequest *>(p); });
             ;

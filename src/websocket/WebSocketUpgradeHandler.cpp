@@ -334,7 +334,7 @@ namespace HttpServerAdvanced
         return false;
     }
 
-    RequestHandlingResult WebSocketUpgradeHandler::handle(HttpRequest &request, IHttpRequestHandlerFactory &handlerFactory) const
+    RequestHandlingResult WebSocketUpgradeHandler::handle(HttpRequest &request, IHttpRequestHandlerFactory &handlerFactory, const WebSocketCallbacks &callbacks) const
     {
         std::string key;
         const std::optional<UpgradeFailure> failure = validateUpgradeRequest(request, key);
@@ -344,7 +344,7 @@ namespace HttpServerAdvanced
         }
 
         const std::string acceptValue = createWebSocketAcceptValue(key);
-        auto session = std::make_unique<WebSocketSessionRuntime>(createHandshakeResponseText(acceptValue));
+        auto session = std::make_unique<WebSocketSessionRuntime>(createHandshakeResponseText(acceptValue), callbacks);
         return RequestHandlingResult::upgrade(std::move(session));
     }
 

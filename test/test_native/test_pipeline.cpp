@@ -6,11 +6,15 @@
 #include "../../src/compat/Clock.h"
 #include "../../src/core/HttpRequest.h"
 #include "../../src/core/HttpTimeouts.h"
+#include "../../src/handlers/HttpHandler.h"
 #include "../../src/pipeline/HttpPipeline.h"
 #include "../../src/pipeline/IPipelineHandler.h"
 #include "../../src/pipeline/PipelineError.h"
 #include "../../src/pipeline/PipelineHandleClientResult.h"
+#include "../../src/response/StringResponse.h"
 #include "../../src/server/HttpServerBase.h"
+#include "../../src/websocket/WebSocketCallbacks.h"
+#include "../../src/websocket/WebSocketRoute.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -801,6 +805,7 @@ namespace
             {
                 return nullptr;
             });
+        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
 
         auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
         TestSupport::FakeClient *clientPtr = client.get();
@@ -809,9 +814,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory]()
+            [&server, &requestFactory, &routes]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
             },
             clock);
 
@@ -849,6 +854,7 @@ namespace
             {
                 return nullptr;
             });
+        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
 
         auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
         TestSupport::FakeClient *clientPtr = client.get();
@@ -857,9 +863,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory]()
+            [&server, &requestFactory, &routes]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
             },
             clock);
 
@@ -894,6 +900,7 @@ namespace
             {
                 return nullptr;
             });
+        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
 
         auto client = std::make_unique<TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {PingFrame, false}});
@@ -903,9 +910,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory]()
+            [&server, &requestFactory, &routes]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
             },
             clock);
 
@@ -946,6 +953,7 @@ namespace
             {
                 return nullptr;
             });
+        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
 
         auto client = std::make_unique<TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {CloseFrame, false}});
@@ -955,9 +963,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory]()
+            [&server, &requestFactory, &routes]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
             },
             clock);
 
@@ -997,6 +1005,7 @@ namespace
             {
                 return nullptr;
             });
+        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
 
         auto client = std::make_unique<TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {InvalidUnmaskedFrame, false}});
@@ -1006,9 +1015,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory]()
+            [&server, &requestFactory, &routes]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
             },
             clock);
 
@@ -1047,6 +1056,7 @@ namespace
             {
                 return nullptr;
             });
+        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
 
         auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
         TestSupport::FakeClient *clientPtr = client.get();
@@ -1056,9 +1066,9 @@ namespace
             std::move(client),
             server,
             timeouts,
-            [&server, &requestFactory]()
+            [&server, &requestFactory, &routes]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
             },
             clock);
 
@@ -1077,6 +1087,140 @@ namespace
         TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
         TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
         TEST_ASSERT_NOT_NULL(strstr(clientPtr->writtenText().c_str(), "HTTP/1.1 101 Switching Protocols"));
+    }
+
+    void test_http_pipeline_websocket_session_runtime_invokes_callbacks_in_expected_order()
+    {
+        static constexpr const char *RequestText =
+            "GET /chat HTTP/1.1\r\n"
+            "Host: example.test\r\n"
+            "Connection: Upgrade\r\n"
+            "Upgrade: websocket\r\n"
+            "Sec-WebSocket-Version: 13\r\n"
+            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+            "\r\n";
+        static constexpr const char *TextFrame = "\x81\x82\x01\x02\x03\x04\x69\x6B";
+        static constexpr const char *BinaryFrame = "\x82\x82\x01\x02\x03\x04\x40\x40";
+        static constexpr const char *CloseFrame = "\x88\x82\x01\x02\x03\x04\x02\xEA";
+
+        std::vector<std::string> callbackEvents;
+
+        Compat::ManualClock clock(1000);
+        HttpTimeouts timeouts;
+        timeouts.setReadTimeout(25);
+        timeouts.setActivityTimeout(40);
+        timeouts.setTotalRequestLengthMs(200);
+
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        TestSupport::RecordingRequestHandlerFactory requestFactory(
+            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            {
+                return nullptr;
+            });
+
+        WebSocketCallbacks callbacks;
+        callbacks.onOpen = [&callbackEvents]()
+        {
+            callbackEvents.push_back("open");
+        };
+        callbacks.onText = [&callbackEvents](std::string_view text)
+        {
+            callbackEvents.push_back(std::string("text:") + std::string(text));
+        };
+        callbacks.onBinary = [&callbackEvents](span<const std::uint8_t> payload)
+        {
+            callbackEvents.push_back(std::string("binary:") + std::string(reinterpret_cast<const char *>(payload.data()), payload.size()));
+        };
+        callbacks.onClose = [&callbackEvents](std::uint16_t code, std::string_view)
+        {
+            callbackEvents.push_back(std::string("close:") + std::to_string(code));
+        };
+        callbacks.onError = [&callbackEvents](std::string_view message)
+        {
+            callbackEvents.push_back(std::string("error:") + std::string(message));
+        };
+
+        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", callbacks}};
+
+        auto client = std::make_unique<TestSupport::FakeClient>(
+            std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {TextFrame, false}, {BinaryFrame, false}, {CloseFrame, false}});
+
+        HttpPipeline pipeline(
+            std::move(client),
+            server,
+            timeouts,
+            [&server, &requestFactory, &routes]()
+            {
+                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
+            },
+            clock);
+
+        PipelineHandleClientResult result = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+
+        result = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Completed), static_cast<int>(result));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::Completed), static_cast<int>(pipeline.connectionState()));
+
+        TEST_ASSERT_EQUAL_UINT64(4, callbackEvents.size());
+        TEST_ASSERT_EQUAL_STRING("open", callbackEvents[0].c_str());
+        TEST_ASSERT_EQUAL_STRING("text:hi", callbackEvents[1].c_str());
+        TEST_ASSERT_EQUAL_STRING("binary:AB", callbackEvents[2].c_str());
+        TEST_ASSERT_EQUAL_STRING("close:1000", callbackEvents[3].c_str());
+    }
+
+    void test_http_pipeline_websocket_upgrade_candidate_without_matching_route_falls_back_to_http_handler()
+    {
+        static constexpr const char *RequestText =
+            "GET /chat HTTP/1.1\r\n"
+            "Host: example.test\r\n"
+            "Connection: Upgrade\r\n"
+            "Upgrade: websocket\r\n"
+            "Sec-WebSocket-Version: 13\r\n"
+            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+            "\r\n";
+
+        Compat::ManualClock clock(1000);
+        HttpTimeouts timeouts;
+        timeouts.setReadTimeout(25);
+        timeouts.setActivityTimeout(40);
+        timeouts.setTotalRequestLengthMs(200);
+
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        TestSupport::RecordingRequestHandlerFactory requestFactory(
+            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            {
+                return std::make_unique<HttpHandler>(
+                    [](HttpRequest &)
+                    {
+                        return StringResponse::create(HttpStatus::Ok(), "http-fallback", {});
+                    },
+                    [](const HttpRequest &)
+                    {
+                        return true;
+                    });
+            });
+
+        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/other", WebSocketCallbacks{}}};
+
+        auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
+        TestSupport::FakeClient *clientPtr = client.get();
+
+        HttpPipeline pipeline(
+            std::move(client),
+            server,
+            timeouts,
+            [&server, &requestFactory, &routes]()
+            {
+                return HttpRequest::createPipelineHandler(server, requestFactory, &routes);
+            },
+            clock);
+
+        const PipelineHandleClientResult result = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+        TEST_ASSERT_TRUE(pipeline.connectionState() != HttpPipeline::ConnectionState::UpgradedSessionActive);
+        TEST_ASSERT_NOT_NULL(strstr(clientPtr->writtenText().c_str(), "HTTP/1.1 200 OK"));
+        TEST_ASSERT_NOT_NULL(strstr(clientPtr->writtenText().c_str(), "http-fallback"));
     }
 
     int runUnitySuite()
@@ -1102,6 +1246,8 @@ namespace
         RUN_TEST(test_http_pipeline_websocket_session_runtime_completes_after_close_handshake);
         RUN_TEST(test_http_pipeline_websocket_session_runtime_maps_protocol_error_to_close_frame);
         RUN_TEST(test_http_pipeline_websocket_session_runtime_resumes_partial_handshake_writes_across_loops);
+        RUN_TEST(test_http_pipeline_websocket_session_runtime_invokes_callbacks_in_expected_order);
+        RUN_TEST(test_http_pipeline_websocket_upgrade_candidate_without_matching_route_falls_back_to_http_handler);
         return UNITY_END();
     }
 }

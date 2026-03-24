@@ -8,6 +8,8 @@
 #include "../../src/core/HttpRequestPhase.h"
 #include "../../src/pipeline/RequestParser.h"
 #include "../../src/server/HttpServerBase.h"
+#include "../../src/websocket/WebSocketCallbacks.h"
+#include "../../src/websocket/WebSocketRoute.h"
 
 #include <memory>
 #include <cstring>
@@ -129,7 +131,8 @@ namespace
         RequestHandlingResult::Kind expectedKind)
     {
         HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
-        auto pipelineHandler = HttpRequest::createPipelineHandler(server, factory);
+        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
+        auto pipelineHandler = HttpRequest::createPipelineHandler(server, factory, &routes);
         RequestParser parser(*pipelineHandler);
 
         std::string request;
@@ -171,7 +174,8 @@ namespace
                 return nullptr;
             });
 
-        auto pipelineHandler = HttpRequest::createPipelineHandler(server, factory);
+        std::vector<WebSocketRoute> routes = {WebSocketRoute{"/chat", WebSocketCallbacks{}}};
+        auto pipelineHandler = HttpRequest::createPipelineHandler(server, factory, &routes);
         RequestParser parser(*pipelineHandler);
 
         const std::vector<std::string> chunks = {

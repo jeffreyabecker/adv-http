@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: completed callback-aware close/error sequencing in session runtime and finished the remaining Phase 4 close task.
 2026-03-23 - Copilot: implemented internal websocket session runtime (handshake write, frame step loop, ping/pong, close sequencing, partial-write resume) and pipeline-native coverage; marked completed Phase 4 items now in code.
 2026-03-23 - Copilot: added locked decisions for message delivery (7), outbound send model (8), and control-frame exposure (9); updated tasks accordingly.
 2026-03-23 - Copilot: aligned Phase 4 backlog with the accepted single-step session boundary.
@@ -49,7 +50,7 @@ This phase turns the handshake and codec pieces into a long-lived upgraded conne
 ### Control Frames And Shutdown
 
 - [x] Implement automatic PONG generation for any incoming PING frame during a session step; no PING or PONG observation callback is exposed in the first release.
-- [ ] Implement close sequencing: remote-initiated CLOSE completes the handshake and fires `onClose(code, reason)`; abnormal disconnect or timeout fires `onError` then `onClose(1006, "")`.
+- [x] Implement close sequencing: remote-initiated CLOSE completes the handshake and fires `onClose(code, reason)`; abnormal disconnect or timeout fires `onError` then `onClose(1006, "")`.
 - [x] Ensure remote disconnect and transport failure collapse into deterministic session cleanup.
 
 ### Pipeline Integration

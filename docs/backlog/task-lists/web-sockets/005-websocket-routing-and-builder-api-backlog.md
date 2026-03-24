@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: implemented websocket route registration (`.websocket()`), callback surface, builder integration, route-gated upgrade matching, and native callback/routing coverage; marked Phase 5 tasks complete.
 2026-03-23 - Copilot: added locked decisions for route registration shape (10) and public callback surface (11); updated tasks accordingly.
 2026-03-23 - Copilot: aligned Phase 5 backlog with the accepted dedicated upgrade-handler ownership split.
 2026-03-23 - Copilot: created detailed Phase 5 WebSocket routing and builder API backlog.
@@ -34,21 +35,21 @@ This phase exposes WebSocket support through the server builder and route-select
 
 ### Public Registration Shape
 
-- [ ] Implement the `.websocket(path, WebSocketCallbacks)` method on `ProviderRegistryBuilder` as the sole registration entry point for WebSocket endpoints.
-- [ ] Define `WebSocketCallbacks` as a struct of five `std::function` fields: `onOpen`, `onText`, `onBinary`, `onClose`, and `onError`.
-- [ ] Prefer straightforward ownership and explicit factories over compatibility shims or layered adapter types.
+- [x] Implement the `.websocket(path, WebSocketCallbacks)` method on `ProviderRegistryBuilder` as the sole registration entry point for WebSocket endpoints.
+- [x] Define `WebSocketCallbacks` as a struct of five `std::function` fields: `onOpen`, `onText`, `onBinary`, `onClose`, and `onError`.
+- [x] Prefer straightforward ownership and explicit factories over compatibility shims or layered adapter types.
 
 ### Builder Integration
 
-- [ ] Update `src/server/WebServerBuilder.h` to register WebSocket endpoints through the same overall server composition path.
-- [ ] Wire `.websocket()` into the builder's route-registration path so it produces an upgrade-capable handler factory backed by the dedicated upgrade handler from Phase 2.
-- [ ] Ensure the builder still initializes a unified pipeline path that can serve both HTTP and upgraded connections while routing WebSocket matches into the dedicated upgrade handler.
+- [x] Update `src/server/WebServerBuilder.h` to register WebSocket endpoints through the same overall server composition path.
+- [x] Wire `.websocket()` into the builder's route-registration path so it produces an upgrade-capable handler factory backed by the dedicated upgrade handler from Phase 2.
+- [x] Ensure the builder still initializes a unified pipeline path that can serve both HTTP and upgraded connections while routing WebSocket matches into the dedicated upgrade handler.
 
 ### Routing Behavior
 
-- [ ] Wire upgrade-time route matching so a WebSocket route is selected before the dedicated upgrade handler validates protocol details or creates a session.
-- [ ] Ensure rejected or unmatched upgrade attempts continue through deterministic HTTP behavior.
-- [ ] Keep route matching rules explicit enough that path intent remains routing-owned while handshake acceptance remains handler-owned.
+- [x] Wire upgrade-time route matching so a WebSocket route is selected before the dedicated upgrade handler validates protocol details or creates a session.
+- [x] Ensure rejected or unmatched upgrade attempts continue through deterministic HTTP behavior.
+- [x] Keep route matching rules explicit enough that path intent remains routing-owned while handshake acceptance remains handler-owned.
 
 ## Decision Follow-Through
 

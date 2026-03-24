@@ -15,6 +15,8 @@
 #include "../../src/server/HttpServerBase.h"
 #include "../../src/server/WebServerBuilder.h"
 #include "../../src/server/WebServerConfig.h"
+#include "../../src/websocket/WebSocketCallbacks.h"
+#include "../../src/websocket/WebSocketRoute.h"
 
 #include <any>
 #include <cstddef>
@@ -560,6 +562,29 @@ namespace
         TEST_ASSERT_EQUAL_UINT16(404, nonMatchResponse.status.code());
     }
 
+    void test_provider_registry_builder_websocket_registration_captures_route_and_callbacks()
+    {
+        HandlerProviderRegistry registry;
+        std::vector<WebSocketRoute> routes;
+        ProviderRegistryBuilder builder(registry, &routes);
+
+        bool openCalled = false;
+        WebSocketCallbacks callbacks;
+        callbacks.onOpen = [&openCalled]()
+        {
+            openCalled = true;
+        };
+
+        builder.websocket("/ws/*", callbacks);
+
+        TEST_ASSERT_EQUAL_UINT64(1, routes.size());
+        TEST_ASSERT_EQUAL_STRING("/ws/*", routes[0].path.c_str());
+        TEST_ASSERT_TRUE(static_cast<bool>(routes[0].callbacks.onOpen));
+
+        routes[0].callbacks.onOpen();
+        TEST_ASSERT_TRUE(openCalled);
+    }
+
     void test_handler_provider_registry_supports_indexed_insertion_and_out_of_range_clamping()
     {
         StaticResponseProvider firstProvider("first", [](HttpRequest &request)
@@ -961,6 +986,7 @@ namespace
         RUN_TEST(test_handler_provider_registry_applies_filters_interceptors_and_body_forwarding_for_matches);
         RUN_TEST(test_handler_provider_registry_response_filters_only_run_for_non_null_responses);
         RUN_TEST(test_provider_registry_builder_on_factory_overload_registers_for_builder_and_web_server_config);
+        RUN_TEST(test_provider_registry_builder_websocket_registration_captures_route_and_callbacks);
         RUN_TEST(test_handler_provider_registry_supports_indexed_insertion_and_out_of_range_clamping);
         RUN_TEST(test_handler_provider_registry_uses_default_not_found_response_when_no_match_exists);
         RUN_TEST(test_handler_matcher_mutators_override_runtime_checker_and_extractor_behavior);

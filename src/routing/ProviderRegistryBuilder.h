@@ -7,8 +7,12 @@
 #include "../handlers/HandlerRestrictions.h"
 #include "HandlerProviderRegistry.h"
 #include "HandlerBuilder.h"
+#include "../websocket/WebSocketRoute.h"
 
+#include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 namespace HttpServerAdvanced
 {
@@ -27,10 +31,15 @@ namespace HttpServerAdvanced
 
     private:
         HandlerProviderRegistry &providerRegistry_;
+        std::vector<WebSocketRoute> *webSocketRoutes_;
         std::vector<std::unique_ptr<IHandlerProvider>> handlerItems_;
 
     public:
-        ProviderRegistryBuilder(HandlerProviderRegistry &factory) : providerRegistry_(factory) {}
+        ProviderRegistryBuilder(HandlerProviderRegistry &factory, std::vector<WebSocketRoute> *webSocketRoutes = nullptr)
+            : providerRegistry_(factory),
+              webSocketRoutes_(webSocketRoutes)
+        {
+        }
         ~ProviderRegistryBuilder() = default;
 
         void add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, AddPosition position = AddAt::End)
@@ -50,6 +59,16 @@ namespace HttpServerAdvanced
                     return request.canHandle(context);
                 },
                 std::move(handler));
+        }
+
+        ProviderRegistryBuilder &websocket(std::string_view path, WebSocketCallbacks callbacks)
+        {
+            if (webSocketRoutes_ != nullptr)
+            {
+                webSocketRoutes_->push_back(WebSocketRoute{std::string(path), std::move(callbacks)});
+            }
+
+            return *this;
         }
 
         // Template methods for handler registration

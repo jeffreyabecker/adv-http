@@ -6,7 +6,9 @@
 #include "../routing/ProviderRegistryBuilder.h"
 #include "../core/HttpContentTypes.h"
 #include "../core/HttpRequestHandlerFactory.h"
+#include "../websocket/WebSocketRoute.h"
 #include <any>
+#include <vector>
 
 #include "HttpServerBase.h"
 
@@ -18,6 +20,7 @@ namespace HttpServerAdvanced
     protected:
 
         HandlerProviderRegistry providerRegistry_;
+        std::vector<WebSocketRoute> webSocketRoutes_;
         ProviderRegistryBuilder handlersBuilder_;
         HttpContentTypes contentTypes_;
         HttpRequestHandlerFactory handlerFactory_;
@@ -28,12 +31,17 @@ namespace HttpServerAdvanced
         void init()
         {
             server_.setPipelineHandlerFactory([this](HttpServerBase &server) {
-                return HttpRequest::createPipelineHandler(server, handlerFactory_);
+                return HttpRequest::createPipelineHandler(server, handlerFactory_, &webSocketRoutes_);
             });
         }
 
 
-        WebServerBuilder(HttpServerBase &server) : handlersBuilder_(providerRegistry_), handlerFactory_(providerRegistry_), server_(server) {}
+        WebServerBuilder(HttpServerBase &server)
+            : handlersBuilder_(providerRegistry_, &webSocketRoutes_),
+              handlerFactory_(providerRegistry_),
+              server_(server)
+        {
+        }
         ~WebServerBuilder() = default;
 
         WebServerBuilder &use(std::function<void(WebServerBuilder &)> component)

@@ -1,6 +1,7 @@
 #include "../core/HttpRequest.h"
 #include "../handlers/IHttpHandler.h"
 #include "IHttpRequestHandlerFactory.h"
+#include "../routing/HandlerMatcher.h"
 #include "../websocket/WebSocketUpgradeHandler.h"
 
 namespace HttpServerAdvanced
@@ -33,20 +34,36 @@ namespace HttpServerAdvanced
         {
             if (WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(*this))
             {
-                WebSocketUpgradeHandler upgradeHandler;
-                RequestHandlingResult upgradeResult = upgradeHandler.handle(*this, handlerFactory_);
-                if (upgradeResult.hasValue())
+                const WebSocketCallbacks *matchedCallbacks = nullptr;
+                if (webSocketRoutes_ != nullptr)
                 {
-                    if (upgradeResult.kind == RequestHandlingResult::Kind::Response)
+                    for (const auto &route : *webSocketRoutes_)
                     {
-                        setPendingResult(std::move(upgradeResult));
-                        sendResponse();
+                        if (defaultCheckUriPattern(uriView().path(), route.path))
+                        {
+                            matchedCallbacks = &route.callbacks;
+                            break;
+                        }
                     }
-                    else
+                }
+
+                if (matchedCallbacks != nullptr)
+                {
+                    WebSocketUpgradeHandler upgradeHandler;
+                    RequestHandlingResult upgradeResult = upgradeHandler.handle(*this, handlerFactory_, *matchedCallbacks);
+                    if (upgradeResult.hasValue())
                     {
-                        setPendingResult(std::move(upgradeResult));
+                        if (upgradeResult.kind == RequestHandlingResult::Kind::Response)
+                        {
+                            setPendingResult(std::move(upgradeResult));
+                            sendResponse();
+                        }
+                        else
+                        {
+                            setPendingResult(std::move(upgradeResult));
+                        }
+                        return;
                     }
-                    return;
                 }
             }
         }
