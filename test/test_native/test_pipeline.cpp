@@ -394,6 +394,25 @@ namespace
     {
     }
 
+    bool hasBinarySuffix(const std::string &value, span<const std::uint8_t> suffix)
+    {
+        if (suffix.size() > value.size())
+        {
+            return false;
+        }
+
+        const auto *begin = reinterpret_cast<const std::uint8_t *>(value.data() + (value.size() - suffix.size()));
+        for (std::size_t i = 0; i < suffix.size(); ++i)
+        {
+            if (begin[i] != suffix[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     void test_http_pipeline_completes_request_response_and_reports_final_state_same_loop()
     {
         static constexpr const char *RequestText = "GET /hello HTTP/1.1\r\nHost: example.test\r\nConnection: close\r\n\r\n";
@@ -850,6 +869,216 @@ namespace
         TEST_ASSERT_NOT_NULL(strstr(clientPtr->writtenText().c_str(), "HTTP/1.1 400 Bad Request"));
     }
 
+    void test_http_pipeline_websocket_session_runtime_sends_pong_for_ping_frames()
+    {
+        static constexpr const char *RequestText =
+            "GET /chat HTTP/1.1\r\n"
+            "Host: example.test\r\n"
+            "Connection: Upgrade\r\n"
+            "Upgrade: websocket\r\n"
+            "Sec-WebSocket-Version: 13\r\n"
+            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+            "\r\n";
+
+        static constexpr const char *PingFrame = "\x89\x82\x01\x02\x03\x04\x69\x6B";
+
+        Compat::ManualClock clock(1000);
+        HttpTimeouts timeouts;
+        timeouts.setReadTimeout(25);
+        timeouts.setActivityTimeout(40);
+        timeouts.setTotalRequestLengthMs(200);
+
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        TestSupport::RecordingRequestHandlerFactory requestFactory(
+            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            {
+                return nullptr;
+            });
+
+        auto client = std::make_unique<TestSupport::FakeClient>(
+            std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {PingFrame, false}});
+        TestSupport::FakeClient *clientPtr = client.get();
+
+        HttpPipeline pipeline(
+            std::move(client),
+            server,
+            timeouts,
+            [&server, &requestFactory]()
+            {
+                return HttpRequest::createPipelineHandler(server, requestFactory);
+            },
+            clock);
+
+        const PipelineHandleClientResult firstResult = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(firstResult));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
+
+        const PipelineHandleClientResult secondResult = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(secondResult));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
+
+        const std::uint8_t expectedPong[] = {0x8A, 0x02, 'h', 'i'};
+        TEST_ASSERT_TRUE(hasBinarySuffix(clientPtr->writtenText(), span<const std::uint8_t>(expectedPong, sizeof(expectedPong))));
+    }
+
+    void test_http_pipeline_websocket_session_runtime_completes_after_close_handshake()
+    {
+        static constexpr const char *RequestText =
+            "GET /chat HTTP/1.1\r\n"
+            "Host: example.test\r\n"
+            "Connection: Upgrade\r\n"
+            "Upgrade: websocket\r\n"
+            "Sec-WebSocket-Version: 13\r\n"
+            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+            "\r\n";
+
+        static constexpr const char *CloseFrame = "\x88\x82\x01\x02\x03\x04\x02\xEA";
+
+        Compat::ManualClock clock(1000);
+        HttpTimeouts timeouts;
+        timeouts.setReadTimeout(25);
+        timeouts.setActivityTimeout(40);
+        timeouts.setTotalRequestLengthMs(200);
+
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        TestSupport::RecordingRequestHandlerFactory requestFactory(
+            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            {
+                return nullptr;
+            });
+
+        auto client = std::make_unique<TestSupport::FakeClient>(
+            std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {CloseFrame, false}});
+        TestSupport::FakeClient *clientPtr = client.get();
+
+        HttpPipeline pipeline(
+            std::move(client),
+            server,
+            timeouts,
+            [&server, &requestFactory]()
+            {
+                return HttpRequest::createPipelineHandler(server, requestFactory);
+            },
+            clock);
+
+        const PipelineHandleClientResult firstResult = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(firstResult));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
+
+        const PipelineHandleClientResult secondResult = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Completed), static_cast<int>(secondResult));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::Completed), static_cast<int>(pipeline.connectionState()));
+
+        const std::uint8_t expectedClose[] = {0x88, 0x02, 0x03, 0xE8};
+        TEST_ASSERT_TRUE(hasBinarySuffix(clientPtr->writtenText(), span<const std::uint8_t>(expectedClose, sizeof(expectedClose))));
+    }
+
+    void test_http_pipeline_websocket_session_runtime_maps_protocol_error_to_close_frame()
+    {
+        static constexpr const char *RequestText =
+            "GET /chat HTTP/1.1\r\n"
+            "Host: example.test\r\n"
+            "Connection: Upgrade\r\n"
+            "Upgrade: websocket\r\n"
+            "Sec-WebSocket-Version: 13\r\n"
+            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+            "\r\n";
+        static constexpr const char *InvalidUnmaskedFrame = "\x81\x02ok";
+
+        Compat::ManualClock clock(1000);
+        HttpTimeouts timeouts;
+        timeouts.setReadTimeout(25);
+        timeouts.setActivityTimeout(40);
+        timeouts.setTotalRequestLengthMs(200);
+
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        TestSupport::RecordingRequestHandlerFactory requestFactory(
+            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            {
+                return nullptr;
+            });
+
+        auto client = std::make_unique<TestSupport::FakeClient>(
+            std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {InvalidUnmaskedFrame, false}});
+        TestSupport::FakeClient *clientPtr = client.get();
+
+        HttpPipeline pipeline(
+            std::move(client),
+            server,
+            timeouts,
+            [&server, &requestFactory]()
+            {
+                return HttpRequest::createPipelineHandler(server, requestFactory);
+            },
+            clock);
+
+        const PipelineHandleClientResult firstResult = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(firstResult));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
+
+        const PipelineHandleClientResult secondResult = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(secondResult));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
+
+        const std::uint8_t expectedClose[] = {0x88, 0x02, 0x03, 0xEA};
+        TEST_ASSERT_TRUE(hasBinarySuffix(clientPtr->writtenText(), span<const std::uint8_t>(expectedClose, sizeof(expectedClose))));
+    }
+
+    void test_http_pipeline_websocket_session_runtime_resumes_partial_handshake_writes_across_loops()
+    {
+        static constexpr const char *RequestText =
+            "GET /chat HTTP/1.1\r\n"
+            "Host: example.test\r\n"
+            "Connection: Upgrade\r\n"
+            "Upgrade: websocket\r\n"
+            "Sec-WebSocket-Version: 13\r\n"
+            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+            "\r\n";
+
+        Compat::ManualClock clock(1000);
+        HttpTimeouts timeouts;
+        timeouts.setReadTimeout(25);
+        timeouts.setActivityTimeout(40);
+        timeouts.setTotalRequestLengthMs(200);
+
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        TestSupport::RecordingRequestHandlerFactory requestFactory(
+            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            {
+                return nullptr;
+            });
+
+        auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
+        TestSupport::FakeClient *clientPtr = client.get();
+        clientPtr->setWriteScript({8, 0, 8, 0, 256});
+
+        HttpPipeline pipeline(
+            std::move(client),
+            server,
+            timeouts,
+            [&server, &requestFactory]()
+            {
+                return HttpRequest::createPipelineHandler(server, requestFactory);
+            },
+            clock);
+
+        PipelineHandleClientResult result = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
+        const std::size_t firstWriteBytes = clientPtr->writtenText().size();
+        TEST_ASSERT_TRUE(firstWriteBytes <= 8U);
+
+        result = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
+        TEST_ASSERT_TRUE(clientPtr->writtenText().size() > firstWriteBytes);
+
+        result = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
+        TEST_ASSERT_NOT_NULL(strstr(clientPtr->writtenText().c_str(), "HTTP/1.1 101 Switching Protocols"));
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -869,6 +1098,10 @@ namespace
         RUN_TEST(test_http_pipeline_reports_disconnect_during_writing_and_does_not_complete_response);
         RUN_TEST(test_http_pipeline_websocket_accept_path_transitions_to_upgraded_session_and_writes_handshake);
         RUN_TEST(test_http_pipeline_websocket_rejection_path_stays_http_and_never_enters_upgraded_session);
+        RUN_TEST(test_http_pipeline_websocket_session_runtime_sends_pong_for_ping_frames);
+        RUN_TEST(test_http_pipeline_websocket_session_runtime_completes_after_close_handshake);
+        RUN_TEST(test_http_pipeline_websocket_session_runtime_maps_protocol_error_to_close_frame);
+        RUN_TEST(test_http_pipeline_websocket_session_runtime_resumes_partial_handshake_writes_across_loops);
         return UNITY_END();
     }
 }

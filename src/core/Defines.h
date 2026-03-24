@@ -125,6 +125,11 @@ namespace HttpServerAdvanced
     constexpr size_t MAX_CONCURRENT_CONNECTIONS = HTTPSERVER_ADVANCED_MAX_CONCURRENT_CONNECTIONS;
 #endif
 
+#ifndef HTTPSERVER_ADVANCED_WS_MAX_MESSAGE_SIZE
+#define HTTPSERVER_ADVANCED_WS_MAX_MESSAGE_SIZE 8192
+#endif
+    static constexpr std::size_t WsMaxMessageSize = HTTPSERVER_ADVANCED_WS_MAX_MESSAGE_SIZE;
+
 #ifndef HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON
 #if defined(__has_include)
     #if __has_include(<ArduinoJson.h>)

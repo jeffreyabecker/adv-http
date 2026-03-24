@@ -1,3 +1,4 @@
+2026-03-23 - Copilot: implemented internal websocket session runtime (handshake write, frame step loop, ping/pong, close sequencing, partial-write resume) and pipeline-native coverage; marked completed Phase 4 items now in code.
 2026-03-23 - Copilot: added locked decisions for message delivery (7), outbound send model (8), and control-frame exposure (9); updated tasks accordingly.
 2026-03-23 - Copilot: aligned Phase 4 backlog with the accepted single-step session boundary.
 2026-03-23 - Copilot: created detailed Phase 4 WebSocket session runtime backlog.
@@ -35,27 +36,27 @@ This phase turns the handshake and codec pieces into a long-lived upgraded conne
 
 ### Session Lifecycle
 
-- [ ] Define the single-step `IConnectionSession` interface used by the pipeline after handshake.
-- [ ] Implement open, read-loop, dispatch, close, and terminal cleanup behavior.
-- [ ] Ensure session completion is observable through the session step result without ambiguous mixed state.
+- [x] Define the single-step `IConnectionSession` interface used by the pipeline after handshake.
+- [x] Implement open, read-loop, dispatch, close, and terminal cleanup behavior.
+- [x] Ensure session completion is observable through the session step result without ambiguous mixed state.
 
 ### Outbound Send Policy
 
-- [ ] Implement synchronous direct write in the pipeline loop with no per-session outbound queue.
-- [ ] Track partial-write resume state across loop iterations so interrupted writes drain the remaining serialized bytes on the next `handle()` call without re-entering user callbacks.
-- [ ] Keep the policy narrow enough that later public send APIs cannot violate backpressure assumptions.
+- [x] Implement synchronous direct write in the pipeline loop with no per-session outbound queue.
+- [x] Track partial-write resume state across loop iterations so interrupted writes drain the remaining serialized bytes on the next `handle()` call without re-entering user callbacks.
+- [x] Keep the policy narrow enough that later public send APIs cannot violate backpressure assumptions.
 
 ### Control Frames And Shutdown
 
-- [ ] Implement automatic PONG generation for any incoming PING frame during a session step; no PING or PONG observation callback is exposed in the first release.
+- [x] Implement automatic PONG generation for any incoming PING frame during a session step; no PING or PONG observation callback is exposed in the first release.
 - [ ] Implement close sequencing: remote-initiated CLOSE completes the handshake and fires `onClose(code, reason)`; abnormal disconnect or timeout fires `onError` then `onClose(1006, "")`.
-- [ ] Ensure remote disconnect and transport failure collapse into deterministic session cleanup.
+- [x] Ensure remote disconnect and transport failure collapse into deterministic session cleanup.
 
 ### Pipeline Integration
 
-- [ ] Re-enter the pipeline loop with upgraded-session work after handshake success through one session-step call per iteration.
-- [ ] Ensure session teardown returns client ownership and completion state cleanly to pipeline cleanup.
-- [ ] Keep timeout and activity accounting pipeline-owned rather than reimplemented per session.
+- [x] Re-enter the pipeline loop with upgraded-session work after handshake success through one session-step call per iteration.
+- [x] Ensure session teardown returns client ownership and completion state cleanly to pipeline cleanup.
+- [x] Keep timeout and activity accounting pipeline-owned rather than reimplemented per session.
 
 ## Decision Follow-Through
 

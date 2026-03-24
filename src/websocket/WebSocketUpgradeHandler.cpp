@@ -1,13 +1,13 @@
 #include "WebSocketUpgradeHandler.h"
 
+#include "WebSocketSessionRuntime.h"
+
 #include "../compat/Span.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
 #include "../core/HttpRequest.h"
 #include "../core/HttpStatus.h"
 #include "../core/IHttpRequestHandlerFactory.h"
-#include "../pipeline/ConnectionSession.h"
-#include "../pipeline/TransportInterfaces.h"
 #include "../response/HttpResponse.h"
 #include "../util/HttpUtility.h"
 
@@ -28,43 +28,6 @@ namespace HttpServerAdvanced
         static constexpr std::string_view UpgradeToken = "upgrade";
         static constexpr std::string_view SupportedWebSocketVersion = "13";
         static constexpr std::string_view WebSocketGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-
-        class WebSocketHandshakeSession : public IConnectionSession
-        {
-        public:
-            explicit WebSocketHandshakeSession(std::string handshakeResponse)
-                : handshakeResponse_(std::move(handshakeResponse))
-            {
-            }
-
-            ConnectionSessionResult handle(IClient &client, const Compat::Clock &) override
-            {
-                if (!client.connected())
-                {
-                    return ConnectionSessionResult::Completed;
-                }
-
-                if (writtenOffset_ < handshakeResponse_.size())
-                {
-                    const std::size_t remaining = handshakeResponse_.size() - writtenOffset_;
-                    const auto *at = reinterpret_cast<const std::uint8_t *>(handshakeResponse_.data() + writtenOffset_);
-                    const std::size_t written = client.write(HttpServerAdvanced::span<const std::uint8_t>(at, remaining));
-                    if (written == 0)
-                    {
-                        return ConnectionSessionResult::Continue;
-                    }
-
-                    writtenOffset_ += written;
-                }
-
-                // Keep the upgraded connection active for subsequent frame-session work.
-                return ConnectionSessionResult::Continue;
-            }
-
-        private:
-            std::string handshakeResponse_;
-            std::size_t writtenOffset_ = 0;
-        };
 
         char toLowerAscii(char value)
         {
@@ -381,7 +344,7 @@ namespace HttpServerAdvanced
         }
 
         const std::string acceptValue = createWebSocketAcceptValue(key);
-        auto session = std::make_unique<WebSocketHandshakeSession>(createHandshakeResponseText(acceptValue));
+        auto session = std::make_unique<WebSocketSessionRuntime>(createHandshakeResponseText(acceptValue));
         return RequestHandlingResult::upgrade(std::move(session));
     }
 
