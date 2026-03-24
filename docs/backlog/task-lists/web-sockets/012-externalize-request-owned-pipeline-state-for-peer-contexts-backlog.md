@@ -1,3 +1,4 @@
+2026-03-24 - Copilot: completed Phase 3 by comparing seam options, defining the shared execution lifecycle, and recommending a higher-level protocol execution abstraction above both existing pipeline seams.
 2026-03-24 - Copilot: completed Phase 2 by defining the slimmed-down HttpRequest shape, the HTTP runner abstraction, and the transitional IPipelineHandler adapter.
 2026-03-24 - Copilot: completed Phase 1 by documenting the HttpRequest ownership inventory, target HTTP context/runner seam, and locked behavior-test coverage for the split.
 2026-03-24 - Copilot: created design backlog for externalizing HttpRequest-owned pipeline state so future protocol contexts such as WebSocketContext can be peers rather than special cases.
@@ -285,12 +286,239 @@ With that transitional shape:
 - Define the minimum shared lifecycle needed by peer protocol contexts: startup, inbound progression, outbound progression, completion, abort, and error signaling.
 - Keep `RequestHandlingResult` only if it still cleanly represents the shared execution contract after this generalization.
 
+## Phase 3 Findings
+
+### The Three Plausible Routes
+
+#### Option A: Absorb Peer-Context Ownership Into `IPipelineHandler`
+
+In this model, `IPipelineHandler` becomes the single long-term protocol seam. HTTP keeps using it directly, and upgraded protocols such as websocket are re-expressed as pipeline handlers rather than switching over to `IConnectionSession`.
+
+Advantages:
+
+- `HttpPipeline` becomes structurally simpler because it no longer switches between two unrelated execution contracts.
+- Parser callbacks, response notifications, disconnect handling, and pending-result consumption stay under one interface.
+- The pipeline can remain centered on one "active protocol driver" pointer rather than one handler plus one upgraded session slot.
+
+Costs:
+
+- `IPipelineHandler` is currently HTTP-shaped. It assumes parsed HTTP events such as `onHeader(...)`, `onHeadersComplete()`, and `onMessageComplete()`.
+- A websocket or other upgraded protocol would have to carry a large amount of irrelevant surface area after the HTTP upgrade is complete.
+- Either the interface becomes bloated with no-op methods, or the pipeline has to branch on protocol phase anyway, which gives back some of the simplification.
+
+Conclusion:
+
+- This route can make `HttpPipeline` mechanically flatter, but it does so by forcing upgraded protocols to inhabit an HTTP-centric interface. That is not a clean peer-context model.
+
+#### Option B: Absorb Peer-Context Ownership Into `IConnectionSession`
+
+In this model, HTTP is reshaped to look more like the upgraded-session world, and `IConnectionSession` becomes the single long-term execution seam.
+
+Advantages:
+
+- The upgraded-connection seam already thinks in terms of per-loop progress rather than HTTP parser callbacks, which is closer to a generic protocol execution model.
+- Websocket would need less reshaping because it already lives behind `IConnectionSession`.
+
+Costs:
+
+- HTTP would lose the natural fit between parser callbacks and request-handling phases.
+- The pipeline would have to re-encode request parsing progress, response write notifications, and request lifecycle transitions as ad hoc session-internal behavior.
+- Keep-alive request boundaries become harder to express cleanly if everything is forced into one connection-session loop model.
+
+Conclusion:
+
+- This route makes HTTP worse in order to favor upgraded protocols. It is not a good fit for the current codebase, where request parsing and request-level routing are core concepts.
+
+#### Option C: Introduce A Higher-Level Abstraction Above Both
+
+In this model, `IPipelineHandler` and `IConnectionSession` are treated as transitional, lower-level seams. A new protocol-execution abstraction sits above both and represents the real peer-context architecture. HTTP and websocket each get their own protocol runner/context pairing under that shared abstraction.
+
+Advantages:
+
+- Neither HTTP nor websocket has to pretend to be the other.
+- The shared seam can be defined in terms of lifecycle and result progression rather than HTTP parser events or websocket session loops.
+- `HttpPipeline` becomes conceptually cleaner because it drives one protocol-execution object, even if transitional adapters still bridge to the old interfaces for a while.
+- Later upgraded protocols can plug into the same model without inheriting HTTP-specific or websocket-specific assumptions.
+
+Costs:
+
+- This introduces one additional architectural layer.
+- There is an incremental migration cost because adapters are needed while `HttpPipeline`, HTTP, and websocket are not all moved at once.
+- The team must be disciplined about keeping the new abstraction minimal and genuinely protocol-generic.
+
+Conclusion:
+
+- This is the best peer-context route because it yields the cleanest long-term architecture without deforming either existing seam.
+
+### Cleaner `HttpPipeline` Question
+
+Short answer:
+
+- **Long-term cleanest**: a higher-level abstraction above both seams.
+- **Short-term mechanically simplest**: pushing everything into `IPipelineHandler`, but at the cost of an HTTP-biased design.
+
+Why the higher-level abstraction is cleaner in the long run:
+
+- `HttpPipeline` should ideally care about protocol execution state transitions, not whether the current active object is HTTP-parser-shaped or upgraded-session-shaped.
+- A higher-level protocol execution object lets `HttpPipeline` manage:
+  - activation/startup
+  - inbound progression
+  - outbound progression
+  - pending result consumption
+  - completion/abort/error transitions
+- That means `HttpPipeline` becomes cleaner semantically, not just shorter mechanically.
+
+Why forcing everything into one existing seam is less clean than it first appears:
+
+- If `IPipelineHandler` absorbs the model, then upgraded protocols inherit irrelevant HTTP event methods.
+- If `IConnectionSession` absorbs the model, then HTTP loses the clarity of request parsing and request lifecycle hooks.
+- In both cases, `HttpPipeline` may have fewer top-level concepts, but the protocol-specific awkwardness is pushed into the wrong abstraction.
+
+### Activation Predicate Constraint
+
+One important constraint is fixed by the routing model:
+
+- activation predicates still need to run against `HttpContext` / `HttpRequest`
+- the system cannot know which handler or upgraded protocol path is active until at least HTTP headers have been fully read
+- route activation therefore remains an HTTP-context concern even in the peer-context architecture
+
+Implications:
+
+- A future `WebSocketContext` should **not** replace `HttpRequest` as the object used for initial activation/routing decisions.
+- The HTTP runner remains responsible for driving request parsing to the header-complete seam, evaluating activation predicates against the HTTP context, and only then deciding whether execution stays in HTTP or hands off into a peer upgraded-protocol context.
+- This makes the "promote `IConnectionSession` into the main seam" option even less attractive, because it would blur the boundary between HTTP activation/routing and post-activation upgraded-protocol execution.
+- It also weakens the idea of making `IPipelineHandler` itself the permanent universal seam, because the HTTP activation stage and the post-activation websocket stage are meaningfully different lifecycle phases even if they share one higher-level execution model.
+
+What this means for the recommendation:
+
+- The recommendation still stands: prefer a higher-level abstraction above both existing seams.
+- But that abstraction should model **staged protocol execution**, where:
+  - HTTP activation and handler selection happen first against `HttpRequest`
+  - the selected execution path may then continue as HTTP or transition into a peer protocol context such as `WebSocketContext`
+- In other words, `HttpRequest` remains the activation context, while `WebSocketContext` becomes the post-activation peer context for websocket execution.
+
+### Recommended Phase 3 Decision
+
+- Do **not** choose `IPipelineHandler` or `IConnectionSession` as the permanent peer-context seam.
+- Introduce a higher-level protocol execution abstraction above both existing seams.
+- Use adapters during migration:
+  - HTTP runner + adapter continues to satisfy `IPipelineHandler`
+  - websocket runtime/context continues to satisfy `IConnectionSession`
+- Once both protocols are modeled under the higher-level abstraction, simplify `HttpPipeline` to drive that abstraction directly and retire the transitional duplication.
+
+### Shared Execution Lifecycle Sketch
+
+The shared seam should model lifecycle, not parser shape:
+
+```cpp
+class IProtocolExecution
+{
+public:
+    virtual ~IProtocolExecution() = default;
+
+    virtual void start() = 0;
+    virtual void onInboundProgress() = 0;
+    virtual void onOutboundProgress() = 0;
+    virtual void onError(PipelineError error) = 0;
+    virtual void onDisconnect() = 0;
+
+    virtual bool hasPendingResult() const = 0;
+    virtual RequestHandlingResult takeResult() = 0;
+    virtual bool isFinished() const = 0;
+};
+```
+
+This is intentionally abstract:
+
+- HTTP can implement it by internally coordinating parser-driven request handling through the HTTP runner.
+- Websocket can implement it by internally coordinating connection/session progress through a websocket runner/context pair.
+- `RequestHandlingResult` can remain the pipeline currency for now, but the seam no longer assumes that every protocol natively speaks in HTTP callback events.
+
+### Naming Recommendation
+
+Recommended name:
+
+- `IProtocolExecution`
+
+Why this name fits best:
+
+- It names the abstraction after what `HttpPipeline` actually needs to drive: execution/lifecycle progression for the currently selected protocol path.
+- It does not bias toward HTTP request parsing (`IPipelineHandler`) or upgraded-connection looping (`IConnectionSession`).
+- It leaves room for staged execution where activation begins in HTTP and then continues in another protocol context.
+- It reads naturally for both implementations and owning objects, such as `HttpProtocolExecution` and `WebSocketProtocolExecution`.
+
+Names considered and rejected:
+
+- `IProtocolRunner`
+  - acceptable, but slightly over-emphasizes the helper object rather than the active execution contract seen by `HttpPipeline`
+- `IConnectionExecution`
+  - too connection-centric for the HTTP activation stage, which is still request-shaped
+- `IProtocolContext`
+  - too state/data-oriented; this abstraction is about progression and lifecycle, not just stored context
+- `IExecutionContext`
+  - too generic and easy to confuse with request or websocket context objects
+
+Recommended naming split:
+
+- `IProtocolExecution`
+  - the shared pipeline-facing lifecycle interface
+- `HttpRequest`
+  - the HTTP activation/request context
+- `HttpProtocolExecution`
+  - the HTTP implementation of the shared execution seam
+- `WebSocketContext`
+  - the websocket protocol context/state object
+- `WebSocketProtocolExecution`
+  - the websocket implementation of the shared execution seam
+
+The shared seam should therefore be understood as spanning two stages:
+
+- an HTTP activation stage that parses enough of the request to select the execution path using `HttpRequest`
+- an execution stage that continues either as HTTP handling or as a peer upgraded-protocol context
+
+### Phase 3 Conclusion
+
+- The higher-level abstraction route is the best long-term design.
+- It gives the cleanest `HttpPipeline` in semantic terms, because the pipeline becomes responsible for lifecycle progression rather than protocol-specific interface choice.
+- The added activation-predicate constraint makes this recommendation stronger, not weaker: `HttpRequest` still owns early activation/routing context, but it no longer needs to own the entire lifetime of post-activation execution.
+- The cost is one more layer plus transitional adapters, but that cost buys a genuinely protocol-generic architecture instead of entrenching HTTP bias or session-loop bias.
+
 ### Phase 4: Introduce Peer WebSocket Context Ownership
 
 - Replace the websocket runtime's purely internal-context model with a first-class `WebSocketContext` shaped around the generalized execution seam.
 - Move websocket-specific mutable state such as outbound queue ownership, close-state inspection, callback context, and connection-local items behind that peer context.
+- Ensure `WebSocketContext` takes ownership of the HTTP activation data that remains relevant after upgrade, rather than forcing websocket callbacks to reach back into a no-longer-active `HttpRequest`.
 - Keep the websocket protocol runtime logic, but make it operate on or through `WebSocketContext` rather than being the only public-facing runtime object.
 - Align the `WebSocketBuilder` and callback/send-api backlogs with the new peer-context model so event handlers target the new context directly.
+
+## Phase 4 Design Constraint: Carry Forward Relevant HTTP Context
+
+If websocket execution becomes a peer post-activation context, then `WebSocketContext` should inherit or take ownership of the HTTP activation data that may still matter to websocket callbacks.
+
+That should include at minimum:
+
+- request-scoped extension state from `items()`
+- request metadata that may affect callback behavior or logging
+  - method
+  - version
+  - headers
+- connection addressing information
+  - remote address
+  - remote port
+  - local address
+  - local port
+
+Why this matters:
+
+- websocket callbacks may need the authenticated/request-derived items placed on the HTTP context during activation
+- callbacks may need to inspect upgrade-request headers after activation for telemetry, subprotocol decisions, or application behavior
+- callbacks may need access to local/remote endpoint information for authorization, diagnostics, or connection labeling
+
+Implication for the handoff:
+
+- the HTTP-to-websocket transition should not merely produce a websocket runner; it should construct a `WebSocketContext` that receives the relevant carried-forward state from `HttpRequest`
+- this argues for an explicit handoff object or transfer step during upgrade, rather than leaving `WebSocketContext` to query stale HTTP state indirectly
+- ownership semantics should be documented clearly: copied data versus moved data versus shared references should be chosen intentionally for each category
 
 ### Phase 5: Cleanup And Surface Consolidation
 
@@ -322,8 +550,8 @@ With that transitional shape:
 - [x] Phase 2: design a slimmed-down HTTP context shape that can survive without directly owning handler lifetime and pipeline-result translation.
 - [x] Phase 2: design an HTTP runner/orchestrator abstraction that can own handler creation, phase advancement, and error-to-response mapping.
 - [x] Phase 2: define the transitional adapter that preserves the existing `IPipelineHandler` integration while HTTP orchestration moves outward.
-- [ ] Phase 3: decide whether the pipeline should generalize above `IPipelineHandler` and `IConnectionSession`, or whether one of those seams should absorb the peer-context design.
-- [ ] Phase 3: define the shared execution lifecycle and result contract required for peer protocol contexts.
+- [x] Phase 3: decide whether the pipeline should generalize above `IPipelineHandler` and `IConnectionSession`, or whether one of those seams should absorb the peer-context design.
+- [x] Phase 3: define the shared execution lifecycle and result contract required for peer protocol contexts.
 - [ ] Phase 4: define how a future `WebSocketContext` would map onto the chosen shared execution seam.
 - [ ] Phase 4: update websocket context/send-api planning to align with the chosen peer-context architecture.
 - [ ] Phase 4: identify which websocket runtime responsibilities migrate into `WebSocketContext` versus remaining in a protocol runner.
@@ -332,7 +560,7 @@ With that transitional shape:
 
 ## Immediate Next Slice
 
-- Start Phase 3 by deciding whether the long-term shared execution seam should replace `IPipelineHandler`, replace `IConnectionSession`, or sit above both.
+- Start Phase 4 by mapping websocket runtime responsibilities onto the proposed higher-level execution seam and deciding what becomes `WebSocketContext` state versus websocket-runner state.
 
 ## Owner
 
