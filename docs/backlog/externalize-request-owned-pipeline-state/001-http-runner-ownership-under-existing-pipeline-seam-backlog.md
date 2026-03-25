@@ -1,3 +1,4 @@
+2026-03-24 - Copilot: completed the Phase 1 runner extraction under the existing pipeline seam and validated native tests.
 2026-03-24 - Copilot: created Phase 1 backlog for extracting HTTP runner ownership under the existing pipeline seam.
 
 # HTTP Runner Ownership Under Existing Pipeline Seam Backlog
@@ -201,13 +202,13 @@ Whichever option is chosen, `HttpRequestRunner` should own at minimum:
 
 ## Tasks
 
-- [ ] Define the concrete `HttpRequestRunner`-style interface and its ownership responsibilities.
-- [ ] Introduce an `HttpRequestPipelineAdapter`-style adapter if needed to preserve the current `IPipelineHandler` seam.
-- [ ] Move handler lifetime ownership out of `HttpRequest`.
-- [ ] Move pending result staging out of `HttpRequest`.
-- [ ] Move parser-phase and response-phase progression bookkeeping out of `HttpRequest`.
-- [ ] Move parser/pipeline error-to-response mapping out of `HttpRequest`.
-- [ ] Keep existing request/pipeline/native tests green throughout the extraction.
+- [x] Define the concrete `HttpRequestRunner`-style interface and its ownership responsibilities.
+- [x] Introduce an `HttpRequestPipelineAdapter`-style adapter if needed to preserve the current `IPipelineHandler` seam.
+- [x] Move handler lifetime ownership out of `HttpRequest`.
+- [x] Move pending result staging out of `HttpRequest`.
+- [x] Move parser-phase and response-phase progression bookkeeping out of `HttpRequest`.
+- [x] Move parser/pipeline error-to-response mapping out of `HttpRequest`.
+- [x] Keep existing request/pipeline/native tests green throughout the extraction.
 
 ## References
 

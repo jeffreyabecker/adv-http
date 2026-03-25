@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace HttpServerAdvanced
 {
     using HttpRequestPhaseFlags = uint8_t;
