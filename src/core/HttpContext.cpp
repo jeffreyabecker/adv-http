@@ -2,14 +2,14 @@
 #include "HttpContextPipelineAdapter.h"
 #include "HttpContextRunner.h"
 #include "../handlers/IHttpHandler.h"
-#include "IHttpRequestHandlerFactory.h"
+#include "IHttpContextHandlerFactory.h"
 
 namespace HttpServerAdvanced
 {
     class HttpContextAccess
     {
     public:
-        static void bindCompletedPhases(HttpContext &request, const HttpRequestPhaseFlags *completedPhases)
+        static void bindCompletedPhases(HttpContext &request, const HttpContextPhaseFlags *completedPhases)
         {
             request.bindCompletedPhases(completedPhases);
         }
@@ -48,7 +48,7 @@ namespace HttpServerAdvanced
         class DefaultHttpContextRunner : public HttpContextRunner
         {
         public:
-            DefaultHttpContextRunner(HttpServerBase &server, IHttpRequestHandlerFactory &handlerFactory)
+            DefaultHttpContextRunner(HttpServerBase &server, IHttpContextHandlerFactory &handlerFactory)
                 : context_(server, handlerFactory)
             {
                 HttpContextAccess::bindCompletedPhases(context_, &completedPhases_);
@@ -92,7 +92,7 @@ namespace HttpServerAdvanced
                 IHttpHandler *handler = tryGetHandler();
                 if (bodyBytesReceived_ == 0)
                 {
-                    advance(HttpRequestPhase::BeginReadingBody);
+                    advance(HttpContextPhase::BeginReadingBody);
                 }
 
                 if (handler != nullptr)
@@ -105,7 +105,7 @@ namespace HttpServerAdvanced
                 return 0;
             }
 
-            void advance(HttpRequestPhaseFlags trigger) override
+            void advance(HttpContextPhaseFlags trigger) override
             {
                 completedPhases_ |= trigger;
                 handleStep();
@@ -174,7 +174,7 @@ namespace HttpServerAdvanced
             std::unique_ptr<IHttpHandler> handler_;
             RequestHandlingResult pendingResult_;
             std::size_t bodyBytesReceived_ = 0;
-            HttpRequestPhaseFlags completedPhases_ = 0;
+            HttpContextPhaseFlags completedPhases_ = 0;
 
             IHttpHandler *tryGetHandler()
             {
@@ -193,7 +193,7 @@ namespace HttpServerAdvanced
 
             void markResponseStarted()
             {
-                completedPhases_ |= HttpRequestPhase::WritingResponseStarted;
+                completedPhases_ |= HttpContextPhase::WritingResponseStarted;
             }
 
             void handleStep()
@@ -227,7 +227,7 @@ namespace HttpServerAdvanced
                     }
                 }
 
-                if ((completedPhases_ & HttpRequestPhase::CompletedReadingMessage) != 0 && !pendingResult_.hasValue())
+                if ((completedPhases_ & HttpContextPhase::CompletedReadingMessage) != 0 && !pendingResult_.hasValue())
                 {
                     setPendingResult(RequestHandlingResult::noResponse());
                 }
@@ -235,7 +235,7 @@ namespace HttpServerAdvanced
         };
     }
 
-    PipelineHandlerPtr HttpContext::createPipelineHandler(HttpServerBase &server, IHttpRequestHandlerFactory &handlerFactory)
+    PipelineHandlerPtr HttpContext::createPipelineHandler(HttpServerBase &server, IHttpContextHandlerFactory &handlerFactory)
     {
         return PipelineHandlerPtr(
             new HttpContextPipelineAdapter(std::make_unique<DefaultHttpContextRunner>(server, handlerFactory)),

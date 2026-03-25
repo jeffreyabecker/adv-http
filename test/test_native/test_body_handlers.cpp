@@ -4,7 +4,7 @@
 #include <unity.h>
 
 #include "../../src/core/HttpContext.h"
-#include "../../src/core/HttpRequestPhase.h"
+#include "../../src/core/HttpContextPhase.h"
 #include "../../src/handlers/BufferedStringBodyHandler.h"
 #include "../../src/handlers/BufferingHttpHandlerBase.h"
 #include "../../src/handlers/FormBodyHandler.h"
@@ -39,7 +39,7 @@ namespace
             return nullptr;
         }
 
-        std::vector<HttpRequestPhaseFlags> phases;
+        std::vector<HttpContextPhaseFlags> phases;
         std::vector<std::vector<uint8_t>> payloads;
     };
 
@@ -196,14 +196,14 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(1, handlerPtr->payloads.size());
         TEST_ASSERT_EQUAL_UINT64(4, handlerPtr->payloads[0].size());
         TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const uint8_t *>("test"), handlerPtr->payloads[0].data(), 4);
-        TEST_ASSERT_TRUE((handlerPtr->phases[0] & HttpRequestPhase::BeginReadingBody) != 0);
-        TEST_ASSERT_FALSE((handlerPtr->phases[0] & HttpRequestPhase::CompletedReadingMessage) != 0);
+        TEST_ASSERT_TRUE((handlerPtr->phases[0] & HttpContextPhase::BeginReadingBody) != 0);
+        TEST_ASSERT_FALSE((handlerPtr->phases[0] & HttpContextPhase::CompletedReadingMessage) != 0);
 
         harness.completeMessage();
         TEST_ASSERT_EQUAL_UINT64(2, handlerPtr->payloads.size());
         TEST_ASSERT_EQUAL_UINT64(4, handlerPtr->payloads[1].size());
         TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const uint8_t *>("test"), handlerPtr->payloads[1].data(), 4);
-        TEST_ASSERT_TRUE((handlerPtr->phases[1] & HttpRequestPhase::CompletedReadingMessage) != 0);
+        TEST_ASSERT_TRUE((handlerPtr->phases[1] & HttpContextPhase::CompletedReadingMessage) != 0);
     }
 
     void test_buffering_handler_invokes_handle_body_from_handle_step_without_content_length()
@@ -224,7 +224,7 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(1, handlerPtr->payloads.size());
         TEST_ASSERT_EQUAL_UINT64(6, handlerPtr->payloads[0].size());
         TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const uint8_t *>("abcdef"), handlerPtr->payloads[0].data(), 6);
-        TEST_ASSERT_TRUE((handlerPtr->phases[0] & HttpRequestPhase::CompletedReadingMessage) != 0);
+        TEST_ASSERT_TRUE((handlerPtr->phases[0] & HttpContextPhase::CompletedReadingMessage) != 0);
     }
 
     void test_buffering_handler_truncates_to_configured_max_buffer_and_replays_on_completion()
@@ -719,7 +719,7 @@ namespace
 
     void test_raw_body_handler_extractor_runs_on_first_body_chunk_phase()
     {
-        std::vector<HttpRequestPhaseFlags> extractorPhases;
+        std::vector<HttpContextPhaseFlags> extractorPhases;
 
         auto handler = std::make_unique<RawBodyHandler>(
             [](HttpContext &, RouteParameters &, RawBodyBuffer) -> IHttpHandler::HandlerResult
@@ -740,13 +740,13 @@ namespace
         harness.completeMessage();
 
         TEST_ASSERT_EQUAL_UINT64(1, extractorPhases.size());
-        TEST_ASSERT_TRUE((extractorPhases[0] & HttpRequestPhase::BeginReadingBody) != 0);
-        TEST_ASSERT_FALSE((extractorPhases[0] & HttpRequestPhase::CompletedReadingMessage) != 0);
+        TEST_ASSERT_TRUE((extractorPhases[0] & HttpContextPhase::BeginReadingBody) != 0);
+        TEST_ASSERT_FALSE((extractorPhases[0] & HttpContextPhase::CompletedReadingMessage) != 0);
     }
 
     void test_form_body_handler_preserves_headers_items_and_route_parameters_alongside_parsed_body()
     {
-        HttpRequestPhaseFlags extractorPhase = 0;
+        HttpContextPhaseFlags extractorPhase = 0;
         bool handlerSawHeader = false;
         std::string handlerItemValue;
         std::vector<RouteParameters> capturedParams;
@@ -777,7 +777,7 @@ namespace
         harness.addBody("name=Jane");
         harness.completeMessage();
 
-        TEST_ASSERT_TRUE((extractorPhase & HttpRequestPhase::CompletedReadingMessage) != 0);
+        TEST_ASSERT_TRUE((extractorPhase & HttpContextPhase::CompletedReadingMessage) != 0);
         TEST_ASSERT_TRUE(handlerSawHeader);
         TEST_ASSERT_EQUAL_STRING("route-value", handlerItemValue.c_str());
         TEST_ASSERT_EQUAL_UINT64(2, capturedParams[0].size());

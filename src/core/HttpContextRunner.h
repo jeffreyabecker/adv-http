@@ -1,6 +1,6 @@
 #pragma once
 
-#include "HttpRequestPhase.h"
+#include "HttpContextPhase.h"
 #include "../pipeline/PipelineError.h"
 #include "../pipeline/RequestHandlingResult.h"
 
@@ -31,7 +31,7 @@ namespace HttpServerAdvanced
         virtual int onHeadersComplete() = 0;
         virtual int onBody(const std::uint8_t *at, std::size_t length) = 0;
 
-        virtual void advance(HttpRequestPhaseFlags trigger) = 0;
+        virtual void advance(HttpContextPhaseFlags trigger) = 0;
         virtual void onError(PipelineError error) = 0;
         virtual void onClientDisconnected() = 0;
 

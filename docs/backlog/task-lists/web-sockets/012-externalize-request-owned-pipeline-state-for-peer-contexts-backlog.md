@@ -25,8 +25,8 @@ The current pipeline is structurally split in two stages, but the HTTP stage is 
 - `HttpPipeline` owns the socket, loop timing, parser feeding, response writing, upgraded-session dispatch, and keep-alive restart logic.
 - `HttpPipeline` creates one pipeline handler per HTTP request through `handlerFactory_`, stores it in `handler_`, and consumes only `RequestHandlingResult` values from it.
 - `HttpContext` is that pipeline handler today, but it also owns request-specific mutable state: method, version, URL, headers, addresses, items, body byte count, phase flags, cached URI view, current `IHttpHandler`, and current pending result.
-- `HttpContext` lazily creates the route handler through `IHttpRequestHandlerFactory`, retains it for the request lifetime, and decides when to call `handleStep(...)` and `handleBodyChunk(...)`.
-- `HttpContext` translates `HandlerResult` into `RequestHandlingResult`, triggers response-writing phase transitions, and constructs parser-error responses through `IHttpRequestHandlerFactory::createResponse(...)`.
+- `HttpContext` lazily creates the route handler through `IHttpContextHandlerFactory`, retains it for the request lifetime, and decides when to call `handleStep(...)` and `handleBodyChunk(...)`.
+- `HttpContext` translates `HandlerResult` into `RequestHandlingResult`, triggers response-writing phase transitions, and constructs parser-error responses through `IHttpContextHandlerFactory::createResponse(...)`.
 - Upgraded protocols do not get a comparable context/orchestrator object in the pipeline. They are reduced to `IConnectionSession::handle(IClient &, const Compat::Clock &)` after `HttpContext` yields an upgrade result.
 
 ## What Can Be Externalized
@@ -194,7 +194,7 @@ After the split, `HttpContext` should be reduced to an HTTP context with these r
   - `server()`
   - `createResponse(...)`
 - read-only execution hints that handlers may still need
-  - a phase/progress view, if the handler model continues to depend on `HttpRequestPhase`
+  - a phase/progress view, if the handler model continues to depend on `HttpContextPhase`
 
 It should no longer directly own:
 
@@ -210,13 +210,13 @@ It should no longer directly own:
 The HTTP runner becomes the execution object that owns everything currently implicit in `HttpContext`'s private orchestration state:
 
 - hold the current `HttpContext` context instance
-- lazily create the `IHttpHandler` through `IHttpRequestHandlerFactory`
+- lazily create the `IHttpHandler` through `IHttpContextHandlerFactory`
 - maintain execution/phase state consumed by handlers
 - forward parser events into the context and drive handler execution at the correct seams
 - forward body chunks to `handleBodyChunk(...)`
 - translate `HandlerResult` into `RequestHandlingResult`
 - own pending result staging until `HttpPipeline` consumes it
-- synthesize parser/pipeline error responses through `IHttpRequestHandlerFactory::createResponse(...)`
+- synthesize parser/pipeline error responses through `IHttpContextHandlerFactory::createResponse(...)`
 
 ### Minimal Phase 2 Interface Sketch
 
@@ -295,8 +295,8 @@ With that transitional shape:
 
 ### Phase 2 Design Constraints
 
-- The runner should continue to use `IHttpRequestHandlerFactory::create(HttpContext &)` initially, to avoid simultaneously changing routing/factory seams.
-- `HttpRequestPhase` can remain exposed through `HttpContext` in Phase 2, but the mutable phase state should move to the runner and be projected into the context rather than owned there directly.
+- The runner should continue to use `IHttpContextHandlerFactory::create(HttpContext &)` initially, to avoid simultaneously changing routing/factory seams.
+- `HttpContextPhase` can remain exposed through `HttpContext` in Phase 2, but the mutable phase state should move to the runner and be projected into the context rather than owned there directly.
 - `RequestHandlingResult` remains the runner-to-pipeline currency in Phase 2; redesigning that contract belongs to Phase 3.
 - Error-to-response mapping should move wholesale with the runner so HTTP failure behavior stays in one place.
 
@@ -865,7 +865,7 @@ That means the Phase 4 implementation should not migrate these helper methods wh
 
 - Should the shared peer abstraction be request-shaped, connection-shaped, or a more generic protocol-execution object?
 - Does HTTP remain one-request-per-context while websocket remains one-connection-per-context, or should both be normalized at the connection layer?
-- How much of `HttpRequestPhase` should survive once orchestration moves out of `HttpContext`?
+- How much of `HttpContextPhase` should survive once orchestration moves out of `HttpContext`?
 - Should parser callbacks continue to target the context directly, or should they target the orchestrator which then mutates the context?
 - Can `RequestHandlingResult` remain the shared pipeline currency, or does a peer-context design want a broader execution-result model?
 
@@ -902,7 +902,7 @@ That means the Phase 4 implementation should not migrate these helper methods wh
 
 - [src/core/HttpContext.h](src/core/HttpContext.h)
 - [src/core/HttpContext.cpp](src/core/HttpContext.cpp)
-- [src/core/IHttpRequestHandlerFactory.h](src/core/IHttpRequestHandlerFactory.h)
+- [src/core/IHttpContextHandlerFactory.h](src/core/IHttpContextHandlerFactory.h)
 - [src/pipeline/HttpPipeline.h](src/pipeline/HttpPipeline.h)
 - [src/pipeline/HttpPipeline.cpp](src/pipeline/HttpPipeline.cpp)
 - [src/pipeline/ConnectionSession.h](src/pipeline/ConnectionSession.h)

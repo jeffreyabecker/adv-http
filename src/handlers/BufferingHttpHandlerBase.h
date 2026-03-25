@@ -2,7 +2,7 @@
 #include <vector>
 #include "IHttpHandler.h"
 #include "../core/Defines.h"
-#include "../core/HttpRequestPhase.h"
+#include "../core/HttpContextPhase.h"
 #include "../core/HttpHeader.h"
 #include <charconv>
 #include <limits>
@@ -40,7 +40,7 @@ namespace HttpServerAdvanced
 
         HandlerResult handleStep(HttpContext &context) override
         {
-            if (context.completedPhases() < HttpRequestPhase::CompletedReadingMessage)
+            if (context.completedPhases() < HttpContextPhase::CompletedReadingMessage)
             {
                 return nullptr;
             }

@@ -143,11 +143,11 @@ The core module contains fundamental types and configuration constants.
 | `HttpMethod` | HTTP method constants (GET, POST, PUT, DELETE, etc.) |
 | `HttpStatus` | Status code + reason phrase with factory methods |
 | `HttpContext` | Central request context implementing `IPipelineHandler` |
-| `HttpRequestPhase` | Bitmask flags for request lifecycle phases |
+| `HttpContextPhase` | Bitmask flags for request lifecycle phases |
 | `HttpTimeouts` | Timeout configuration (connect, header, body, keep-alive) |
 | `HttpContentTypes` | MIME type registry with extension mapping |
-| `IHttpRequestHandlerFactory` | Interface for creating request handlers |
-| `HttpRequestHandlerFactory` | Default implementation using `HandlerProviderRegistry` |
+| `IHttpContextHandlerFactory` | Interface for creating request handlers |
+| `HttpContextHandlerFactory` | Default implementation using `HandlerProviderRegistry` |
 | `Buffer.h` | Utility buffer templates |
 
 #### Key Constants (Defines.h)
@@ -190,24 +190,24 @@ class HttpContext : public IPipelineHandler {
     std::map<String, String>& items();
     
     // Lifecycle phases
-    HttpRequestPhase currentPhase() const;
-    bool hasPhase(HttpRequestPhase phase) const;
+    HttpContextPhase currentPhase() const;
+    bool hasPhase(HttpContextPhase phase) const;
     
     // Handler invocation
     void invokeHandler(IHttpHandler& handler);
     void sendResponse(std::unique_ptr<IHttpResponse> response);
     
     // Factory method
-    static PipelineHandlerPtr createPipelineHandler(HttpServerBase& server, IHttpRequestHandlerFactory& factory);
+    static PipelineHandlerPtr createPipelineHandler(HttpServerBase& server, IHttpContextHandlerFactory& factory);
 };
 ```
 
-#### HttpRequestPhase
+#### HttpContextPhase
 
 Bitmask flags tracking request lifecycle:
 
 ```cpp
-enum class HttpRequestPhase : uint16_t {
+enum class HttpContextPhase : uint16_t {
     None              = 0x0000,
     HeadersReceived   = 0x0001,
     BodyReceiving     = 0x0002,
@@ -967,7 +967,7 @@ FriendlyWebServer
 │           ├── owns → HandlerProviderRegistry
 │           ├── owns → ProviderRegistryBuilder
 │           ├── owns → HttpContentTypes
-│           └── owns → HttpRequestHandlerFactory
+│           └── owns → HttpContextHandlerFactory
 ├── owns → WebServerConfig (facade to WebServerBuilder)
 └── inherits → StandardHttpServer
                 └── inherits → HttpServerBase
@@ -983,7 +983,7 @@ HttpPipeline
 HttpContext
 ├── owns → HttpHeaderCollection
 ├── owns → UriView
-├── refs → IHttpRequestHandlerFactory
+├── refs → IHttpContextHandlerFactory
 └── owns → std::unique_ptr<IHttpHandler>
 
 HandlerBuilder<THandler>

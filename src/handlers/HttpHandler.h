@@ -2,7 +2,7 @@
 #include <memory>
 #include <functional>
 #include "../core/HttpMethod.h"
-#include "../core/HttpRequestPhase.h"
+#include "../core/HttpContextPhase.h"
 #include "IHttpHandler.h"
 
 namespace HttpServerAdvanced
@@ -13,7 +13,7 @@ namespace HttpServerAdvanced
     class HttpHandler : public IHttpHandler
     {
     protected:
-        static const HttpRequestPhaseFlags CallHandleAt = HttpRequestPhase::CompletedReadingHeaders + HttpRequestPhase::CompletedStartingLine;
+        static const HttpContextPhaseFlags CallHandleAt = HttpContextPhase::CompletedReadingHeaders + HttpContextPhase::CompletedStartingLine;
         std::function<bool(const HttpContext &)> filter_;
         IHttpHandler::InvocationCallback invocation_;
 
@@ -45,7 +45,7 @@ namespace HttpServerAdvanced
 
         virtual ~HttpHandler() = default;
 
-        void setPhaseFilter(HttpRequestPhaseFlags callAt);
+        void setPhaseFilter(HttpContextPhaseFlags callAt);
 
         virtual HandlerResult handleStep(HttpContext &context) override
         {
@@ -69,11 +69,11 @@ namespace HttpServerAdvanced
 
 namespace HttpServerAdvanced {
     inline bool HttpHandler::defaultFilter(const HttpContext &context) {
-        return context.completedPhases() == HttpRequestPhase::CompletedReadingHeaders + HttpRequestPhase::CompletedStartingLine;
+        return context.completedPhases() == HttpContextPhase::CompletedReadingHeaders + HttpContextPhase::CompletedStartingLine;
     }
 
     // Helper for setting filter when using phase-based constructor: call after construction
-    inline void HttpHandler::setPhaseFilter(HttpRequestPhaseFlags callAt) {
+    inline void HttpHandler::setPhaseFilter(HttpContextPhaseFlags callAt) {
         filter_ = [callAt](const HttpContext &ctx) { return ctx.completedPhases() == callAt; };
     }
 }

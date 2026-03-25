@@ -7,12 +7,12 @@
 namespace HttpServerAdvanced
 {   
     class HttpContext;
-    class IHttpRequestHandlerFactory{
+    class IHttpContextHandlerFactory{
     public:
-        static constexpr const char *ServiceName = "HttpRequestHandlerFactory";
+        static constexpr const char *ServiceName = "HttpContextHandlerFactory";
         virtual std::unique_ptr<IHttpHandler> create(HttpContext &context) = 0;
         virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string body) = 0;
-        virtual ~IHttpRequestHandlerFactory() = default;    
+        virtual ~IHttpContextHandlerFactory() = default;    
         virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string_view body)
         {
             return createResponse(status, std::string(body));

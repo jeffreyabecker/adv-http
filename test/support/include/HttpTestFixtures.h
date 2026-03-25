@@ -2,7 +2,7 @@
 
 #include "ByteStreamFixtures.h"
 
-#include "../../../src/core/IHttpRequestHandlerFactory.h"
+#include "../../../src/core/IHttpContextHandlerFactory.h"
 #include "../../../src/pipeline/IPipelineHandler.h"
 #include "../../../src/pipeline/TransportInterfaces.h"
 #include "../../../src/response/StringResponse.h"
@@ -75,10 +75,10 @@ namespace HttpServerAdvanced::TestSupport
         return std::nullopt;
     }
 
-    class RecordingRequestHandlerFactory : public IHttpRequestHandlerFactory
+    class RecordingRequestHandlerFactory : public IHttpContextHandlerFactory
     {
     public:
-        using IHttpRequestHandlerFactory::createResponse;
+        using IHttpContextHandlerFactory::createResponse;
         using HandlerFactoryCallback = std::function<std::unique_ptr<IHttpHandler>(HttpContext &)>;
         using ResponseFactoryCallback = std::function<std::unique_ptr<IHttpResponse>(HttpStatus, std::string)>;
 

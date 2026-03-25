@@ -5,7 +5,7 @@
 #include "../core/HttpContext.h"
 #include "../routing/ProviderRegistryBuilder.h"
 #include "../core/HttpContentTypes.h"
-#include "../core/HttpRequestHandlerFactory.h"
+#include "../core/HttpContextHandlerFactory.h"
 #include <any>
 
 #include "HttpServerBase.h"
@@ -20,7 +20,7 @@ namespace HttpServerAdvanced
         HandlerProviderRegistry providerRegistry_;
         ProviderRegistryBuilder handlersBuilder_;
         HttpContentTypes contentTypes_;
-        HttpRequestHandlerFactory handlerFactory_;
+        HttpContextHandlerFactory handlerFactory_;
         HttpServerBase & server_;
 
 

@@ -3,11 +3,11 @@
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
 #include "../server/HttpServerBase.h"
-#include "../core/HttpRequestPhase.h"
+#include "../core/HttpContextPhase.h"
 #include "../pipeline/IPipelineHandler.h"
 #include "../response/HttpResponse.h"
 #include "../util/UriView.h"
-#include "IHttpRequestHandlerFactory.h"
+#include "IHttpContextHandlerFactory.h"
 
 #include <any>
 #include <map>
@@ -21,7 +21,7 @@ namespace HttpServerAdvanced
     class HttpContext
     {
     public:
-        HttpContext(HttpServerAdvanced::HttpServerBase &server, IHttpRequestHandlerFactory& handlerFactory)
+        HttpContext(HttpServerAdvanced::HttpServerBase &server, IHttpContextHandlerFactory& handlerFactory)
             : server_(server), handlerFactory_(handlerFactory),
               method_(), version_(), url_(), headers_(),
               remoteAddress_(), remotePort_(0), localAddress_(), localPort_(0) {}
@@ -29,10 +29,10 @@ namespace HttpServerAdvanced
 
     private:
         HttpServerAdvanced::HttpServerBase &server_;
-        const HttpRequestPhaseFlags *completedPhases_ = nullptr;
+        const HttpContextPhaseFlags *completedPhases_ = nullptr;
         mutable std::map<std::string, std::any> items_;
 
-        // Merged from the legacy HttpRequest carrier.
+        // Retains the legacy HTTP activation data carried through the pipeline.
         std::string method_;
         std::string version_;
         std::string url_;
@@ -41,7 +41,7 @@ namespace HttpServerAdvanced
         uint16_t remotePort_;
         std::string localAddress_;
         uint16_t localPort_;
-        IHttpRequestHandlerFactory& handlerFactory_;
+        IHttpContextHandlerFactory& handlerFactory_;
 
         void invalidateTextCaches()
         {
@@ -69,7 +69,7 @@ namespace HttpServerAdvanced
             headers_.set(HttpHeader(field, value));
         }
 
-        void bindCompletedPhases(const HttpRequestPhaseFlags *completedPhases)
+        void bindCompletedPhases(const HttpContextPhaseFlags *completedPhases)
         {
             completedPhases_ = completedPhases;
         }
@@ -88,7 +88,7 @@ namespace HttpServerAdvanced
         ~HttpContext() = default;
 
         inline HttpServerAdvanced::HttpServerBase &server() { return server_; }
-        inline HttpRequestPhaseFlags completedPhases() const { return completedPhases_ != nullptr ? *completedPhases_ : 0; }
+        inline HttpContextPhaseFlags completedPhases() const { return completedPhases_ != nullptr ? *completedPhases_ : 0; }
 
         // Legacy request accessors preserved on the final context type.
         inline std::string_view version() const { return versionView(); }
@@ -120,7 +120,7 @@ namespace HttpServerAdvanced
         }
 
     public:
-        static PipelineHandlerPtr createPipelineHandler(HttpServerAdvanced::HttpServerBase &server, IHttpRequestHandlerFactory& handlerFactory);
+        static PipelineHandlerPtr createPipelineHandler(HttpServerAdvanced::HttpServerBase &server, IHttpContextHandlerFactory& handlerFactory);
 
         friend class DeferredRegistryHandler;
     };

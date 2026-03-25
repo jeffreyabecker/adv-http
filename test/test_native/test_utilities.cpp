@@ -14,7 +14,7 @@
 #include "../../src/core/HttpContentTypes.h"
 #include "../../src/core/HttpMethod.h"
 #include "../../src/core/HttpStatus.h"
-#include "../../src/core/IHttpRequestHandlerFactory.h"
+#include "../../src/core/IHttpContextHandlerFactory.h"
 #include "../../src/core/Defines.h"
 #include "../../src/core/HttpContext.h"
 #include "../../src/util/HttpUtility.h"

@@ -70,8 +70,8 @@ High
 - `docs/plans/websocket-support-plan.md`
 - `src/server/WebServerBuilder.h`
 - `src/routing/`
-- `src/core/HttpRequestHandlerFactory.h`
-- `src/core/IHttpRequestHandlerFactory.h`
+- `src/core/HttpContextHandlerFactory.h`
+- `src/core/IHttpContextHandlerFactory.h`
 - `src/core/HttpContext.h`
 - `src/core/HttpContext.cpp`
 - `test/test_native/`

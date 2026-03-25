@@ -14,7 +14,7 @@ The current WebSocket implementation still uses a parallel route-registration an
 - WebSocket route registration no longer depends on a separate `WebSocketRoute` side table.
 - Route selection for HTTP and WebSocket requests is unified behind the normal handler/provider registry flow.
 - WebSocket upgrade acceptance and deterministic rejection behavior are implemented through an `IHttpHandler`-compatible abstraction instead of a request-factory special case.
-- `HttpRequestHandlerFactory` no longer contains WebSocket-specific route matching logic.
+- `HttpContextHandlerFactory` no longer contains WebSocket-specific route matching logic.
 - Existing WebSocket behavior remains covered by native tests, including successful upgrade, deterministic rejection, unmatched-route fallback, and session-runtime behavior.
 - The resulting design is documented clearly enough that later upgraded protocols can follow the same seam.
 
@@ -26,7 +26,7 @@ The current WebSocket implementation still uses a parallel route-registration an
 - [x] Change handler selection timing so header-dependent handlers can be selected through the registry without relying on the current WebSocket factory side channel.
 - [x] Introduce a WebSocket handler/provider implementation that performs upgrade-candidate checks, validates the handshake, and returns either an HTTP response or an upgraded session.
 - [x] Refactor `ProviderRegistryBuilder::websocket(...)` to register WebSocket behavior through `HandlerProviderRegistry` instead of storing `WebSocketRoute` records.
-- [x] Remove `WebSocketRoute`-driven matching and `tryCreateRequestResult(...)`-style WebSocket routing from `HttpRequestHandlerFactory` once handler-backed routing exists.
+- [x] Remove `WebSocketRoute`-driven matching and `tryCreateRequestResult(...)`-style WebSocket routing from `HttpContextHandlerFactory` once handler-backed routing exists.
 - [x] Simplify `HttpContext` request handling so HTTP and WebSocket routes follow the same handler execution path before the pipeline consumes the final result.
 - [x] Update request-level and pipeline-level native tests to assert the normalized handler flow rather than the current factory side-channel behavior.
 - [ ] Update WebSocket design and implementation documentation to describe the normalized handler seam.
@@ -49,7 +49,7 @@ The current WebSocket implementation still uses a parallel route-registration an
 - [src/handlers/HttpHandler.h](src/handlers/HttpHandler.h)
 - [src/routing/HandlerProviderRegistry.h](src/routing/HandlerProviderRegistry.h)
 - [src/routing/ProviderRegistryBuilder.h](src/routing/ProviderRegistryBuilder.h)
-- [src/core/HttpRequestHandlerFactory.h](src/core/HttpRequestHandlerFactory.h)
+- [src/core/HttpContextHandlerFactory.h](src/core/HttpContextHandlerFactory.h)
 - [src/pipeline/RequestHandlingResult.h](src/pipeline/RequestHandlingResult.h)
 - [src/websocket/WebSocketUpgradeHandler.h](src/websocket/WebSocketUpgradeHandler.h)
 - [docs/backlog/task-lists/web-sockets/005-websocket-routing-and-builder-api-backlog.md](docs/backlog/task-lists/web-sockets/005-websocket-routing-and-builder-api-backlog.md)

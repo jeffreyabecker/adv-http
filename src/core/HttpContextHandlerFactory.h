@@ -1,5 +1,5 @@
 #pragma once
-#include "IHttpRequestHandlerFactory.h"
+#include "IHttpContextHandlerFactory.h"
 #include "../routing/HandlerProviderRegistry.h"
 #include "../response/StringResponse.h"
 
@@ -38,7 +38,7 @@ namespace HttpServerAdvanced
     private:
         void ensureInnerHandler(HttpContext &context)
         {
-            if (innerHandler_ || (context.completedPhases() & HttpRequestPhase::CompletedReadingHeaders) == 0)
+            if (innerHandler_ || (context.completedPhases() & HttpContextPhase::CompletedReadingHeaders) == 0)
             {
                 return;
             }
@@ -50,13 +50,13 @@ namespace HttpServerAdvanced
         std::unique_ptr<IHttpHandler> innerHandler_;
     };
 
-    class HttpRequestHandlerFactory : public IHttpRequestHandlerFactory
+    class HttpContextHandlerFactory : public IHttpContextHandlerFactory
     {
     private:
         HandlerProviderRegistry &providerRegistry_;
 
     public:
-        HttpRequestHandlerFactory(HandlerProviderRegistry &providerRegistry)
+        HttpContextHandlerFactory(HandlerProviderRegistry &providerRegistry)
             : providerRegistry_(providerRegistry) {}
         
         

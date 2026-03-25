@@ -9,10 +9,10 @@
 #include "core/HttpHeaderCollection.h"
 #include "core/HttpMethod.h"
 #include "core/HttpContext.h"
-#include "core/HttpRequestPhase.h"
+#include "core/HttpContextPhase.h"
 #include "core/HttpStatus.h"
 #include "core/HttpTimeouts.h"
-#include "core/IHttpRequestHandlerFactory.h"
+#include "core/IHttpContextHandlerFactory.h"
 
 // HTTP Handlers
 #include "handlers/BufferedStringBodyHandler.h"
@@ -82,7 +82,7 @@
 #include "server/WebServerConfig.h"
 
 // Request handler factory
-#include "core/HttpRequestHandlerFactory.h"
+#include "core/HttpContextHandlerFactory.h"
 
 using HttpServerAdvanced::Form;
 using HttpServerAdvanced::GetRequest;

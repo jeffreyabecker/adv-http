@@ -5,7 +5,7 @@
 
 #include "../../src/compat/Clock.h"
 #include "../../src/core/HttpContext.h"
-#include "../../src/core/HttpRequestPhase.h"
+#include "../../src/core/HttpContextPhase.h"
 #include "../../src/handlers/HttpHandler.h"
 #include "../../src/pipeline/RequestParser.h"
 #include "../../src/routing/HandlerMatcher.h"
@@ -44,7 +44,7 @@ namespace
             return seenMethods_;
         }
 
-        const std::vector<HttpRequestPhaseFlags> &seenPhases() const
+        const std::vector<HttpContextPhaseFlags> &seenPhases() const
         {
             return seenPhases_;
         }
@@ -54,16 +54,16 @@ namespace
             return bodyChunkMethods_;
         }
 
-        const std::vector<HttpRequestPhaseFlags> &bodyChunkPhases() const
+        const std::vector<HttpContextPhaseFlags> &bodyChunkPhases() const
         {
             return bodyChunkPhases_;
         }
 
     private:
         std::vector<std::string> seenMethods_;
-        std::vector<HttpRequestPhaseFlags> seenPhases_;
+        std::vector<HttpContextPhaseFlags> seenPhases_;
         std::vector<std::string> bodyChunkMethods_;
-        std::vector<HttpRequestPhaseFlags> bodyChunkPhases_;
+        std::vector<HttpContextPhaseFlags> bodyChunkPhases_;
     };
 
     void localSetUp()
@@ -100,7 +100,7 @@ namespace
         std::unique_ptr<CapturingHandler> capturingHandler = std::make_unique<CapturingHandler>();
         CapturingHandler *capturingHandlerPtr = capturingHandler.get();
         std::vector<std::string> factoryMethods;
-        std::vector<HttpRequestPhaseFlags> factoryPhases;
+        std::vector<HttpContextPhaseFlags> factoryPhases;
 
         TestSupport::RecordingRequestHandlerFactory factory(
             [&factoryMethods, &factoryPhases, &capturingHandler](HttpContext &context) -> std::unique_ptr<IHttpHandler>
@@ -123,7 +123,7 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(1, factory.createCount());
         TEST_ASSERT_EQUAL_UINT64(1, factoryMethods.size());
         TEST_ASSERT_EQUAL_STRING("MKCOL", factoryMethods[0].c_str());
-        TEST_ASSERT_TRUE((factoryPhases[0] & HttpRequestPhase::CompletedStartingLine) != 0);
+        TEST_ASSERT_TRUE((factoryPhases[0] & HttpContextPhase::CompletedStartingLine) != 0);
         TEST_ASSERT_NOT_NULL(factory.lastCreateContext());
         TEST_ASSERT_EQUAL_STRING("MKCOL", factory.lastCreateContext()->method());
         TEST_ASSERT_EQUAL_STRING("/dav/collection", std::string(factory.lastCreateContext()->url()).c_str());
@@ -135,14 +135,14 @@ namespace
         TEST_ASSERT_EQUAL_STRING("MKCOL", capturingHandlerPtr->seenMethods()[2].c_str());
         TEST_ASSERT_EQUAL_STRING("MKCOL", capturingHandlerPtr->seenMethods()[3].c_str());
         TEST_ASSERT_EQUAL_STRING("MKCOL", capturingHandlerPtr->seenMethods()[4].c_str());
-        TEST_ASSERT_TRUE((capturingHandlerPtr->seenPhases()[0] & HttpRequestPhase::CompletedStartingLine) != 0);
-        TEST_ASSERT_TRUE((capturingHandlerPtr->seenPhases()[1] & HttpRequestPhase::CompletedReadingHeaders) != 0);
-        TEST_ASSERT_TRUE((capturingHandlerPtr->seenPhases()[2] & HttpRequestPhase::BeginReadingBody) != 0);
+        TEST_ASSERT_TRUE((capturingHandlerPtr->seenPhases()[0] & HttpContextPhase::CompletedStartingLine) != 0);
+        TEST_ASSERT_TRUE((capturingHandlerPtr->seenPhases()[1] & HttpContextPhase::CompletedReadingHeaders) != 0);
+        TEST_ASSERT_TRUE((capturingHandlerPtr->seenPhases()[2] & HttpContextPhase::BeginReadingBody) != 0);
         TEST_ASSERT_EQUAL_UINT64(1, capturingHandlerPtr->bodyChunkMethods().size());
         TEST_ASSERT_EQUAL_STRING("MKCOL", capturingHandlerPtr->bodyChunkMethods()[0].c_str());
-        TEST_ASSERT_TRUE((capturingHandlerPtr->bodyChunkPhases()[0] & HttpRequestPhase::BeginReadingBody) != 0);
-        TEST_ASSERT_TRUE((capturingHandlerPtr->seenPhases()[4] & HttpRequestPhase::CompletedReadingMessage) != 0);
-        TEST_ASSERT_TRUE((factory.lastCreateContext()->completedPhases() & HttpRequestPhase::CompletedReadingMessage) != 0);
+        TEST_ASSERT_TRUE((capturingHandlerPtr->bodyChunkPhases()[0] & HttpContextPhase::BeginReadingBody) != 0);
+        TEST_ASSERT_TRUE((capturingHandlerPtr->seenPhases()[4] & HttpContextPhase::CompletedReadingMessage) != 0);
+        TEST_ASSERT_TRUE((factory.lastCreateContext()->completedPhases() & HttpContextPhase::CompletedReadingMessage) != 0);
     }
 
     std::string ExecuteAndCaptureResponseText(

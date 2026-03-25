@@ -92,7 +92,7 @@ namespace HttpServerAdvanced
             : handler_(handler), extractor_(extractor) {}
         virtual HandlerResult handleStep(HttpContext &context)
         {
-            if (!response_ && context.completedPhases() >= HttpRequestPhase::CompletedReadingMessage)
+            if (!response_ && context.completedPhases() >= HttpContextPhase::CompletedReadingMessage)
             {
                 handleBodyChunk(context, nullptr, 0);
             }

@@ -20,7 +20,7 @@ namespace HttpServerAdvanced
 
     IHttpHandler::HandlerResult RawBodyHandler::handleStep(HttpContext &context)
     {
-        if (!response_ && context.completedPhases() >= HttpRequestPhase::CompletedReadingMessage)
+        if (!response_ && context.completedPhases() >= HttpContextPhase::CompletedReadingMessage)
         {
             handleBodyChunk(context, nullptr, 0);
         }

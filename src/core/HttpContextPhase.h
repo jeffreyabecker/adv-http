@@ -4,8 +4,8 @@
 
 namespace HttpServerAdvanced
 {
-    using HttpRequestPhaseFlags = uint8_t;
-    namespace HttpRequestPhase
+    using HttpContextPhaseFlags = uint8_t;
+    namespace HttpContextPhase
     {
         constexpr uint8_t CompletedStartingLine = 1 << 0;
         constexpr uint8_t CompletedReadingHeaders = 1 << 1;

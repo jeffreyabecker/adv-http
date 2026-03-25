@@ -98,7 +98,7 @@ public:
 	virtual int onMessageComplete() = 0;
 
 	virtual void onPipelineError(PipelineError error) = 0;
-	virtual void onWriteStateChanged(HttpRequestPhase phase) = 0;
+	virtual void onWriteStateChanged(HttpContextPhase phase) = 0;
 	virtual void onClientDisconnected() = 0;
 
 	virtual std::optional<RequestHandlingResult> takePendingResult() = 0;
@@ -144,7 +144,7 @@ public:
 	virtual int onHeader(std::string_view field, std::string_view value) = 0;
 	virtual int onBody(const std::uint8_t *at, std::size_t length) = 0;
 
-	virtual void advance(HttpRequestPhase trigger) = 0;
+	virtual void advance(HttpContextPhase trigger) = 0;
 	virtual void onError(PipelineError error) = 0;
 	virtual void onClientDisconnected() = 0;
 
@@ -184,7 +184,7 @@ Tradeoff acknowledgment:
 
 Whichever option is chosen, `HttpContextRunner` should own at minimum:
 
-- lazy handler creation through `IHttpRequestHandlerFactory`
+- lazy handler creation through `IHttpContextHandlerFactory`
 - cached handler lifetime for the current request
 - pending `RequestHandlingResult` staging
 - parser-phase and response-phase progression state

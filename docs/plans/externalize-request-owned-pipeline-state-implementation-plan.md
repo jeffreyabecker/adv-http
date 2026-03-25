@@ -342,8 +342,8 @@ Primary HTTP files likely to change:
 
 - `src/core/HttpContext.h`
 - `src/core/HttpContext.cpp`
-- `src/core/IHttpRequestHandlerFactory.h`
-- `src/core/HttpRequestHandlerFactory.h`
+- `src/core/IHttpContextHandlerFactory.h`
+- `src/core/HttpContextHandlerFactory.h`
 - `src/pipeline/HttpPipeline.h`
 - `src/pipeline/HttpPipeline.cpp`
 - `src/pipeline/IPipelineHandler.h`

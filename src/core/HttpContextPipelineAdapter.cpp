@@ -15,7 +15,7 @@ namespace HttpServerAdvanced
         const int result = runner_->onMessageBegin(method, versionMajor, versionMinor, url);
         if (result == 0)
         {
-            runner_->advance(HttpRequestPhase::CompletedStartingLine);
+            runner_->advance(HttpContextPhase::CompletedStartingLine);
         }
         return result;
     }
@@ -38,7 +38,7 @@ namespace HttpServerAdvanced
         const int result = runner_->onHeadersComplete();
         if (result == 0)
         {
-            runner_->advance(HttpRequestPhase::CompletedReadingHeaders);
+            runner_->advance(HttpContextPhase::CompletedReadingHeaders);
         }
         return result;
     }
@@ -50,7 +50,7 @@ namespace HttpServerAdvanced
 
     int HttpContextPipelineAdapter::onMessageComplete()
     {
-        runner_->advance(HttpRequestPhase::CompletedReadingMessage);
+        runner_->advance(HttpContextPhase::CompletedReadingMessage);
         return 0;
     }
 
@@ -61,12 +61,12 @@ namespace HttpServerAdvanced
 
     void HttpContextPipelineAdapter::onResponseStarted()
     {
-        runner_->advance(HttpRequestPhase::WritingResponseStarted);
+        runner_->advance(HttpContextPhase::WritingResponseStarted);
     }
 
     void HttpContextPipelineAdapter::onResponseCompleted()
     {
-        runner_->advance(HttpRequestPhase::CompletedWritingResponse);
+        runner_->advance(HttpContextPhase::CompletedWritingResponse);
     }
 
     void HttpContextPipelineAdapter::onClientDisconnected()
