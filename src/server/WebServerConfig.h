@@ -2,6 +2,9 @@
 #include "HttpServerBase.h"
 #include "WebServerBuilder.h"
 
+#include <type_traits>
+#include <utility>
+
 namespace HttpServerAdvanced
 {   
     class WebServerConfig
@@ -12,9 +15,11 @@ namespace HttpServerAdvanced
 
     public:
         WebServerConfig(HttpServerBase &server, WebServerBuilder &builder) : server_(server), builder_(builder) {}
-        WebServerBuilder &use(std::function<void(WebServerBuilder &)> component)
+        template <typename TComponent>
+        WebServerBuilder &use(TComponent &&component)
         {
-            return builder_.use(component);
+            static_assert(std::is_invocable_v<TComponent, WebServerBuilder &>, "component must be invocable with WebServerBuilder&");
+            return builder_.use(std::forward<TComponent>(component));
         }
         HandlerProviderRegistry &handlerProviders()
         {

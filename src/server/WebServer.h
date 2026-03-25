@@ -21,9 +21,12 @@ namespace HttpServerAdvanced
             static_assert(std::is_convertible_v<THttpServer*, HttpServerBase*>, "THttpServer must be convertible to HttpServerBase");
             builder_.init();
         }
-        WebServerConfig& use(std::function<void(WebServerBuilder &)> component){
-             config_.use(component);
-             return config_;
+           template <typename TComponent>
+           WebServerConfig &use(TComponent &&component)
+           {
+               static_assert(std::is_invocable_v<TComponent, WebServerBuilder &>, "component must be invocable with WebServerBuilder&");
+               config_.use(std::forward<TComponent>(component));
+               return config_;
         }
         WebServerConfig &cfg()
         {

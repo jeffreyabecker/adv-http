@@ -1,5 +1,7 @@
 #pragma once
 #include <functional>
+#include <type_traits>
+#include <utility>
 #include "../core/Defines.h"
 #include "../routing/HandlerProviderRegistry.h"
 #include "../core/HttpContext.h"
@@ -41,12 +43,21 @@ namespace HttpServerAdvanced
         }
         ~WebServerBuilder() = default;
 
-        WebServerBuilder &use(std::function<void(WebServerBuilder &)> component)
+        template <typename TComponent>
+        WebServerBuilder &use(TComponent &&component)
         {
-            if (component)
+            using ComponentType = std::remove_reference_t<TComponent>;
+            static_assert(std::is_invocable_v<TComponent, WebServerBuilder &>, "component must be invocable with WebServerBuilder&");
+
+            if constexpr (std::is_convertible_v<const ComponentType &, bool>)
             {
-                component(*this);
+                if (!component)
+                {
+                    return *this;
+                }
             }
+
+            std::forward<TComponent>(component)(*this);
             return *this;
         }
 
