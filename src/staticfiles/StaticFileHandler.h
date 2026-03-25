@@ -5,7 +5,7 @@
 #include "FileLocator.h"
 #include "../core/HttpContentTypes.h"
 #include "../response/HttpResponse.h"
-#include "../core/HttpRequest.h"
+#include "../core/HttpContext.h"
 #include "../handlers/IHandlerProvider.h"
 
 #include <optional>
@@ -24,8 +24,8 @@ namespace HttpServerAdvanced
 
     public:
         StaticFileHandlerFactory(FileLocator &fileLocator, HttpServerAdvanced::HttpContentTypes &contentTypes);
-        bool canHandle(HttpRequest &context);
-        std::unique_ptr<IHttpHandler> create(HttpRequest &context) override;
+        bool canHandle(HttpContext &context);
+        std::unique_ptr<IHttpHandler> create(HttpContext &context) override;
         void setFileLocator(FileLocator &fileLocator);
     };
 

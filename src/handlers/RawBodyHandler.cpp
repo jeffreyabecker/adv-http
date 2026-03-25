@@ -18,7 +18,7 @@ namespace HttpServerAdvanced
         }
     }
 
-    IHttpHandler::HandlerResult RawBodyHandler::handleStep(HttpRequest &context)
+    IHttpHandler::HandlerResult RawBodyHandler::handleStep(HttpContext &context)
     {
         if (!response_ && context.completedPhases() >= HttpRequestPhase::CompletedReadingMessage)
         {
@@ -31,7 +31,7 @@ namespace HttpServerAdvanced
         return nullptr;
     }
 
-    void RawBodyHandler::handleBodyChunk(HttpRequest &context, const uint8_t *at, std::size_t length)
+    void RawBodyHandler::handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length)
     {
         if (response_)
         {
@@ -49,7 +49,7 @@ namespace HttpServerAdvanced
 
     RawBody::Invocation RawBody::curryWithoutParams(InvocationWithoutParams handler)
     {
-        return [handler](HttpRequest &context, RouteParameters &, RawBodyBuffer buffer)
+        return [handler](HttpContext &context, RouteParameters &, RawBodyBuffer buffer)
         {
             return handler(context, buffer);
         };
@@ -57,41 +57,41 @@ namespace HttpServerAdvanced
 
     IHttpHandler::Factory RawBody::makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
     {
-        return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
+        return [handler, extractor](HttpContext &context) -> std::unique_ptr<IHttpHandler>
         {
             auto params = extractor(context);
             // Create a handler that adapts RawBodyBuffer to raw parameters
-            std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &, RawBodyBuffer)> bufferHandler =
-                [handler](HttpRequest &ctx, RouteParameters &params, RawBodyBuffer buffer)
+            std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &, RawBodyBuffer)> bufferHandler =
+                [handler](HttpContext &ctx, RouteParameters &params, RawBodyBuffer buffer)
             {
                 return handler(ctx, params, buffer);
             };
-            return std::make_unique<RawBodyHandler>(bufferHandler, ExtractArgsFromRequest([params](HttpRequest &c)
+            return std::make_unique<RawBodyHandler>(bufferHandler, ExtractArgsFromRequest([params](HttpContext &c)
                                                                                           { return params; }));
         };
     }
 
     RawBody::Invocation RawBody::curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](HttpRequest &context, RouteParameters &params, RawBodyBuffer buffer)
+        return [interceptor, handler](HttpContext &context, RouteParameters &params, RawBodyBuffer buffer)
         {
-            return interceptor(context, [handler, &params, buffer](HttpRequest &context)
+            return interceptor(context, [handler, &params, buffer](HttpContext &context)
                                { return handler(context, params, buffer); });
         };
     }
 
     RawBody::Invocation RawBody::applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](HttpRequest &context, RouteParameters &params, RawBodyBuffer buffer)
+        return [interceptor, handler](HttpContext &context, RouteParameters &params, RawBodyBuffer buffer)
         {
-            return interceptor(context, [handler, &params, &buffer](HttpRequest &context)
+            return interceptor(context, [handler, &params, &buffer](HttpContext &context)
                                { return handler(context, params, buffer); });
         };
     }
 
     RawBody::Invocation RawBody::applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
     {
-        return [filter, handler](HttpRequest &context, RouteParameters &params, RawBodyBuffer buffer)
+        return [filter, handler](HttpContext &context, RouteParameters &params, RawBodyBuffer buffer)
         {
             auto response = handler(context, params, buffer);
             if (!response.isResponse())

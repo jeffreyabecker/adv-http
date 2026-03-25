@@ -6,7 +6,7 @@
 #include "../../src/compat/IFileSystem.h"
 #include "../../src/core/HttpContentTypes.h"
 #include "../../src/core/HttpHeader.h"
-#include "../../src/core/HttpRequest.h"
+#include "../../src/core/HttpContext.h"
 #include "../../src/handlers/HttpHandler.h"
 #include "../../src/staticfiles/AggregateFileLocator.h"
 #include "../../src/staticfiles/DefaultFileLocator.h"
@@ -31,12 +31,12 @@ namespace
     class NoOpHandler : public IHttpHandler
     {
     public:
-        HandlerResult handleStep(HttpRequest &) override
+        HandlerResult handleStep(HttpContext &) override
         {
             return nullptr;
         }
 
-        void handleBodyChunk(HttpRequest &, const uint8_t *, std::size_t) override
+        void handleBodyChunk(HttpContext &, const uint8_t *, std::size_t) override
         {
         }
     };
@@ -47,12 +47,12 @@ namespace
         RequestContextHarness()
             : server_(std::make_unique<HttpServerBase>(std::make_unique<TestSupport::FakeServer>())),
               handler_(std::make_unique<NoOpHandler>()),
-              factory_([this](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
+              factory_([this](HttpContext &context) -> std::unique_ptr<IHttpHandler>
               {
                   context_ = &context;
                   return std::move(handler_);
               }),
-              pipeline_(HttpRequest::createPipelineHandler(*server_, factory_))
+              pipeline_(HttpContext::createPipelineHandler(*server_, factory_))
         {
         }
 
@@ -64,7 +64,7 @@ namespace
             TEST_ASSERT_EQUAL_INT(0, pipeline_->onHeadersComplete());
         }
 
-        HttpRequest &context()
+        HttpContext &context()
         {
             TEST_ASSERT_NOT_NULL(context_);
             return *context_;
@@ -75,7 +75,7 @@ namespace
         std::unique_ptr<IHttpHandler> handler_;
         TestSupport::RecordingRequestHandlerFactory factory_;
         PipelineHandlerPtr pipeline_;
-        HttpRequest *context_ = nullptr;
+        HttpContext *context_ = nullptr;
         std::string methodStorage_;
         std::string urlStorage_;
     };
@@ -228,7 +228,7 @@ namespace
         {
         }
 
-        FileHandle getFile(HttpRequest &context) override
+        FileHandle getFile(HttpContext &context) override
         {
             ++getFileCount_;
             lastUrl_ = std::string(context.urlView());

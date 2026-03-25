@@ -1,16 +1,16 @@
 #pragma once
 
-#include "HttpRequestRunner.h"
+#include "HttpContextRunner.h"
 #include "../pipeline/IPipelineHandler.h"
 
 #include <memory>
 
 namespace HttpServerAdvanced
 {
-    class HttpRequestPipelineAdapter : public IPipelineHandler
+    class HttpContextPipelineAdapter : public IPipelineHandler
     {
     public:
-        explicit HttpRequestPipelineAdapter(std::unique_ptr<HttpRequestRunner> runner);
+        explicit HttpContextPipelineAdapter(std::unique_ptr<HttpContextRunner> runner);
 
         int onMessageBegin(const char *method,
                            std::uint16_t versionMajor,
@@ -31,10 +31,10 @@ namespace HttpServerAdvanced
         bool hasPendingResult() const override;
         RequestHandlingResult takeResult() override;
 
-        HttpRequestRunner &runner();
-        const HttpRequestRunner &runner() const;
+        HttpContextRunner &runner();
+        const HttpContextRunner &runner() const;
 
     private:
-        std::unique_ptr<HttpRequestRunner> runner_;
+        std::unique_ptr<HttpContextRunner> runner_;
     };
 }

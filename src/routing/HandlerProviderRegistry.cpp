@@ -1,5 +1,5 @@
 #include "HandlerProviderRegistry.h"
-#include "../core/HttpRequest.h"
+#include "../core/HttpContext.h"
 #include "../handlers/HttpHandler.h"
 #include "../response/HttpResponse.h"
 #include "../response/StringResponse.h"
@@ -7,12 +7,12 @@
 namespace HttpServerAdvanced
 {
 
-    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createDefaultHandler(HttpRequest &context)
+    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createDefaultHandler(HttpContext &context)
     {
         return std::make_unique<HttpHandler>(
             StringResponse::create(HttpStatus::NotFound(), "404 Not Found",
                                  {HttpHeader(HttpHeaderNames::ContentType, "text/plain")}),
-            [](const HttpRequest &)
+            [](const HttpContext &)
             { return true; });
     }
 
@@ -31,22 +31,22 @@ namespace HttpServerAdvanced
         return std::make_unique<ResponseFilterApplicator>(std::move(innerHandler), globalResponseFilter_, globalRequestInterceptor_);
     }
 
-    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createContextHandler(HttpRequest &context)
+    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createContextHandler(HttpContext &context)
     {
         if (!globalRequestFilter_ || globalRequestFilter_(context))
         {
             for (auto &creator : factories_)
             {
                 IHandlerProvider &factory = creator.get();
-                if (factory.canHandle(const_cast<HttpRequest &>(context)))
+                if (factory.canHandle(const_cast<HttpContext &>(context)))
                 {
-                    return wrapHandler(factory.create(const_cast<HttpRequest &>(context)));
+                    return wrapHandler(factory.create(const_cast<HttpContext &>(context)));
                 }
             }
         }
         auto inner = defaultFactory_
-                         ? defaultFactory_(const_cast<HttpRequest &>(context))
-                         : createDefaultHandler(const_cast<HttpRequest &>(context));
+                         ? defaultFactory_(const_cast<HttpContext &>(context))
+                         : createDefaultHandler(const_cast<HttpContext &>(context));
         return wrapHandler(std::move(inner));
     }
 
@@ -86,8 +86,8 @@ namespace HttpServerAdvanced
 
     void HandlerProviderRegistry::add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position)
     {
-        add(predicate, [invocation](HttpRequest &context)
-            { return std::make_unique<HttpHandler>(invocation, [](const HttpRequest &)
+        add(predicate, [invocation](HttpContext &context)
+            { return std::make_unique<HttpHandler>(invocation, [](const HttpContext &)
                                                    { return true; }); }, position);
     }
 
@@ -101,7 +101,7 @@ namespace HttpServerAdvanced
         if( globalRequestFilter_)
         {
             auto previousFilter = globalRequestFilter_;
-            globalRequestFilter_ = [previousFilter, predicate](HttpRequest &context) -> bool
+            globalRequestFilter_ = [previousFilter, predicate](HttpContext &context) -> bool
             {
                 return previousFilter(context) && predicate(context);
             };
@@ -140,9 +140,9 @@ namespace HttpServerAdvanced
         if (globalRequestInterceptor_)
         {
             auto previousInterceptor = globalRequestInterceptor_;
-            globalRequestInterceptor_ = [previousInterceptor, interceptor](HttpRequest &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+            globalRequestInterceptor_ = [previousInterceptor, interceptor](HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
             {
-                return interceptor(context, [previousInterceptor, next](HttpRequest &ctx) -> IHttpHandler::HandlerResult
+                return interceptor(context, [previousInterceptor, next](HttpContext &ctx) -> IHttpHandler::HandlerResult
                                    { return previousInterceptor(ctx, next); });
             };
         }

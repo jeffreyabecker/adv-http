@@ -5,7 +5,7 @@
 #include <string>
 #include <string_view>
 
-#include "../core/HttpRequest.h"
+#include "../core/HttpContext.h"
 #include "../util/UriView.h"
 
 namespace HttpServerAdvanced
@@ -49,7 +49,7 @@ namespace HttpServerAdvanced
         return allowedMethods.find(method) != std::string_view::npos;
     }
 
-    bool defaultCheckContentType(HttpRequest &context, const std::vector<std::string> &allowedContentTypes)
+    bool defaultCheckContentType(HttpContext &context, const std::vector<std::string> &allowedContentTypes)
     {
         std::optional<HttpHeader> contentType = context.headers().find("Content-Type");
         if (!contentType.has_value())
@@ -116,7 +116,7 @@ namespace HttpServerAdvanced
         return patternIndex == uriPattern.size();
     }
 
-    RouteParameters defaultExtractParameters(HttpRequest &context, std::string_view uriPattern)
+    RouteParameters defaultExtractParameters(HttpContext &context, std::string_view uriPattern)
     {
         RouteParameters params;
         auto v = UriView(context.urlView());
@@ -330,7 +330,7 @@ namespace HttpServerAdvanced
     }
 
     // Public methods
-    bool HandlerMatcher::canHandle(HttpRequest &context) const
+    bool HandlerMatcher::canHandle(HttpContext &context) const
     {
         if (!allowedMethods_.empty() && !methodChecker_(allowedMethods_, context.methodView()))
         {
@@ -352,7 +352,7 @@ namespace HttpServerAdvanced
         return true;
     }
 
-    RouteParameters HandlerMatcher::extractParameters(HttpRequest &context) const
+    RouteParameters HandlerMatcher::extractParameters(HttpContext &context) const
     {
         return argsExtractor_(context, uriPattern_);
     }

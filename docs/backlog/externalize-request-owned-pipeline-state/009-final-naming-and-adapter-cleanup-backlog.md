@@ -1,3 +1,4 @@
+2026-03-25 - Copilot: completed the final HttpContext naming pass, aligned remaining internal seam names, and revalidated the native lane.
 2026-03-24 - Copilot: created Phase 9 backlog for final naming cleanup and removal of transitional adapters.
 
 # Final Naming And Adapter Cleanup Backlog
@@ -9,16 +10,16 @@ This final phase removes transitional naming and compatibility scaffolding once 
 ## Goal / Acceptance Criteria
 
 - `HttpRequest` is renamed to `HttpContext` once the implementation split is stable.
-- Transitional adapters and compatibility wrappers that no longer carry their weight are removed.
+- Remaining required HTTP activation seam types use the final context-oriented names.
 - Final docs and tests describe the stable context/execution architecture directly.
 
 ## Tasks
 
-- [ ] Rename `HttpRequest` to `HttpContext`.
-- [ ] Remove obsolete adapters and compatibility wrappers.
-- [ ] Delete `WebSocketSessionRuntime` if it still exists.
-- [ ] Update docs, examples, and tests to final naming.
-- [ ] Run the full native test lane and any relevant compile validation after cleanup.
+- [x] Rename `HttpRequest` to `HttpContext`.
+- [x] Rename remaining required activation seam types to `HttpContextRunner` and `HttpContextPipelineAdapter`.
+- [x] Delete `WebSocketSessionRuntime` if it still exists.
+- [x] Update docs, examples, and tests to final naming.
+- [x] Run the full native test lane and any relevant compile validation after cleanup.
 
 ## References
 

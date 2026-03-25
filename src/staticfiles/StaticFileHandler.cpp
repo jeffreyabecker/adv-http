@@ -60,7 +60,7 @@ namespace HttpServerAdvanced
     {
     }
 
-    bool StaticFileHandlerFactory::canHandle(HttpRequest &context)
+    bool StaticFileHandlerFactory::canHandle(HttpContext &context)
     {
         if (fileLocator_ == nullptr || !fileLocator_->canHandle(context.urlView()))
         {
@@ -75,7 +75,7 @@ namespace HttpServerAdvanced
         return true;
     }
 
-    std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::create(HttpRequest &context)
+    std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::create(HttpContext &context)
     {
         const std::string_view method = context.methodView();
         bool isGet = (method == HttpMethod::Get);

@@ -59,7 +59,7 @@ int run_test_native_smoke();
 int run_test_clock();
 int run_test_body_handlers();
 int run_test_fixture_support();
-int run_test_http_request();
+int run_test_http_context();
 int run_test_pipeline();
 int run_test_request_parser();
 int run_test_response_streams();
@@ -80,7 +80,7 @@ int main(int, char **)
     failureCount += run_test_clock();
     failureCount += run_test_body_handlers();
     failureCount += run_test_fixture_support();
-    failureCount += run_test_http_request();
+    failureCount += run_test_http_context();
     failureCount += run_test_pipeline();
     failureCount += run_test_request_parser();
     failureCount += run_test_routing();

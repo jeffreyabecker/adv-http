@@ -80,7 +80,7 @@ GET /gpio/5/set/1      → Set GPIO 5 HIGH
 **File**: `examples/QueryStrings/QueryStrings.ino`  
 **Features**: Parsing query string parameters  
 **Concepts**:
-- `HttpRequest.uri()` access
+- `HttpContext.uri()` access
 - `HttpUtility::ParseQueryString()`
 - `KeyValuePairView` iteration
 

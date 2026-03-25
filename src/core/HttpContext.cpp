@@ -1,20 +1,20 @@
-#include "../core/HttpRequest.h"
-#include "HttpRequestPipelineAdapter.h"
-#include "HttpRequestRunner.h"
+#include "../core/HttpContext.h"
+#include "HttpContextPipelineAdapter.h"
+#include "HttpContextRunner.h"
 #include "../handlers/IHttpHandler.h"
 #include "IHttpRequestHandlerFactory.h"
 
 namespace HttpServerAdvanced
 {
-    class HttpRequestAccess
+    class HttpContextAccess
     {
     public:
-        static void bindCompletedPhases(HttpRequest &request, const HttpRequestPhaseFlags *completedPhases)
+        static void bindCompletedPhases(HttpContext &request, const HttpRequestPhaseFlags *completedPhases)
         {
             request.bindCompletedPhases(completedPhases);
         }
 
-        static void setRequestLine(HttpRequest &request,
+        static void setRequestLine(HttpContext &request,
                                    const char *method,
                                    std::uint16_t versionMajor,
                                    std::uint16_t versionMinor,
@@ -23,7 +23,7 @@ namespace HttpServerAdvanced
             request.setRequestLine(method, versionMajor, versionMinor, url);
         }
 
-        static void setRequestAddresses(HttpRequest &request,
+        static void setRequestAddresses(HttpContext &request,
                                         std::string_view remoteAddress,
                                         std::uint16_t remotePort,
                                         std::string_view localAddress,
@@ -32,12 +32,12 @@ namespace HttpServerAdvanced
             request.setRequestAddresses(remoteAddress, remotePort, localAddress, localPort);
         }
 
-        static void setHeader(HttpRequest &request, std::string_view field, std::string_view value)
+        static void setHeader(HttpContext &request, std::string_view field, std::string_view value)
         {
             request.setHeader(field, value);
         }
 
-        static std::unique_ptr<IHttpHandler> createHandler(HttpRequest &request)
+        static std::unique_ptr<IHttpHandler> createHandler(HttpContext &request)
         {
             return request.createHandler();
         }
@@ -45,16 +45,16 @@ namespace HttpServerAdvanced
 
     namespace
     {
-        class DefaultHttpRequestRunner : public HttpRequestRunner
+        class DefaultHttpContextRunner : public HttpContextRunner
         {
         public:
-            DefaultHttpRequestRunner(HttpServerBase &server, IHttpRequestHandlerFactory &handlerFactory)
+            DefaultHttpContextRunner(HttpServerBase &server, IHttpRequestHandlerFactory &handlerFactory)
                 : context_(server, handlerFactory)
             {
-                HttpRequestAccess::bindCompletedPhases(context_, &completedPhases_);
+                HttpContextAccess::bindCompletedPhases(context_, &completedPhases_);
             }
 
-            HttpRequest &context() override
+            HttpContext &context() override
             {
                 return context_;
             }
@@ -64,7 +64,7 @@ namespace HttpServerAdvanced
                                std::uint16_t versionMinor,
                                std::string_view url) override
             {
-                HttpRequestAccess::setRequestLine(context_, method, versionMajor, versionMinor, url);
+                HttpContextAccess::setRequestLine(context_, method, versionMajor, versionMinor, url);
                 return 0;
             }
 
@@ -73,12 +73,12 @@ namespace HttpServerAdvanced
                               std::string_view localAddress,
                               std::uint16_t localPort) override
             {
-                HttpRequestAccess::setRequestAddresses(context_, remoteAddress, remotePort, localAddress, localPort);
+                HttpContextAccess::setRequestAddresses(context_, remoteAddress, remotePort, localAddress, localPort);
             }
 
             int onHeader(std::string_view field, std::string_view value) override
             {
-                HttpRequestAccess::setHeader(context_, field, value);
+                HttpContextAccess::setHeader(context_, field, value);
                 return 0;
             }
 
@@ -170,7 +170,7 @@ namespace HttpServerAdvanced
             }
 
         private:
-            HttpRequest context_;
+            HttpContext context_;
             std::unique_ptr<IHttpHandler> handler_;
             RequestHandlingResult pendingResult_;
             std::size_t bodyBytesReceived_ = 0;
@@ -180,7 +180,7 @@ namespace HttpServerAdvanced
             {
                 if (!handler_)
                 {
-                    handler_ = HttpRequestAccess::createHandler(context_);
+                    handler_ = HttpContextAccess::createHandler(context_);
                 }
 
                 return handler_.get();
@@ -235,10 +235,10 @@ namespace HttpServerAdvanced
         };
     }
 
-    PipelineHandlerPtr HttpRequest::createPipelineHandler(HttpServerBase &server, IHttpRequestHandlerFactory &handlerFactory)
+    PipelineHandlerPtr HttpContext::createPipelineHandler(HttpServerBase &server, IHttpRequestHandlerFactory &handlerFactory)
     {
         return PipelineHandlerPtr(
-            new HttpRequestPipelineAdapter(std::make_unique<DefaultHttpRequestRunner>(server, handlerFactory)),
+            new HttpContextPipelineAdapter(std::make_unique<DefaultHttpContextRunner>(server, handlerFactory)),
             [](IPipelineHandler *handler)
             {
                 delete handler;

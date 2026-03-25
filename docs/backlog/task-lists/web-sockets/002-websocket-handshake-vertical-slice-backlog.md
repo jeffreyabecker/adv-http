@@ -47,7 +47,7 @@ This phase proves the upgrade seam with a complete HTTP-to-WebSocket handshake f
 ### Parser And Request Integration
 
 - [x] Review `src/pipeline/RequestParser.h` and `src/pipeline/RequestParser.cpp` for any upgrade-relevant state that must be surfaced more explicitly.
-- [x] Ensure header access in `HttpRequest` is sufficient for handshake validation without introducing parser-specific leakage into the public surface.
+- [x] Ensure header access in `HttpContext` is sufficient for handshake validation without introducing parser-specific leakage into the public surface.
 - [x] Hand the accepted request into a stub upgraded session through the Phase 1 result-object and `IConnectionSession` seam.
 
 ### Rejection Behavior
@@ -74,8 +74,8 @@ High
 - `docs/plans/websocket-support-plan.md`
 - `src/pipeline/RequestParser.h`
 - `src/pipeline/RequestParser.cpp`
-- `src/core/HttpRequest.h`
-- `src/core/HttpRequest.cpp`
+- `src/core/HttpContext.h`
+- `src/core/HttpContext.cpp`
 - `src/core/HttpHeaderCollection.h`
 - `src/core/HttpHeaderCollection.cpp`
 - `src/response/HttpResponse.h`

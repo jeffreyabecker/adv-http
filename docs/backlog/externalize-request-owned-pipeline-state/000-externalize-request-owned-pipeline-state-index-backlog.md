@@ -8,7 +8,7 @@ This backlog folder breaks down the implementation work from [docs/plans/externa
 
 The work is broader than the websocket runtime split alone. It includes:
 
-- extracting orchestration ownership out of `HttpRequest`
+- extracting orchestration ownership out of `HttpContext`
 - reshaping the HTTP activation object toward `HttpContext`
 - introducing first-class websocket context and execution types
 - preparing and then landing a shared protocol-execution seam above the current HTTP and upgraded-session seams
@@ -36,7 +36,7 @@ The work is broader than the websocket runtime split alone. It includes:
 
 ## Ordering Notes
 
-- Phases `001` and `002` are the root architectural work because the broader `012` design starts by removing orchestration ownership from `HttpRequest`.
+- Phases `001` and `002` are the root architectural work because the broader `012` design starts by removing orchestration ownership from `HttpContext`.
 - Phases `003` through `006` are the websocket-side implementation slices that sit on top of that HTTP-side split.
 - Phases `007` and `008` are the shared-seam and pipeline simplification work that complete the peer-context architecture.
 - Phase `009` is intentionally last because naming cleanup and adapter removal should happen only after the transition is stable.

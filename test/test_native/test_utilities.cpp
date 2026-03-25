@@ -16,7 +16,7 @@
 #include "../../src/core/HttpStatus.h"
 #include "../../src/core/IHttpRequestHandlerFactory.h"
 #include "../../src/core/Defines.h"
-#include "../../src/core/HttpRequest.h"
+#include "../../src/core/HttpContext.h"
 #include "../../src/util/HttpUtility.h"
 #include "../../src/core/HttpHeaderCollection.h"
 #include "../../src/routing/CrossOriginRequestSharing.h"
@@ -402,9 +402,9 @@ namespace
         TEST_ASSERT_EQUAL_STRING("third", factory.lastResponseBody().c_str());
     }
 
-    void test_http_request_items_exposes_std_string_keyed_map()
+    void test_http_context_items_exposes_std_string_keyed_map()
     {
-        using ItemsType = std::remove_reference_t<decltype(std::declval<const HttpServerAdvanced::HttpRequest &>().items())>;
+        using ItemsType = std::remove_reference_t<decltype(std::declval<const HttpServerAdvanced::HttpContext &>().items())>;
 
         TEST_ASSERT_TRUE((std::is_same_v<ItemsType, std::map<std::string, std::any>>));
     }
@@ -466,7 +466,7 @@ namespace
         RUN_TEST(test_javascript_string_encode_escapes_control_characters_and_quotes);
         RUN_TEST(test_cors_string_view_overload_sets_headers);
         RUN_TEST(test_request_handler_factory_std_text_overloads_delegate_to_std_string);
-        RUN_TEST(test_http_request_items_exposes_std_string_keyed_map);
+        RUN_TEST(test_http_context_items_exposes_std_string_keyed_map);
         RUN_TEST(test_handler_matcher_uses_standard_text_configuration);
         RUN_TEST(test_handler_matcher_default_helpers_use_standard_text_inputs);
         return UNITY_END();

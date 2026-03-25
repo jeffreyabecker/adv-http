@@ -27,7 +27,7 @@ The current WebSocket implementation still uses a parallel route-registration an
 - [x] Introduce a WebSocket handler/provider implementation that performs upgrade-candidate checks, validates the handshake, and returns either an HTTP response or an upgraded session.
 - [x] Refactor `ProviderRegistryBuilder::websocket(...)` to register WebSocket behavior through `HandlerProviderRegistry` instead of storing `WebSocketRoute` records.
 - [x] Remove `WebSocketRoute`-driven matching and `tryCreateRequestResult(...)`-style WebSocket routing from `HttpRequestHandlerFactory` once handler-backed routing exists.
-- [x] Simplify `HttpRequest` request handling so HTTP and WebSocket routes follow the same handler execution path before the pipeline consumes the final result.
+- [x] Simplify `HttpContext` request handling so HTTP and WebSocket routes follow the same handler execution path before the pipeline consumes the final result.
 - [x] Update request-level and pipeline-level native tests to assert the normalized handler flow rather than the current factory side-channel behavior.
 - [ ] Update WebSocket design and implementation documentation to describe the normalized handler seam.
 

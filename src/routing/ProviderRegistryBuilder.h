@@ -53,7 +53,7 @@ namespace HttpServerAdvanced
         inline void on(HandlerMatcher &request, IHttpHandler::Factory handler)
         {
             providerRegistry_.add(
-                [&request](HttpRequest &context)
+                [&request](HttpContext &context)
                 {
                     return request.canHandle(context);
                 },
@@ -64,14 +64,14 @@ namespace HttpServerAdvanced
         {
             std::string registeredPath(path);
             providerRegistry_.add(
-                [registeredPath](HttpRequest &context)
+                [registeredPath](HttpContext &context)
                 {
                     return WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(context) && defaultCheckUriPattern(context.uriView().path(), registeredPath);
                 },
-                [callbacks = std::move(callbacks)](HttpRequest &) mutable -> std::unique_ptr<IHttpHandler>
+                [callbacks = std::move(callbacks)](HttpContext &) mutable -> std::unique_ptr<IHttpHandler>
                 {
                     return std::make_unique<HttpHandler>(
-                        [callbacks = std::move(callbacks)](HttpRequest &context) mutable -> IHttpHandler::HandlerResult
+                        [callbacks = std::move(callbacks)](HttpContext &context) mutable -> IHttpHandler::HandlerResult
                         {
                             WebSocketUpgradeHandler upgradeHandler;
                             return upgradeHandler.handle(context, callbacks);
@@ -90,7 +90,7 @@ namespace HttpServerAdvanced
             HandlerMatcher req = request;
             THandler::restrict(req);
             // Adapt HandlerMatcher's ArgsExtractor (takes 2 params) to ExtractArgsFromRequest (takes 1 param)
-            ExtractArgsFromRequest adapterExtractor = [req](HttpRequest &context) { return req.extractParameters(context); };
+            ExtractArgsFromRequest adapterExtractor = [req](HttpContext &context) { return req.extractParameters(context); };
             auto addHandler = [this](IHttpHandler::Predicate predicate, IHttpHandler::Factory factory)
             {
                 providerRegistry_.add(std::move(predicate), std::move(factory));
@@ -115,7 +115,7 @@ namespace HttpServerAdvanced
             HandlerMatcher request(path);
             THandler::restrict(request);
             // Adapt HandlerMatcher's ArgsExtractor (takes 2 params) to ExtractArgsFromRequest (takes 1 param)
-            ExtractArgsFromRequest adapterExtractor = [request](HttpRequest &context) { return request.extractParameters(context); };
+            ExtractArgsFromRequest adapterExtractor = [request](HttpContext &context) { return request.extractParameters(context); };
             auto addHandler = [this](IHttpHandler::Predicate predicate, IHttpHandler::Factory factory)
             {
                 providerRegistry_.add(std::move(predicate), std::move(factory));
@@ -137,8 +137,8 @@ namespace HttpServerAdvanced
 
         void onNotFound(IHttpHandler::InvocationCallback invocation)
         {
-            providerRegistry_.setDefaultHandlerFactory([invocation](HttpRequest &context)
-                                              { return std::make_unique<HttpHandler>(invocation, [](const HttpRequest &)
+            providerRegistry_.setDefaultHandlerFactory([invocation](HttpContext &context)
+                                              { return std::make_unique<HttpHandler>(invocation, [](const HttpContext &)
                                                                                      { return true; }); });
         }
     };

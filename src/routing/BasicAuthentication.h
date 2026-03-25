@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../core/Defines.h"
-#include "../core/HttpRequest.h"
+#include "../core/HttpContext.h"
 #include "../response/HttpResponse.h"
 #include "../core/HttpStatus.h"
 #include "../util/HttpUtility.h"
@@ -15,7 +15,7 @@ namespace HttpServerAdvanced
 {
     namespace BasicAuthImpl
     {
-        inline bool CheckBasicAuthCredentials(HttpRequest &context, std::function<bool(std::string_view, std::string_view)> validator,
+        inline bool CheckBasicAuthCredentials(HttpContext &context, std::function<bool(std::string_view, std::string_view)> validator,
                               std::function<void(std::string_view, std::string_view)> onSuccess)
         {
             auto authHeaderOpt = context.headers().find(HttpHeaderNames::Authorization);
@@ -56,7 +56,7 @@ namespace HttpServerAdvanced
         }
     }
 
-    inline std::unique_ptr<IHttpResponse> defaultOnFailure(HttpRequest &context, std::string_view realm)
+    inline std::unique_ptr<IHttpResponse> defaultOnFailure(HttpContext &context, std::string_view realm)
     {
         return StringResponse::create(
             HttpStatus::Unauthorized(),
@@ -66,11 +66,11 @@ namespace HttpServerAdvanced
 
     inline IHttpHandler::InterceptorCallback BasicAuth(std::function<bool(std::string_view, std::string_view)> validator, std::string_view realm = "Restricted Area",
                                                        std::function<void(std::string_view, std::string_view)> onSuccess = nullptr,
-                                                       std::function<std::unique_ptr<IHttpResponse>(HttpRequest &context, std::string_view)> onFailure = defaultOnFailure)
+                                                       std::function<std::unique_ptr<IHttpResponse>(HttpContext &context, std::string_view)> onFailure = defaultOnFailure)
     {
         std::string realmValue(realm);
 
-        return [validator = std::move(validator), realmValue = std::move(realmValue), onSuccess = std::move(onSuccess), onFailure = std::move(onFailure)](HttpRequest &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+        return [validator = std::move(validator), realmValue = std::move(realmValue), onSuccess = std::move(onSuccess), onFailure = std::move(onFailure)](HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
         {
             if (BasicAuthImpl::CheckBasicAuthCredentials(context, validator, onSuccess))
             {
@@ -82,7 +82,7 @@ namespace HttpServerAdvanced
 
     inline IHttpHandler::InterceptorCallback BasicAuth(std::string_view expectedUsername, std::string_view expectedPassword, std::string_view realm = "Restricted Area",
                                                        std::function<void(std::string_view, std::string_view)> onSuccess = nullptr,
-                                                       std::function<std::unique_ptr<IHttpResponse>(HttpRequest &context, std::string_view)> onFailure = defaultOnFailure)
+                                                       std::function<std::unique_ptr<IHttpResponse>(HttpContext &context, std::string_view)> onFailure = defaultOnFailure)
     {
         return BasicAuth(
             [expectedUsername, expectedPassword](std::string_view foundUsername, std::string_view foundPassword)

@@ -4,7 +4,7 @@
 #include <unity.h>
 
 #include "../../src/compat/Clock.h"
-#include "../../src/core/HttpRequest.h"
+#include "../../src/core/HttpContext.h"
 #include "../../src/core/HttpRequestPhase.h"
 #include "../../src/handlers/HttpHandler.h"
 #include "../../src/pipeline/RequestParser.h"
@@ -26,14 +26,14 @@ namespace
     class CapturingHandler : public IHttpHandler
     {
     public:
-        HandlerResult handleStep(HttpRequest &context) override
+        HandlerResult handleStep(HttpContext &context) override
         {
             seenMethods_.push_back(std::string(context.methodView()));
             seenPhases_.push_back(context.completedPhases());
             return nullptr;
         }
 
-        void handleBodyChunk(HttpRequest &context, const uint8_t *, std::size_t) override
+        void handleBodyChunk(HttpContext &context, const uint8_t *, std::size_t) override
         {
             bodyChunkMethods_.push_back(std::string(context.methodView()));
             bodyChunkPhases_.push_back(context.completedPhases());
@@ -78,10 +78,10 @@ namespace
         std::string_view path,
         WebSocketCallbacks callbacks = {})
     {
-        return [registeredPath = std::string(path), callbacks = std::move(callbacks)](HttpRequest &)
+        return [registeredPath = std::string(path), callbacks = std::move(callbacks)](HttpContext &)
         {
             return std::make_unique<HttpHandler>(
-                [registeredPath, callbacks](HttpRequest &context) mutable -> IHttpHandler::HandlerResult
+                [registeredPath, callbacks](HttpContext &context) mutable -> IHttpHandler::HandlerResult
                 {
                     if (!WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(context) || !defaultCheckUriPattern(context.uriView().path(), registeredPath))
                     {
@@ -94,7 +94,7 @@ namespace
         };
     }
 
-    void test_http_request_preserves_custom_method_through_factory_and_handler_steps()
+    void test_http_context_preserves_custom_method_through_factory_and_handler_steps()
     {
         HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
         std::unique_ptr<CapturingHandler> capturingHandler = std::make_unique<CapturingHandler>();
@@ -103,14 +103,14 @@ namespace
         std::vector<HttpRequestPhaseFlags> factoryPhases;
 
         TestSupport::RecordingRequestHandlerFactory factory(
-            [&factoryMethods, &factoryPhases, &capturingHandler](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
+            [&factoryMethods, &factoryPhases, &capturingHandler](HttpContext &context) -> std::unique_ptr<IHttpHandler>
             {
                 factoryMethods.push_back(std::string(context.methodView()));
                 factoryPhases.push_back(context.completedPhases());
                 return std::move(capturingHandler);
             });
 
-        auto pipelineHandler = HttpRequest::createPipelineHandler(server, factory);
+        auto pipelineHandler = HttpContext::createPipelineHandler(server, factory);
 
         const std::uint8_t body[] = {'o', 'k'};
 
@@ -153,7 +153,7 @@ namespace
         RequestHandlingResult::Kind expectedKind)
     {
         HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
-        auto pipelineHandler = HttpRequest::createPipelineHandler(server, factory);
+        auto pipelineHandler = HttpContext::createPipelineHandler(server, factory);
         RequestParser parser(*pipelineHandler);
 
         std::string request;
@@ -186,13 +186,13 @@ namespace
         return std::string();
     }
 
-    void test_http_request_websocket_upgrade_accepts_split_request_and_returns_upgrade_session()
+    void test_http_context_websocket_upgrade_accepts_split_request_and_returns_upgrade_session()
     {
         HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
         TestSupport::RecordingRequestHandlerFactory factory(
             createWebSocketUpgradeHandlerFactory("/chat"));
 
-        auto pipelineHandler = HttpRequest::createPipelineHandler(server, factory);
+        auto pipelineHandler = HttpContext::createPipelineHandler(server, factory);
         RequestParser parser(*pipelineHandler);
 
         const std::vector<std::string> chunks = {
@@ -232,7 +232,7 @@ namespace
             client.writtenText().c_str());
     }
 
-    void test_http_request_websocket_upgrade_rejects_invalid_requests_with_deterministic_statuses()
+    void test_http_context_websocket_upgrade_rejects_invalid_requests_with_deterministic_statuses()
     {
         {
             TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
@@ -389,14 +389,14 @@ namespace
     int runUnitySuite()
     {
         UNITY_BEGIN();
-        RUN_TEST(test_http_request_preserves_custom_method_through_factory_and_handler_steps);
-        RUN_TEST(test_http_request_websocket_upgrade_accepts_split_request_and_returns_upgrade_session);
-        RUN_TEST(test_http_request_websocket_upgrade_rejects_invalid_requests_with_deterministic_statuses);
+        RUN_TEST(test_http_context_preserves_custom_method_through_factory_and_handler_steps);
+        RUN_TEST(test_http_context_websocket_upgrade_accepts_split_request_and_returns_upgrade_session);
+        RUN_TEST(test_http_context_websocket_upgrade_rejects_invalid_requests_with_deterministic_statuses);
         return UNITY_END();
     }
 }
 
-int run_test_http_request()
+int run_test_http_context()
 {
     return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
         "http request",

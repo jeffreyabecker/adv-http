@@ -92,7 +92,7 @@ DefaultFileLocator::RequestPathMapper DefaultFileLocator::createPathMapper(std::
     };
 }
 
-std::string DefaultFileLocator::getLocalPath(const HttpRequest &context) {
+std::string DefaultFileLocator::getLocalPath(const HttpContext &context) {
     return NormalizeRequestPath(context.urlView());
 }
 
@@ -112,7 +112,7 @@ void DefaultFileLocator::setRequestPathPrefixes(std::string_view includePrefix, 
 
 void DefaultFileLocator::setFilesystemContentRoot(std::string_view root) { setPathMapper(createPathMapper(root)); }
 
-FileHandle DefaultFileLocator::getFile(HttpRequest &context) {
+FileHandle DefaultFileLocator::getFile(HttpContext &context) {
     std::string path = this->getLocalPath(context);
     if (pathMapper_) {
         path = pathMapper_(path);

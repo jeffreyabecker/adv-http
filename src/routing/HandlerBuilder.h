@@ -29,7 +29,7 @@ namespace HttpServerAdvanced
             }
             return THandler::makeFactory(invocation, extractor_);
         }
-        static RouteParameters EmptyParameters(HttpRequest &context)
+        static RouteParameters EmptyParameters(HttpContext &context)
         {
             return {};
         }
@@ -61,7 +61,7 @@ namespace HttpServerAdvanced
             if (addHandler_)
             {
 
-                IHttpHandler::Predicate predicate = [matcher = std::move(matcher_), predicate = std::move(predicate_)](HttpRequest &context)
+                IHttpHandler::Predicate predicate = [matcher = std::move(matcher_), predicate = std::move(predicate_)](HttpContext &context)
                 {
                     if (predicate)
                     {
@@ -132,7 +132,7 @@ namespace HttpServerAdvanced
         HandlerBuilder &filterRequest(IHttpHandler::Predicate predicate)
         {
             auto originalPredicate = predicate_;
-            predicate_ = [originalPredicate, predicate](HttpRequest &context)
+            predicate_ = [originalPredicate, predicate](HttpContext &context)
             {
                 if (originalPredicate && !originalPredicate(context))
                 {

@@ -2,7 +2,7 @@
 #include <functional>
 #include "../core/Defines.h"
 #include "../routing/HandlerProviderRegistry.h"
-#include "../core/HttpRequest.h"
+#include "../core/HttpContext.h"
 #include "../routing/ProviderRegistryBuilder.h"
 #include "../core/HttpContentTypes.h"
 #include "../core/HttpRequestHandlerFactory.h"
@@ -28,7 +28,7 @@ namespace HttpServerAdvanced
         void init()
         {
             server_.setPipelineHandlerFactory([this](HttpServerBase &server) {
-                return HttpRequest::createPipelineHandler(server, handlerFactory_);
+                return HttpContext::createPipelineHandler(server, handlerFactory_);
             });
         }
 

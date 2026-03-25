@@ -15,7 +15,7 @@
 namespace HttpServerAdvanced
 {
     // Forward declarations
-    class HttpRequest;
+    class HttpContext;
 
     class HandlerProviderRegistry
     {
@@ -30,7 +30,7 @@ namespace HttpServerAdvanced
         };
 
     private:
-        static std::unique_ptr<IHttpHandler> createDefaultHandler(HttpRequest &context);
+        static std::unique_ptr<IHttpHandler> createDefaultHandler(HttpContext &context);
         std::unique_ptr<IHttpHandler> wrapHandler(std::unique_ptr<IHttpHandler> innerHandler) const;
         std::vector<std::reference_wrapper<IHandlerProvider>> factories_;
         std::vector<std::unique_ptr<IHandlerProvider>> ownedFactoryItems_;
@@ -49,9 +49,9 @@ namespace HttpServerAdvanced
         public:
             ResponseFilterApplicator(std::unique_ptr<IHttpHandler> innerHandler, IHttpResponse::ResponseFilter filter, IHttpHandler::InterceptorCallback interceptor = nullptr)
                 : innerHandler_(std::move(innerHandler)), filter_(filter), interceptor_(interceptor) {}
-            virtual IHttpHandler::HandlerResult handleStep(HttpRequest &context) override
+            virtual IHttpHandler::HandlerResult handleStep(HttpContext &context) override
             {
-                IHttpHandler::HandlerResult response = interceptor_ ? interceptor_(context, [this](HttpRequest &context)
+                IHttpHandler::HandlerResult response = interceptor_ ? interceptor_(context, [this](HttpContext &context)
                                                                                    { return innerHandler_->handleStep(context); })
                                                                     : innerHandler_->handleStep(context);
                 if (response.isResponse() && filter_)
@@ -60,7 +60,7 @@ namespace HttpServerAdvanced
                 }
                 return response;
             }
-            virtual void handleBodyChunk(HttpRequest &context, const uint8_t *at, std::size_t length) override
+            virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length) override
             {
                 innerHandler_->handleBodyChunk(context, at, length);
             }
@@ -68,7 +68,7 @@ namespace HttpServerAdvanced
 
     public:
         HandlerProviderRegistry() {}
-        std::unique_ptr<IHttpHandler> createContextHandler(HttpRequest &context);
+        std::unique_ptr<IHttpHandler> createContextHandler(HttpContext &context);
         void setDefaultHandlerFactory(IHttpHandler::Factory creator);
 
         void add(IHandlerProvider &handlerFactory, AddPosition position = AddAt::End);

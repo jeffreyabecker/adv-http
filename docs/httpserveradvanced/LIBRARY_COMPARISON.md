@@ -108,7 +108,7 @@ This pattern creates unbounded heap growth for large POST bodies.
 
 | Operation | Allocation Pattern | Unbounded? |
 |-----------|-------------------|------------|
-| `HttpRequest` construction | `std::unique_ptr` | Single object per request |
+| `HttpContext` construction | `std::unique_ptr` | Single object per request |
 | `HttpHeaderCollection` | `std::vector<HttpHeader>` | Bounded by `MAX_REQUEST_HEADER_COUNT` (32) |
 | `BufferingHttpHandlerBase` | `std::vector<uint8_t>` with reserve | Bounded by `MAX_BUFFERED_BODY_LENGTH` (2KB) |
 | Handler factory | `std::unique_ptr<IHttpHandler>` | Single handler per request |
@@ -431,7 +431,7 @@ server.addHook([](const String& method, const String& url, WiFiClient* client, .
 |---------|-----------|-------------------|
 | Handler Pattern | Callback functions | Handler objects with lifecycle |
 | Middleware/Interceptors | ✅ Hooks | ✅ `InterceptorCallback` |
-| Request Context | Global server state | Dedicated `HttpRequest` object |
+| Request Context | Global server state | Dedicated `HttpContext` object |
 | Response Building | Procedural `send()` calls | Response object pattern |
 | Body Streaming | Limited | Full streaming support |
 | Type Safety | Moderate | Strong (templates) |
@@ -515,7 +515,7 @@ void loop() {
 
 WebServer server;
 
-Response helloHandler(HttpRequest &request) {
+Response helloHandler(HttpContext &request) {
     return StringResponse::create(HttpStatus::Ok(), "text/plain", "Hello World!");
 }
 
@@ -547,7 +547,7 @@ void handleUser() {
 
 **HttpServerAdvanced - Accessing Parameters:**
 ```cpp
-Response handleUser(HttpRequest &request, std::vector<String> &&params) {
+Response handleUser(HttpContext &request, std::vector<String> &&params) {
     String id = params[0];              // URL parameter
     String name = request.uriView().query("name");
     auto auth = request.headers().find("Authorization");
@@ -577,14 +577,14 @@ void handleJsonPost() {
 
 **HttpServerAdvanced - JSON Response:**
 ```cpp
-Response handleJson(HttpRequest &request) {
+Response handleJson(HttpContext &request) {
     JsonDocument doc;
     doc["status"] = "ok";
     doc["value"] = 42;
     return JsonResponse::create(HttpStatus::Ok(), doc);
 }
 
-Response handleJsonPost(HttpRequest &request, JsonDocument &&body) {
+Response handleJsonPost(HttpContext &request, JsonDocument &&body) {
     // Body is already parsed!
     String status = body["status"];
     return JsonResponse::create(HttpStatus::Ok(), body);
@@ -613,7 +613,7 @@ handlers.on<GetRequest>("/private", privateHandler)
         .with(BasicAuth("user", "pass"));
 
 // Handler doesn't need auth logic
-Response privateHandler(HttpRequest &request) {
+Response privateHandler(HttpContext &request) {
     return StringResponse::create(HttpStatus::Ok(), "text/plain", "Authenticated!");
 }
 ```
@@ -650,11 +650,11 @@ handlers.on<GetRequest>("/api/data", dataHandler)
 
 | Pattern | WebServer | HttpServerAdvanced |
 |---------|-----------|-------------------|
-| No parameters | `void handler()` | `Response handler(HttpRequest&)` |
-| With params | N/A | `Response handler(HttpRequest&, vector<String>&&)` |
-| With form data | `void handler()` + `server.arg()` | `Response handler(HttpRequest&, FormData&&)` |
-| With JSON | Manual | `Response handler(HttpRequest&, JsonDocument&&)` |
-| With raw body | Callback-based | `Response handler(HttpRequest&, RawBody&&)` |
+| No parameters | `void handler()` | `Response handler(HttpContext&)` |
+| With params | N/A | `Response handler(HttpContext&, vector<String>&&)` |
+| With form data | `void handler()` + `server.arg()` | `Response handler(HttpContext&, FormData&&)` |
+| With JSON | Manual | `Response handler(HttpContext&, JsonDocument&&)` |
+| With raw body | Callback-based | `Response handler(HttpContext&, RawBody&&)` |
 
 ### Type Safety
 
@@ -804,7 +804,7 @@ server.on("/upload", HTTP_POST,
 **HttpServerAdvanced:**
 ```cpp
 handlers.on<Multipart>("/upload", 
-    [](HttpRequest&, vector<String>&, MultipartFormDataBuffer buffer) {
+    [](HttpContext&, vector<String>&, MultipartFormDataBuffer buffer) {
         if (buffer.status() == MultipartStatus::FirstChunk) { /* init */ }
         else if (buffer.status() == MultipartStatus::SubsequentChunk) { /* write */ }
         else if (buffer.status() == MultipartStatus::FinalChunk) { /* finalize */ }

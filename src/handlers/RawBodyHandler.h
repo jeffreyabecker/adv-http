@@ -40,7 +40,7 @@ namespace HttpServerAdvanced
     class RawBodyHandler : public IHttpHandler
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &, RawBodyBuffer)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &, RawBodyBuffer)> handler_;
         ExtractArgsFromRequest extractor_;
         HandlerResult response_;
         RouteParameters params_;
@@ -48,21 +48,21 @@ namespace HttpServerAdvanced
         size_t contentLength_{0};
 
     public:
-        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequest &context, RouteParameters &, RawBodyBuffer buffer)
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](HttpContext &context, RouteParameters &, RawBodyBuffer buffer)
                        { return handler(context, buffer); }),
               extractor_(extractor) {}
 
-        virtual HandlerResult handleStep(HttpRequest &context);
-        virtual void handleBodyChunk(HttpRequest &context, const uint8_t *at, std::size_t length);
+        virtual HandlerResult handleStep(HttpContext &context);
+        virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length);
     };
     class RawBody
     {
     public:
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, RawBodyBuffer)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &, RawBodyBuffer)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpContext &, RawBodyBuffer)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &, RawBodyBuffer)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 

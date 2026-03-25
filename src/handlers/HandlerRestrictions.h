@@ -13,7 +13,7 @@ namespace HttpServerAdvanced
     // Forward declare for trait checking
     using RouteParameter = std::string;
     using RouteParameters = std::vector<RouteParameter>;
-    using ExtractArgsFromRequest = std::function<RouteParameters(class HttpRequest &context)>;
+    using ExtractArgsFromRequest = std::function<RouteParameters(class HttpContext &context)>;
 
     namespace HandlerRestrictions
     {

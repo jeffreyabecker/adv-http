@@ -8,7 +8,7 @@
 #include "core/HttpHeader.h"
 #include "core/HttpHeaderCollection.h"
 #include "core/HttpMethod.h"
-#include "core/HttpRequest.h"
+#include "core/HttpContext.h"
 #include "core/HttpRequestPhase.h"
 #include "core/HttpStatus.h"
 #include "core/HttpTimeouts.h"
@@ -101,7 +101,7 @@ using HttpServerAdvanced::HttpContentTypes;
 using HttpServerAdvanced::HttpHandler;
 using HttpServerAdvanced::HttpHeader;
 using HttpServerAdvanced::HttpMethod;
-using HttpServerAdvanced::HttpRequest;
+using HttpServerAdvanced::HttpContext;
 using HttpServerAdvanced::HttpResponse;
 using HttpServerAdvanced::HttpStatus;
 using HttpServerAdvanced::IHttpResponse;

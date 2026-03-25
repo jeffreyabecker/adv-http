@@ -1,13 +1,13 @@
-#include "HttpRequestPipelineAdapter.h"
+#include "HttpContextPipelineAdapter.h"
 
 namespace HttpServerAdvanced
 {
-    HttpRequestPipelineAdapter::HttpRequestPipelineAdapter(std::unique_ptr<HttpRequestRunner> runner)
+    HttpContextPipelineAdapter::HttpContextPipelineAdapter(std::unique_ptr<HttpContextRunner> runner)
         : runner_(std::move(runner))
     {
     }
 
-    int HttpRequestPipelineAdapter::onMessageBegin(const char *method,
+    int HttpContextPipelineAdapter::onMessageBegin(const char *method,
                                                    std::uint16_t versionMajor,
                                                    std::uint16_t versionMinor,
                                                    std::string_view url)
@@ -20,7 +20,7 @@ namespace HttpServerAdvanced
         return result;
     }
 
-    void HttpRequestPipelineAdapter::setAddresses(std::string_view remoteAddress,
+    void HttpContextPipelineAdapter::setAddresses(std::string_view remoteAddress,
                                                   std::uint16_t remotePort,
                                                   std::string_view localAddress,
                                                   std::uint16_t localPort)
@@ -28,12 +28,12 @@ namespace HttpServerAdvanced
         runner_->setAddresses(remoteAddress, remotePort, localAddress, localPort);
     }
 
-    int HttpRequestPipelineAdapter::onHeader(std::string_view field, std::string_view value)
+    int HttpContextPipelineAdapter::onHeader(std::string_view field, std::string_view value)
     {
         return runner_->onHeader(field, value);
     }
 
-    int HttpRequestPipelineAdapter::onHeadersComplete()
+    int HttpContextPipelineAdapter::onHeadersComplete()
     {
         const int result = runner_->onHeadersComplete();
         if (result == 0)
@@ -43,53 +43,53 @@ namespace HttpServerAdvanced
         return result;
     }
 
-    int HttpRequestPipelineAdapter::onBody(const std::uint8_t *at, std::size_t length)
+    int HttpContextPipelineAdapter::onBody(const std::uint8_t *at, std::size_t length)
     {
         return runner_->onBody(at, length);
     }
 
-    int HttpRequestPipelineAdapter::onMessageComplete()
+    int HttpContextPipelineAdapter::onMessageComplete()
     {
         runner_->advance(HttpRequestPhase::CompletedReadingMessage);
         return 0;
     }
 
-    void HttpRequestPipelineAdapter::onError(PipelineError error)
+    void HttpContextPipelineAdapter::onError(PipelineError error)
     {
         runner_->onError(error);
     }
 
-    void HttpRequestPipelineAdapter::onResponseStarted()
+    void HttpContextPipelineAdapter::onResponseStarted()
     {
         runner_->advance(HttpRequestPhase::WritingResponseStarted);
     }
 
-    void HttpRequestPipelineAdapter::onResponseCompleted()
+    void HttpContextPipelineAdapter::onResponseCompleted()
     {
         runner_->advance(HttpRequestPhase::CompletedWritingResponse);
     }
 
-    void HttpRequestPipelineAdapter::onClientDisconnected()
+    void HttpContextPipelineAdapter::onClientDisconnected()
     {
         runner_->onClientDisconnected();
     }
 
-    bool HttpRequestPipelineAdapter::hasPendingResult() const
+    bool HttpContextPipelineAdapter::hasPendingResult() const
     {
         return runner_->hasPendingResult();
     }
 
-    RequestHandlingResult HttpRequestPipelineAdapter::takeResult()
+    RequestHandlingResult HttpContextPipelineAdapter::takeResult()
     {
         return runner_->takeResult();
     }
 
-    HttpRequestRunner &HttpRequestPipelineAdapter::runner()
+    HttpContextRunner &HttpContextPipelineAdapter::runner()
     {
         return *runner_;
     }
 
-    const HttpRequestRunner &HttpRequestPipelineAdapter::runner() const
+    const HttpContextRunner &HttpContextPipelineAdapter::runner() const
     {
         return *runner_;
     }

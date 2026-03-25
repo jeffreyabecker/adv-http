@@ -7,7 +7,7 @@
 #include "../compat/Span.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
-#include "../core/HttpRequest.h"
+#include "../core/HttpContext.h"
 #include "../core/HttpStatus.h"
 #include "../util/HttpUtility.h"
 
@@ -233,7 +233,7 @@ namespace HttpServerAdvanced
             return WebUtility::Base64Encode(digest.data(), digest.size(), false);
         }
 
-        std::optional<WebSocketUpgradeHandler::UpgradeFailure> validateUpgradeRequest(const HttpRequest &request, std::string &normalizedKey)
+        std::optional<WebSocketUpgradeHandler::UpgradeFailure> validateUpgradeRequest(const HttpContext &request, std::string &normalizedKey)
         {
             if (request.methodView() != "GET")
             {
@@ -308,7 +308,7 @@ namespace HttpServerAdvanced
             return response;
         }
 
-        WebSocketActivationSnapshot createActivationSnapshot(const HttpRequest &request)
+        WebSocketActivationSnapshot createActivationSnapshot(const HttpContext &request)
         {
             WebSocketActivationSnapshot snapshot;
             snapshot.items = request.items();
@@ -324,7 +324,7 @@ namespace HttpServerAdvanced
         }
     }
 
-    bool WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(const HttpRequest &request)
+    bool WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(const HttpContext &request)
     {
         const HttpHeaderCollection &headers = request.headers();
         if (headers.exists(HttpHeaderNames::SecWebSocketKey) ||
@@ -349,7 +349,7 @@ namespace HttpServerAdvanced
         return false;
     }
 
-    HandlerResult WebSocketUpgradeHandler::handle(HttpRequest &request, const WebSocketCallbacks &callbacks) const
+    HandlerResult WebSocketUpgradeHandler::handle(HttpContext &request, const WebSocketCallbacks &callbacks) const
     {
         std::string key;
         const std::optional<UpgradeFailure> failure = validateUpgradeRequest(request, key);
@@ -364,7 +364,7 @@ namespace HttpServerAdvanced
         return HandlerResult::upgradeResult(std::move(session));
     }
 
-    HandlerResult WebSocketUpgradeHandler::rejectUpgrade(HttpRequest &request, UpgradeFailure failure)
+    HandlerResult WebSocketUpgradeHandler::rejectUpgrade(HttpContext &request, UpgradeFailure failure)
     {
         HttpStatus status = HttpStatus::BadRequest();
         std::string message = "WebSocket upgrade rejected: malformed headers or key";

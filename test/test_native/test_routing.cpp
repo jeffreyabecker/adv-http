@@ -5,7 +5,7 @@
 
 #include "../../src/compat/Clock.h"
 #include "../../src/core/HttpHeader.h"
-#include "../../src/core/HttpRequest.h"
+#include "../../src/core/HttpContext.h"
 #include "../../src/handlers/HandlerTypes.h"
 #include "../../src/routing/BasicAuthentication.h"
 #include "../../src/routing/CrossOriginRequestSharing.h"
@@ -38,12 +38,12 @@ namespace
     class NoOpHandler : public IHttpHandler
     {
     public:
-        HandlerResult handleStep(HttpRequest &) override
+        HandlerResult handleStep(HttpContext &) override
         {
             return nullptr;
         }
 
-        void handleBodyChunk(HttpRequest &, const uint8_t *, std::size_t) override
+        void handleBodyChunk(HttpContext &, const uint8_t *, std::size_t) override
         {
         }
     };
@@ -51,14 +51,14 @@ namespace
     class RecordingHandler : public IHttpHandler
     {
     public:
-        using StepCallback = std::function<HandlerResult(HttpRequest &)>;
+        using StepCallback = std::function<HandlerResult(HttpContext &)>;
 
         explicit RecordingHandler(StepCallback stepCallback = nullptr)
             : stepCallback_(std::move(stepCallback))
         {
         }
 
-        HandlerResult handleStep(HttpRequest &context) override
+        HandlerResult handleStep(HttpContext &context) override
         {
             ++handleStepCount_;
             if (stepCallback_)
@@ -68,7 +68,7 @@ namespace
             return nullptr;
         }
 
-        void handleBodyChunk(HttpRequest &, const uint8_t *at, std::size_t length) override
+        void handleBodyChunk(HttpContext &, const uint8_t *at, std::size_t length) override
         {
             ++bodyChunkCount_;
             body_.append(reinterpret_cast<const char *>(at), length);
@@ -105,18 +105,18 @@ namespace
         {
         }
 
-        bool canHandle(HttpRequest &context) override
+        bool canHandle(HttpContext &context) override
         {
             ++canHandleCount_;
             return predicate_ ? predicate_(context) : true;
         }
 
-        std::unique_ptr<IHttpHandler> create(HttpRequest &) override
+        std::unique_ptr<IHttpHandler> create(HttpContext &) override
         {
             ++createCount_;
             return std::make_unique<HttpHandler>(
                 createResponse(HttpStatus::Ok(), responseBody_),
-                [](const HttpRequest &)
+                [](const HttpContext &)
                 {
                     return true;
                 });
@@ -145,12 +145,12 @@ namespace
         RequestContextHarness()
             : server_(std::make_unique<HttpServerBase>(std::make_unique<TestSupport::FakeServer>())),
               handler_(std::make_unique<NoOpHandler>()),
-              factory_([this](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
+              factory_([this](HttpContext &context) -> std::unique_ptr<IHttpHandler>
               {
                   context_ = &context;
                   return std::move(handler_);
               }),
-              pipeline_(HttpRequest::createPipelineHandler(*server_, factory_))
+              pipeline_(HttpContext::createPipelineHandler(*server_, factory_))
         {
         }
 
@@ -173,7 +173,7 @@ namespace
             TEST_ASSERT_EQUAL_INT(0, pipeline_->onHeadersComplete());
         }
 
-        HttpRequest &context()
+        HttpContext &context()
         {
             TEST_ASSERT_NOT_NULL(context_);
             return *context_;
@@ -184,7 +184,7 @@ namespace
         std::unique_ptr<IHttpHandler> handler_;
         TestSupport::RecordingRequestHandlerFactory factory_;
         PipelineHandlerPtr pipeline_;
-        HttpRequest *context_ = nullptr;
+        HttpContext *context_ = nullptr;
         std::string methodStorage_;
         std::string urlStorage_;
         std::string nameStorage_;
@@ -220,15 +220,15 @@ namespace
         harness.completeHeaders();
     }
 
-    TestSupport::CapturedResponse captureHandlerResponse(IHttpHandler &handler, HttpRequest &context)
+    TestSupport::CapturedResponse captureHandlerResponse(IHttpHandler &handler, HttpContext &context)
     {
         return TestSupport::CaptureResponse(handler.handleStep(context));
     }
 
-    AuthInvocationResult invokeAuth(IHttpHandler::InterceptorCallback interceptor, HttpRequest &context)
+    AuthInvocationResult invokeAuth(IHttpHandler::InterceptorCallback interceptor, HttpContext &context)
     {
         AuthInvocationResult result;
-        HandlerResult response = interceptor(context, [&result](HttpRequest &) -> HandlerResult
+        HandlerResult response = interceptor(context, [&result](HttpContext &) -> HandlerResult
         {
             result.nextCalled = true;
             return HandlerResult::responseResult(createResponse(HttpStatus::Ok(), "authorized"));
@@ -253,7 +253,7 @@ namespace
             "GET",
             "/files/report.txt",
             {{"Content-Type", "Application/Json; charset=utf-8"}});
-        HttpRequest &exactContext = exactHarness.context();
+        HttpContext &exactContext = exactHarness.context();
 
         TEST_ASSERT_TRUE(defaultCheckUriPattern("/files/report.txt", "/files/report.txt"));
         TEST_ASSERT_TRUE(defaultCheckUriPattern("/files/report.txt", filesWildcardPattern));
@@ -287,7 +287,7 @@ namespace
             "POST",
             "/files/report.txt",
             {{"Content-Type", "text/plain"}});
-        HttpRequest &jsonContext = jsonHarness.context();
+        HttpContext &jsonContext = jsonHarness.context();
 
         HandlerMatcher methodMatcher(filesWildcardPattern, "GET");
         TEST_ASSERT_FALSE(methodMatcher.canHandle(jsonContext));
@@ -310,10 +310,10 @@ namespace
     {
         RequestContextHarness harness;
         prepareRequest(harness, "GET", "/registry/order");
-        HttpRequest &context = harness.context();
+        HttpContext &context = harness.context();
 
         StaticResponseProvider beginningProvider("beginning");
-        StaticResponseProvider firstEndProvider("first-end", [](HttpRequest &request)
+        StaticResponseProvider firstEndProvider("first-end", [](HttpContext &request)
         {
             return request.headers().exists("X-End-Route", "first");
         });
@@ -335,21 +335,21 @@ namespace
         RequestContextHarness endHarness;
         prepareRequest(endHarness, "GET", "/registry/order", {{"X-End-Route", "first"}});
         HandlerProviderRegistry endRegistry;
-        StaticResponseProvider nonMatchingProvider("never", [](HttpRequest &request)
+        StaticResponseProvider nonMatchingProvider("never", [](HttpContext &request)
         {
             return request.headers().exists("X-End-Route", "missing");
         });
-        StaticResponseProvider matchingEndProvider("matched-end", [](HttpRequest &request)
+        StaticResponseProvider matchingEndProvider("matched-end", [](HttpContext &request)
         {
             return request.headers().exists("X-End-Route", "first");
         });
         endRegistry.add(nonMatchingProvider, HandlerProviderRegistry::AddAt::End);
         endRegistry.add(matchingEndProvider, HandlerProviderRegistry::AddAt::End);
-        endRegistry.setDefaultHandlerFactory([](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+        endRegistry.setDefaultHandlerFactory([](HttpContext &) -> std::unique_ptr<IHttpHandler>
         {
             return std::make_unique<HttpHandler>(
                 createResponse(HttpStatus::NotFound(), "custom-default"),
-                [](const HttpRequest &)
+                [](const HttpContext &)
                 {
                     return true;
                 });
@@ -373,29 +373,29 @@ namespace
     {
         RequestContextHarness harness;
         prepareRequest(harness, "POST", "/registry/filtered", {{"X-Allow", "yes"}});
-        HttpRequest &context = harness.context();
+        HttpContext &context = harness.context();
 
         HandlerProviderRegistry registry;
         std::vector<std::string> trace;
         RecordingHandler *innerHandler = nullptr;
 
-        registry.filterRequest([](HttpRequest &request)
+        registry.filterRequest([](HttpContext &request)
         {
             return request.methodView() == "POST";
         });
-        registry.filterRequest([](HttpRequest &request)
+        registry.filterRequest([](HttpContext &request)
         {
             return request.headers().exists("X-Allow", "yes");
         });
 
-        registry.with([&trace](HttpRequest &request, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+        registry.with([&trace](HttpContext &request, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
         {
             trace.push_back("interceptor-1-before");
             auto response = next(request);
             trace.push_back("interceptor-1-after");
             return response;
         });
-        registry.with([&trace](HttpRequest &request, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+        registry.with([&trace](HttpContext &request, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
         {
             trace.push_back("interceptor-2-before");
             auto response = next(request);
@@ -417,13 +417,13 @@ namespace
         });
 
         registry.add(
-            [](HttpRequest &)
+            [](HttpContext &)
             {
                 return true;
             },
-            [&innerHandler, &trace](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            [&innerHandler, &trace](HttpContext &) -> std::unique_ptr<IHttpHandler>
             {
-                auto handler = std::make_unique<RecordingHandler>([&trace](HttpRequest &) -> std::unique_ptr<IHttpResponse>
+                auto handler = std::make_unique<RecordingHandler>([&trace](HttpContext &) -> std::unique_ptr<IHttpResponse>
                 {
                     trace.push_back("handler");
                     return createResponse(HttpStatus::Ok(), "matched");
@@ -458,11 +458,11 @@ namespace
 
         RequestContextHarness blockedHarness;
         prepareRequest(blockedHarness, "POST", "/registry/filtered");
-        registry.setDefaultHandlerFactory([](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+        registry.setDefaultHandlerFactory([](HttpContext &) -> std::unique_ptr<IHttpHandler>
         {
             return std::make_unique<HttpHandler>(
                 createResponse(HttpStatus::Forbidden(), "blocked"),
-                [](const HttpRequest &)
+                [](const HttpContext &)
                 {
                     return true;
                 });
@@ -478,7 +478,7 @@ namespace
     {
         RequestContextHarness harness;
         prepareRequest(harness, "GET", "/registry/null-response");
-        HttpRequest &context = harness.context();
+        HttpContext &context = harness.context();
 
         HandlerProviderRegistry registry;
         int filterCallCount = 0;
@@ -489,11 +489,11 @@ namespace
         });
 
         registry.add(
-            [](HttpRequest &)
+            [](HttpContext &)
             {
                 return true;
             },
-            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return std::make_unique<RecordingHandler>();
             });
@@ -514,12 +514,12 @@ namespace
         const std::string builderPattern = std::string("/legacy/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
         HandlerMatcher builderMatcher(builderPattern, "GET");
         std::size_t builderFactoryCalls = 0;
-        builder.on(builderMatcher, [&builderFactoryCalls](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+        builder.on(builderMatcher, [&builderFactoryCalls](HttpContext &) -> std::unique_ptr<IHttpHandler>
         {
             ++builderFactoryCalls;
             return std::make_unique<HttpHandler>(
                 createResponse(HttpStatus::Ok(), "builder-on"),
-                [](const HttpRequest &)
+                [](const HttpContext &)
                 {
                     return true;
                 });
@@ -539,12 +539,12 @@ namespace
         const std::string configPattern = std::string("/config/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
         HandlerMatcher configMatcher(configPattern, "GET");
         std::size_t configFactoryCalls = 0;
-        config.on(configMatcher, [&configFactoryCalls](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+        config.on(configMatcher, [&configFactoryCalls](HttpContext &) -> std::unique_ptr<IHttpHandler>
         {
             ++configFactoryCalls;
             return std::make_unique<HttpHandler>(
                 createResponse(HttpStatus::Ok(), "config-on"),
-                [](const HttpRequest &)
+                [](const HttpContext &)
                 {
                     return true;
                 });
@@ -606,15 +606,15 @@ namespace
 
     void test_handler_provider_registry_supports_indexed_insertion_and_out_of_range_clamping()
     {
-        StaticResponseProvider firstProvider("first", [](HttpRequest &request)
+        StaticResponseProvider firstProvider("first", [](HttpContext &request)
         {
             return request.headers().exists("X-Match", "first");
         });
-        StaticResponseProvider secondProvider("second", [](HttpRequest &request)
+        StaticResponseProvider secondProvider("second", [](HttpContext &request)
         {
             return request.headers().exists("X-Match", "second");
         });
-        StaticResponseProvider indexedProvider("indexed", [](HttpRequest &request)
+        StaticResponseProvider indexedProvider("indexed", [](HttpContext &request)
         {
             return request.headers().exists("X-Match", "indexed");
         });
@@ -633,11 +633,11 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(1, indexedProvider.canHandleCount());
         TEST_ASSERT_EQUAL_UINT64(0, secondProvider.canHandleCount());
 
-        StaticResponseProvider endFirst("end-first", [](HttpRequest &request)
+        StaticResponseProvider endFirst("end-first", [](HttpContext &request)
         {
             return request.headers().exists("X-Match", "end-first");
         });
-        StaticResponseProvider endLast("end-last", [](HttpRequest &request)
+        StaticResponseProvider endLast("end-last", [](HttpContext &request)
         {
             return request.headers().exists("X-Match", "end-last");
         });
@@ -704,13 +704,13 @@ namespace
             TEST_ASSERT_EQUAL_STRING("/custom/*", std::string(pattern).c_str());
             return uri.find("/custom/path") != std::string_view::npos;
         });
-        matcher.setContentTypeChecker([&contentTypeChecks](HttpRequest &request, const std::vector<std::string> &allowedContentTypes)
+        matcher.setContentTypeChecker([&contentTypeChecks](HttpContext &request, const std::vector<std::string> &allowedContentTypes)
         {
             ++contentTypeChecks;
             TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(allowedContentTypes.size()));
             return request.headers().exists("X-Custom", "yes");
         });
-        matcher.setArgsExtractor([&extractCalls](HttpRequest &, std::string_view pattern)
+        matcher.setArgsExtractor([&extractCalls](HttpContext &, std::string_view pattern)
         {
             ++extractCalls;
             TEST_ASSERT_EQUAL_STRING("/custom/*", std::string(pattern).c_str());
@@ -745,15 +745,15 @@ namespace
         registry.with(nullptr);
         registry.apply(nullptr);
         registry.add(
-            [](HttpRequest &)
+            [](HttpContext &)
             {
                 return true;
             },
-            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return std::make_unique<HttpHandler>(
                     createResponse(HttpStatus::Ok(), "safe"),
-                    [](const HttpRequest &)
+                    [](const HttpContext &)
                     {
                         return true;
                     });
@@ -768,11 +768,11 @@ namespace
     void test_handler_builder_composes_matchers_predicates_interceptors_and_filters()
     {
         HandlerProviderRegistry registry;
-        registry.setDefaultHandlerFactory([](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+        registry.setDefaultHandlerFactory([](HttpContext &) -> std::unique_ptr<IHttpHandler>
         {
             return std::make_unique<HttpHandler>(
                 createResponse(HttpStatus::NotFound(), "builder-default"),
-                [](const HttpRequest &)
+                [](const HttpContext &)
                 {
                     return true;
                 });
@@ -788,31 +788,31 @@ namespace
                     return true;
                 },
                 defaultCheckContentType,
-                [](HttpRequest &, std::string_view)
+                [](HttpContext &, std::string_view)
                 {
                     return RouteParameters{"readme"};
                 },
                 "get",
                 {"Application/Json"});
 
-            auto route = builder.on<GetRequest>(matcher, [](HttpRequest &request, RouteParameters &&params) -> std::unique_ptr<IHttpResponse>
+            auto route = builder.on<GetRequest>(matcher, [](HttpContext &request, RouteParameters &&params) -> std::unique_ptr<IHttpResponse>
             {
                 TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(params.size()));
                 request.items()["route-param"] = params[0];
                 return createResponse(HttpStatus::Ok(), std::string("doc:") + params[0]);
             });
 
-            route.filterRequest([](HttpRequest &request)
+            route.filterRequest([](HttpContext &request)
                 {
                     return request.headers().exists("X-Route", "yes");
                 })
-                .filterRequest([](HttpRequest &request)
+                .filterRequest([](HttpContext &request)
                 {
                     return !request.headers().exists("X-Block", "true");
                 })
                 .allowMethods("get")
                 .allowContentTypes({"Application/Json"})
-                .with([](HttpRequest &request, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+                .with([](HttpContext &request, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
                 {
                     request.items()["builder-interceptor"] = true;
                     return next(request);
@@ -830,7 +830,7 @@ namespace
             "GET",
             "/docs/readme",
             {{"X-Route", "yes"}, {"Content-Type", "application/json; charset=utf-8"}});
-        HttpRequest &matchedContext = matchedHarness.context();
+        HttpContext &matchedContext = matchedHarness.context();
 
         auto matchedHandler = registry.createContextHandler(matchedContext);
         const auto matchedResponse = captureHandlerResponse(*matchedHandler, matchedContext);

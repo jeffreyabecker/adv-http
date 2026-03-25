@@ -10,18 +10,18 @@ namespace HttpServerAdvanced
     class FormBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_FORM_BODY_LENGTH>
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, WebUtility::QueryParameters &&)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, WebUtility::QueryParameters &&)> handler_;
         ExtractArgsFromRequest extractor_;
 
     public:
-        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
+        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequest &context, RouteParameters &&, WebUtility::QueryParameters &&postData)
+        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](HttpContext &context, RouteParameters &&, WebUtility::QueryParameters &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
 
-        virtual IHttpHandler::HandlerResult handleBody(HttpRequest &context, std::vector<uint8_t> &&body) override;
+        virtual IHttpHandler::HandlerResult handleBody(HttpContext &context, std::vector<uint8_t> &&body) override;
     };
 
 
@@ -29,8 +29,8 @@ class Form
     {
     public:
         using PostBodyData = WebUtility::QueryParameters;
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, PostBodyData &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, PostBodyData &&)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpContext &, PostBodyData &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, PostBodyData &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 

@@ -6,8 +6,8 @@ This plan covers the full implementation path for the work described in [docs/ba
 
 The plan therefore spans four connected tracks:
 
-- extracting HTTP orchestration out of `HttpRequest`
-- reshaping `HttpRequest` toward the future `HttpContext`
+- extracting HTTP orchestration out of `HttpContext`
+- reshaping `HttpContext` toward the future `HttpContext`
 - introducing websocket-owned context and execution types
 - preparing the shared protocol-execution seam that eventually lets `HttpPipeline` drive both HTTP and websocket through one conceptual model
 
@@ -15,9 +15,9 @@ The plan therefore spans four connected tracks:
 
 The earlier websocket-only plan captured the `WebSocketContext` and `WebSocketProtocolExecution` split, but it did not include the upstream work required by the broader `012` design:
 
-- `HttpRequest` currently still owns handler lifetime, phase progression, and result staging
+- `HttpContext` currently still owns handler lifetime, phase progression, and result staging
 - routing/activation still depends on the HTTP activation object at the headers-complete seam
-- the long-term design calls for `HttpRequest` to become `HttpContext`
+- the long-term design calls for `HttpContext` to become `HttpContext`
 - the long-term execution model calls for a higher-level abstraction above both current pipeline seams
 
 Without those pieces, the websocket refactor would land as an isolated local cleanup rather than as part of the intended peer-context architecture.
@@ -29,7 +29,7 @@ Deliver the peer-context architecture incrementally without regressing existing 
 Success means:
 
 - HTTP activation/routing still happens against the HTTP activation context after headers complete
-- `HttpRequest` no longer owns handler lifetime, result translation, and pipeline orchestration
+- `HttpContext` no longer owns handler lifetime, result translation, and pipeline orchestration
 - websocket execution no longer hides behind a fused `WebSocketSessionRuntime`
 - `WebSocketContext` directly owns callback-visible state and carried-forward HTTP activation data
 - the codebase is positioned to rename `HttpRequest` to `HttpContext`
@@ -43,9 +43,9 @@ Success means:
 - activation predicates must still evaluate against the HTTP activation context
 - websocket is therefore a post-activation peer context, not a replacement for HTTP activation
 
-### 2. `HttpRequest` Is Overloaded Today
+### 2. `HttpContext` Is Overloaded Today
 
-Today `HttpRequest` still combines:
+Today `HttpContext` still combines:
 
 - parsed request data and helper access
 - route-handler lifetime ownership
@@ -76,9 +76,9 @@ The long-term recommendation in `012` is not just "split websocket runtime". It 
 
 ### HTTP Side
 
-#### `HttpRequest` During Transition
+#### `HttpContext` During Transition
 
-Short-term, the existing `HttpRequest` type should become a slim HTTP context object that mainly owns:
+Short-term, the existing `HttpContext` type should become a slim HTTP context object that mainly owns:
 
 - method, version, URL, headers
 - local/remote endpoint data
@@ -94,12 +94,12 @@ It should stop owning:
 
 #### Future `HttpContext`
 
-Once the split is stable, `HttpRequest` should be renamed to `HttpContext` so the public model reads as peer contexts:
+Once the split is stable, `HttpContext` should be renamed to `HttpContext` so the public model reads as peer contexts:
 
 - `HttpContext`
 - `WebSocketContext`
 
-#### `HttpRequestRunner` / `HttpProtocolExecution`
+#### `HttpContextRunner` / `HttpProtocolExecution`
 
 During transition, the HTTP side needs a runner that owns:
 
@@ -164,14 +164,14 @@ That seam should not be forced into the earliest code slices, but the implementa
 
 Goal:
 
-- stop letting `HttpRequest` own orchestration state
+- stop letting `HttpContext` own orchestration state
 
 Create:
 
-- an `HttpRequestRunner`-style abstraction
-- an `HttpRequestPipelineAdapter`-style adapter if needed
+- an `HttpContextRunner`-style abstraction
+- an `HttpContextPipelineAdapter`-style adapter if needed
 
-Responsibilities to move out of `HttpRequest` first:
+Responsibilities to move out of `HttpContext` first:
 
 - handler lifetime ownership
 - pending result staging
@@ -184,13 +184,13 @@ Validation:
 - existing HTTP request and pipeline tests remain green
 - no websocket behavior changes yet
 
-### Slice 2: Slim `HttpRequest` Toward The Future `HttpContext`
+### Slice 2: Slim `HttpContext` Toward The Future `HttpContext`
 
 Goal:
 
-- leave `HttpRequest` as context-shaped data plus helper access
+- leave `HttpContext` as context-shaped data plus helper access
 
-Responsibilities retained on `HttpRequest`:
+Responsibilities retained on `HttpContext`:
 
 - method, version, URL, headers
 - endpoint information
@@ -340,8 +340,8 @@ Validation:
 
 Primary HTTP files likely to change:
 
-- `src/core/HttpRequest.h`
-- `src/core/HttpRequest.cpp`
+- `src/core/HttpContext.h`
+- `src/core/HttpContext.cpp`
 - `src/core/IHttpRequestHandlerFactory.h`
 - `src/core/HttpRequestHandlerFactory.h`
 - `src/pipeline/HttpPipeline.h`
@@ -369,18 +369,18 @@ Primary new files likely to be introduced:
 
 Test and support files likely to change:
 
-- `test/test_native/test_http_request.cpp`
+- `test/test_native/test_http_context.cpp`
 - `test/test_native/test_pipeline.cpp`
 - websocket-related fixtures in `test/support/**`
-- any tests that currently assume `HttpRequest` owns orchestration or websocket callbacks are receive-only
+- any tests that currently assume `HttpContext` owns orchestration or websocket callbacks are receive-only
 
 ## Testing Plan
 
 ### HTTP Regression Coverage
 
-- request lifecycle tests tied to `HttpRequest`
+- request lifecycle tests tied to `HttpContext`
 - pipeline integration tests for parser events, response progression, keep-alive, and error mapping
-- body-handler and routing tests that currently depend on `HttpRequest::createPipelineHandler(...)`
+- body-handler and routing tests that currently depend on `HttpContext::createPipelineHandler(...)`
 
 ### Websocket Regression Coverage
 
@@ -401,7 +401,7 @@ Test and support files likely to change:
 ## Key Risks
 
 - moving HTTP orchestration and websocket ownership independently could create overlapping transitional layers if the slices are not kept disciplined
-- renaming `HttpRequest` too early could add churn before the context/runner split is actually stable
+- renaming `HttpContext` too early could add churn before the context/runner split is actually stable
 - keeping `HttpPipeline` unchanged for too long could entrench adapter complexity, but changing it too early could destabilize the refactor
 - callback ordering and close-handshake timing are easy to regress when state ownership moves out of the fused websocket runtime
 - `items()` transfer semantics at upgrade time need to be explicit so HTTP and websocket do not both assume ownership of the same mutable state
@@ -415,7 +415,7 @@ Start with:
 1. HTTP runner extraction under the existing `IPipelineHandler` seam.
 2. Then introduce `WebSocketActivationSnapshot`, `WebSocketContext`, and `IWebSocketSessionControl` as stable websocket-side types.
 
-That sequence matches the `012` design more closely because it starts with the root architectural overload in `HttpRequest` instead of jumping immediately to the websocket half of the model.
+That sequence matches the `012` design more closely because it starts with the root architectural overload in `HttpContext` instead of jumping immediately to the websocket half of the model.
 
 ## References
 

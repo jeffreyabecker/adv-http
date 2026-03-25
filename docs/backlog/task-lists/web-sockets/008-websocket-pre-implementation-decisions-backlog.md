@@ -26,7 +26,7 @@ This punch list extracts the design decisions that can be resolved before any co
 ### 1. Internal Upgrade Result Shape
 
 - [x] Decide how request handling represents an approved upgrade: dedicated pipeline result object, session-factory result, or request-owned upgrade descriptor.
-- [x] Decide where ownership of that result lives between `HttpRequest`, `HttpPipeline`, and the server.
+- [x] Decide where ownership of that result lives between `HttpContext`, `HttpPipeline`, and the server.
 - [x] Decide whether the upgrade result can coexist with a normal response result or must be mutually exclusive by type.
 
 Option sketches:
@@ -54,12 +54,12 @@ struct RequestHandlingResult
 	PipelineError error;
 };
 
-RequestHandlingResult HttpRequest::takeResult();
+RequestHandlingResult HttpContext::takeResult();
 ```
 
 How it would flow:
 
-- `HttpRequest` finishes routing and builds exactly one `RequestHandlingResult`.
+- `HttpContext` finishes routing and builds exactly one `RequestHandlingResult`.
 - `HttpPipeline` consumes that result after request handling advances far enough.
 - If `kind == Response`, the pipeline writes the response stream.
 - If `kind == Upgrade`, the pipeline creates and enters the upgraded session path.
@@ -90,14 +90,14 @@ struct ApprovedUpgrade
 	HttpStatus handshakeStatus;
 };
 
-std::optional<ApprovedUpgrade> HttpRequest::takeApprovedUpgrade();
-std::unique_ptr<IByteSource> HttpRequest::takeResponseStream();
+std::optional<ApprovedUpgrade> HttpContext::takeApprovedUpgrade();
+std::unique_ptr<IByteSource> HttpContext::takeResponseStream();
 ```
 
 How it would flow:
 
 - Existing response behavior stays mostly intact.
-- `HttpRequest` separately exposes either a normal response stream or an approved upgrade.
+- `HttpContext` separately exposes either a normal response stream or an approved upgrade.
 - `HttpPipeline` checks for approved upgrade first, then falls back to normal response handling.
 
 Why it is attractive:
@@ -108,7 +108,7 @@ Why it is attractive:
 
 Why it may be awkward:
 
-- It creates two output channels from `HttpRequest`, which can drift into ambiguous states if both are populated.
+- It creates two output channels from `HttpContext`, which can drift into ambiguous states if both are populated.
 - The contract for precedence between upgrade and response must be enforced manually.
 - It may become a halfway design that later wants to become the dedicated result object anyway.
 
@@ -119,7 +119,7 @@ The request object holds upgrade approval state internally, and the pipeline que
 Sketch:
 
 ```cpp
-class HttpRequest : private IPipelineHandler
+class HttpContext : private IPipelineHandler
 {
 private:
 	std::optional<UpgradeDescriptor> approvedUpgrade_;
@@ -134,21 +134,21 @@ public:
 
 How it would flow:
 
-- `HttpRequest` mutates its own internal state during routing or handler execution.
+- `HttpContext` mutates its own internal state during routing or handler execution.
 - `HttpPipeline` asks the request whether it approved upgrade.
 - If yes, the pipeline asks the request to create the session or expose a descriptor for session creation.
 
 Why it is attractive:
 
 - Minimal surface-area change in the short term.
-- Can be layered onto the existing `HttpRequest` lifecycle with fewer immediate type changes.
+- Can be layered onto the existing `HttpContext` lifecycle with fewer immediate type changes.
 - Keeps upgrade state close to routing decisions.
 
 Why it may be awkward:
 
-- It keeps important ownership and control flow implicit inside `HttpRequest`.
+- It keeps important ownership and control flow implicit inside `HttpContext`.
 - The request object becomes more stateful and harder to reason about as both HTTP and upgraded semantics coexist.
-- Testing becomes more coupled to `HttpRequest` internals rather than a clean pipeline seam.
+- Testing becomes more coupled to `HttpContext` internals rather than a clean pipeline seam.
 
 Working comparison:
 
@@ -165,11 +165,11 @@ Why this option fits the current codebase:
 
 - The existing request-to-pipeline boundary is the architectural seam that already needs to move for WebSocket support.
 - A single explicit result type gives the pipeline one place to decide between HTTP completion and upgraded-session takeover.
-- This keeps long-lived upgraded behavior out of `IHttpResponse` and avoids baking hidden upgrade state into `HttpRequest`.
+- This keeps long-lived upgraded behavior out of `IHttpResponse` and avoids baking hidden upgrade state into `HttpContext`.
 
 Ownership rules to enforce:
 
-- `HttpRequest` may construct the result, but it must not retain ownership of the post-routing outcome once the pipeline consumes it.
+- `HttpContext` may construct the result, but it must not retain ownership of the post-routing outcome once the pipeline consumes it.
 - `HttpPipeline` becomes the sole owner of the consumed result and any response stream or upgrade factory it carries.
 - The server continues to own connection acceptance and top-level pipeline lifetime, but not the per-request result object after handoff.
 
@@ -182,19 +182,19 @@ Mutual exclusivity rule:
 Implications for Phase 1:
 
 - Phase 1 should explicitly replace callback-only response handoff with result-object consumption at the pipeline boundary.
-- The `HttpRequest` backlog tasks should assume result construction and transfer semantics instead of adding request-owned upgrade state.
+- The `HttpContext` backlog tasks should assume result construction and transfer semantics instead of adding request-owned upgrade state.
 - Phase 2 handshake work should build an upgrade result payload rather than introducing a separate upgrade side channel.
 
 Alternatives not chosen:
 
-- Option B, session-factory result: rejected for now because it preserves dual output channels from `HttpRequest` and leaves exclusivity enforcement too implicit.
-- Option C, request-owned upgrade descriptor: rejected because it concentrates too much hidden ownership and control flow inside `HttpRequest`.
+- Option B, session-factory result: rejected for now because it preserves dual output channels from `HttpContext` and leaves exclusivity enforcement too implicit.
+- Option C, request-owned upgrade descriptor: rejected because it concentrates too much hidden ownership and control flow inside `HttpContext`.
 
 Suggested decision record for item 1:
 
 - Chosen direction: Dedicated pipeline result object.
 - Why this option fits the current codebase: The request-to-pipeline seam already has to change, and a single result object keeps that change explicit.
-- What ownership rules must be enforced: `HttpPipeline` owns the consumed result and its payloads after handoff from `HttpRequest`.
+- What ownership rules must be enforced: `HttpPipeline` owns the consumed result and its payloads after handoff from `HttpContext`.
 - Whether response and upgrade are mutually exclusive by type or by convention: By type.
 - Which Phase 1 tasks should be rewritten once this is decided: Result and ownership model, pipeline refactor, and request-boundary tasks should all assume result-object transfer rather than side-channel upgrade state.
 
@@ -599,7 +599,7 @@ Sketch:
 class WebSocketUpgradeHandler
 {
 public:
-	RequestHandlingResult handleUpgradeRequest(const HttpRequest &request,
+	RequestHandlingResult handleUpgradeRequest(const HttpContext &request,
 											   IWebSocketRoute &route);
 };
 ```
@@ -636,7 +636,7 @@ struct RoutedUpgradeDecision
 	RequestHandlingResult result;
 };
 
-RoutedUpgradeDecision HandlerProviderRegistry::tryResolveWebSocket(const HttpRequest &request);
+RoutedUpgradeDecision HandlerProviderRegistry::tryResolveWebSocket(const HttpContext &request);
 ```
 
 How it would flow:
@@ -670,8 +670,8 @@ struct UpgradeIntent
 	IWebSocketRoute *route;
 };
 
-std::optional<UpgradeIntent> HttpRequest::takeUpgradeIntent();
-RequestHandlingResult HttpPipeline::buildUpgradeResult(const HttpRequest &request,
+std::optional<UpgradeIntent> HttpContext::takeUpgradeIntent();
+RequestHandlingResult HttpPipeline::buildUpgradeResult(const HttpContext &request,
 													   const UpgradeIntent &intent);
 ```
 
@@ -836,7 +836,7 @@ Sketch:
 
 ```cpp
 using UpgradeRejectionPolicy =
-    std::function<RequestHandlingResult(UpgradeFailure, const HttpRequest &)>;
+    std::function<RequestHandlingResult(UpgradeFailure, const HttpContext &)>;
 
 void WebSocketUpgradeHandler::setRejectionPolicy(UpgradeRejectionPolicy policy);
 ```

@@ -35,7 +35,7 @@ This repository keeps host-side unit coverage under a single consolidated native
 ## Request-Driving Strategy
 
 - Default to lower-level pipeline callbacks plus shared recorders for parser and transport tests.
-- Use `HttpRequest` directly only when the behavior under test is request lifecycle logic, handler dispatch timing, item storage, or response dispatch.
+- Use `HttpContext` directly only when the behavior under test is request lifecycle logic, handler dispatch timing, item storage, or response dispatch.
 - This keeps parser or transport tests narrow while still allowing request-model tests to exercise the real request object when needed.
 
 ## Timeout Guidance

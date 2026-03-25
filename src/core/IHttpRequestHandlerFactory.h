@@ -6,11 +6,11 @@
 #include "../response/HttpResponse.h"
 namespace HttpServerAdvanced
 {   
-    class HttpRequest;
+    class HttpContext;
     class IHttpRequestHandlerFactory{
     public:
         static constexpr const char *ServiceName = "HttpRequestHandlerFactory";
-        virtual std::unique_ptr<IHttpHandler> create(HttpRequest &context) = 0;
+        virtual std::unique_ptr<IHttpHandler> create(HttpContext &context) = 0;
         virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string body) = 0;
         virtual ~IHttpRequestHandlerFactory() = default;    
         virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string_view body)

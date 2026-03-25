@@ -4,7 +4,7 @@
 
 namespace HttpServerAdvanced
 {
-    IHttpHandler::HandlerResult FormBodyHandler::handleBody(HttpRequest &context, std::vector<uint8_t> &&body)
+    IHttpHandler::HandlerResult FormBodyHandler::handleBody(HttpContext &context, std::vector<uint8_t> &&body)
     {
         auto params = extractor_(context);
         WebUtility::QueryParameters postData = WebUtility::ParseQueryParameters(reinterpret_cast<const char *>(body.data()), body.size());
@@ -13,7 +13,7 @@ namespace HttpServerAdvanced
 
     Form::Invocation Form::curryWithoutParams(InvocationWithoutParams handler)
     {
-        return [handler](HttpRequest &context, RouteParameters &&, PostBodyData &&postData)
+        return [handler](HttpContext &context, RouteParameters &&, PostBodyData &&postData)
         {
             return handler(context, std::move(postData));
         };
@@ -21,35 +21,35 @@ namespace HttpServerAdvanced
 
     IHttpHandler::Factory Form::makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
     {
-        return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
+        return [handler, extractor](HttpContext &context) -> std::unique_ptr<IHttpHandler>
         {
             auto params = extractor(context);
-            return std::make_unique<FormBodyHandler>(handler, [params](HttpRequest &c)
+            return std::make_unique<FormBodyHandler>(handler, [params](HttpContext &c)
                                                      { return params; });
         };
     }
 
     Form::Invocation Form::curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](HttpRequest &context, RouteParameters &&params, PostBodyData &&postData)
+        return [interceptor, handler](HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
         {
-            return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpRequest &context) mutable
+            return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpContext &context) mutable
                                { return handler(context, std::move(params), std::move(postData)); });
         };
     }
 
     Form::Invocation Form::applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](HttpRequest &context, RouteParameters &&params, PostBodyData &&postData)
+        return [interceptor, handler](HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
         {
-            return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpRequest &context) mutable
+            return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpContext &context) mutable
                                { return handler(context, std::move(params), std::move(postData)); });
         };
     }
 
     Form::Invocation Form::applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
     {
-        return [filter, handler](HttpRequest &context, RouteParameters &&params, PostBodyData &&postData)
+        return [filter, handler](HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
         {
             auto response = handler(context, std::move(params), std::move(postData));
             if (!response.isResponse())

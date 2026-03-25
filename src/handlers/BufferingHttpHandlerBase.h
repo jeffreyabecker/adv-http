@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <optional>
 #include <string_view>
-#include "../core/HttpRequest.h"
+#include "../core/HttpContext.h"
 
 namespace HttpServerAdvanced
 {
@@ -36,9 +36,9 @@ namespace HttpServerAdvanced
     public:
         virtual ~BufferingHttpHandlerBase() = default;
 
-        virtual HandlerResult handleBody(HttpRequest &context, std::vector<uint8_t> &&body) = 0;
+        virtual HandlerResult handleBody(HttpContext &context, std::vector<uint8_t> &&body) = 0;
 
-        HandlerResult handleStep(HttpRequest &context) override
+        HandlerResult handleStep(HttpContext &context) override
         {
             if (context.completedPhases() < HttpRequestPhase::CompletedReadingMessage)
             {
@@ -53,7 +53,7 @@ namespace HttpServerAdvanced
             return handleBody(context, std::move(bodyBuffer_));
         }
 
-        void handleBodyChunk(HttpRequest &context, const uint8_t *at, std::size_t length) override
+        void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length) override
         {
             const ssize_t cfg = configuredMax;
             if (cfg == 0)

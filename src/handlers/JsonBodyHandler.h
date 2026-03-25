@@ -15,24 +15,24 @@ namespace HttpServerAdvanced
     class JsonBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_JSON_BODY_LENGTH>
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, JsonDocument &&)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, JsonDocument &&)> handler_;
         ExtractArgsFromRequest extractor_;
 
     public:
-        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
+        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequest &context, RouteParameters &&, JsonDocument &&postData)
+        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](HttpContext &context, RouteParameters &&, JsonDocument &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
 
-        virtual IHttpHandler::HandlerResult handleBody(HttpRequest &context, std::vector<uint8_t> &&body) override;
+        virtual IHttpHandler::HandlerResult handleBody(HttpContext &context, std::vector<uint8_t> &&body) override;
     };
     class Json
     {
     public:
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, JsonDocument &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, JsonDocument &&)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpContext &, JsonDocument &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, JsonDocument &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 

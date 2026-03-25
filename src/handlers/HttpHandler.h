@@ -8,34 +8,34 @@
 namespace HttpServerAdvanced
 {
     // Forward declaration
-    class HttpRequest;
+    class HttpContext;
 
     class HttpHandler : public IHttpHandler
     {
     protected:
         static const HttpRequestPhaseFlags CallHandleAt = HttpRequestPhase::CompletedReadingHeaders + HttpRequestPhase::CompletedStartingLine;
-        std::function<bool(const HttpRequest &)> filter_;
+        std::function<bool(const HttpContext &)> filter_;
         IHttpHandler::InvocationCallback invocation_;
 
     public:
-        static bool defaultFilter(const HttpRequest &context);
+        static bool defaultFilter(const HttpContext &context);
 
         HttpHandler(IHttpHandler::InvocationCallback invocation)
             : invocation_(invocation), filter_(defaultFilter) {}
 
-        HttpHandler(IHttpHandler::InvocationCallback invocation, std::function<bool(const HttpRequest &)> filter)
+        HttpHandler(IHttpHandler::InvocationCallback invocation, std::function<bool(const HttpContext &)> filter)
             : invocation_(invocation), filter_(filter) {}
 
 
-        HttpHandler(std::unique_ptr<IHttpResponse> response, std::function<bool(const HttpRequest &)> filter)
-            : invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpRequest &) mutable -> IHttpHandler::HandlerResult
+        HttpHandler(std::unique_ptr<IHttpResponse> response, std::function<bool(const HttpContext &)> filter)
+            : invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpContext &) mutable -> IHttpHandler::HandlerResult
                           { return HandlerResult::responseResult(std::move(*resp)); }),
               filter_(filter) {}
 
         HttpHandler(std::unique_ptr<IHttpResponse> response)
-            : invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpRequest &) mutable -> IHttpHandler::HandlerResult
+            : invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpContext &) mutable -> IHttpHandler::HandlerResult
                           { return HandlerResult::responseResult(std::move(*resp)); }),
-              filter_([](const HttpRequest & req) { return true; }) {} // will be set via setPhaseFilter
+              filter_([](const HttpContext & req) { return true; }) {} // will be set via setPhaseFilter
 
         template <typename... Args>
         static std::unique_ptr<IHttpHandler> create(Args &&...args)
@@ -47,7 +47,7 @@ namespace HttpServerAdvanced
 
         void setPhaseFilter(HttpRequestPhaseFlags callAt);
 
-        virtual HandlerResult handleStep(HttpRequest &context) override
+        virtual HandlerResult handleStep(HttpContext &context) override
         {
             if (filter_(context))
             {
@@ -56,7 +56,7 @@ namespace HttpServerAdvanced
             return nullptr;
         }
 
-        virtual void handleBodyChunk(HttpRequest &context, const uint8_t *at, std::size_t length) override
+        virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length) override
         {
             // Default implementation does nothing
         }
@@ -64,17 +64,17 @@ namespace HttpServerAdvanced
 
 }
 
-// Include HttpRequest after class definition to resolve circular dependency
-#include "../core/HttpRequest.h"
+// Include HttpContext after class definition to resolve circular dependency
+#include "../core/HttpContext.h"
 
 namespace HttpServerAdvanced {
-    inline bool HttpHandler::defaultFilter(const HttpRequest &context) {
+    inline bool HttpHandler::defaultFilter(const HttpContext &context) {
         return context.completedPhases() == HttpRequestPhase::CompletedReadingHeaders + HttpRequestPhase::CompletedStartingLine;
     }
 
     // Helper for setting filter when using phase-based constructor: call after construction
     inline void HttpHandler::setPhaseFilter(HttpRequestPhaseFlags callAt) {
-        filter_ = [callAt](const HttpRequest &ctx) { return ctx.completedPhases() == callAt; };
+        filter_ = [callAt](const HttpContext &ctx) { return ctx.completedPhases() == callAt; };
     }
 }
 

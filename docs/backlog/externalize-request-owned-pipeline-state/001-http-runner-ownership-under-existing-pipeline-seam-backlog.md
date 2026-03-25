@@ -5,11 +5,11 @@
 
 ## Summary
 
-This phase removes orchestration ownership from `HttpRequest` without changing `HttpPipeline` to a new seam yet. The key move is to introduce an HTTP runner that owns handler lifetime, result staging, phase progression, and error-to-response mapping while the existing pipeline still talks to an `IPipelineHandler`-shaped surface.
+This phase removes orchestration ownership from `HttpContext` without changing `HttpPipeline` to a new seam yet. The key move is to introduce an HTTP runner that owns handler lifetime, result staging, phase progression, and error-to-response mapping while the existing pipeline still talks to an `IPipelineHandler`-shaped surface.
 
 ## Goal / Acceptance Criteria
 
-- `HttpRequest` no longer directly owns cached handler lifetime, pending result staging, parser-driven orchestration, or response-start/complete phase progression.
+- `HttpContext` no longer directly owns cached handler lifetime, pending result staging, parser-driven orchestration, or response-start/complete phase progression.
 - An HTTP runner abstraction owns that orchestration under the current `IPipelineHandler` seam.
 - Existing HTTP and websocket behavior stays green while ownership moves.
 
@@ -17,17 +17,17 @@ This phase removes orchestration ownership from `HttpRequest` without changing `
 
 ### Option A: Mirror The Current `IPipelineHandler` Surface
 
-This is the most direct extraction shape: define `HttpRequestRunner` with nearly the same methods as `IPipelineHandler`, but make the runner own orchestration while a thin adapter preserves the pipeline-facing seam.
+This is the most direct extraction shape: define `HttpContextRunner` with nearly the same methods as `IPipelineHandler`, but make the runner own orchestration while a thin adapter preserves the pipeline-facing seam.
 
 Sketch:
 
 ```cpp
-class HttpRequestRunner
+class HttpContextRunner
 {
 public:
-	virtual ~HttpRequestRunner() = default;
+	virtual ~HttpContextRunner() = default;
 
-	virtual HttpRequest &context() = 0;
+	virtual HttpContext &context() = 0;
 
 	virtual int onMessageBegin(const char *method,
 							   std::uint16_t versionMajor,
@@ -77,12 +77,12 @@ This option separates raw parser callbacks from execution/result control so the 
 Sketch:
 
 ```cpp
-class HttpRequestRunner
+class HttpContextRunner
 {
 public:
-	virtual ~HttpRequestRunner() = default;
+	virtual ~HttpContextRunner() = default;
 
-	virtual HttpRequest &context() = 0;
+	virtual HttpContext &context() = 0;
 
 	virtual int onMessageBegin(const char *method,
 							   std::uint16_t versionMajor,
@@ -126,12 +126,12 @@ This option minimizes callback count by treating parser hooks as pure context mu
 Sketch:
 
 ```cpp
-class HttpRequestRunner
+class HttpContextRunner
 {
 public:
-	virtual ~HttpRequestRunner() = default;
+	virtual ~HttpContextRunner() = default;
 
-	virtual HttpRequest &context() = 0;
+	virtual HttpContext &context() = 0;
 
 	virtual int onMessageBegin(const char *method,
 							   std::uint16_t versionMajor,
@@ -161,7 +161,7 @@ Advantages:
 Costs:
 
 - biggest departure from the current seam
-- would force more changes in `HttpRequest` and `HttpPipeline` immediately
+- would force more changes in `HttpContext` and `HttpPipeline` immediately
 - too much redesign pressure for the first extraction slice
 
 ## Recommendation
@@ -182,7 +182,7 @@ Tradeoff acknowledgment:
 
 ## Ownership Responsibilities To Lock In
 
-Whichever option is chosen, `HttpRequestRunner` should own at minimum:
+Whichever option is chosen, `HttpContextRunner` should own at minimum:
 
 - lazy handler creation through `IHttpRequestHandlerFactory`
 - cached handler lifetime for the current request
@@ -192,7 +192,7 @@ Whichever option is chosen, `HttpRequestRunner` should own at minimum:
 - parser/pipeline error-to-response mapping
 - no-response finalization when the handler completes without producing a response
 
-`HttpRequest` should remain responsible for:
+`HttpContext` should remain responsible for:
 
 - parsed request metadata
 - address data
@@ -202,18 +202,18 @@ Whichever option is chosen, `HttpRequestRunner` should own at minimum:
 
 ## Tasks
 
-- [x] Define the concrete `HttpRequestRunner`-style interface and its ownership responsibilities.
-- [x] Introduce an `HttpRequestPipelineAdapter`-style adapter if needed to preserve the current `IPipelineHandler` seam.
-- [x] Move handler lifetime ownership out of `HttpRequest`.
-- [x] Move pending result staging out of `HttpRequest`.
-- [x] Move parser-phase and response-phase progression bookkeeping out of `HttpRequest`.
-- [x] Move parser/pipeline error-to-response mapping out of `HttpRequest`.
+- [x] Define the concrete `HttpContextRunner`-style interface and its ownership responsibilities.
+- [x] Introduce an `HttpContextPipelineAdapter`-style adapter if needed to preserve the current `IPipelineHandler` seam.
+- [x] Move handler lifetime ownership out of `HttpContext`.
+- [x] Move pending result staging out of `HttpContext`.
+- [x] Move parser-phase and response-phase progression bookkeeping out of `HttpContext`.
+- [x] Move parser/pipeline error-to-response mapping out of `HttpContext`.
 - [x] Keep existing request/pipeline/native tests green throughout the extraction.
 
 ## References
 
 - [docs/plans/externalize-request-owned-pipeline-state-implementation-plan.md](docs/plans/externalize-request-owned-pipeline-state-implementation-plan.md)
 - [docs/backlog/task-lists/web-sockets/012-externalize-request-owned-pipeline-state-for-peer-contexts-backlog.md](docs/backlog/task-lists/web-sockets/012-externalize-request-owned-pipeline-state-for-peer-contexts-backlog.md)
-- [src/core/HttpRequest.h](src/core/HttpRequest.h)
-- [src/core/HttpRequest.cpp](src/core/HttpRequest.cpp)
+- [src/core/HttpContext.h](src/core/HttpContext.h)
+- [src/core/HttpContext.cpp](src/core/HttpContext.cpp)
 - [src/pipeline/IPipelineHandler.h](src/pipeline/IPipelineHandler.h)

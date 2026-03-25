@@ -63,7 +63,7 @@ namespace HttpServerAdvanced
     {
 
     private:
-        std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &, MultipartFormDataBuffer)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &, MultipartFormDataBuffer)> handler_;
         ExtractArgsFromRequest extractor_;
         HandlerResult response_;
         RouteParameters params_;
@@ -88,9 +88,9 @@ namespace HttpServerAdvanced
         const uint8_t *findBoundary(const uint8_t *start, size_t len);
 
     public:
-        MultipartFormDataHandler(std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &, MultipartFormDataBuffer)> handler, ExtractArgsFromRequest extractor)
+        MultipartFormDataHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &, MultipartFormDataBuffer)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        virtual HandlerResult handleStep(HttpRequest &context)
+        virtual HandlerResult handleStep(HttpContext &context)
         {
             if (!response_ && context.completedPhases() >= HttpRequestPhase::CompletedReadingMessage)
             {
@@ -102,7 +102,7 @@ namespace HttpServerAdvanced
             }
             return nullptr;
         }
-        virtual void handleBodyChunk(HttpRequest &context, const uint8_t *at, std::size_t length)
+        virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length)
         {
             if (response_)
             {
@@ -248,12 +248,12 @@ namespace HttpServerAdvanced
     {
     public:
         using PostBodyData = WebUtility::QueryParameters;
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequest &, PostBodyData &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequest &, RouteParameters &&, PostBodyData &&)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpContext &, PostBodyData &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, PostBodyData &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler)
         {
-            return [handler](HttpRequest &context, RouteParameters &&, PostBodyData &&postData)
+            return [handler](HttpContext &context, RouteParameters &&, PostBodyData &&postData)
             {
                 return handler(context, std::move(postData));
             };
@@ -261,44 +261,44 @@ namespace HttpServerAdvanced
 
         static IHttpHandler::Factory makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
         {
-            return [handler, extractor](HttpRequest &context) -> std::unique_ptr<IHttpHandler>
+            return [handler, extractor](HttpContext &context) -> std::unique_ptr<IHttpHandler>
             {
                 auto params = extractor(context);
-                // MultipartFormDataHandler expects handler of signature (HttpRequest&, RouteParameters&, MultipartFormDataBuffer)
+                // MultipartFormDataHandler expects handler of signature (HttpContext&, RouteParameters&, MultipartFormDataBuffer)
                 // We'll create a simpler handler that just accepts the multipart buffer
-                auto wrappedHandler = [handler](HttpRequest &ctx, RouteParameters &params, MultipartFormDataBuffer buffer)
+                auto wrappedHandler = [handler](HttpContext &ctx, RouteParameters &params, MultipartFormDataBuffer buffer)
                 {
                     // Handler expects PostBodyData (KeyValuePairView), not MultipartFormDataBuffer
                     // For now, just invoke with empty PostBodyData - this API mismatch needs design review
                     WebUtility::QueryParameters postData;
                     return handler(ctx, std::move(params), std::move(postData));
                 };
-                return std::make_unique<MultipartFormDataHandler>(wrappedHandler, ExtractArgsFromRequest([params](HttpRequest &c)
+                return std::make_unique<MultipartFormDataHandler>(wrappedHandler, ExtractArgsFromRequest([params](HttpContext &c)
                                                                                                          { return params; }));
             };
         }
 
         static Invocation curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpRequest &context, RouteParameters &&params, PostBodyData &&postData)
+            return [interceptor, handler](HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
             {
-                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpRequest &context) mutable
+                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpContext &context) mutable
                                    { return handler(context, std::move(params), std::move(postData)); });
             };
         }
 
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpRequest &context, RouteParameters &&params, PostBodyData &&postData)
+            return [interceptor, handler](HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
             {
-                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpRequest &context) mutable
+                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpContext &context) mutable
                                    { return handler(context, std::move(params), std::move(postData)); });
             };
         }
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
         {
-            return [filter, handler](HttpRequest &context, RouteParameters &&params, PostBodyData &&postData)
+            return [filter, handler](HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
             {
                 auto response = handler(context, std::move(params), std::move(postData));
                 if (!response.isResponse())

@@ -10,14 +10,14 @@
 
 namespace HttpServerAdvanced
 {
-    class HttpRequest;
+    class HttpContext;
 
-    class HttpRequestRunner
+    class HttpContextRunner
     {
     public:
-        virtual ~HttpRequestRunner() = default;
+        virtual ~HttpContextRunner() = default;
 
-        virtual HttpRequest &context() = 0;
+        virtual HttpContext &context() = 0;
 
         virtual int onMessageBegin(const char *method,
                                    std::uint16_t versionMajor,

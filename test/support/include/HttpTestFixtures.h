@@ -79,7 +79,7 @@ namespace HttpServerAdvanced::TestSupport
     {
     public:
         using IHttpRequestHandlerFactory::createResponse;
-        using HandlerFactoryCallback = std::function<std::unique_ptr<IHttpHandler>(HttpRequest &)>;
+        using HandlerFactoryCallback = std::function<std::unique_ptr<IHttpHandler>(HttpContext &)>;
         using ResponseFactoryCallback = std::function<std::unique_ptr<IHttpResponse>(HttpStatus, std::string)>;
 
         explicit RecordingRequestHandlerFactory(
@@ -90,7 +90,7 @@ namespace HttpServerAdvanced::TestSupport
         {
         }
 
-        std::unique_ptr<IHttpHandler> create(HttpRequest &context) override
+        std::unique_ptr<IHttpHandler> create(HttpContext &context) override
         {
             ++createCount_;
             lastCreateContext_ = &context;
@@ -120,7 +120,7 @@ namespace HttpServerAdvanced::TestSupport
             return createCount_;
         }
 
-        HttpRequest *lastCreateContext() const
+        HttpContext *lastCreateContext() const
         {
             return lastCreateContext_;
         }
@@ -149,7 +149,7 @@ namespace HttpServerAdvanced::TestSupport
         HandlerFactoryCallback handlerFactory_;
         ResponseFactoryCallback responseFactory_;
         std::size_t createCount_ = 0;
-        HttpRequest *lastCreateContext_ = nullptr;
+        HttpContext *lastCreateContext_ = nullptr;
         std::size_t responseCreateCount_ = 0;
         std::vector<HttpStatus> responseStatuses_;
         std::vector<std::string> responseBodies_;

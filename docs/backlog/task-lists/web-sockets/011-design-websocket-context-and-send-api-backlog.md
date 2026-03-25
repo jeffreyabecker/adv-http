@@ -133,8 +133,8 @@ But those data-access concerns should stay conceptually separate from the outbou
 Target naming note:
 
 - the architectural target name is `HttpContext`
-- current code still uses `HttpRequest` during the transition
-- this section describes the target handoff model, even if the first implementation still copies data from the existing `HttpRequest` type
+- current code still uses `HttpContext` during the transition
+- this section describes the target handoff model, even if the first implementation still copies data from the existing `HttpContext` type
 
 The carried-forward data should include at minimum:
 
@@ -369,7 +369,7 @@ Implementation notes:
 - keep public send methods complete-message only for v1
 - validate payload size before queue admission where possible so `TooLarge` is deterministic
 - keep serializer/write-buffer ownership in execution, not context
-- construct `WebSocketContext` from an explicit upgrade snapshot rather than by retaining a live pointer back to `HttpContext` / `HttpRequest`
+- construct `WebSocketContext` from an explicit upgrade snapshot rather than by retaining a live pointer back to `HttpContext` / `HttpContext`
 - do not allow callback-time sends to block on socket writes
 - preserve at-most-once `onClose(...)` delivery across both local-close and remote-close paths
 

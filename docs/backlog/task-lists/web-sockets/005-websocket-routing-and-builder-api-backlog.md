@@ -72,7 +72,7 @@ High
 - `src/routing/`
 - `src/core/HttpRequestHandlerFactory.h`
 - `src/core/IHttpRequestHandlerFactory.h`
-- `src/core/HttpRequest.h`
-- `src/core/HttpRequest.cpp`
+- `src/core/HttpContext.h`
+- `src/core/HttpContext.cpp`
 - `test/test_native/`
 - `docs/backlog/task-lists/web-sockets/008-websocket-pre-implementation-decisions-backlog.md`

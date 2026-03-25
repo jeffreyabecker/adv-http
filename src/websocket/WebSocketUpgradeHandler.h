@@ -5,7 +5,7 @@
 
 namespace HttpServerAdvanced
 {
-    class HttpRequest;
+    class HttpContext;
 
     class WebSocketUpgradeHandler
     {
@@ -20,10 +20,10 @@ namespace HttpServerAdvanced
             ConflictingHeaders
         };
 
-        static bool isWebSocketUpgradeCandidate(const HttpRequest &request);
-        HandlerResult handle(HttpRequest &request, const WebSocketCallbacks &callbacks) const;
+        static bool isWebSocketUpgradeCandidate(const HttpContext &request);
+        HandlerResult handle(HttpContext &request, const WebSocketCallbacks &callbacks) const;
 
     private:
-        static HandlerResult rejectUpgrade(HttpRequest &request, UpgradeFailure failure);
+        static HandlerResult rejectUpgrade(HttpContext &request, UpgradeFailure failure);
     };
 }

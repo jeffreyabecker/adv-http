@@ -26,7 +26,7 @@ The websocket Phase 4 design work now defines a clear target architecture: `WebS
 ## Out Of Scope
 
 - The later pipeline-level move from `IConnectionSession` to the proposed higher-level `IProtocolExecution` seam.
-- The HTTP-side rename from `HttpRequest` to `HttpContext` beyond what is required for carrying activation data during websocket upgrade.
+- The HTTP-side rename from `HttpContext` to `HttpContext` beyond what is required for carrying activation data during websocket upgrade.
 - New public heartbeat APIs beyond the already documented v1 decision to keep ping/pong internal.
 - Typed websocket message adapters beyond the callback signature changes needed for `WebSocketContext &`.
 

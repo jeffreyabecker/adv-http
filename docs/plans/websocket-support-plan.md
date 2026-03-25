@@ -2,14 +2,14 @@
 
 ## Summary
 
-Adding WebSocket support will require more than a new handler type. The current server architecture is built around a short-lived HTTP request parser feeding a single HTTP response stream per connection, while a WebSocket connection becomes a long-lived upgraded session with bidirectional framed IO. The clean implementation path is to treat protocol upgrade as a first-class pipeline transition and introduce dedicated WebSocket session primitives instead of trying to force framed socket semantics through the existing `HttpRequest` response model.
+Adding WebSocket support will require more than a new handler type. The current server architecture is built around a short-lived HTTP request parser feeding a single HTTP response stream per connection, while a WebSocket connection becomes a long-lived upgraded session with bidirectional framed IO. The clean implementation path is to treat protocol upgrade as a first-class pipeline transition and introduce dedicated WebSocket session primitives instead of trying to force framed socket semantics through the existing `HttpContext` response model.
 
 ## Current Architecture Observations
 
 - `src/server/HttpServerBase.*` accepts an `IClient`, creates one `HttpPipeline` per connection, and removes that pipeline when the request or response lifecycle reaches a final state.
 - `src/pipeline/HttpPipeline.*` assumes the connection lifecycle is HTTP-only: parse request bytes, build one response byte source, write it to the client, then complete, abort, or keep reading for the next HTTP request.
-- `src/server/WebServerBuilder.h` currently hard-wires the pipeline handler factory to `HttpRequest::createPipelineHandler(...)`, which means all accepted connections are funneled directly into the HTTP request model.
-- `src/core/HttpRequest.*` owns routing, body handling, and response dispatch. It has no notion of a successful protocol upgrade that hands control of the socket to another long-lived component.
+- `src/server/WebServerBuilder.h` currently hard-wires the pipeline handler factory to `HttpContext::createPipelineHandler(...)`, which means all accepted connections are funneled directly into the HTTP request model.
+- `src/core/HttpContext.*` owns routing, body handling, and response dispatch. It has no notion of a successful protocol upgrade that hands control of the socket to another long-lived component.
 - `src/pipeline/RequestParser.*` already uses `llhttp`, and the vendored `llhttp` supports upgrade detection, but that upgrade signal is not surfaced through the current library APIs.
 - `src/pipeline/TransportInterfaces.h` already gives a sufficiently low-level byte channel abstraction for WebSocket frame IO, which is a good base to build on.
 
@@ -33,7 +33,7 @@ The HTTP layer should be able to produce one of two outcomes:
 - a normal HTTP response
 - an approved upgrade result that transfers control of the client connection into a WebSocket session
 
-This is the main architectural break from the current model. Today `HttpRequest` can only produce an `IHttpResponse` stream. For WebSockets, it needs a way to return an upgrade decision and session factory instead.
+This is the main architectural break from the current model. Today `HttpContext` can only produce an `IHttpResponse` stream. For WebSockets, it needs a way to return an upgrade decision and session factory instead.
 
 ### 3. Separate WebSocket Session Semantics From HTTP Handler Semantics
 
@@ -158,7 +158,7 @@ That scope is enough to validate the architecture without dragging in optional R
 
 ## Risks And Open Questions
 
-- The current `HttpRequest` type mixes request parsing, handler selection, and response dispatch. Supporting upgrade cleanly may require splitting those concerns instead of adding another flag.
+- The current `HttpContext` type mixes request parsing, handler selection, and response dispatch. Supporting upgrade cleanly may require splitting those concerns instead of adding another flag.
 - The current pipeline result model is transaction-oriented. WebSocket sessions are connection-oriented and may stay alive indefinitely, so timeout policy and completion semantics need to be redefined.
 - If the existing handler model is stretched too far, the code may end up with awkward dual semantics where some handlers return `IHttpResponse` and others secretly seize the connection. That should be avoided.
 - Large-frame buffering strategy matters on RP2040 and ESP-class targets. The implementation should prefer incremental parsing and bounded buffers over whole-message accumulation by default.

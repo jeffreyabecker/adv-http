@@ -13,14 +13,14 @@
 namespace HttpServerAdvanced
 {
     // Forward declarations
-    class HttpRequest;
+    class HttpContext;
 
     class IHandlerProvider
     {
     public:
         virtual ~IHandlerProvider() = default;
-        virtual bool canHandle(HttpRequest &context) = 0;
-        virtual std::unique_ptr<IHttpHandler> create(HttpRequest &context) = 0;
+        virtual bool canHandle(HttpContext &context) = 0;
+        virtual std::unique_ptr<IHttpHandler> create(HttpContext &context) = 0;
     };
     class HandlerProvider : public IHandlerProvider
     {
@@ -31,11 +31,11 @@ namespace HttpServerAdvanced
     public:
         HandlerProvider(IHttpHandler::Factory factory, IHttpHandler::Predicate request)
             : factory_(factory), request_(request) {}
-        virtual bool canHandle(HttpRequest &context) override
+        virtual bool canHandle(HttpContext &context) override
         {
             return request_(context);
         }
-        virtual std::unique_ptr<IHttpHandler> create(HttpRequest &context) override
+        virtual std::unique_ptr<IHttpHandler> create(HttpContext &context) override
         {
             return factory_(context);
         }

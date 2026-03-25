@@ -35,7 +35,7 @@ HttpServerAdvanced uses a **pipeline-based architecture** inspired by modern web
 │  │  ┌───────────────────────────────────────────────────┐  │    │
 │  │  │                  HttpPipeline                      │  │    │
 │  │  │  ┌─────────────┐  ┌─────────────┐  ┌───────────┐  │  │    │
-│  │  │  │RequestParser│→ │ HttpRequest │→ │IHttpHandler│  │  │    │
+│  │  │  │RequestParser│→ │ HttpContext │→ │IHttpHandler│  │  │    │
 │  │  │  └─────────────┘  └─────────────┘  └───────────┘  │  │    │
 │  │  │                          ↓                         │  │    │
 │  │  │                   IHttpResponse                    │  │    │
@@ -117,7 +117,7 @@ pio test -e native
 
 Relevant websocket coverage currently lives in:
 
-- `test/test_native/test_http_request.cpp`
+- `test/test_native/test_http_context.cpp`
 - `test/test_native/test_pipeline.cpp`
 - `test/test_native/test_websocket_frame_codec.cpp`
 - `test/test_native/test_websocket_error_policy.cpp`
@@ -142,7 +142,7 @@ The core module contains fundamental types and configuration constants.
 | `HttpHeaderCollection` | Collection of headers with find/set/exists operations |
 | `HttpMethod` | HTTP method constants (GET, POST, PUT, DELETE, etc.) |
 | `HttpStatus` | Status code + reason phrase with factory methods |
-| `HttpRequest` | Central request context implementing `IPipelineHandler` |
+| `HttpContext` | Central request context implementing `IPipelineHandler` |
 | `HttpRequestPhase` | Bitmask flags for request lifecycle phases |
 | `HttpTimeouts` | Timeout configuration (connect, header, body, keep-alive) |
 | `HttpContentTypes` | MIME type registry with extension mapping |
@@ -170,12 +170,12 @@ TIMEOUT_CLIENT_BODY            = 10000
 TIMEOUT_KEEP_ALIVE             = 15000
 ```
 
-#### HttpRequest
+#### HttpContext
 
 The central context object passed through the pipeline:
 
 ```cpp
-class HttpRequest : public IPipelineHandler {
+class HttpContext : public IPipelineHandler {
     // Request properties
     const String& method() const;
     const String& uri() const;
@@ -325,12 +325,12 @@ Handlers process HTTP requests and generate responses.
 
 | Type | HTTP Method | Body Type | Signature |
 |------|-------------|-----------|-----------|
-| `GetRequest` | GET | None | `(HttpRequest&, args...) → IHttpResponse` |
-| `Json` | POST/PUT | ArduinoJson (optional) | `(HttpRequest&, JsonDocument&, args...) → IHttpResponse` when JSON support is enabled |
-| `Form` | POST | URL-encoded | `(HttpRequest&, FormData&, args...) → IHttpResponse` |
-| `Multipart` | POST | multipart/form-data | `(HttpRequest&, MultipartData&, args...) → IHttpResponse` |
-| `RawBody` | POST/PUT | Raw bytes | `(HttpRequest&, Buffer&, args...) → IHttpResponse` |
-| `BufferedString` | POST/PUT | String | `(HttpRequest&, String&, args...) → IHttpResponse` |
+| `GetRequest` | GET | None | `(HttpContext&, args...) → IHttpResponse` |
+| `Json` | POST/PUT | ArduinoJson (optional) | `(HttpContext&, JsonDocument&, args...) → IHttpResponse` when JSON support is enabled |
+| `Form` | POST | URL-encoded | `(HttpContext&, FormData&, args...) → IHttpResponse` |
+| `Multipart` | POST | multipart/form-data | `(HttpContext&, MultipartData&, args...) → IHttpResponse` |
+| `RawBody` | POST/PUT | Raw bytes | `(HttpContext&, Buffer&, args...) → IHttpResponse` |
+| `BufferedString` | POST/PUT | String | `(HttpContext&, String&, args...) → IHttpResponse` |
 
 #### IHttpHandler Interface
 
@@ -338,16 +338,16 @@ Handlers process HTTP requests and generate responses.
 class IHttpHandler {
 public:
     using HandlerResult = std::unique_ptr<IHttpResponse>;
-    using InvocationCallback = std::function<HandlerResult(HttpRequest&)>;
-    using InterceptorCallback = std::function<HandlerResult(HttpRequest&, InvocationCallback)>;
-    using Predicate = std::function<bool(HttpRequest&)>;
-    using Factory = std::function<std::unique_ptr<IHttpHandler>(HttpRequest&)>;
+    using InvocationCallback = std::function<HandlerResult(HttpContext&)>;
+    using InterceptorCallback = std::function<HandlerResult(HttpContext&, InvocationCallback)>;
+    using Predicate = std::function<bool(HttpContext&)>;
+    using Factory = std::function<std::unique_ptr<IHttpHandler>(HttpContext&)>;
     
     // Called to process request (may be called multiple times for body chunks)
-    virtual HandlerResult handleStep(HttpRequest& context) = 0;
+    virtual HandlerResult handleStep(HttpContext& context) = 0;
     
     // Called for each body chunk received
-    virtual void handleBodyChunk(HttpRequest& context, const uint8_t* at, size_t length) = 0;
+    virtual void handleBodyChunk(HttpContext& context, const uint8_t* at, size_t length) = 0;
 };
 ```
 
@@ -363,10 +363,10 @@ protected:
     bool bufferOverflow_ = false;
     
 public:
-    virtual void handleBodyChunk(HttpRequest& context, const uint8_t* at, size_t length) override;
+    virtual void handleBodyChunk(HttpContext& context, const uint8_t* at, size_t length) override;
     
     // Subclasses implement to process buffered body
-    virtual HandlerResult handleBufferedBody(HttpRequest& context) = 0;
+    virtual HandlerResult handleBufferedBody(HttpContext& context) = 0;
 };
 ```
 
@@ -376,8 +376,8 @@ Each handler type (GetRequest, Json, Form, etc.) follows this pattern. `Json` is
 
 ```cpp
 struct Json {
-    using Invocation = std::function<HandlerResult(HttpRequest&, JsonDocument&, std::vector<String>&)>;
-    using InvocationWithoutParams = std::function<HandlerResult(HttpRequest&, JsonDocument&)>;
+    using Invocation = std::function<HandlerResult(HttpContext&, JsonDocument&, std::vector<String>&)>;
+    using InvocationWithoutParams = std::function<HandlerResult(HttpContext&, JsonDocument&)>;
     
     // Restrict matcher to appropriate content types/methods
     static void restrict(HandlerMatcher& matcher);
@@ -426,10 +426,10 @@ public:
                    const std::initializer_list<String>& allowedContentTypes = {});
     
     // Check if this matcher handles the request
-    bool canHandle(HttpRequest& context) const;
+    bool canHandle(HttpContext& context) const;
     
     // Extract URI parameters (e.g., /users/:id → ["123"])
-    std::vector<String> extractParameters(HttpRequest& context) const;
+    std::vector<String> extractParameters(HttpContext& context) const;
     
     // Setters for custom matching logic
     void setMethodChecker(MethodChecker checker);
@@ -481,7 +481,7 @@ Central handler registry:
 class HandlerProviderRegistry {
 public:
     // Create handler for a request (returns nullptr if no match)
-    std::unique_ptr<IHttpHandler> createContextHandler(HttpRequest& context);
+    std::unique_ptr<IHttpHandler> createContextHandler(HttpContext& context);
     
     // Set default (404) handler
     void setDefaultHandlerFactory(IHttpHandler::Factory creator);
@@ -750,7 +750,7 @@ Serves static files from a filesystem (LittleFS, SD, etc.).
 ```cpp
 class FileLocator {
 public:
-    virtual File getFile(HttpRequest& context) = 0;
+    virtual File getFile(HttpContext& context) = 0;
     virtual bool canHandle(const String& path) = 0;
 };
 ```
@@ -773,7 +773,7 @@ public:
     void setRequestPathPrefixes(const String& include, const String& exclude);
     void setFilesystemContentRoot(const String& root);
     
-    File getFile(HttpRequest& context) override;
+    File getFile(HttpContext& context) override;
     bool canHandle(const String& path) override;
 };
 ```
@@ -977,10 +977,10 @@ FriendlyWebServer
 HttpPipeline
 ├── owns → IClient (network connection)
 ├── owns → RequestParser
-├── refs → IPipelineHandler (HttpRequest)
+├── refs → IPipelineHandler (HttpContext)
 └── owns → Stream (response stream)
 
-HttpRequest
+HttpContext
 ├── owns → HttpHeaderCollection
 ├── owns → UriView
 ├── refs → IHttpRequestHandlerFactory
@@ -1015,7 +1015,7 @@ void setup() {
     WiFi.begin("SSID", "password");
     while (WiFi.status() != WL_CONNECTED) delay(500);
     
-    server.cfg().on<GetRequest>("/", [](HttpRequest& req) {
+    server.cfg().on<GetRequest>("/", [](HttpContext& req) {
         return StringResponse::text("Hello World!");
     });
     
@@ -1031,7 +1031,7 @@ void loop() {
 
 ```cpp
 server.cfg().on<GetRequest>(ParameterizedUri("/users/:id"), 
-    [](HttpRequest& req, std::vector<String>& args) {
+    [](HttpContext& req, std::vector<String>& args) {
         String userId = args[0];
         return StringResponse::text("User: " + userId);
     });
@@ -1042,7 +1042,7 @@ server.cfg().on<GetRequest>(ParameterizedUri("/users/:id"),
 This pattern requires optional ArduinoJson support to be enabled.
 
 ```cpp
-server.cfg().on<Json>("/api/data", [](HttpRequest& req, JsonDocument& body, std::vector<String>& args) {
+server.cfg().on<Json>("/api/data", [](HttpContext& req, JsonDocument& body, std::vector<String>& args) {
     String name = body["name"] | "anonymous";
     
     JsonDocument response;
@@ -1055,7 +1055,7 @@ server.cfg().on<Json>("/api/data", [](HttpRequest& req, JsonDocument& body, std:
 ### Form Handling
 
 ```cpp
-server.cfg().on<Form>("/submit", [](HttpRequest& req, FormData& form, std::vector<String>& args) {
+server.cfg().on<Form>("/submit", [](HttpContext& req, FormData& form, std::vector<String>& args) {
     auto name = form.get("name");
     auto email = form.get("email");
     return StringResponse::text("Received: " + name.value_or("") + ", " + email.value_or(""));
@@ -1067,7 +1067,7 @@ server.cfg().on<Form>("/submit", [](HttpRequest& req, FormData& form, std::vecto
 ```cpp
 auto adminAuth = BasicAuth("admin", "secret", "Admin Area");
 
-server.cfg().on<GetRequest>("/admin", [](HttpRequest& req) {
+server.cfg().on<GetRequest>("/admin", [](HttpContext& req) {
     return StringResponse::html("<h1>Admin Panel</h1>");
 }).with(adminAuth);
 ```
@@ -1099,7 +1099,7 @@ server.use(StaticFiles(LittleFS, [](StaticFilesBuilder& files) {
 
 ```cpp
 // Log all requests
-server.cfg().with([](HttpRequest& req, IHttpHandler::InvocationCallback next) {
+server.cfg().with([](HttpContext& req, IHttpHandler::InvocationCallback next) {
     Serial.printf("[%s] %s\n", req.method().c_str(), req.uri().c_str());
     return next(req);
 });
@@ -1107,7 +1107,7 @@ server.cfg().with([](HttpRequest& req, IHttpHandler::InvocationCallback next) {
 // Global interceptors and response filters wrap matched handlers as well as the fallback handler.
 
 // Filter requests
-server.cfg().filterRequest([](HttpRequest& req) {
+server.cfg().filterRequest([](HttpContext& req) {
     return req.remoteAddress() != "192.168.1.100";  // Block IP
 });
 

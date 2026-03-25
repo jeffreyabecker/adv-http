@@ -1,7 +1,7 @@
 #pragma once
 #include "../compat/IFileSystem.h"
 
-#include "../core/HttpRequest.h"
+#include "../core/HttpContext.h"
 #include "FileLocator.h"
 
 #include <functional>
@@ -28,7 +28,7 @@ namespace HttpServerAdvanced
 
         static RequestPathMapper createPathMapper(std::string_view root);
 
-        virtual std::string getLocalPath(const HttpRequest &context);
+        virtual std::string getLocalPath(const HttpContext &context);
 
     public:
         DefaultFileLocator(IFileSystem &fs);
@@ -42,7 +42,7 @@ namespace HttpServerAdvanced
 
         virtual void setFilesystemContentRoot(std::string_view root);
 
-        virtual FileHandle getFile(HttpRequest &context) override;
+        virtual FileHandle getFile(HttpContext &context) override;
 
         virtual bool canHandle(std::string_view path) override;
     };

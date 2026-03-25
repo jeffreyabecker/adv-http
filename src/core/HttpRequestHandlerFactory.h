@@ -5,7 +5,7 @@
 
 namespace HttpServerAdvanced
 {
-    class HttpRequest;
+    class HttpContext;
 
     class DeferredRegistryHandler : public IHttpHandler
     {
@@ -15,7 +15,7 @@ namespace HttpServerAdvanced
         {
         }
 
-        HandlerResult handleStep(HttpRequest &context) override
+        HandlerResult handleStep(HttpContext &context) override
         {
             ensureInnerHandler(context);
             if (!innerHandler_)
@@ -26,7 +26,7 @@ namespace HttpServerAdvanced
             return innerHandler_->handleStep(context);
         }
 
-        void handleBodyChunk(HttpRequest &context, const uint8_t *at, std::size_t length) override
+        void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length) override
         {
             ensureInnerHandler(context);
             if (innerHandler_)
@@ -36,7 +36,7 @@ namespace HttpServerAdvanced
         }
 
     private:
-        void ensureInnerHandler(HttpRequest &context)
+        void ensureInnerHandler(HttpContext &context)
         {
             if (innerHandler_ || (context.completedPhases() & HttpRequestPhase::CompletedReadingHeaders) == 0)
             {
@@ -61,7 +61,7 @@ namespace HttpServerAdvanced
         
         
 
-        virtual std::unique_ptr<IHttpHandler> create(HttpRequest &context) override
+        virtual std::unique_ptr<IHttpHandler> create(HttpContext &context) override
         {
             static_cast<void>(context);
             return std::make_unique<DeferredRegistryHandler>(providerRegistry_);

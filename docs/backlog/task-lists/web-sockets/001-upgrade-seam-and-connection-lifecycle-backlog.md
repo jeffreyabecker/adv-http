@@ -10,7 +10,7 @@ This phase establishes the architectural seam that makes WebSocket support possi
 ## Goal / Acceptance Criteria
 
 - `HttpPipeline` can represent both normal HTTP completion and transfer into an upgraded connection session through a dedicated `RequestHandlingResult` boundary.
-- Upgraded-session ownership is explicit and does not depend on hidden side effects in `HttpRequest` response dispatch.
+- Upgraded-session ownership is explicit and does not depend on hidden side effects in `HttpContext` response dispatch.
 - Timeout, abort, disconnect, and cleanup logic still flow through one pipeline-owned lifecycle coordinated by an explicit connection-state enum.
 - The internal seam is narrow enough that later handshake and frame work can build on it without revisiting the core ownership model.
 
@@ -35,7 +35,7 @@ This phase establishes the architectural seam that makes WebSocket support possi
 - [ ] Define the internal `RequestHandlingResult` type so request handling returns exactly one terminal outcome: response, upgrade, no-response, or error.
 - [ ] Make response and upgrade mutually exclusive by type rather than by convention.
 - [ ] Keep the upgrade representation internal until Phase 5 public APIs are ready.
-- [ ] Ensure `HttpPipeline` becomes the sole owner of the consumed result payloads after handoff from `HttpRequest`.
+- [ ] Ensure `HttpPipeline` becomes the sole owner of the consumed result payloads after handoff from `HttpContext`.
 
 ### Pipeline Refactor
 
@@ -46,9 +46,9 @@ This phase establishes the architectural seam that makes WebSocket support possi
 
 ### Request Boundary Adjustments
 
-- [ ] Adjust `src/core/HttpRequest.h` and `src/core/HttpRequest.cpp` so request handling constructs a `RequestHandlingResult` instead of signaling upgrade through response-specific paths.
+- [ ] Adjust `src/core/HttpContext.h` and `src/core/HttpContext.cpp` so request handling constructs a `RequestHandlingResult` instead of signaling upgrade through response-specific paths.
 - [ ] Replace or narrow the current response-stream callback usage so result-object transfer becomes the authoritative boundary.
-- [ ] Review whether `HttpRequest::handleStep()` should remain the central coordination point once upgrade approval exists.
+- [ ] Review whether `HttpContext::handleStep()` should remain the central coordination point once upgrade approval exists.
 
 ### Fake Transport Support
 
@@ -75,8 +75,8 @@ High
 - `docs/plans/websocket-support-plan.md`
 - `src/pipeline/HttpPipeline.h`
 - `src/pipeline/HttpPipeline.cpp`
-- `src/core/HttpRequest.h`
-- `src/core/HttpRequest.cpp`
+- `src/core/HttpContext.h`
+- `src/core/HttpContext.cpp`
 - `src/pipeline/IPipelineHandler.h`
 - `src/pipeline/PipelineHandleClientResult.h`
 - `src/pipeline/TransportInterfaces.h`

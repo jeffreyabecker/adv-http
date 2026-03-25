@@ -10,15 +10,15 @@
 namespace HttpServerAdvanced
 {
     // Forward declaration
-    class HttpRequest;
+    class HttpContext;
     constexpr char REQUEST_MATCHER_PATH_DELIMITER = '/';
     class HandlerMatcher
     {
     public:
         using MethodChecker = std::function<bool(std::string_view allowedMethods, std::string_view method)>;
         using UriPatternChecker = std::function<bool(std::string_view uri, std::string_view uriPattern)>;
-        using ContentTypeChecker = std::function<bool(HttpRequest &context, const std::vector<std::string> &allowedContentTypes)>;
-        using ArgsExtractor = std::function<RouteParameters(HttpRequest &context, std::string_view uriPattern)>;
+        using ContentTypeChecker = std::function<bool(HttpContext &context, const std::vector<std::string> &allowedContentTypes)>;
+        using ArgsExtractor = std::function<RouteParameters(HttpContext &context, std::string_view uriPattern)>;
 
     protected:
         std::string uriPattern_;
@@ -65,13 +65,13 @@ namespace HttpServerAdvanced
 
         ~HandlerMatcher() = default;
 
-        bool operator()(HttpRequest &context) const
+        bool operator()(HttpContext &context) const
         {
             return canHandle(context);
         }
 
-        bool canHandle(HttpRequest &context) const;
-        RouteParameters extractParameters(HttpRequest &context) const;
+        bool canHandle(HttpContext &context) const;
+        RouteParameters extractParameters(HttpContext &context) const;
     };
     class ParameterizedUri : public HandlerMatcher
     {
@@ -84,16 +84,16 @@ namespace HttpServerAdvanced
     // Default implementations
     bool defaultCheckMethod(std::string_view allowedMethods, std::string_view method);
 
-    bool defaultCheckContentType(HttpRequest &context, const std::vector<std::string> &allowedContentTypes);
+    bool defaultCheckContentType(HttpContext &context, const std::vector<std::string> &allowedContentTypes);
 
     bool defaultCheckUriPattern(std::string_view uri, std::string_view uriPattern);
 
-    RouteParameters defaultExtractParameters(HttpRequest &context, std::string_view uriPattern);
+    RouteParameters defaultExtractParameters(HttpContext &context, std::string_view uriPattern);
 
 } // namespace HttpServerAdvanced
 
-// Include HttpRequest after class definition to resolve forward declaration
-#include "../core/HttpRequest.h"
+// Include HttpContext after class definition to resolve forward declaration
+#include "../core/HttpContext.h"
 
 
 

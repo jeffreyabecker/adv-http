@@ -4,7 +4,7 @@
 #include <unity.h>
 
 #include "../../src/compat/Clock.h"
-#include "../../src/core/HttpRequest.h"
+#include "../../src/core/HttpContext.h"
 #include "../../src/core/HttpTimeouts.h"
 #include "../../src/handlers/HttpHandler.h"
 #include "../../src/pipeline/HttpPipeline.h"
@@ -404,7 +404,7 @@ namespace
         TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback handlerFactory = nullptr)
     {
         return TestSupport::RecordingRequestHandlerFactory(
-            [registeredPath = std::string(path), callbacks = std::move(callbacks), handlerFactory = std::move(handlerFactory)](HttpRequest &context) mutable -> std::unique_ptr<IHttpHandler>
+            [registeredPath = std::string(path), callbacks = std::move(callbacks), handlerFactory = std::move(handlerFactory)](HttpContext &context) mutable -> std::unique_ptr<IHttpHandler>
             {
                 if (handlerFactory)
                 {
@@ -415,7 +415,7 @@ namespace
                 }
 
                 return std::make_unique<HttpHandler>(
-                    [registeredPath, callbacks](HttpRequest &innerContext) mutable -> IHttpHandler::HandlerResult
+                    [registeredPath, callbacks](HttpContext &innerContext) mutable -> IHttpHandler::HandlerResult
                     {
                         if (!WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(innerContext) || !defaultCheckUriPattern(innerContext.uriView().path(), registeredPath))
                         {
@@ -833,7 +833,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
-            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -847,7 +847,7 @@ namespace
             timeouts,
             [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpContext::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -883,7 +883,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
-            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -897,7 +897,7 @@ namespace
             timeouts,
             [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpContext::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -930,7 +930,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
-            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -945,7 +945,7 @@ namespace
             timeouts,
             [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpContext::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -984,7 +984,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
-            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -999,7 +999,7 @@ namespace
             timeouts,
             [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpContext::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -1037,7 +1037,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
-            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -1052,7 +1052,7 @@ namespace
             timeouts,
             [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpContext::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -1089,7 +1089,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
-            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -1104,7 +1104,7 @@ namespace
             timeouts,
             [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpContext::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -1175,7 +1175,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             callbacks,
-            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -1190,7 +1190,7 @@ namespace
             timeouts,
             [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpContext::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -1262,7 +1262,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             callbacks,
-            [](HttpRequest &request) -> std::unique_ptr<IHttpHandler>
+            [](HttpContext &request) -> std::unique_ptr<IHttpHandler>
             {
                 request.items()["upgrade-item"] = std::string("upgrade-value");
                 return nullptr;
@@ -1281,7 +1281,7 @@ namespace
             timeouts,
             [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpContext::createPipelineHandler(server, requestFactory);
             },
             clock);
 
@@ -1323,14 +1323,14 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/other",
             {},
-            [](HttpRequest &) -> std::unique_ptr<IHttpHandler>
+            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return std::make_unique<HttpHandler>(
-                    [](HttpRequest &)
+                    [](HttpContext &)
                     {
                         return StringResponse::create(HttpStatus::Ok(), "http-fallback", {});
                     },
-                    [](const HttpRequest &)
+                    [](const HttpContext &)
                     {
                         return true;
                     });
@@ -1345,7 +1345,7 @@ namespace
             timeouts,
             [&server, &requestFactory]()
             {
-                return HttpRequest::createPipelineHandler(server, requestFactory);
+                return HttpContext::createPipelineHandler(server, requestFactory);
             },
             clock);
 
