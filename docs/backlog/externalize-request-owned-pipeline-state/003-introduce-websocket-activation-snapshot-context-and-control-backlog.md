@@ -1,3 +1,4 @@
+2026-03-24 - Copilot: completed the websocket activation snapshot, context, and control abstractions with native coverage.
 2026-03-24 - Copilot: created Phase 3 backlog for introducing websocket activation snapshot, context, and control abstractions.
 
 # Introduce WebSocket Activation Snapshot Context And Control Backlog
@@ -14,12 +15,12 @@ This phase introduces the first websocket-side implementation types without extr
 
 ## Tasks
 
-- [ ] Add `WebSocketActivationSnapshot`.
-- [ ] Add `WebSocketContext` with direct callback ownership.
-- [ ] Add lifecycle and close-state accessors on `WebSocketContext`.
-- [ ] Add carried-forward HTTP metadata and `items()` accessors on `WebSocketContext`.
-- [ ] Add `IWebSocketSessionControl` for send/close delegation.
-- [ ] Add unit tests for context-owned state and fake-control send/close mapping.
+- [x] Add `WebSocketActivationSnapshot`.
+- [x] Add `WebSocketContext` with direct callback ownership.
+- [x] Add lifecycle and close-state accessors on `WebSocketContext`.
+- [x] Add carried-forward HTTP metadata and `items()` accessors on `WebSocketContext`.
+- [x] Add `IWebSocketSessionControl` for send/close delegation.
+- [x] Add unit tests for context-owned state and fake-control send/close mapping.
 
 ## References
 

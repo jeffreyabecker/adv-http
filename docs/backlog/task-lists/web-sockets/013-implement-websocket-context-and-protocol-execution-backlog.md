@@ -1,3 +1,4 @@
+2026-03-24 - Copilot: completed the websocket context/protocol-execution refactor, including context-first callbacks, activation handoff, send-result semantics, and removal of the fused runtime.
 2026-03-24 - Copilot: created backlog item from the broader request-owned pipeline-state implementation plan to track the `WebSocketContext` and `WebSocketProtocolExecution` refactor in implementation-sized slices.
 
 # Implement WebSocket Context And Protocol Execution Backlog
@@ -75,19 +76,19 @@ The websocket Phase 4 design work now defines a clear target architecture: `WebS
 
 ## Tasks
 
-- [ ] Slice 1: add `WebSocketContext` with direct callback ownership, send/close declarations, lifecycle state, and carried-forward metadata accessors.
-- [ ] Slice 1: add `WebSocketActivationSnapshot` to represent websocket-owned upgrade handoff data.
-- [ ] Slice 2: add `IWebSocketSessionControl` and unit-test `WebSocketContext` send/close result mapping against a fake control object.
-- [ ] Slice 3: add `WebSocketProtocolExecution` and move parser, pending-write, fragmented-message, and close-handshake state out of `WebSocketSessionRuntime`.
-- [ ] Slice 3: decide whether `WebSocketSessionRuntime` becomes a short-lived compatibility wrapper or is removed immediately.
-- [ ] Slice 4: change websocket callbacks to receive `WebSocketContext &` for open, text, binary, close, and error events.
-- [ ] Slice 4: update builder/upgrade plumbing and native fixtures for the new callback signature model.
-- [ ] Slice 5: wire carried-forward activation data from the current HTTP activation object into `WebSocketActivationSnapshot` and `WebSocketContext`.
-- [ ] Slice 5: add tests proving websocket callbacks can still inspect `items()`, headers, and local/remote endpoint data after upgrade.
-- [ ] Slice 6: implement documented `WebSocketSendResult` and `WebSocketCloseResult` behavior over the execution-owned outbound queue.
-- [ ] Slice 6: add tests for backpressure, closing-state rejection, closed-state rejection, and oversize payload/reason handling.
-- [ ] Slice 7: remove transitional runtime naming and simplify websocket docs/tests to the final context/execution model.
-- [ ] Run the native websocket-related tests after each implementation slice and the full native test lane at the end.
+- [x] Slice 1: add `WebSocketContext` with direct callback ownership, send/close declarations, lifecycle state, and carried-forward metadata accessors.
+- [x] Slice 1: add `WebSocketActivationSnapshot` to represent websocket-owned upgrade handoff data.
+- [x] Slice 2: add `IWebSocketSessionControl` and unit-test `WebSocketContext` send/close result mapping against a fake control object.
+- [x] Slice 3: add `WebSocketProtocolExecution` and move parser, pending-write, fragmented-message, and close-handshake state out of `WebSocketSessionRuntime`.
+- [x] Slice 3: decide whether `WebSocketSessionRuntime` becomes a short-lived compatibility wrapper or is removed immediately.
+- [x] Slice 4: change websocket callbacks to receive `WebSocketContext &` for open, text, binary, close, and error events.
+- [x] Slice 4: update builder/upgrade plumbing and native fixtures for the new callback signature model.
+- [x] Slice 5: wire carried-forward activation data from the current HTTP activation object into `WebSocketActivationSnapshot` and `WebSocketContext`.
+- [x] Slice 5: add tests proving websocket callbacks can still inspect `items()`, headers, and local/remote endpoint data after upgrade.
+- [x] Slice 6: implement documented `WebSocketSendResult` and `WebSocketCloseResult` behavior over the execution-owned outbound queue.
+- [x] Slice 6: add tests for backpressure, closing-state rejection, closed-state rejection, and oversize payload/reason handling.
+- [x] Slice 7: remove transitional runtime naming and simplify websocket docs/tests to the final context/execution model.
+- [x] Run the native websocket-related tests after each implementation slice and the full native test lane at the end.
 
 ## Owner
 
@@ -102,6 +103,7 @@ The websocket Phase 4 design work now defines a clear target architecture: `WebS
 - [docs/plans/externalize-request-owned-pipeline-state-implementation-plan.md](docs/plans/externalize-request-owned-pipeline-state-implementation-plan.md)
 - [docs/backlog/task-lists/web-sockets/011-design-websocket-context-and-send-api-backlog.md](docs/backlog/task-lists/web-sockets/011-design-websocket-context-and-send-api-backlog.md)
 - [docs/backlog/task-lists/web-sockets/012-externalize-request-owned-pipeline-state-for-peer-contexts-backlog.md](docs/backlog/task-lists/web-sockets/012-externalize-request-owned-pipeline-state-for-peer-contexts-backlog.md)
-- [src/websocket/WebSocketSessionRuntime.h](src/websocket/WebSocketSessionRuntime.h)
-- [src/websocket/WebSocketSessionRuntime.cpp](src/websocket/WebSocketSessionRuntime.cpp)
+- [src/websocket/WebSocketContext.h](src/websocket/WebSocketContext.h)
+- [src/websocket/WebSocketProtocolExecution.h](src/websocket/WebSocketProtocolExecution.h)
+- [src/websocket/WebSocketProtocolExecution.cpp](src/websocket/WebSocketProtocolExecution.cpp)
 - [src/websocket/WebSocketCallbacks.h](src/websocket/WebSocketCallbacks.h)

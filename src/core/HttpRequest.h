@@ -99,9 +99,9 @@ namespace HttpServerAdvanced
         inline std::string_view urlView() const { return std::string_view(url_.data(), url_.size()); }
         inline const HttpHeaderCollection &headers() const { return headers_; }
         inline std::string_view remoteAddress() const { return std::string_view(remoteAddress_.data(), remoteAddress_.size()); }
-        inline uint16_t remotePort() { return remotePort_; }
+        inline uint16_t remotePort() const { return remotePort_; }
         inline std::string_view localAddress() const { return std::string_view(localAddress_.data(), localAddress_.size()); }
-        inline uint16_t localPort() { return localPort_; }
+        inline uint16_t localPort() const { return localPort_; }
         inline std::map<std::string, std::any> &items() const{
             return items_;
         }

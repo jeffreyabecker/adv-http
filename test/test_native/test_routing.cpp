@@ -569,7 +569,7 @@ namespace
 
         bool openCalled = false;
         WebSocketCallbacks callbacks;
-        callbacks.onOpen = [&openCalled]()
+        callbacks.onOpen = [&openCalled](WebSocketContext &)
         {
             openCalled = true;
         };

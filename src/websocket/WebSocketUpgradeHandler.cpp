@@ -1,6 +1,8 @@
 #include "WebSocketUpgradeHandler.h"
 
-#include "WebSocketSessionRuntime.h"
+#include "WebSocketActivationSnapshot.h"
+#include "WebSocketContext.h"
+#include "WebSocketProtocolExecution.h"
 
 #include "../compat/Span.h"
 #include "../core/HttpHeader.h"
@@ -305,6 +307,21 @@ namespace HttpServerAdvanced
             response.append("\r\n\r\n");
             return response;
         }
+
+        WebSocketActivationSnapshot createActivationSnapshot(const HttpRequest &request)
+        {
+            WebSocketActivationSnapshot snapshot;
+            snapshot.items = request.items();
+            snapshot.method.assign(request.methodView().data(), request.methodView().size());
+            snapshot.version.assign(request.versionView().data(), request.versionView().size());
+            snapshot.url.assign(request.urlView().data(), request.urlView().size());
+            snapshot.headers = request.headers();
+            snapshot.remoteAddress.assign(request.remoteAddress().data(), request.remoteAddress().size());
+            snapshot.remotePort = request.remotePort();
+            snapshot.localAddress.assign(request.localAddress().data(), request.localAddress().size());
+            snapshot.localPort = request.localPort();
+            return snapshot;
+        }
     }
 
     bool WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(const HttpRequest &request)
@@ -342,7 +359,8 @@ namespace HttpServerAdvanced
         }
 
         const std::string acceptValue = createWebSocketAcceptValue(key);
-        auto session = std::make_unique<WebSocketSessionRuntime>(createHandshakeResponseText(acceptValue), callbacks);
+        WebSocketContext context(createActivationSnapshot(request), callbacks);
+        auto session = std::make_unique<WebSocketProtocolExecution>(createHandshakeResponseText(acceptValue), std::move(context));
         return HandlerResult::upgradeResult(std::move(session));
     }
 

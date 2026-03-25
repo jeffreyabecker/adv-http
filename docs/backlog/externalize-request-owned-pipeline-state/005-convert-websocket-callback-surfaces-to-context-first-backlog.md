@@ -1,3 +1,4 @@
+2026-03-24 - Copilot: completed the websocket callback-surface conversion to `WebSocketContext &` signatures.
 2026-03-24 - Copilot: created Phase 5 backlog for converting websocket callback surfaces to context-first signatures.
 
 # Convert WebSocket Callback Surfaces To Context First Backlog
@@ -14,11 +15,11 @@ This phase aligns websocket callback registration, upgrade plumbing, and tests w
 
 ## Tasks
 
-- [ ] Update `WebSocketCallbacks` to accept `WebSocketContext &`.
-- [ ] Update websocket upgrade plumbing for context-first callbacks.
-- [ ] Update websocket builder/routing registration code as needed.
-- [ ] Update affected test fixtures and native tests.
-- [ ] Verify callback ownership stays directly on `WebSocketContext`.
+- [x] Update `WebSocketCallbacks` to accept `WebSocketContext &`.
+- [x] Update websocket upgrade plumbing for context-first callbacks.
+- [x] Update websocket builder/routing registration code as needed.
+- [x] Update affected test fixtures and native tests.
+- [x] Verify callback ownership stays directly on `WebSocketContext`.
 
 ## References
 

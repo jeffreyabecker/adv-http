@@ -15,6 +15,7 @@
 #include "../../src/response/StringResponse.h"
 #include "../../src/server/HttpServerBase.h"
 #include "../../src/websocket/WebSocketCallbacks.h"
+#include "../../src/websocket/WebSocketContext.h"
 #include "../../src/websocket/WebSocketUpgradeHandler.h"
 
 #include <cstddef>
@@ -1147,23 +1148,25 @@ namespace
         timeouts.setTotalRequestLengthMs(200);
 
         WebSocketCallbacks callbacks;
-        callbacks.onOpen = [&callbackEvents]()
+        callbacks.onOpen = [&callbackEvents](WebSocketContext &context)
         {
+            TEST_ASSERT_TRUE(context.isOpen());
+            TEST_ASSERT_EQUAL_INT(static_cast<int>(WebSocketSendResult::Queued), static_cast<int>(context.sendText("ok")));
             callbackEvents.push_back("open");
         };
-        callbacks.onText = [&callbackEvents](std::string_view text)
+        callbacks.onText = [&callbackEvents](WebSocketContext &, std::string_view text)
         {
             callbackEvents.push_back(std::string("text:") + std::string(text));
         };
-        callbacks.onBinary = [&callbackEvents](span<const std::uint8_t> payload)
+        callbacks.onBinary = [&callbackEvents](WebSocketContext &, span<const std::uint8_t> payload)
         {
             callbackEvents.push_back(std::string("binary:") + std::string(reinterpret_cast<const char *>(payload.data()), payload.size()));
         };
-        callbacks.onClose = [&callbackEvents](std::uint16_t code, std::string_view)
+        callbacks.onClose = [&callbackEvents](WebSocketContext &, std::uint16_t code, std::string_view)
         {
             callbackEvents.push_back(std::string("close:") + std::to_string(code));
         };
-        callbacks.onError = [&callbackEvents](std::string_view message)
+        callbacks.onError = [&callbackEvents](WebSocketContext &, std::string_view message)
         {
             callbackEvents.push_back(std::string("error:") + std::string(message));
         };
@@ -1179,6 +1182,7 @@ namespace
 
         auto client = std::make_unique<TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {TextFrame, false}, {BinaryFrame, false}, {CloseFrame, false}});
+        TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1202,6 +1206,100 @@ namespace
         TEST_ASSERT_EQUAL_STRING("text:hi", callbackEvents[1].c_str());
         TEST_ASSERT_EQUAL_STRING("binary:AB", callbackEvents[2].c_str());
         TEST_ASSERT_EQUAL_STRING("close:1000", callbackEvents[3].c_str());
+        TEST_ASSERT_NOT_NULL(strstr(clientPtr->writtenText().c_str(), "\x81\x02ok"));
+    }
+
+    void test_http_pipeline_websocket_context_preserves_activation_snapshot_after_upgrade()
+    {
+        static constexpr const char *RequestText =
+            "GET /chat?room=lobby HTTP/1.1\r\n"
+            "Host: example.test\r\n"
+            "Connection: Upgrade\r\n"
+            "Upgrade: websocket\r\n"
+            "X-Trace: trace-123\r\n"
+            "Sec-WebSocket-Version: 13\r\n"
+            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+            "\r\n";
+
+        bool openCalled = false;
+        std::string capturedMethod;
+        std::string capturedVersion;
+        std::string capturedUrl;
+        std::string capturedRemoteAddress;
+        std::string capturedLocalAddress;
+        std::string capturedItemValue;
+        std::string capturedTraceHeader;
+        std::uint16_t capturedRemotePort = 0;
+        std::uint16_t capturedLocalPort = 0;
+
+        Compat::ManualClock clock(1000);
+        HttpTimeouts timeouts;
+        timeouts.setReadTimeout(25);
+        timeouts.setActivityTimeout(40);
+        timeouts.setTotalRequestLengthMs(200);
+
+        WebSocketCallbacks callbacks;
+        callbacks.onOpen = [&](WebSocketContext &context)
+        {
+            openCalled = true;
+            capturedMethod = std::string(context.methodView());
+            capturedVersion = std::string(context.versionView());
+            capturedUrl = std::string(context.urlView());
+            capturedRemoteAddress = std::string(context.remoteAddress());
+            capturedRemotePort = context.remotePort();
+            capturedLocalAddress = std::string(context.localAddress());
+            capturedLocalPort = context.localPort();
+            capturedItemValue = std::any_cast<std::string>(context.items().at("upgrade-item"));
+            const auto traceHeader = context.headers().find("X-Trace");
+            if (traceHeader.has_value())
+            {
+                capturedTraceHeader = std::string(traceHeader->valueView());
+            }
+            TEST_ASSERT_TRUE(context.isOpen());
+        };
+
+        HttpServerBase server(std::make_unique<TestSupport::FakeServer>("192.168.4.1", 8080));
+        auto requestFactory = createWebSocketAwareRequestFactory(
+            "/chat",
+            callbacks,
+            [](HttpRequest &request) -> std::unique_ptr<IHttpHandler>
+            {
+                request.items()["upgrade-item"] = std::string("upgrade-value");
+                return nullptr;
+            });
+
+        auto client = std::make_unique<TestSupport::FakeClient>(
+            std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}},
+            "10.1.2.3",
+            4321,
+            "192.168.4.1",
+            8080);
+
+        HttpPipeline pipeline(
+            std::move(client),
+            server,
+            timeouts,
+            [&server, &requestFactory]()
+            {
+                return HttpRequest::createPipelineHandler(server, requestFactory);
+            },
+            clock);
+
+        PipelineHandleClientResult result = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+
+        result = pipeline.handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+        TEST_ASSERT_TRUE(openCalled);
+        TEST_ASSERT_EQUAL_STRING("GET", capturedMethod.c_str());
+        TEST_ASSERT_EQUAL_STRING("1.1", capturedVersion.c_str());
+        TEST_ASSERT_EQUAL_STRING("/chat?room=lobby", capturedUrl.c_str());
+        TEST_ASSERT_EQUAL_STRING("10.1.2.3", capturedRemoteAddress.c_str());
+        TEST_ASSERT_EQUAL_UINT16(4321, capturedRemotePort);
+        TEST_ASSERT_EQUAL_STRING("192.168.4.1", capturedLocalAddress.c_str());
+        TEST_ASSERT_EQUAL_UINT16(8080, capturedLocalPort);
+        TEST_ASSERT_EQUAL_STRING("upgrade-value", capturedItemValue.c_str());
+        TEST_ASSERT_EQUAL_STRING("trace-123", capturedTraceHeader.c_str());
     }
 
     void test_http_pipeline_websocket_upgrade_candidate_without_matching_route_falls_back_to_http_handler()
@@ -1282,6 +1380,7 @@ namespace
         RUN_TEST(test_http_pipeline_websocket_session_runtime_maps_protocol_error_to_close_frame);
         RUN_TEST(test_http_pipeline_websocket_session_runtime_resumes_partial_handshake_writes_across_loops);
         RUN_TEST(test_http_pipeline_websocket_session_runtime_invokes_callbacks_in_expected_order);
+        RUN_TEST(test_http_pipeline_websocket_context_preserves_activation_snapshot_after_upgrade);
         RUN_TEST(test_http_pipeline_websocket_upgrade_candidate_without_matching_route_falls_back_to_http_handler);
         return UNITY_END();
     }

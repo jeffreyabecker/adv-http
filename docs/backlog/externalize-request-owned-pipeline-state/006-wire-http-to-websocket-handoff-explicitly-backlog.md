@@ -1,3 +1,4 @@
+2026-03-24 - Copilot: completed the explicit HTTP-to-websocket handoff through websocket-owned activation state.
 2026-03-24 - Copilot: created Phase 6 backlog for wiring the HTTP-to-websocket handoff explicitly through websocket-owned activation state.
 
 # Wire HTTP To WebSocket Handoff Explicitly Backlog
@@ -14,11 +15,11 @@ This phase makes the HTTP-to-websocket transition explicit by building websocket
 
 ## Tasks
 
-- [ ] Build the activation snapshot from the current HTTP activation object.
-- [ ] Transfer or copy `items()` into websocket-owned state intentionally.
-- [ ] Copy request metadata and endpoint information into websocket-owned state.
-- [ ] Ensure websocket code does not lazily query stale HTTP state after handoff.
-- [ ] Add tests for carried-forward metadata and items after upgrade.
+- [x] Build the activation snapshot from the current HTTP activation object.
+- [x] Transfer or copy `items()` into websocket-owned state intentionally.
+- [x] Copy request metadata and endpoint information into websocket-owned state.
+- [x] Ensure websocket code does not lazily query stale HTTP state after handoff.
+- [x] Add tests for carried-forward metadata and items after upgrade.
 
 ## References
 
