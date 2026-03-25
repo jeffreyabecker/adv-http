@@ -5,6 +5,7 @@
 #include "WebSocketFrameCodec.h"
 
 #include "../pipeline/ConnectionSession.h"
+#include "../pipeline/IProtocolExecution.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,12 +14,17 @@
 
 namespace HttpServerAdvanced
 {
-    class WebSocketProtocolExecution : public IConnectionSession, public IWebSocketSessionControl
+    class WebSocketProtocolExecution : public IConnectionSession, public IProtocolExecution, public IWebSocketSessionControl
     {
     public:
         WebSocketProtocolExecution(std::string handshakeResponse, WebSocketContext context);
 
         ConnectionSessionResult handle(IClient &client, const Compat::Clock &clock) override;
+        void onError(PipelineError error) override;
+        void onDisconnect() override;
+        bool hasPendingResult() const override;
+        RequestHandlingResult takeResult() override;
+        bool isFinished() const override;
 
         WebSocketSendResult sendText(std::string_view payload) override;
         WebSocketSendResult sendBinary(span<const std::uint8_t> payload) override;

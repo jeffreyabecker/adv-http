@@ -1,3 +1,4 @@
+2026-03-24 - Copilot: completed the shared protocol-execution seam with HTTP and websocket mapped through the new interface.
 2026-03-24 - Copilot: created Phase 7 backlog for introducing the shared protocol-execution seam above the current HTTP and upgraded-session seams.
 
 # Introduce Shared Protocol Execution Seam Backlog
@@ -14,11 +15,11 @@ This phase begins landing the higher-level execution abstraction recommended in 
 
 ## Tasks
 
-- [ ] Confirm the final `IProtocolExecution` shape.
-- [ ] Map the HTTP runner to the shared seam.
-- [ ] Map websocket execution to the shared seam.
-- [ ] Keep transitional adapters explicit and minimal.
-- [ ] Add tests covering coexistence of the old seams with the new seam during transition.
+- [x] Confirm the final `IProtocolExecution` shape.
+- [x] Map the HTTP runner to the shared seam.
+- [x] Map websocket execution to the shared seam.
+- [x] Keep transitional adapters explicit and minimal.
+- [x] Add tests covering coexistence of the old seams with the new seam during transition.
 
 ## References
 

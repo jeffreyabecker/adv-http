@@ -6,7 +6,9 @@
 #include "../core/HttpTimeouts.h"
 #include "../streams/ByteStream.h"
 #include "ConnectionSession.h"
+#include "HttpProtocolExecution.h"
 #include "IPipelineHandler.h"
+#include "IProtocolExecution.h"
 #include "RequestParser.h"
 #include "PipelineHandleClientResult.h"
 #include "TransportInterfaces.h"
@@ -39,12 +41,10 @@ namespace HttpServerAdvanced
         HttpServerBase &server_;
         const Compat::Clock &clock_;
         std::function<PipelineHandlerPtr()> handlerFactory_;
-        std::unique_ptr<RequestParser> requestParser_;
         std::unique_ptr<IByteSource> responseStream_;
         std::unique_ptr<IConnectionSession> activeSession_;
-        PipelineHandlerPtr handler_;
+        std::unique_ptr<HttpProtocolExecution> requestExecution_;
         ConnectionState connectionState_ = ConnectionState::ReadingHttpRequest;
-        bool requestReadCompleted_ = false;
         bool responseStartedNotified_ = false;
         bool disconnectNotified_ = false;
         bool timedOutUnrecoverably_ = false;
@@ -60,7 +60,6 @@ namespace HttpServerAdvanced
         void handleActiveSession();
         void consumePendingRequestResult();
         bool beginNextKeepAliveRequest();
-        void markRequestReadCompleted();
         void setupPipeline();
         PipelineHandleClientResult checkStateInHandleClient();
         bool isFirstLoop() const;
@@ -71,6 +70,8 @@ namespace HttpServerAdvanced
         void setErroredUnrecoverably();
         void setConnectionState(ConnectionState state);
         Compat::ClockMillis currentMillis() const;
+        IProtocolExecution *currentProtocolExecution();
+        const IProtocolExecution *currentProtocolExecution() const;
     public:
         HttpPipeline(std::unique_ptr<HttpServerAdvanced::IClient> client, HttpServerBase &server,
                      const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,

@@ -281,6 +281,47 @@ namespace HttpServerAdvanced
         return context_;
     }
 
+    void WebSocketProtocolExecution::onError(PipelineError error)
+    {
+        if (closeState_ == CloseState::Closed)
+        {
+            return;
+        }
+
+        const WsClosePolicy policy = policyFor(error.code() == PipelineErrorCode::Timeout ? WsErrorCategory::IdleTimeout : WsErrorCategory::WriteFailure);
+        context_.notifyError(error.message());
+        context_.notifyClose(policy.closeCode, "");
+        closeState_ = CloseState::Closed;
+    }
+
+    void WebSocketProtocolExecution::onDisconnect()
+    {
+        if (closeState_ == CloseState::Closed)
+        {
+            return;
+        }
+
+        const WsClosePolicy policy = policyFor(WsErrorCategory::RemoteDisconnect);
+        context_.notifyError("WebSocket disconnected");
+        context_.notifyClose(policy.closeCode, "");
+        closeState_ = CloseState::Closed;
+    }
+
+    bool WebSocketProtocolExecution::hasPendingResult() const
+    {
+        return false;
+    }
+
+    RequestHandlingResult WebSocketProtocolExecution::takeResult()
+    {
+        return RequestHandlingResult();
+    }
+
+    bool WebSocketProtocolExecution::isFinished() const
+    {
+        return closeState_ == CloseState::Closed;
+    }
+
     bool WebSocketProtocolExecution::flushPendingWrite(IClient &client)
     {
         while (pendingWriteOffset_ < pendingWrite_.size())

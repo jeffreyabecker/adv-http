@@ -1,3 +1,4 @@
+2026-03-24 - Copilot: completed the first HttpPipeline simplification around staged protocol execution while preserving existing pipeline states.
 2026-03-24 - Copilot: created Phase 8 backlog for simplifying HttpPipeline around staged protocol execution.
 
 # Simplify HttpPipeline Around Staged Protocol Execution Backlog
@@ -14,10 +15,10 @@ This phase makes `HttpPipeline` reflect the staged peer-context model directly: 
 
 ## Tasks
 
-- [ ] Refactor `HttpPipeline` to operate against the staged execution model.
-- [ ] Preserve headers-complete activation and routing semantics.
-- [ ] Remove temporary duplication introduced by earlier adapters where possible.
-- [ ] Keep keep-alive, upgrade transition, response completion, and close behavior stable.
+- [x] Refactor `HttpPipeline` to operate against the staged execution model.
+- [x] Preserve headers-complete activation and routing semantics.
+- [x] Remove temporary duplication introduced by earlier adapters where possible.
+- [x] Keep keep-alive, upgrade transition, response completion, and close behavior stable.
 
 ## References
 
