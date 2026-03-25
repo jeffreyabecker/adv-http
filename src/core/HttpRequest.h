@@ -16,6 +16,7 @@
 
 namespace HttpServerAdvanced
 {   
+    class HttpRequestAccess;
 
     class HttpRequest
     {
@@ -24,6 +25,28 @@ namespace HttpServerAdvanced
             : server_(server), handlerFactory_(handlerFactory),
               method_(), version_(), url_(), headers_(),
               remoteAddress_(), remotePort_(0), localAddress_(), localPort_(0) {}
+
+
+    private:
+        HttpServerAdvanced::HttpServerBase &server_;
+        const HttpRequestPhaseFlags *completedPhases_ = nullptr;
+        mutable std::map<std::string, std::any> items_;
+
+        // Merged from HttpRequest
+        std::string method_;
+        std::string version_;
+        std::string url_;
+        HttpHeaderCollection headers_;
+        std::string remoteAddress_;
+        uint16_t remotePort_;
+        std::string localAddress_;
+        uint16_t localPort_;
+        IHttpRequestHandlerFactory& handlerFactory_;
+
+        void invalidateTextCaches()
+        {
+            cachedUriView_.reset();
+        }
 
         void setRequestLine(const char *method, uint16_t versionMajor, uint16_t versionMinor, std::string_view url)
         {
@@ -56,31 +79,10 @@ namespace HttpServerAdvanced
             return handlerFactory_.create(*this);
         }
 
-
-    private:
-        HttpServerAdvanced::HttpServerBase &server_;
-        const HttpRequestPhaseFlags *completedPhases_ = nullptr;
-        mutable std::map<std::string, std::any> items_;
-
-        // Merged from HttpRequest
-        std::string method_;
-        std::string version_;
-        std::string url_;
-        HttpHeaderCollection headers_;
-        std::string remoteAddress_;
-        uint16_t remotePort_;
-        std::string localAddress_;
-        uint16_t localPort_;
-        IHttpRequestHandlerFactory& handlerFactory_;
-
-        void invalidateTextCaches()
-        {
-            cachedUriView_.reset();
-        }
-
         mutable std::unique_ptr<UriView> cachedUriView_;
 
         friend class DeferredRegistryHandler;
+        friend class HttpRequestAccess;
 
     public:
         ~HttpRequest() = default;

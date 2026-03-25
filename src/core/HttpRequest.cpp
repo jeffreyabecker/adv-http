@@ -6,6 +6,43 @@
 
 namespace HttpServerAdvanced
 {
+    class HttpRequestAccess
+    {
+    public:
+        static void bindCompletedPhases(HttpRequest &request, const HttpRequestPhaseFlags *completedPhases)
+        {
+            request.bindCompletedPhases(completedPhases);
+        }
+
+        static void setRequestLine(HttpRequest &request,
+                                   const char *method,
+                                   std::uint16_t versionMajor,
+                                   std::uint16_t versionMinor,
+                                   std::string_view url)
+        {
+            request.setRequestLine(method, versionMajor, versionMinor, url);
+        }
+
+        static void setRequestAddresses(HttpRequest &request,
+                                        std::string_view remoteAddress,
+                                        std::uint16_t remotePort,
+                                        std::string_view localAddress,
+                                        std::uint16_t localPort)
+        {
+            request.setRequestAddresses(remoteAddress, remotePort, localAddress, localPort);
+        }
+
+        static void setHeader(HttpRequest &request, std::string_view field, std::string_view value)
+        {
+            request.setHeader(field, value);
+        }
+
+        static std::unique_ptr<IHttpHandler> createHandler(HttpRequest &request)
+        {
+            return request.createHandler();
+        }
+    };
+
     namespace
     {
         class DefaultHttpRequestRunner : public HttpRequestRunner
@@ -14,7 +51,7 @@ namespace HttpServerAdvanced
             DefaultHttpRequestRunner(HttpServerBase &server, IHttpRequestHandlerFactory &handlerFactory)
                 : context_(server, handlerFactory)
             {
-                context_.bindCompletedPhases(&completedPhases_);
+                HttpRequestAccess::bindCompletedPhases(context_, &completedPhases_);
             }
 
             HttpRequest &context() override
@@ -27,7 +64,7 @@ namespace HttpServerAdvanced
                                std::uint16_t versionMinor,
                                std::string_view url) override
             {
-                context_.setRequestLine(method, versionMajor, versionMinor, url);
+                HttpRequestAccess::setRequestLine(context_, method, versionMajor, versionMinor, url);
                 return 0;
             }
 
@@ -36,12 +73,12 @@ namespace HttpServerAdvanced
                               std::string_view localAddress,
                               std::uint16_t localPort) override
             {
-                context_.setRequestAddresses(remoteAddress, remotePort, localAddress, localPort);
+                HttpRequestAccess::setRequestAddresses(context_, remoteAddress, remotePort, localAddress, localPort);
             }
 
             int onHeader(std::string_view field, std::string_view value) override
             {
-                context_.setHeader(field, value);
+                HttpRequestAccess::setHeader(context_, field, value);
                 return 0;
             }
 
@@ -143,7 +180,7 @@ namespace HttpServerAdvanced
             {
                 if (!handler_)
                 {
-                    handler_ = context_.createHandler();
+                    handler_ = HttpRequestAccess::createHandler(context_);
                 }
 
                 return handler_.get();
