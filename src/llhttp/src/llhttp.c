@@ -26,7 +26,7 @@
  #define UNREACHABLE __builtin_unreachable()
 #endif  /* _MSC_VER */
 
-#include "llhttp.h"
+#include "../include/llhttp.h"
 
 typedef int (*llhttp__internal__span_cb)(
              llhttp__internal_t*, const char*, const char*);

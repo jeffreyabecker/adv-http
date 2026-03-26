@@ -1,6 +1,6 @@
 #include <stdio.h>
 #ifndef LLHTTP__TEST
-# include "llhttp.h"
+#include "../include/llhttp.h"
 #else
 # define llhttp_t llparse_t
 #endif  /* */

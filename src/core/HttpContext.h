@@ -22,9 +22,12 @@ namespace HttpServerAdvanced
     {
     public:
         HttpContext(HttpServerAdvanced::HttpServerBase &server, IHttpContextHandlerFactory& handlerFactory)
-            : server_(server), handlerFactory_(handlerFactory),
+            : server_(server),
               method_(), version_(), url_(), headers_(),
-              remoteAddress_(), remotePort_(0), localAddress_(), localPort_(0) {}
+              remoteAddress_(), remotePort_(0), localAddress_(), localPort_(0),
+              handlerFactory_(handlerFactory)
+        {
+        }
 
 
     private:

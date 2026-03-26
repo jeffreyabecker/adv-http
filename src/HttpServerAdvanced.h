@@ -49,6 +49,8 @@
 #include "routing/CrossOriginRequestSharing.h"
 
 // HTTP pipeline
+
+#include "llhttp/include/llhttp.h"
 #include "pipeline/HttpPipeline.h"
 #include "pipeline/IPipelineHandler.h"
 #include "pipeline/NetClient.h"

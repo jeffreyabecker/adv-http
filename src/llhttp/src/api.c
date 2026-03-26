@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "llhttp.h"
+#include "../include/llhttp.h"
 
 #define CALLBACK_MAYBE(PARSER, NAME)                                          \
   do {                                                                        \
