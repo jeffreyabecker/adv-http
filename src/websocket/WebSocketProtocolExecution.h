@@ -20,6 +20,14 @@ namespace HttpServerAdvanced
         WebSocketProtocolExecution(std::string handshakeResponse, WebSocketContext context);
 
         ConnectionSessionResult handle(IClient &client, const Compat::Clock &clock) override;
+        IProtocolExecution *protocolExecution() override
+        {
+            return this;
+        }
+        const IProtocolExecution *protocolExecution() const override
+        {
+            return this;
+        }
         void onError(PipelineError error) override;
         void onDisconnect() override;
         bool hasPendingResult() const override;

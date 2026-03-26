@@ -269,6 +269,83 @@ namespace
         std::size_t scriptedIndex_ = 0;
     };
 
+    class ProtocolAwareStubSession : public IConnectionSession, public IProtocolExecution
+    {
+    public:
+        explicit ProtocolAwareStubSession(std::vector<ConnectionSessionResult> scriptedResults)
+            : scriptedResults_(std::move(scriptedResults))
+        {
+        }
+
+        ConnectionSessionResult handle(IClient &, const Compat::Clock &) override
+        {
+            ++handleCount_;
+            if (scriptedIndex_ >= scriptedResults_.size())
+            {
+                return ConnectionSessionResult::Continue;
+            }
+
+            return scriptedResults_[scriptedIndex_++];
+        }
+
+        IProtocolExecution *protocolExecution() override
+        {
+            return this;
+        }
+
+        const IProtocolExecution *protocolExecution() const override
+        {
+            return this;
+        }
+
+        void onError(PipelineError error) override
+        {
+            errors_.push_back(error.code());
+        }
+
+        void onDisconnect() override
+        {
+            ++disconnectCount_;
+        }
+
+        bool hasPendingResult() const override
+        {
+            return false;
+        }
+
+        RequestHandlingResult takeResult() override
+        {
+            return RequestHandlingResult();
+        }
+
+        bool isFinished() const override
+        {
+            return false;
+        }
+
+        std::size_t handleCount() const
+        {
+            return handleCount_;
+        }
+
+        std::size_t disconnectCount() const
+        {
+            return disconnectCount_;
+        }
+
+        const std::vector<PipelineErrorCode> &errors() const
+        {
+            return errors_;
+        }
+
+    private:
+        std::vector<ConnectionSessionResult> scriptedResults_;
+        std::size_t scriptedIndex_ = 0;
+        std::size_t handleCount_ = 0;
+        std::size_t disconnectCount_ = 0;
+        std::vector<PipelineErrorCode> errors_;
+    };
+
     PipelineHandlerPtr makePipelineHandler(ScenarioHandler *handler)
     {
         return PipelineHandlerPtr(
@@ -669,6 +746,36 @@ namespace
         TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Completed), static_cast<int>(result));
         TEST_ASSERT_EQUAL_UINT64(2, sessionHandleCount);
         TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::Completed), static_cast<int>(harness.pipeline().connectionState()));
+    }
+
+    void test_http_pipeline_notifies_protocol_aware_upgraded_sessions_without_rtti()
+    {
+        static constexpr const char *RequestText = "GET /ws HTTP/1.1\r\nHost: example.test\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n";
+
+        ProtocolAwareStubSession *sessionPtr = nullptr;
+        PipelineHarness harness(
+            {{RequestText, false}},
+            [&sessionPtr](ScenarioHandler &handler)
+            {
+                handler.setOnHeadersComplete([&sessionPtr](ScenarioHandler &scenario)
+                {
+                    auto ownedSession = std::make_unique<ProtocolAwareStubSession>(std::vector<ConnectionSessionResult>{ConnectionSessionResult::Continue});
+                    sessionPtr = ownedSession.get();
+                    scenario.emitUpgrade(std::move(ownedSession));
+                });
+            });
+
+        PipelineHandleClientResult result = harness.pipeline().handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
+        TEST_ASSERT_NOT_NULL(sessionPtr);
+        TEST_ASSERT_EQUAL_UINT64(1, sessionPtr->handleCount());
+        TEST_ASSERT_EQUAL_UINT64(0, sessionPtr->disconnectCount());
+
+        harness.client().disconnect();
+        result = harness.pipeline().handleClient();
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::ClientDisconnected), static_cast<int>(result));
+        TEST_ASSERT_EQUAL_UINT64(1, sessionPtr->disconnectCount());
+        TEST_ASSERT_TRUE(sessionPtr->errors().empty());
     }
 
     void test_http_pipeline_times_out_waiting_for_more_request_bytes()
@@ -1368,6 +1475,7 @@ namespace
         RUN_TEST(test_http_pipeline_propagates_parser_errors_as_unrecoverable);
         RUN_TEST(test_http_pipeline_treats_partial_writes_as_unrecoverable);
         RUN_TEST(test_http_pipeline_transitions_into_upgraded_session_and_completes_when_session_finishes);
+        RUN_TEST(test_http_pipeline_notifies_protocol_aware_upgraded_sessions_without_rtti);
         RUN_TEST(test_http_pipeline_times_out_waiting_for_more_request_bytes);
         RUN_TEST(test_http_pipeline_times_out_waiting_for_response_bytes_and_stops_client);
         RUN_TEST(test_http_pipeline_abort_helpers_drive_expected_state_transitions);

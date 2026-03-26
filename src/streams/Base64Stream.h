@@ -24,7 +24,7 @@ namespace HttpServerAdvanced
         bool decodeNextBlock();
 
     public:
-        Base64DecoderStream(std::unique_ptr<IByteSource> underlyingStream, ssize_t length, const char *dictionary);
+        Base64DecoderStream(std::unique_ptr<IByteSource> underlyingStream, std::ptrdiff_t length, const char *dictionary);
         Base64DecoderStream(const char *data, const char *dictionary);
         Base64DecoderStream(const uint8_t *data, size_t length, const char *dictionary);
 
@@ -63,7 +63,7 @@ namespace HttpServerAdvanced
         bool encodeNextBlock();
 
     public:
-        Base64EncoderStream(std::unique_ptr<IByteSource> underlyingStream, ssize_t length, const char *dictionary, bool emitPadding = true);
+        Base64EncoderStream(std::unique_ptr<IByteSource> underlyingStream, std::ptrdiff_t length, const char *dictionary, bool emitPadding = true);
 
         Base64EncoderStream(Base64EncoderStream &&) = default;
         Base64EncoderStream &operator=(Base64EncoderStream &&) = default;

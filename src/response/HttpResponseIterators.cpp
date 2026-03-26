@@ -21,7 +21,7 @@ namespace HttpServerAdvanced
         return std::string(buf);
     }
 
-    void EnsureRequiredHeaders(HttpHeaderCollection &headers, ssize_t body_size)
+    void EnsureRequiredHeaders(HttpHeaderCollection &headers, std::ptrdiff_t body_size)
     {
         // Date header (RFC 7231 section 7.1.1.2 - MUST be sent by origin servers)
         if (!headers.exists(HttpHeaderNames::Date))

@@ -24,14 +24,14 @@ namespace HttpServerAdvanced
 
     // Template base for handlers that buffer request bodies.
     // MaxBuffered defaults to the library-configured value `MAX_BUFFERED_BODY_LENGTH`.
-    template <ssize_t MaxBuffered = HttpServerAdvanced::MAX_BUFFERED_BODY_LENGTH>
+    template <std::ptrdiff_t MaxBuffered = HttpServerAdvanced::MAX_BUFFERED_BODY_LENGTH>
     class BufferingHttpHandlerBase : public IHttpHandler
     {
     private:
         std::vector<uint8_t> bodyBuffer_;
         size_t contentLength_{0};
 
-        static constexpr ssize_t configuredMax = MaxBuffered;
+        static constexpr std::ptrdiff_t configuredMax = MaxBuffered;
 
     public:
         virtual ~BufferingHttpHandlerBase() = default;
@@ -55,7 +55,7 @@ namespace HttpServerAdvanced
 
         void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length) override
         {
-            const ssize_t cfg = configuredMax;
+            const std::ptrdiff_t cfg = configuredMax;
             if (cfg == 0)
             {
                 return; // buffering disabled

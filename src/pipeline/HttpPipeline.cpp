@@ -497,7 +497,7 @@ namespace HttpServerAdvanced
 
         if (connectionState_ == ConnectionState::UpgradedSessionActive)
         {
-            return dynamic_cast<IProtocolExecution *>(activeSession_.get());
+            return activeSession_ ? activeSession_->protocolExecution() : nullptr;
         }
 
         return nullptr;
@@ -512,7 +512,7 @@ namespace HttpServerAdvanced
 
         if (connectionState_ == ConnectionState::UpgradedSessionActive)
         {
-            return dynamic_cast<const IProtocolExecution *>(activeSession_.get());
+            return activeSession_ ? activeSession_->protocolExecution() : nullptr;
         }
 
         return nullptr;

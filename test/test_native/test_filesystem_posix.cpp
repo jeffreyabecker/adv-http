@@ -6,6 +6,9 @@
 #include "../../src/core/HttpContentTypes.h"
 #include "../../src/staticfiles/DefaultFileLocator.h"
 
+#include <cstdio>
+#include <cstring>
+#include <fstream>
 #include <string_view>
 #include <vector>
 
@@ -24,26 +27,26 @@ namespace
     void test_posix_adapter_can_open_and_read_temp_file()
     {
         const char *tmpPath = "test_temp_file.txt";
-        FILE *fileHandle = fopen(tmpPath, "wb");
-        if (fileHandle == nullptr)
+        std::ofstream fileHandle(tmpPath, std::ios::binary | std::ios::trunc);
+        if (!fileHandle.is_open())
         {
             TEST_ASSERT_TRUE(false);
             return;
         }
 
         const char *content = "hello-posix";
-        fwrite(content, 1, strlen(content), fileHandle);
-        fclose(fileHandle);
+        fileHandle.write(content, static_cast<std::streamsize>(std::strlen(content)));
+        fileHandle.close();
 
         Compat::PosixFS fs;
         FileHandle file = fs.open(tmpPath, FileOpenMode::Read);
         TEST_ASSERT_NOT_NULL(file.get());
         TEST_ASSERT_TRUE(file->size().has_value());
-        TEST_ASSERT_EQUAL_UINT64(strlen(content), *file->size());
+        TEST_ASSERT_EQUAL_UINT64(std::strlen(content), *file->size());
         TEST_ASSERT_EQUAL_INT('h', ReadByte(*file));
 
         file->close();
-        TEST_ASSERT_EQUAL_INT(0, remove(tmpPath));
+        TEST_ASSERT_EQUAL_INT(0, std::remove(tmpPath));
     }
 
     void test_posix_adapter_supports_directory_handles()
@@ -61,7 +64,7 @@ namespace
     void test_posix_adapter_can_write_and_reopen_file()
     {
         const char *tmpPath = "test_temp_file_write.txt";
-        remove(tmpPath);
+        std::remove(tmpPath);
 
         Compat::PosixFS fs;
         FileHandle writable = fs.open(tmpPath, FileOpenMode::ReadWrite);
@@ -80,7 +83,7 @@ namespace
         TEST_ASSERT_EQUAL_INT('k', ReadByte(*readable));
         readable->close();
 
-        TEST_ASSERT_EQUAL_INT(0, remove(tmpPath));
+        TEST_ASSERT_EQUAL_INT(0, std::remove(tmpPath));
     }
 
     void test_content_types_accept_string_view_inputs()

@@ -13,7 +13,7 @@ namespace HttpServerAdvanced
   // Helper functions
   std::string getHeaderDateValue();
 
-  void EnsureRequiredHeaders(HttpHeaderCollection &headers, ssize_t body_size);
+  void EnsureRequiredHeaders(HttpHeaderCollection &headers, std::ptrdiff_t body_size);
 
   namespace ResponseStringConstants
   {
@@ -62,8 +62,8 @@ namespace HttpServerAdvanced
     {
       std::unique_ptr<IByteSource> bodySource = response_->getBody();
       const AvailableResult bodyAvailable = bodySource ? bodySource->available() : ExhaustedResult();
-      const ssize_t knownBodySize = !bodySource ? 0 :
-          (bodyAvailable.hasBytes() ? static_cast<ssize_t>(bodyAvailable.count) :
+        const std::ptrdiff_t knownBodySize = !bodySource ? 0 :
+          (bodyAvailable.hasBytes() ? static_cast<std::ptrdiff_t>(bodyAvailable.count) :
           (bodyAvailable.isExhausted() ? 0 : -1));
 
       EnsureRequiredHeaders(response_->headers(), knownBodySize);

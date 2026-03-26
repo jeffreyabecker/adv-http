@@ -45,7 +45,7 @@ namespace HttpServerAdvanced
         return true;
     }
 
-    Base64DecoderStream::Base64DecoderStream(std::unique_ptr<IByteSource> underlyingStream, ssize_t length, const char *dictionary)
+    Base64DecoderStream::Base64DecoderStream(std::unique_ptr<IByteSource> underlyingStream, std::ptrdiff_t length, const char *dictionary)
         : underlyingStream_(std::move(underlyingStream)), dictionary_(dictionary), totalLength_(length > 0 ? length : 0),
           decodedLength_(length > 0 ? (length / 4) * 3 : 0)
     {
@@ -192,7 +192,7 @@ namespace HttpServerAdvanced
         return true;
     }
 
-    Base64EncoderStream::Base64EncoderStream(std::unique_ptr<IByteSource> underlyingStream, ssize_t length, const char *dictionary, bool emitPadding)
+    Base64EncoderStream::Base64EncoderStream(std::unique_ptr<IByteSource> underlyingStream, std::ptrdiff_t length, const char *dictionary, bool emitPadding)
         : underlyingStream_(std::move(underlyingStream)), dictionary_(dictionary), emitPadding_(emitPadding), totalLength_(length > 0 ? length : 0),
           encodedLength_(length > 0 ? ((length + 2) / 3) * (emitPadding ? 4 : 3) : 0)
     {
