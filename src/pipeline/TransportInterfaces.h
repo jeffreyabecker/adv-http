@@ -23,7 +23,6 @@ namespace HttpServerAdvanced
         virtual std::uint16_t localPort() = 0;
         virtual void setTimeout(std::uint32_t timeoutMs) = 0;
         virtual std::uint32_t getTimeout() const = 0;
-
     };
 
     class IServer
@@ -40,5 +39,32 @@ namespace HttpServerAdvanced
         virtual std::uint16_t port() const = 0;
         virtual std::string_view localAddress() const = 0;
         virtual void end() = 0;
+    };
+
+    class IPeerSource : public IByteSource
+    {
+    public:
+        ~IPeerSource() override = default;
+        virtual std::string_view remoteAddress() const = 0;
+        virtual std::uint16_t remotePort() = 0;
+    };
+    class IPeerSink : public IByteSink
+    {
+    public:
+        ~IPeerSink() override = default;
+        virtual std::string_view remoteAddress() const = 0;
+        virtual std::uint16_t remotePort() = 0;
+    };
+    class IPeer
+    {
+    public:
+        virtual ~IPeer() = default;
+        virtual bool begin(uint16_t port) = 0;
+        virtual bool beginMulticast(std::string_view address, uint16_t port) = 0;
+        virtual void stop() = 0;
+        virtual std::unique_ptr<IPeerSink> sendTo(std::string_view address, uint16_t port) = 0;
+        virtual std::unique_ptr<IPeerSource> accept() = 0;
+        virtual std::string_view localAddress() const = 0;
+        virtual std::uint16_t localPort() = 0;
     };
 }
