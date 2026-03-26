@@ -34,6 +34,8 @@ namespace HttpServerAdvanced
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpContext &, JsonDocument &&)>;
         using Invocation = std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, JsonDocument &&)>;
 
+        static constexpr const char *DeserializationErrorItemKey = "Json::DeserializationError";
+
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 
         static IHttpHandler::Factory makeFactory(Invocation handler, ExtractArgsFromRequest extractor);
@@ -43,6 +45,18 @@ namespace HttpServerAdvanced
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler);
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler);
+
+        static const DeserializationError *deserializationError(const HttpContext &context)
+        {
+            const auto &items = context.items();
+            auto iterator = items.find(DeserializationErrorItemKey);
+            if (iterator == items.end())
+            {
+                return nullptr;
+            }
+
+            return std::any_cast<DeserializationError>(&iterator->second);
+        }
 
         static void restrict(HandlerMatcher &baseUri)
         {

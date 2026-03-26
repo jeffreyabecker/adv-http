@@ -16,9 +16,9 @@ namespace HttpServerAdvanced
     class StaticFilesBuilder
     {
     private:
-        StaticFileHandlerFactory fileHandlerFactory_;
         std::function<void(StaticFilesBuilder &)> setupFunc_;
         DefaultFileLocator fileLocator_;
+        StaticFileHandlerFactory fileHandlerFactory_;
 
         friend std::function<void(WebServerBuilder &)> &StaticFiles(IFileSystem &fs, std::function<void(StaticFilesBuilder &)> setupFunc);
 

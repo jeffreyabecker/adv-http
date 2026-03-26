@@ -97,10 +97,10 @@ std::string DefaultFileLocator::getLocalPath(const HttpContext &context) {
 }
 
 DefaultFileLocator::DefaultFileLocator(IFileSystem &fs)
-    : filesystem_(fs), pathPredicate_(createPathPredicate(DefaultIncludePrefix, DefaultExcludePrefix)), pathMapper_(createPathMapper(DefaultFSRoot)) {}
+    : pathPredicate_(createPathPredicate(DefaultIncludePrefix, DefaultExcludePrefix)), pathMapper_(createPathMapper(DefaultFSRoot)), filesystem_(fs) {}
 
 DefaultFileLocator::DefaultFileLocator(IFileSystem &fs, RequestPathPredicate predicate, RequestPathMapper mapper)
-    : filesystem_(fs), pathPredicate_(predicate), pathMapper_(mapper) {}
+    : pathPredicate_(predicate), pathMapper_(mapper), filesystem_(fs) {}
 
 void DefaultFileLocator::setPathPredicate(RequestPathPredicate predicate) { pathPredicate_ = predicate; }
 

@@ -631,13 +631,15 @@ namespace
         std::vector<RouteParameters> capturedParams;
         std::vector<std::string> capturedMessages;
         std::vector<int> capturedCounts;
+        std::vector<bool> sawParseErrors;
 
         auto handler = std::make_unique<JsonBodyHandler>(
-            [&capturedParams, &capturedMessages, &capturedCounts](HttpContext &, RouteParameters &&params, JsonDocument &&body) -> IHttpHandler::HandlerResult
+            [&capturedParams, &capturedMessages, &capturedCounts, &sawParseErrors](HttpContext &context, RouteParameters &&params, JsonDocument &&body) -> IHttpHandler::HandlerResult
             {
                 capturedParams.push_back(std::move(params));
                 capturedMessages.emplace_back(body["message"].template as<std::string>());
                 capturedCounts.push_back(body["count"].template as<int>());
+                sawParseErrors.push_back(Json::deserializationError(context) != nullptr);
                 return nullptr;
             },
             [](HttpContext &) -> RouteParameters
@@ -658,16 +660,20 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(2, capturedParams[0].size());
         TEST_ASSERT_EQUAL_STRING("json", capturedParams[0][0].c_str());
         TEST_ASSERT_EQUAL_STRING("route", capturedParams[0][1].c_str());
+        TEST_ASSERT_EQUAL_UINT64(1, sawParseErrors.size());
+        TEST_ASSERT_FALSE(sawParseErrors[0]);
     }
 
     void test_json_body_handler_passes_empty_documents_for_malformed_payloads()
     {
         std::vector<bool> messagePresent;
+        std::vector<bool> sawParseErrors;
 
         auto handler = std::make_unique<JsonBodyHandler>(
-            [&messagePresent](HttpContext &, RouteParameters &&, JsonDocument &&body) -> IHttpHandler::HandlerResult
+            [&messagePresent, &sawParseErrors](HttpContext &context, RouteParameters &&, JsonDocument &&body) -> IHttpHandler::HandlerResult
             {
                 messagePresent.push_back(!body["message"].isNull());
+                sawParseErrors.push_back(Json::deserializationError(context) != nullptr);
                 return nullptr;
             },
             [](HttpContext &) -> RouteParameters
@@ -684,6 +690,8 @@ namespace
 
         TEST_ASSERT_EQUAL_UINT64(1, messagePresent.size());
         TEST_ASSERT_FALSE(messagePresent[0]);
+        TEST_ASSERT_EQUAL_UINT64(1, sawParseErrors.size());
+        TEST_ASSERT_TRUE(sawParseErrors[0]);
     }
 
     void test_json_body_handler_ignores_empty_payloads()

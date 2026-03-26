@@ -21,21 +21,21 @@ namespace HttpServerAdvanced
         static bool defaultFilter(const HttpContext &context);
 
         HttpHandler(IHttpHandler::InvocationCallback invocation)
-            : invocation_(invocation), filter_(defaultFilter) {}
+            : filter_(defaultFilter), invocation_(invocation) {}
 
         HttpHandler(IHttpHandler::InvocationCallback invocation, std::function<bool(const HttpContext &)> filter)
-            : invocation_(invocation), filter_(filter) {}
+            : filter_(filter), invocation_(invocation) {}
 
 
         HttpHandler(std::unique_ptr<IHttpResponse> response, std::function<bool(const HttpContext &)> filter)
-            : invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpContext &) mutable -> IHttpHandler::HandlerResult
-                          { return HandlerResult::responseResult(std::move(*resp)); }),
-              filter_(filter) {}
+                        : filter_(filter),
+                            invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpContext &) mutable -> IHttpHandler::HandlerResult
+                                                    { return HandlerResult::responseResult(std::move(*resp)); }) {}
 
         HttpHandler(std::unique_ptr<IHttpResponse> response)
-            : invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpContext &) mutable -> IHttpHandler::HandlerResult
-                          { return HandlerResult::responseResult(std::move(*resp)); }),
-              filter_([](const HttpContext & req) { return true; }) {} // will be set via setPhaseFilter
+                        : filter_([](const HttpContext & req) { return true; }),
+                            invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpContext &) mutable -> IHttpHandler::HandlerResult
+                                                    { return HandlerResult::responseResult(std::move(*resp)); }) {} // will be set via setPhaseFilter
 
         template <typename... Args>
         static std::unique_ptr<IHttpHandler> create(Args &&...args)

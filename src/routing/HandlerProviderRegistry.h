@@ -48,7 +48,7 @@ namespace HttpServerAdvanced
 
         public:
             ResponseFilterApplicator(std::unique_ptr<IHttpHandler> innerHandler, IHttpResponse::ResponseFilter filter, IHttpHandler::InterceptorCallback interceptor = nullptr)
-                : innerHandler_(std::move(innerHandler)), filter_(filter), interceptor_(interceptor) {}
+                : filter_(filter), interceptor_(interceptor), innerHandler_(std::move(innerHandler)) {}
             virtual IHttpHandler::HandlerResult handleStep(HttpContext &context) override
             {
                 IHttpHandler::HandlerResult response = interceptor_ ? interceptor_(context, [this](HttpContext &context)

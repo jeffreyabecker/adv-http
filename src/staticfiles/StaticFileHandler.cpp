@@ -56,7 +56,7 @@ namespace HttpServerAdvanced
 
     // Public methods
     StaticFileHandlerFactory::StaticFileHandlerFactory(FileLocator &fileLocator, HttpServerAdvanced::HttpContentTypes &contentTypes)
-        : fileLocator_(&fileLocator), contentTypes_(contentTypes)
+        : contentTypes_(contentTypes), fileLocator_(&fileLocator)
     {
     }
 

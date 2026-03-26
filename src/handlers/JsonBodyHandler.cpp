@@ -5,9 +5,15 @@ namespace HttpServerAdvanced
 {
     IHttpHandler::HandlerResult JsonBodyHandler::handleBody(HttpContext &context, std::vector<uint8_t> &&body)
     {
+        context.items().erase(Json::DeserializationErrorItemKey);
+
         auto params = extractor_(context);
         JsonDocument doc;
         DeserializationError error = deserializeJson(doc, body);
+        if (error)
+        {
+            context.items()[Json::DeserializationErrorItemKey] = error;
+        }
 
         return handler_(context, std::move(params), std::move(doc));
     }

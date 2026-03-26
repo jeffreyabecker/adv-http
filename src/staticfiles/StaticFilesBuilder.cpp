@@ -3,9 +3,9 @@
 namespace HttpServerAdvanced
 {
     StaticFilesBuilder::StaticFilesBuilder(IFileSystem &fs, HttpServerAdvanced::HttpContentTypes &contentTypes, std::function<void(StaticFilesBuilder &)> setupFunc)
-        : setupFunc_(setupFunc),
-          fileLocator_(fs),
-          fileHandlerFactory_(fileLocator_, contentTypes)
+                : setupFunc_(setupFunc),
+                    fileLocator_(fs),
+                    fileHandlerFactory_(fileLocator_, contentTypes)
     {
     }
 
