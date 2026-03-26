@@ -41,20 +41,29 @@ namespace HttpServerAdvanced
         virtual void end() = 0;
     };
 
-    class IPeerSource : public IByteSource
+    class IPeerEndpoint
+    {
+    public:
+        virtual ~IPeerEndpoint() = default;
+
+        virtual std::string_view remoteAddress() const = 0;
+        virtual std::uint16_t remotePort() = 0;
+        virtual std::string_view localAddress() const = 0;
+        virtual std::uint16_t localPort() = 0;
+    };
+
+    class IPeerSource : public IByteSource, public IPeerEndpoint
     {
     public:
         ~IPeerSource() override = default;
-        virtual std::string_view remoteAddress() const = 0;
-        virtual std::uint16_t remotePort() = 0;
     };
-    class IPeerSink : public IByteSink
+
+    class IPeerSink : public IByteSink, public IPeerEndpoint
     {
     public:
         ~IPeerSink() override = default;
-        virtual std::string_view remoteAddress() const = 0;
-        virtual std::uint16_t remotePort() = 0;
     };
+
     class IPeer
     {
     public:

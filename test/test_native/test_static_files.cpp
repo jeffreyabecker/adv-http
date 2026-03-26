@@ -19,6 +19,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -28,6 +29,17 @@ using namespace HttpServerAdvanced;
 
 namespace
 {
+    std::string_view BasenameView(std::string_view path)
+    {
+        const std::size_t separator = path.find_last_of("\\/");
+        if (separator == std::string_view::npos)
+        {
+            return path;
+        }
+
+        return path.substr(separator + 1);
+    }
+
     class NoOpHandler : public IHttpHandler
     {
     public:
@@ -173,6 +185,11 @@ namespace
             return spec_.content.size();
         }
 
+        std::string_view name() const override
+        {
+            return BasenameView(spec_.path);
+        }
+
         std::string_view path() const override
         {
             return spec_.path;
@@ -194,13 +211,38 @@ namespace
     public:
         void add(FakeFileSpec spec)
         {
+            spec.path = normalizePath(spec.path);
             files_[spec.path] = std::move(spec);
+        }
+
+        bool exists(std::string_view path) const override
+        {
+            return files_.find(normalizePath(path)) != files_.end();
+        }
+
+        bool mkdir(std::string_view path) override
+        {
+            const std::string normalizedPath = normalizePath(path);
+            if (normalizedPath.empty())
+            {
+                return false;
+            }
+
+            auto existing = files_.find(normalizedPath);
+            if (existing != files_.end())
+            {
+                return existing->second.directory;
+            }
+
+            files_[normalizedPath] = FakeFileSpec { normalizedPath, true, {}, std::nullopt, std::nullopt };
+            return true;
         }
 
         FileHandle open(std::string_view path, FileOpenMode) override
         {
-            openLog_.emplace_back(path);
-            auto it = files_.find(std::string(path));
+            const std::string normalizedPath = normalizePath(path);
+            openLog_.push_back(normalizedPath);
+            auto it = files_.find(normalizedPath);
             if (it == files_.end())
             {
                 return nullptr;
@@ -209,12 +251,238 @@ namespace
             return std::make_unique<FakeFile>(it->second);
         }
 
+        bool remove(std::string_view path) override
+        {
+            const std::string normalizedPath = normalizePath(path);
+            auto it = files_.find(normalizedPath);
+            if (it == files_.end())
+            {
+                return false;
+            }
+
+            if (it->second.directory)
+            {
+                const std::string childPrefix = joinPath(normalizedPath, "");
+                for (const auto &entry : files_)
+                {
+                    if (entry.first.size() > childPrefix.size() && entry.first.compare(0, childPrefix.size(), childPrefix) == 0)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            files_.erase(it);
+            return true;
+        }
+
+        bool rename(std::string_view from, std::string_view to) override
+        {
+            const std::string normalizedFrom = normalizePath(from);
+            const std::string normalizedTo = normalizePath(to);
+            if (normalizedFrom.empty() || normalizedTo.empty() || normalizedFrom == normalizedTo)
+            {
+                return false;
+            }
+
+            auto source = files_.find(normalizedFrom);
+            if (source == files_.end() || files_.find(normalizedTo) != files_.end())
+            {
+                return false;
+            }
+
+            std::vector<std::pair<std::string, FakeFileSpec>> replacements;
+            const std::string fromPrefix = joinPath(normalizedFrom, "");
+            const std::string toPrefix = joinPath(normalizedTo, "");
+            for (const auto &entry : files_)
+            {
+                if (entry.first == normalizedFrom)
+                {
+                    FakeFileSpec moved = entry.second;
+                    moved.path = normalizedTo;
+                    replacements.emplace_back(normalizedTo, std::move(moved));
+                    continue;
+                }
+
+                if (source->second.directory && entry.first.size() > fromPrefix.size() && entry.first.compare(0, fromPrefix.size(), fromPrefix) == 0)
+                {
+                    FakeFileSpec moved = entry.second;
+                    const std::string suffix = entry.first.substr(fromPrefix.size());
+                    moved.path = toPrefix + suffix;
+                    replacements.emplace_back(moved.path, std::move(moved));
+                }
+            }
+
+            if (replacements.empty())
+            {
+                return false;
+            }
+
+            for (const auto &replacement : replacements)
+            {
+                if (replacement.first != normalizedTo && files_.find(replacement.first) != files_.end())
+                {
+                    return false;
+                }
+            }
+
+            if (source->second.directory)
+            {
+                for (auto it = files_.begin(); it != files_.end();)
+                {
+                    if (it->first == normalizedFrom || (it->first.size() > fromPrefix.size() && it->first.compare(0, fromPrefix.size(), fromPrefix) == 0))
+                    {
+                        it = files_.erase(it);
+                        continue;
+                    }
+
+                    ++it;
+                }
+            }
+            else
+            {
+                files_.erase(source);
+            }
+
+            for (auto &replacement : replacements)
+            {
+                files_[replacement.first] = std::move(replacement.second);
+            }
+
+            return true;
+        }
+
+        bool list(std::string_view directoryPath, const DirectoryEntryCallback &callback, bool recursive = false) override
+        {
+            if (!callback)
+            {
+                return false;
+            }
+
+            const std::string normalizedDirectory = normalizeDirectoryPath(directoryPath);
+            auto directoryIt = files_.find(normalizedDirectory);
+            if (directoryIt == files_.end() || !directoryIt->second.directory)
+            {
+                return false;
+            }
+
+            std::set<std::string, std::less<>> emittedPaths;
+            for (const auto &entry : files_)
+            {
+                std::string childName;
+                std::string childPath;
+                bool isDirectory = false;
+                if (!tryBuildDirectoryEntry(normalizedDirectory, entry.second, recursive, childName, childPath, isDirectory))
+                {
+                    continue;
+                }
+
+                if (!emittedPaths.insert(childPath).second)
+                {
+                    continue;
+                }
+
+                const DirectoryEntry directoryEntry { childName, childPath, isDirectory };
+                if (!callback(directoryEntry))
+                {
+                    return true;
+                }
+            }
+
+            return true;
+        }
+
         const std::vector<std::string> &openLog() const
         {
             return openLog_;
         }
 
     private:
+        static bool isPathSeparator(char value)
+        {
+            return value == '/' || value == '\\';
+        }
+
+        static std::string normalizePath(std::string_view path)
+        {
+            std::string normalized(path);
+            while (normalized.size() > 1 && isPathSeparator(normalized.back()))
+            {
+                normalized.pop_back();
+            }
+
+            return normalized;
+        }
+
+        static std::string normalizeDirectoryPath(std::string_view path)
+        {
+            return normalizePath(path);
+        }
+
+        static std::string joinPath(std::string_view base, std::string_view name)
+        {
+            if (base.empty())
+            {
+                return std::string(name);
+            }
+
+            std::string joined(base);
+            if (!isPathSeparator(joined.back()))
+            {
+                joined.push_back('/');
+            }
+
+            joined.append(name.data(), name.size());
+            return joined;
+        }
+
+        static bool tryBuildDirectoryEntry(std::string_view directoryPath,
+                                           const FakeFileSpec &spec,
+                                           bool recursive,
+                                           std::string &childName,
+                                           std::string &childPath,
+                                           bool &isDirectory)
+        {
+            if (spec.path == directoryPath || spec.path.size() <= directoryPath.size())
+            {
+                return false;
+            }
+
+            if (spec.path.compare(0, directoryPath.size(), directoryPath) != 0)
+            {
+                return false;
+            }
+
+            const char separator = spec.path[directoryPath.size()];
+            if (!isPathSeparator(separator))
+            {
+                return false;
+            }
+
+            const std::size_t childStart = directoryPath.size() + 1;
+            const std::size_t nextSeparator = spec.path.find_first_of("/\\", childStart);
+            if (!recursive && nextSeparator != std::string::npos)
+            {
+                childName = spec.path.substr(childStart, nextSeparator - childStart);
+                childPath = joinPath(directoryPath, childName);
+                isDirectory = true;
+                return true;
+            }
+
+            if (recursive)
+            {
+                childName = spec.path.substr(childStart);
+                childPath = spec.path;
+                isDirectory = spec.directory;
+                return true;
+            }
+
+            childName = spec.path.substr(childStart);
+            childPath = spec.path;
+            isDirectory = spec.directory;
+            return true;
+        }
+
         std::map<std::string, FakeFileSpec, std::less<>> files_;
         std::vector<std::string> openLog_;
     };

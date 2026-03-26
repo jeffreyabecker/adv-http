@@ -3,6 +3,8 @@
 #include "IFileSystem.h"
 
 #include <algorithm>
+#include <cerrno>
+#include <cstdio>
 #include <fstream>
 #include <limits>
 #include <string>
@@ -17,6 +19,7 @@
 #endif
 #include <windows.h>
 #else
+#include <dirent.h>
 #include <sys/stat.h>
 #endif
 
@@ -101,6 +104,151 @@ namespace HttpServerAdvanced
 #endif
 
                 return metadata;
+            }
+
+            inline bool IsPathSeparator(char value)
+            {
+                return value == '/' || value == '\\';
+            }
+
+            inline bool IsDotDirectoryEntry(std::string_view name)
+            {
+                return name == "." || name == "..";
+            }
+
+            inline std::string_view BasenameView(std::string_view path)
+            {
+                const std::size_t separator = path.find_last_of("\\/");
+                if (separator == std::string_view::npos)
+                {
+                    return path;
+                }
+
+                return path.substr(separator + 1);
+            }
+
+            inline std::string JoinPath(std::string_view base, std::string_view name)
+            {
+                if (base.empty())
+                {
+                    return std::string(name);
+                }
+
+                std::string joined(base);
+                if (!IsPathSeparator(joined.back()))
+                {
+#if defined(_WIN32)
+                    joined.push_back('\\');
+#else
+                    joined.push_back('/');
+#endif
+                }
+
+                joined.append(name.data(), name.size());
+                return joined;
+            }
+
+            inline bool EnumerateDirectory(std::string_view directoryPath, const DirectoryEntryCallback &callback, bool recursive)
+            {
+                if (!callback)
+                {
+                    return false;
+                }
+
+                const FileMetadata metadata = ReadMetadata(directoryPath);
+                if (!metadata.exists || !metadata.directory)
+                {
+                    return false;
+                }
+
+                const std::string ownedDirectory(directoryPath);
+
+#if defined(_WIN32)
+                const std::string searchPattern = JoinPath(ownedDirectory, "*");
+                WIN32_FIND_DATAA findData;
+                HANDLE handle = FindFirstFileA(searchPattern.c_str(), &findData);
+                if (handle == INVALID_HANDLE_VALUE)
+                {
+                    return GetLastError() == ERROR_FILE_NOT_FOUND;
+                }
+
+                DWORD lastError = ERROR_SUCCESS;
+                do
+                {
+                    const std::string_view name(findData.cFileName);
+                    if (IsDotDirectoryEntry(name))
+                    {
+                        continue;
+                    }
+
+                    const bool isDirectory = (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+                    const std::string entryPath = JoinPath(ownedDirectory, name);
+                    const DirectoryEntry entry { name, entryPath, isDirectory };
+                    if (!callback(entry))
+                    {
+                        FindClose(handle);
+                        return true;
+                    }
+
+                    if (recursive && isDirectory && !EnumerateDirectory(entryPath, callback, true))
+                    {
+                        FindClose(handle);
+                        return false;
+                    }
+                } while (FindNextFileA(handle, &findData) != 0);
+
+                lastError = GetLastError();
+                FindClose(handle);
+                return lastError == ERROR_NO_MORE_FILES;
+#else
+                DIR *directory = opendir(ownedDirectory.c_str());
+                if (directory == nullptr)
+                {
+                    return false;
+                }
+
+                while (dirent *current = readdir(directory))
+                {
+                    const std::string_view name(current->d_name);
+                    if (IsDotDirectoryEntry(name))
+                    {
+                        continue;
+                    }
+
+                    const std::string entryPath = JoinPath(ownedDirectory, name);
+                    bool isDirectory = false;
+#if defined(DT_DIR) && defined(DT_UNKNOWN)
+                    if (current->d_type == DT_DIR)
+                    {
+                        isDirectory = true;
+                    }
+                    else if (current->d_type == DT_UNKNOWN)
+                    {
+                        const FileMetadata entryMetadata = ReadMetadata(entryPath);
+                        isDirectory = entryMetadata.exists && entryMetadata.directory;
+                    }
+#else
+                    const FileMetadata entryMetadata = ReadMetadata(entryPath);
+                    isDirectory = entryMetadata.exists && entryMetadata.directory;
+#endif
+
+                    const DirectoryEntry entry { name, entryPath, isDirectory };
+                    if (!callback(entry))
+                    {
+                        closedir(directory);
+                        return true;
+                    }
+
+                    if (recursive && isDirectory && !EnumerateDirectory(entryPath, callback, true))
+                    {
+                        closedir(directory);
+                        return false;
+                    }
+                }
+
+                closedir(directory);
+                return true;
+#endif
             }
         }
 
@@ -273,6 +421,11 @@ namespace HttpServerAdvanced
                 return size_;
             }
 
+            std::string_view name() const override
+            {
+                return detail::BasenameView(path_);
+            }
+
             std::string_view path() const override
             {
                 return path_;
@@ -345,6 +498,53 @@ namespace HttpServerAdvanced
         class PosixFS : public IFileSystem
         {
         public:
+            bool exists(std::string_view path) const override
+            {
+                if (path.empty())
+                {
+                    return false;
+                }
+
+                return detail::ReadMetadata(path).exists;
+            }
+
+            bool mkdir(std::string_view path) override
+            {
+                if (path.empty())
+                {
+                    return false;
+                }
+
+                const std::string ownedPath(path);
+#if defined(_WIN32)
+                if (CreateDirectoryA(ownedPath.c_str(), nullptr) != 0)
+                {
+                    return true;
+                }
+
+                if (GetLastError() == ERROR_ALREADY_EXISTS)
+                {
+                    const detail::FileMetadata metadata = detail::ReadMetadata(ownedPath);
+                    return metadata.exists && metadata.directory;
+                }
+
+                return false;
+#else
+                if (::mkdir(ownedPath.c_str(), 0777) == 0)
+                {
+                    return true;
+                }
+
+                if (errno == EEXIST)
+                {
+                    const detail::FileMetadata metadata = detail::ReadMetadata(ownedPath);
+                    return metadata.exists && metadata.directory;
+                }
+
+                return false;
+#endif
+            }
+
             FileHandle open(std::string_view path, FileOpenMode mode) override
             {
                 if (path.empty())
@@ -380,6 +580,50 @@ namespace HttpServerAdvanced
                     refreshedMetadata.size,
                     refreshedMetadata.lastWrite,
                     mode);
+            }
+
+            bool list(std::string_view directoryPath, const DirectoryEntryCallback &callback, bool recursive = false) override
+            {
+                return detail::EnumerateDirectory(directoryPath, callback, recursive);
+            }
+
+            bool remove(std::string_view path) override
+            {
+                if (path.empty())
+                {
+                    return false;
+                }
+
+                const std::string ownedPath(path);
+                const detail::FileMetadata metadata = detail::ReadMetadata(ownedPath);
+                if (!metadata.exists)
+                {
+                    return false;
+                }
+
+#if defined(_WIN32)
+                return metadata.directory
+                           ? (RemoveDirectoryA(ownedPath.c_str()) != 0)
+                           : (DeleteFileA(ownedPath.c_str()) != 0);
+#else
+                return ::remove(ownedPath.c_str()) == 0;
+#endif
+            }
+
+            bool rename(std::string_view from, std::string_view to) override
+            {
+                if (from.empty() || to.empty())
+                {
+                    return false;
+                }
+
+                const std::string ownedFrom(from);
+                const std::string ownedTo(to);
+#if defined(_WIN32)
+                return MoveFileA(ownedFrom.c_str(), ownedTo.c_str()) != 0;
+#else
+                return ::rename(ownedFrom.c_str(), ownedTo.c_str()) == 0;
+#endif
             }
 
         private:
