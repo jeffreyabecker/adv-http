@@ -38,8 +38,8 @@ namespace HttpServerAdvanced
         HandlerBuilder(std::function<void(IHttpHandler::Predicate, IHttpHandler::Factory)> addHandler, HandlerMatcher matcher,
                        typename THandler::InvocationWithoutParams invocationCallback)
             : addHandler_(std::move(addHandler)),
-              matcher_(std::move(matcher)),
               predicate_(nullptr),
+              matcher_(std::move(matcher)),
               invocationCallback_(THandler::curryWithoutParams(invocationCallback)),
               extractor_(EmptyParameters)
         {
@@ -49,8 +49,8 @@ namespace HttpServerAdvanced
                        typename THandler::Invocation invocationCallback,
                        ExtractArgsFromRequest extractor)
             : addHandler_(std::move(addHandler)),
-              matcher_(std::move(matcher)),
               predicate_(nullptr),
+              matcher_(std::move(matcher)),
               invocationCallback_(invocationCallback),
               extractor_(extractor)
         {
