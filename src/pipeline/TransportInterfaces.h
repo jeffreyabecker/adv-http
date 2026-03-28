@@ -41,39 +41,38 @@ namespace HttpServerAdvanced
         virtual void end() = 0;
     };
 
-    class IPeerEndpoint
-    {
-    public:
-        virtual ~IPeerEndpoint() = default;
-
-        virtual std::string_view remoteAddress() const = 0;
-        virtual std::uint16_t remotePort() = 0;
-        virtual std::string_view localAddress() const = 0;
-        virtual std::uint16_t localPort() = 0;
-    };
-
-    class IPeerSource : public IByteSource, public IPeerEndpoint
-    {
-    public:
-        ~IPeerSource() override = default;
-    };
-
-    class IPeerSink : public IByteSink, public IPeerEndpoint
-    {
-    public:
-        ~IPeerSink() override = default;
-    };
-
     class IPeer
     {
     public:
         virtual ~IPeer() = default;
-        virtual bool begin(uint16_t port) = 0;
-        virtual bool beginMulticast(std::string_view address, uint16_t port) = 0;
+
+        virtual bool begin(std::uint16_t port) = 0;
+        virtual bool beginMulticast(std::string_view multicastAddress, std::uint16_t port) = 0;
+
         virtual void stop() = 0;
-        virtual std::unique_ptr<IPeerSink> sendTo(std::string_view address, uint16_t port) = 0;
-        virtual std::unique_ptr<IPeerSource> accept() = 0;
-        virtual std::string_view localAddress() const = 0;
-        virtual std::uint16_t localPort() = 0;
+
+        virtual bool beginPacket(std::string_view address, std::uint16_t port) = 0;
+        virtual bool endPacket() = 0;
+
+        virtual std::size_t write(HttpServerAdvanced::span<const std::uint8_t> buffer) = 0;
+
+        virtual AvailableResult parsePacket() = 0;
+        virtual AvailableResult available() = 0;
+        virtual std::size_t read(HttpServerAdvanced::span<std::uint8_t> buffer) = 0;
+        virtual std::size_t peek(HttpServerAdvanced::span<std::uint8_t> buffer) = 0;
+        virtual void flush() = 0;
+
+        virtual std::string_view remoteAddress() const = 0;
+        virtual std::uint16_t remotePort() const = 0;
+    };
+
+    class ITransportFactory
+    {
+    public:
+        virtual ~ITransportFactory() = default;
+
+        virtual std::unique_ptr<IServer> createServer(std::uint16_t port) = 0;
+        virtual std::unique_ptr<IClient> createClient(std::string_view address, std::uint16_t port) = 0;
+        virtual std::unique_ptr<IPeer> createPeer() = 0;
     };
 }
