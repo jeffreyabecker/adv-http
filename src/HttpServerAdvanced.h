@@ -5,14 +5,15 @@
 #include "compat/Compat.h"
 #include "core/Defines.h"
 #include "core/HttpContentTypes.h"
+#include "core/HttpContext.h"
+#include "core/HttpContextPhase.h"
 #include "core/HttpHeader.h"
 #include "core/HttpHeaderCollection.h"
 #include "core/HttpMethod.h"
-#include "core/HttpContext.h"
-#include "core/HttpContextPhase.h"
 #include "core/HttpStatus.h"
 #include "core/HttpTimeouts.h"
 #include "core/IHttpContextHandlerFactory.h"
+
 
 // HTTP Handlers
 #include "handlers/BufferedStringBodyHandler.h"
@@ -41,22 +42,26 @@
 #include "response/StringResponse.h"
 
 // Request routing
+#include "routing/BasicAuthentication.h"
+#include "routing/CrossOriginRequestSharing.h"
 #include "routing/HandlerBuilder.h"
 #include "routing/HandlerMatcher.h"
 #include "routing/HandlerProviderRegistry.h"
 #include "routing/ProviderRegistryBuilder.h"
-#include "routing/BasicAuthentication.h"
-#include "routing/CrossOriginRequestSharing.h"
+
 
 // HTTP pipeline
 
 #include "llhttp/include/llhttp.h"
+#include "pipeline/ArduinoWiFiTransport.h"
 #include "pipeline/HttpPipeline.h"
 #include "pipeline/IPipelineHandler.h"
+#include "pipeline/NativeSocketTransport.h"
 #include "pipeline/NetClient.h"
 #include "pipeline/PipelineError.h"
 #include "pipeline/PipelineHandleClientResult.h"
 #include "pipeline/RequestParser.h"
+
 
 // Static file serving
 #include "staticfiles/AggregateFileLocator.h"
@@ -66,11 +71,12 @@
 #include "staticfiles/StaticFilesBuilder.h"
 
 // Stream utilities
-#include "streams/ByteStream.h"
 #include "streams/Base64Stream.h"
+#include "streams/ByteStream.h"
 #include "streams/Iterators.h"
 #include "streams/Streams.h"
 #include "streams/UriStream.h"
+
 
 // Utility functions
 #include "util/HttpUtility.h"
@@ -100,10 +106,10 @@ using Upload = HttpServerAdvanced::Multipart;
 
 using HttpServerAdvanced::FormResponse;
 using HttpServerAdvanced::HttpContentTypes;
+using HttpServerAdvanced::HttpContext;
 using HttpServerAdvanced::HttpHandler;
 using HttpServerAdvanced::HttpHeader;
 using HttpServerAdvanced::HttpMethod;
-using HttpServerAdvanced::HttpContext;
 using HttpServerAdvanced::HttpResponse;
 using HttpServerAdvanced::HttpStatus;
 using HttpServerAdvanced::IHttpResponse;
@@ -125,4 +131,5 @@ using HttpServerAdvanced::MultipartFormDataBuffer;
 using HttpServerAdvanced::MultipartStatus;
 using HttpServerAdvanced::RawBodyBuffer;
 using HttpServerAdvanced::WebServerConfig;
-using WebServer = HttpServerAdvanced::FriendlyWebServer<HttpServerAdvanced::HttpServerBase>;
+using WebServer =
+    HttpServerAdvanced::FriendlyWebServer<HttpServerAdvanced::HttpServerBase>;
