@@ -48,14 +48,16 @@ public:
   bool connected() override { return client_.connected(); }
 
   std::string_view remoteAddress() const override {
-    remoteAddress_ = ipAddressToStdString(client_.remoteIP());
+    auto &client = const_cast<WiFiClient &>(client_);
+    remoteAddress_ = ipAddressToStdString(client.remoteIP());
     return remoteAddress_;
   }
 
   std::uint16_t remotePort() override { return client_.remotePort(); }
 
   std::string_view localAddress() const override {
-    localAddress_ = ipAddressToStdString(client_.localIP());
+    auto &client = const_cast<WiFiClient &>(client_);
+    localAddress_ = ipAddressToStdString(client.localIP());
     return localAddress_;
   }
 
@@ -212,11 +214,15 @@ public:
   void flush() override { udp_.flush(); }
 
   std::string_view remoteAddress() const override {
-    remoteAddress_ = ipAddressToStdString(udp_.remoteIP());
+    auto &udp = const_cast<WiFiUDP &>(udp_);
+    remoteAddress_ = ipAddressToStdString(udp.remoteIP());
     return remoteAddress_;
   }
 
-  std::uint16_t remotePort() const override { return udp_.remotePort(); }
+  std::uint16_t remotePort() const override {
+    auto &udp = const_cast<WiFiUDP &>(udp_);
+    return udp.remotePort();
+  }
 
 private:
   mutable std::string remoteAddress_{};
