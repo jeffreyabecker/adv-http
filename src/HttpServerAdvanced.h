@@ -2,9 +2,9 @@
 // #pragma once
 
 // Core HTTP types and utilities
-#include "compat/Compat.h"
-#include "compat/NativeFileAdapter.h"
 #include "compat/ByteStream.h"
+#include "compat/Compat.h"
+#include "compat/platform/NativeFileAdapter.h"
 #include "core/Defines.h"
 #include "core/HttpContentTypes.h"
 #include "core/HttpContext.h"
@@ -15,7 +15,6 @@
 #include "core/HttpStatus.h"
 #include "core/HttpTimeouts.h"
 #include "core/IHttpContextHandlerFactory.h"
-
 
 // HTTP Handlers
 #include "handlers/BufferedStringBodyHandler.h"
@@ -51,19 +50,17 @@
 #include "routing/HandlerProviderRegistry.h"
 #include "routing/ProviderRegistryBuilder.h"
 
-
 // HTTP pipeline
 
+#include "compat/platform/NativeSocketTransport.h"
+#include "compat/platform/arduino/ArduinoWiFiTransport.h"
 #include "llhttp/include/llhttp.h"
-#include "compat/ArduinoWiFiTransport.h"
 #include "pipeline/HttpPipeline.h"
 #include "pipeline/IPipelineHandler.h"
-#include "compat/NativeSocketTransport.h"
 #include "pipeline/NetClient.h"
 #include "pipeline/PipelineError.h"
 #include "pipeline/PipelineHandleClientResult.h"
 #include "pipeline/RequestParser.h"
-
 
 // Static file serving
 #include "staticfiles/AggregateFileLocator.h"
@@ -78,7 +75,6 @@
 #include "streams/Iterators.h"
 #include "streams/Streams.h"
 #include "streams/UriStream.h"
-
 
 // Utility functions
 #include "util/HttpUtility.h"
