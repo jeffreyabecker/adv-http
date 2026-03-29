@@ -3,7 +3,7 @@
 #include <unity.h>
 
 #include "../../src/compat/Availability.h"
-#include "../../src/streams/ByteStream.h"
+#include "../../src/compat/ByteStream.h"
 
 using namespace HttpServerAdvanced;
 

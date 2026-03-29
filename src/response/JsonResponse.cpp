@@ -3,7 +3,7 @@
 #include "JsonResponse.h"
 #include "../core/HttpHeaderCollection.h"
 #include "HttpResponse.h"
-#include "../streams/ByteStream.h"
+#include "../compat/ByteStream.h"
 #include "../core/HttpContentTypes.h"
 
 namespace HttpServerAdvanced

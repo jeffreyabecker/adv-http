@@ -3,6 +3,8 @@
 
 // Core HTTP types and utilities
 #include "compat/Compat.h"
+#include "compat/NativeFileAdapter.h"
+#include "compat/ByteStream.h"
 #include "core/Defines.h"
 #include "core/HttpContentTypes.h"
 #include "core/HttpContext.h"
@@ -53,10 +55,10 @@
 // HTTP pipeline
 
 #include "llhttp/include/llhttp.h"
-#include "pipeline/ArduinoWiFiTransport.h"
+#include "compat/ArduinoWiFiTransport.h"
 #include "pipeline/HttpPipeline.h"
 #include "pipeline/IPipelineHandler.h"
-#include "pipeline/NativeSocketTransport.h"
+#include "compat/NativeSocketTransport.h"
 #include "pipeline/NetClient.h"
 #include "pipeline/PipelineError.h"
 #include "pipeline/PipelineHandleClientResult.h"
@@ -72,7 +74,7 @@
 
 // Stream utilities
 #include "streams/Base64Stream.h"
-#include "streams/ByteStream.h"
+//
 #include "streams/Iterators.h"
 #include "streams/Streams.h"
 #include "streams/UriStream.h"

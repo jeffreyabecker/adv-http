@@ -1,6 +1,6 @@
 #pragma once
 #include <initializer_list>
-#include "../streams/ByteStream.h"
+#include "../compat/ByteStream.h"
 #include "../core/HttpStatus.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"

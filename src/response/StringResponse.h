@@ -8,7 +8,7 @@
 #include "../core/HttpStatus.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
-#include "../streams/ByteStream.h"
+#include "../compat/ByteStream.h"
 #include "HttpResponse.h"
 #include "../core/HttpContentTypes.h"
 

@@ -4,7 +4,7 @@
 #include <cstring>
 #include <string_view>
 
-#include "../streams/ByteStream.h"
+#include "../compat/ByteStream.h"
 #include "../streams/Base64Stream.h"
 #include "../streams/UriStream.h"
 

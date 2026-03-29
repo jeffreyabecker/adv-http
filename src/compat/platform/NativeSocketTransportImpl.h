@@ -1,12 +1,17 @@
-#include "NativeSocketTransport.h"
+#pragma once
 
-#if !defined(ARDUINO)
+#include "../TransportInterfaces.h"
 
-#include "../core/Defines.h"
+#include "../../core/Defines.h"
+
+#if defined(_WIN32)
+#include "windows/NativeSocketTransportWindows.h"
+#else
+#include "posix/NativeSocketTransportUnix.h"
+#endif
 
 #include <algorithm>
 #include <array>
-#include <cerrno>
 #include <cstring>
 #include <limits>
 #include <string>
@@ -14,155 +19,31 @@
 #include <utility>
 #include <vector>
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/ioctl.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#endif
-
 namespace HttpServerAdvanced {
-namespace {
-#ifdef _WIN32
-using SocketHandle = SOCKET;
-constexpr SocketHandle InvalidSocketHandle = INVALID_SOCKET;
-#else
-using SocketHandle = int;
-constexpr SocketHandle InvalidSocketHandle = -1;
-#endif
+namespace Compat {
+namespace platform {
 
-class SocketRuntime {
-public:
-  SocketRuntime() {
-#ifdef _WIN32
-    WSADATA wsaData{};
-    initialized_ = WSAStartup(MAKEWORD(2, 2), &wsaData) == 0;
-#else
-    initialized_ = true;
-#endif
-  }
-
-  ~SocketRuntime() {
-#ifdef _WIN32
-    if (initialized_) {
-      WSACleanup();
-    }
-#endif
-  }
-
-  bool initialized() const { return initialized_; }
-
-private:
-  bool initialized_ = false;
-};
-
-SocketRuntime &socketRuntime() {
+inline SocketRuntime &socketRuntime() {
   static SocketRuntime runtime;
   return runtime;
 }
 
-int lastSocketError() {
-#ifdef _WIN32
-  return WSAGetLastError();
-#else
-  return errno;
-#endif
-}
-
-bool isWouldBlockError(int errorCode) {
-#ifdef _WIN32
-  return errorCode == WSAEWOULDBLOCK || errorCode == WSAETIMEDOUT;
-#else
-  return errorCode == EAGAIN || errorCode == EWOULDBLOCK ||
-         errorCode == ETIMEDOUT;
-#endif
-}
-
-bool isInterruptedError(int errorCode) {
-#ifdef _WIN32
-  return errorCode == WSAEINTR;
-#else
-  return errorCode == EINTR;
-#endif
-}
-
-int closeSocket(SocketHandle handle) {
-#ifdef _WIN32
-  return closesocket(handle);
-#else
-  return close(handle);
-#endif
-}
-
-bool setNonBlocking(SocketHandle handle, bool enabled) {
-#ifdef _WIN32
-  u_long mode = enabled ? 1UL : 0UL;
-  return ioctlsocket(handle, FIONBIO, &mode) == 0;
-#else
-  const int flags = fcntl(handle, F_GETFL, 0);
-  if (flags < 0) {
-    return false;
-  }
-
-  const int updatedFlags =
-      enabled ? (flags | O_NONBLOCK) : (flags & ~O_NONBLOCK);
-  return fcntl(handle, F_SETFL, updatedFlags) == 0;
-#endif
-}
-
-bool setSocketTimeout(SocketHandle handle, std::uint32_t timeoutMs) {
-#ifdef _WIN32
-  const DWORD timeout = static_cast<DWORD>(timeoutMs);
-  return setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO,
-                    reinterpret_cast<const char *>(&timeout),
-                    sizeof(timeout)) == 0 &&
-         setsockopt(handle, SOL_SOCKET, SO_SNDTIMEO,
-                    reinterpret_cast<const char *>(&timeout),
-                    sizeof(timeout)) == 0;
-#else
-  timeval timeout{};
-  timeout.tv_sec = static_cast<long>(timeoutMs / 1000U);
-  timeout.tv_usec = static_cast<long>((timeoutMs % 1000U) * 1000U);
-  return setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, &timeout,
-                    sizeof(timeout)) == 0 &&
-         setsockopt(handle, SOL_SOCKET, SO_SNDTIMEO, &timeout,
-                    sizeof(timeout)) == 0;
-#endif
-}
-
-AvailableResult queryPendingBytes(SocketHandle handle,
-                                  bool assumeConnectedWhenNoBytes = true) {
-#ifdef _WIN32
-  u_long pendingBytes = 0;
-#else
-  int pendingBytes = 0;
-#endif
-  if (
-#ifdef _WIN32
-      ioctlsocket(handle, FIONREAD, &pendingBytes)
-#else
-      ioctl(handle, FIONREAD, &pendingBytes)
-#endif
-      != 0) {
+inline AvailableResult queryPendingBytes(SocketHandle handle,
+                                         bool assumeConnectedWhenNoBytes = true) {
+  std::size_t pendingBytes = 0;
+  if (!queryPendingByteCount(handle, pendingBytes)) {
     return ErrorResult(lastSocketError());
   }
 
   if (pendingBytes > 0) {
-    return AvailableBytes(static_cast<std::size_t>(pendingBytes));
+    return AvailableBytes(pendingBytes);
   }
 
   return assumeConnectedWhenNoBytes ? TemporarilyUnavailableResult()
                                     : ExhaustedResult();
 }
 
-bool socketHasExceptionalState(SocketHandle handle) {
+inline bool socketHasExceptionalState(SocketHandle handle) {
   fd_set exceptSet;
   FD_ZERO(&exceptSet);
   FD_SET(handle, &exceptSet);
@@ -172,7 +53,7 @@ bool socketHasExceptionalState(SocketHandle handle) {
   return ready > 0 && FD_ISSET(handle, &exceptSet);
 }
 
-bool isSocketConnected(SocketHandle handle) {
+inline bool isSocketConnected(SocketHandle handle) {
   if (handle == InvalidSocketHandle) {
     return false;
   }
@@ -212,7 +93,7 @@ bool isSocketConnected(SocketHandle handle) {
   return isWouldBlockError(lastSocketError());
 }
 
-std::string socketAddressToString(const sockaddr_storage &address) {
+inline std::string socketAddressToString(const sockaddr_storage &address) {
   char buffer[INET6_ADDRSTRLEN] = {};
   const void *rawAddress = nullptr;
 
@@ -224,13 +105,12 @@ std::string socketAddressToString(const sockaddr_storage &address) {
     return {};
   }
 
-  return inet_ntop(address.ss_family, rawAddress, buffer, sizeof(buffer)) !=
-                 nullptr
+  return inet_ntop(address.ss_family, rawAddress, buffer, sizeof(buffer)) != nullptr
              ? std::string(buffer)
              : std::string();
 }
 
-std::uint16_t socketAddressToPort(const sockaddr_storage &address) {
+inline std::uint16_t socketAddressToPort(const sockaddr_storage &address) {
   if (address.ss_family == AF_INET) {
     return ntohs(reinterpret_cast<const sockaddr_in &>(address).sin_port);
   }
@@ -242,9 +122,9 @@ std::uint16_t socketAddressToPort(const sockaddr_storage &address) {
   return 0;
 }
 
-bool resolveSocketAddress(std::string_view host, std::uint16_t port,
-                          int socketType, sockaddr_storage &resolvedAddress,
-                          socklen_t &resolvedLength, bool passive = false) {
+inline bool resolveSocketAddress(std::string_view host, std::uint16_t port,
+                                 int socketType, sockaddr_storage &resolvedAddress,
+                                 socklen_t &resolvedLength, bool passive = false) {
   if (!socketRuntime().initialized()) {
     return false;
   }
@@ -366,12 +246,9 @@ public:
       return 0;
     }
 
-    const int bytesRead =
-        recv(socket_.get(), reinterpret_cast<char *>(buffer.data()),
-             static_cast<int>((std::min)(buffer.size(),
-                                         static_cast<std::size_t>(
-                                             std::numeric_limits<int>::max()))),
-             0);
+    const int bytesRead = recv(socket_.get(), reinterpret_cast<char *>(buffer.data()),
+                               static_cast<int>((std::min)(buffer.size(), static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+                               0);
     if (bytesRead > 0) {
       return static_cast<std::size_t>(bytesRead);
     }
@@ -393,12 +270,9 @@ public:
       return 0;
     }
 
-    const int bytesRead =
-        recv(socket_.get(), reinterpret_cast<char *>(buffer.data()),
-             static_cast<int>((std::min)(buffer.size(),
-                                         static_cast<std::size_t>(
-                                             std::numeric_limits<int>::max()))),
-             MSG_PEEK);
+    const int bytesRead = recv(socket_.get(), reinterpret_cast<char *>(buffer.data()),
+                               static_cast<int>((std::min)(buffer.size(), static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+                               MSG_PEEK);
     if (bytesRead > 0) {
       return static_cast<std::size_t>(bytesRead);
     }
@@ -415,21 +289,16 @@ public:
     return 0;
   }
 
-  std::size_t
-  write(HttpServerAdvanced::span<const std::uint8_t> buffer) override {
+  std::size_t write(HttpServerAdvanced::span<const std::uint8_t> buffer) override {
     if (!socket_.valid() || buffer.empty()) {
       return 0;
     }
 
     std::size_t totalSent = 0;
     while (totalSent < buffer.size()) {
-      const int sent = send(
-          socket_.get(),
-          reinterpret_cast<const char *>(buffer.data() + totalSent),
-          static_cast<int>((std::min)(buffer.size() - totalSent,
-                                      static_cast<std::size_t>(
-                                          std::numeric_limits<int>::max()))),
-          0);
+      const int sent = send(socket_.get(), reinterpret_cast<const char *>(buffer.data() + totalSent),
+                            static_cast<int>((std::min)(buffer.size() - totalSent, static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+                            0);
       if (sent > 0) {
         totalSent += static_cast<std::size_t>(sent);
         continue;
@@ -464,16 +333,14 @@ private:
 
     sockaddr_storage address{};
     socklen_t addressLength = sizeof(address);
-    if (getpeername(socket_.get(), reinterpret_cast<sockaddr *>(&address),
-                    &addressLength) == 0) {
+    if (getpeername(socket_.get(), reinterpret_cast<sockaddr *>(&address), &addressLength) == 0) {
       remoteAddress_ = socketAddressToString(address);
       remotePort_ = socketAddressToPort(address);
     }
 
     address = {};
     addressLength = sizeof(address);
-    if (getsockname(socket_.get(), reinterpret_cast<sockaddr *>(&address),
-                    &addressLength) == 0) {
+    if (getsockname(socket_.get(), reinterpret_cast<sockaddr *>(&address), &addressLength) == 0) {
       localAddress_ = socketAddressToString(address);
       localPort_ = socketAddressToPort(address);
     }
@@ -499,14 +366,10 @@ public:
 
     sockaddr_storage address{};
     socklen_t addressLength = sizeof(address);
-    const SocketHandle accepted =
-        ::accept(listener_.get(), reinterpret_cast<sockaddr *>(&address),
-                 &addressLength);
+    const SocketHandle accepted = ::accept(listener_.get(), reinterpret_cast<sockaddr *>(&address), &addressLength);
     if (accepted == InvalidSocketHandle) {
       const int errorCode = lastSocketError();
-      return isWouldBlockError(errorCode) || isInterruptedError(errorCode)
-                 ? nullptr
-                 : nullptr;
+      return isWouldBlockError(errorCode) || isInterruptedError(errorCode) ? nullptr : nullptr;
     }
 
     return std::make_unique<NativeSocketClient>(accepted);
@@ -519,8 +382,7 @@ public:
 
     sockaddr_storage bindAddress{};
     socklen_t bindLength = 0;
-    if (!resolveSocketAddress({}, configuredPort_, SOCK_STREAM, bindAddress,
-                              bindLength, true)) {
+    if (!resolveSocketAddress({}, configuredPort_, SOCK_STREAM, bindAddress, bindLength, true)) {
       return;
     }
 
@@ -531,15 +393,12 @@ public:
 
     int reuseAddress = 1;
     setsockopt(listener.get(), SOL_SOCKET, SO_REUSEADDR,
-               reinterpret_cast<const char *>(&reuseAddress),
-               sizeof(reuseAddress));
-    if (bind(listener.get(), reinterpret_cast<const sockaddr *>(&bindAddress),
-             bindLength) != 0) {
+               reinterpret_cast<const char *>(&reuseAddress), sizeof(reuseAddress));
+    if (bind(listener.get(), reinterpret_cast<const sockaddr *>(&bindAddress), bindLength) != 0) {
       return;
     }
 
-    if (listen(listener.get(), static_cast<int>(MAX_CONCURRENT_CONNECTIONS)) !=
-        0) {
+    if (listen(listener.get(), static_cast<int>(MAX_CONCURRENT_CONNECTIONS)) != 0) {
       return;
     }
 
@@ -567,8 +426,7 @@ private:
 
     sockaddr_storage address{};
     socklen_t addressLength = sizeof(address);
-    if (getsockname(listener_.get(), reinterpret_cast<sockaddr *>(&address),
-                    &addressLength) == 0) {
+    if (getsockname(listener_.get(), reinterpret_cast<sockaddr *>(&address), &addressLength) == 0) {
       localAddress_ = socketAddressToString(address);
       localPort_ = socketAddressToPort(address);
     }
@@ -584,28 +442,24 @@ class NativeSocketPeer : public IPeer {
 public:
   bool begin(std::uint16_t port) override { return openSocket(port); }
 
-  bool beginMulticast(std::string_view multicastAddress,
-                      std::uint16_t port) override {
+  bool beginMulticast(std::string_view multicastAddress, std::uint16_t port) override {
     if (!openSocket(port)) {
       return false;
     }
 
     sockaddr_storage multicastSocketAddress{};
     socklen_t multicastAddressLength = 0;
-    if (!resolveSocketAddress(multicastAddress, port, SOCK_DGRAM,
-                              multicastSocketAddress, multicastAddressLength,
-                              false) ||
+    if (!resolveSocketAddress(multicastAddress, port, SOCK_DGRAM, multicastSocketAddress,
+                              multicastAddressLength, false) ||
         multicastSocketAddress.ss_family != AF_INET) {
       return false;
     }
 
     ip_mreq membership{};
-    membership.imr_multiaddr =
-        reinterpret_cast<const sockaddr_in &>(multicastSocketAddress).sin_addr;
+    membership.imr_multiaddr = reinterpret_cast<const sockaddr_in &>(multicastSocketAddress).sin_addr;
     membership.imr_interface.s_addr = htonl(INADDR_ANY);
     return setsockopt(socket_.get(), IPPROTO_IP, IP_ADD_MEMBERSHIP,
-                      reinterpret_cast<const char *>(&membership),
-                      sizeof(membership)) == 0;
+                      reinterpret_cast<const char *>(&membership), sizeof(membership)) == 0;
   }
 
   void stop() override {
@@ -635,20 +489,15 @@ public:
       return false;
     }
 
-    const int sent = sendto(
-        socket_.get(), reinterpret_cast<const char *>(outboundPacket_.data()),
-        static_cast<int>((std::min)(outboundPacket_.size(),
-                                    static_cast<std::size_t>(
-                                        std::numeric_limits<int>::max()))),
-        0, reinterpret_cast<const sockaddr *>(&outboundDestination_),
-        outboundDestinationLength_);
+    const int sent = sendto(socket_.get(), reinterpret_cast<const char *>(outboundPacket_.data()),
+                            static_cast<int>((std::min)(outboundPacket_.size(), static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+                            0, reinterpret_cast<const sockaddr *>(&outboundDestination_), outboundDestinationLength_);
     outboundPacket_.clear();
     outboundDestinationLength_ = 0;
     return sent >= 0;
   }
 
-  std::size_t
-  write(HttpServerAdvanced::span<const std::uint8_t> buffer) override {
+  std::size_t write(HttpServerAdvanced::span<const std::uint8_t> buffer) override {
     outboundPacket_.insert(outboundPacket_.end(), buffer.begin(), buffer.end());
     return buffer.size();
   }
@@ -674,12 +523,9 @@ public:
     std::vector<std::uint8_t> packetBuffer(pendingBytes.count);
     sockaddr_storage sourceAddress{};
     socklen_t sourceAddressLength = sizeof(sourceAddress);
-    const int received = recvfrom(
-        socket_.get(), reinterpret_cast<char *>(packetBuffer.data()),
-        static_cast<int>((std::min)(packetBuffer.size(),
-                                    static_cast<std::size_t>(
-                                        std::numeric_limits<int>::max()))),
-        0, reinterpret_cast<sockaddr *>(&sourceAddress), &sourceAddressLength);
+    const int received = recvfrom(socket_.get(), reinterpret_cast<char *>(packetBuffer.data()),
+                                  static_cast<int>((std::min)(packetBuffer.size(), static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+                                  0, reinterpret_cast<sockaddr *>(&sourceAddress), &sourceAddressLength);
     if (received <= 0) {
       const int errorCode = lastSocketError();
       return isWouldBlockError(errorCode) || isInterruptedError(errorCode)
@@ -719,8 +565,7 @@ public:
       return 0;
     }
 
-    const std::size_t copied =
-        (std::min)(buffer.size(), inboundPacket_.size() - inboundOffset_);
+    const std::size_t copied = (std::min)(buffer.size(), inboundPacket_.size() - inboundOffset_);
     std::copy_n(inboundPacket_.data() + inboundOffset_, copied, buffer.data());
     return copied;
   }
@@ -740,8 +585,7 @@ private:
 
     sockaddr_storage bindAddress{};
     socklen_t bindLength = 0;
-    if (!resolveSocketAddress({}, port, SOCK_DGRAM, bindAddress, bindLength,
-                              true)) {
+    if (!resolveSocketAddress({}, port, SOCK_DGRAM, bindAddress, bindLength, true)) {
       return false;
     }
 
@@ -752,11 +596,8 @@ private:
 
     int reuseAddress = 1;
     setsockopt(socketHandle.get(), SOL_SOCKET, SO_REUSEADDR,
-               reinterpret_cast<const char *>(&reuseAddress),
-               sizeof(reuseAddress));
-    if (bind(socketHandle.get(),
-             reinterpret_cast<const sockaddr *>(&bindAddress),
-             bindLength) != 0) {
+               reinterpret_cast<const char *>(&reuseAddress), sizeof(reuseAddress));
+    if (bind(socketHandle.get(), reinterpret_cast<const sockaddr *>(&bindAddress), bindLength) != 0) {
       return false;
     }
 
@@ -802,8 +643,7 @@ public:
       return nullptr;
     }
 
-    if (connect(socketHandle.get(),
-                reinterpret_cast<const sockaddr *>(&remoteAddress),
+    if (connect(socketHandle.get(), reinterpret_cast<const sockaddr *>(&remoteAddress),
                 remoteAddressLength) != 0) {
       return nullptr;
     }
@@ -815,19 +655,7 @@ public:
     return std::make_unique<NativeSocketPeer>();
   }
 };
-} // namespace
 
-std::unique_ptr<ITransportFactory> createNativeSocketTransportFactory() {
-  return std::make_unique<NativeSocketTransportFactory>();
-}
+} // namespace platform
+} // namespace Compat
 } // namespace HttpServerAdvanced
-
-#else
-
-namespace HttpServerAdvanced {
-std::unique_ptr<ITransportFactory> createNativeSocketTransportFactory() {
-  return nullptr;
-}
-} // namespace HttpServerAdvanced
-
-#endif

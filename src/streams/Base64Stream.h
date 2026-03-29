@@ -1,5 +1,5 @@
 #pragma once
-#include "ByteStream.h"
+#include "../compat/ByteStream.h"
 namespace HttpServerAdvanced
 {
     constexpr const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

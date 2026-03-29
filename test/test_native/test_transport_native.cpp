@@ -2,7 +2,7 @@
 
 #include <unity.h>
 
-#include "../../src/pipeline/NativeSocketTransport.h"
+#include "../../src/compat/platform/NativeSocketTransport.h"
 
 #include <cstdint>
 #include <cstring>
@@ -10,9 +10,9 @@
 #include <string>
 
 #ifdef _WIN32
-#include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
 
 #else
 #include <arpa/inet.h>

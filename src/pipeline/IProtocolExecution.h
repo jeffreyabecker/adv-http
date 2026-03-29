@@ -3,7 +3,7 @@
 #include "ConnectionSession.h"
 #include "PipelineError.h"
 #include "RequestHandlingResult.h"
-#include "TransportInterfaces.h"
+#include "../compat/TransportInterfaces.h"
 
 namespace HttpServerAdvanced
 {

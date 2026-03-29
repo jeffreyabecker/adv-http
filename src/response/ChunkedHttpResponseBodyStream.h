@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include "../streams/ByteStream.h"
+#include "../compat/ByteStream.h"
 #include "../core/Defines.h"
 
 namespace HttpServerAdvanced

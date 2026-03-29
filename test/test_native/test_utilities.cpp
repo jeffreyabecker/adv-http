@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "../../src/compat/platform/VirtualPathMapper.h"
 #include "../../src/core/HttpContentTypes.h"
 #include "../../src/core/HttpMethod.h"
 #include "../../src/core/HttpStatus.h"
@@ -314,6 +315,58 @@ namespace
         TEST_ASSERT_EQUAL_STRING("text/markdown", contentTypes.getContentTypeByExtension("md"));
     }
 
+    void test_virtual_path_mapper_normalizes_segments_and_names()
+    {
+        using HttpServerAdvanced::Compat::VirtualPathMapper;
+
+        TEST_ASSERT_TRUE(VirtualPathMapper::HasDriveLetterPrefix("C:/nested/asset.txt"));
+        TEST_ASSERT_FALSE(VirtualPathMapper::HasDriveLetterPrefix("/nested/asset.txt"));
+
+        TEST_ASSERT_EQUAL_STRING("nested/asset.txt", VirtualPathMapper::NormalizePath("C:\\nested\\.\\asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("outside.txt", VirtualPathMapper::NormalizePath("../outside.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", VirtualPathMapper::WithLeadingSlash("nested\\asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", VirtualPathMapper::Join("/nested", "asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("asset.txt", std::string(VirtualPathMapper::BasenameView("/nested/asset.txt")).c_str());
+
+    #if defined(_WIN32)
+        TEST_ASSERT_EQUAL_STRING("C:\\nested\\asset.txt", VirtualPathMapper::NormalizeScopedPath("C:/nested/asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("C:\\nested\\asset.txt", VirtualPathMapper::JoinScopedPath("C:\\nested", "asset.txt").c_str());
+    #else
+        TEST_ASSERT_EQUAL_STRING("C:/nested/asset.txt", VirtualPathMapper::NormalizeScopedPath("C:\\nested\\asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", VirtualPathMapper::JoinScopedPath("/nested", "asset.txt").c_str());
+    #endif
+    }
+
+    void test_virtual_path_mapper_constructs_from_chroot_spec()
+    {
+        using HttpServerAdvanced::Compat::VirtualPathMapper;
+
+        const VirtualPathMapper unrooted;
+        TEST_ASSERT_FALSE(unrooted.hasRootPath());
+        TEST_ASSERT_TRUE(unrooted.rootPath().empty());
+        TEST_ASSERT_EQUAL_STRING("nested\\asset.txt", unrooted.exposePath("nested\\asset.txt").c_str());
+
+    #if defined(_WIN32)
+        TEST_ASSERT_EQUAL_STRING("nested\\asset.txt", unrooted.resolveScopedPath("nested\\asset.txt").c_str());
+
+        const VirtualPathMapper rooted("assets/");
+        TEST_ASSERT_TRUE(rooted.hasRootPath());
+        TEST_ASSERT_EQUAL_STRING("assets", rooted.rootPath().c_str());
+        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", rooted.exposePath("nested\\asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("assets\\nested\\asset.txt", rooted.resolveScopedPath("nested\\asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("assets", rooted.resolveScopedPath(".").c_str());
+    #else
+        TEST_ASSERT_EQUAL_STRING("nested/asset.txt", unrooted.resolveScopedPath("nested\\asset.txt").c_str());
+
+        const VirtualPathMapper rooted("assets/");
+        TEST_ASSERT_TRUE(rooted.hasRootPath());
+        TEST_ASSERT_EQUAL_STRING("assets", rooted.rootPath().c_str());
+        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", rooted.exposePath("nested\\asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("assets/nested/asset.txt", rooted.resolveScopedPath("nested\\asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("assets", rooted.resolveScopedPath(".").c_str());
+    #endif
+    }
+
     void test_html_encode_returns_empty_for_null_or_empty_inputs()
     {
         const std::string encodedNull = HttpServerAdvanced::WebUtility::HtmlEncode(static_cast<const char *>(nullptr));
@@ -459,6 +512,8 @@ namespace
         RUN_TEST(test_http_status_exposes_code_comparison_and_description_behavior);
         RUN_TEST(test_http_method_request_body_allowance_matches_current_policy);
         RUN_TEST(test_http_content_types_normalizes_extensions_and_falls_back_to_unknown);
+        RUN_TEST(test_virtual_path_mapper_normalizes_segments_and_names);
+        RUN_TEST(test_virtual_path_mapper_constructs_from_chroot_spec);
         RUN_TEST(test_html_encode_returns_empty_for_null_or_empty_inputs);
         RUN_TEST(test_html_encode_preserves_expected_entities_without_progmem_helpers);
         RUN_TEST(test_html_attribute_encode_returns_empty_for_null_or_empty_inputs);

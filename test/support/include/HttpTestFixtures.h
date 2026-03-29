@@ -4,7 +4,7 @@
 
 #include "../../../src/core/IHttpContextHandlerFactory.h"
 #include "../../../src/pipeline/IPipelineHandler.h"
-#include "../../../src/pipeline/TransportInterfaces.h"
+#include "../../../src/compat/TransportInterfaces.h"
 #include "../../../src/response/StringResponse.h"
 
 #include <cstddef>

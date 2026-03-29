@@ -8,7 +8,7 @@
 #include <string_view>
 
 
-#include "../streams/ByteStream.h"
+#include "ByteStream.h"
 
 namespace HttpServerAdvanced {
 namespace Compat {

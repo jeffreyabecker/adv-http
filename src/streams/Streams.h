@@ -1,5 +1,5 @@
 #pragma once
-#include "ByteStream.h"
+#include "../compat/ByteStream.h"
 
 namespace HttpServerAdvanced
 {

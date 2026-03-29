@@ -4,14 +4,14 @@
 
 #include "../compat/Clock.h"
 #include "../core/HttpTimeouts.h"
-#include "../streams/ByteStream.h"
+#include "../compat/ByteStream.h"
 #include "ConnectionSession.h"
 #include "HttpProtocolExecution.h"
 #include "IPipelineHandler.h"
 #include "IProtocolExecution.h"
 #include "RequestParser.h"
 #include "PipelineHandleClientResult.h"
-#include "TransportInterfaces.h"
+#include "../compat/TransportInterfaces.h"
 
 #include "../llhttp/include/llhttp.h"
 #include <cstddef>

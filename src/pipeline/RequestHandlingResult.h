@@ -5,7 +5,7 @@
 #include "ConnectionSession.h"
 #include "PipelineError.h"
 
-#include "../streams/ByteStream.h"
+#include "../compat/ByteStream.h"
 
 namespace HttpServerAdvanced
 {

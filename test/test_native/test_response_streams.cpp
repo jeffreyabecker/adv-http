@@ -7,7 +7,7 @@
 #include "../../src/response/FormResponse.h"
 #include "../../src/response/HttpResponse.h"
 #include "../../src/response/StringResponse.h"
-#include "../../src/streams/ByteStream.h"
+#include "../../src/compat/ByteStream.h"
 #include "../../src/streams/Streams.h"
 
 #include <algorithm>

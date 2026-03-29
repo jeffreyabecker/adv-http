@@ -4,7 +4,7 @@
 #include "../pipeline/HttpPipeline.h"
 #include "../pipeline/IPipelineHandler.h"
 #include "../pipeline/PipelineHandleClientResult.h"
-#include "../pipeline/TransportInterfaces.h"
+#include "../compat/TransportInterfaces.h"
 #include "../core/HttpTimeouts.h"
 
 #include <memory>
