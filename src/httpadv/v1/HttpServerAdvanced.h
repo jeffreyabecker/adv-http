@@ -92,3 +92,31 @@
 
 // Request handler factory
 #include "httpadv/v1/core/HttpContextHandlerFactory.h"
+
+// Convenience aliases in the httpadv (unversioned) namespace so consumers
+// can reference common types without fully qualifying `httpadv::v1::...`.
+namespace httpadv
+{
+	// Server / builder
+	using WebServer = v1::server::WebServer;
+	using WebServerBuilder = v1::server::WebServerBuilder;
+	using WebServerConfig = v1::server::WebServerConfig;
+	using HttpServerBase = v1::server::HttpServerBase;
+
+	// Pipeline / transport
+	namespace transport = v1::transport;
+	using IClient = v1::transport::IClient;
+	using IFileSystem = v1::transport::IFileSystem;
+
+	// Utilities
+	using Clock = v1::util::Clock;
+	using UriView = v1::util::UriView;
+
+	// Common handler/response types
+	using IHttpHandler = v1::handlers::IHttpHandler;
+	using HttpResponse = v1::response::HttpResponse;
+	using StringResponse = v1::response::StringResponse;
+
+	// Routing helpers
+	using HandlerBuilder = v1::routing::HandlerBuilder;
+}
