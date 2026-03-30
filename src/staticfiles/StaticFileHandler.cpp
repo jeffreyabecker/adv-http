@@ -12,6 +12,41 @@ bool EndsWith(std::string_view value, std::string_view suffix) {
          value.compare(value.size() - suffix.size(), suffix.size(), suffix) ==
              0;
 }
+
+class DecoratedStaticHandler : public HttpServerAdvanced::IHttpHandler {
+public:
+  DecoratedStaticHandler(
+      std::unique_ptr<HttpServerAdvanced::IHttpHandler> innerHandler,
+      HttpServerAdvanced::IHttpResponse::ResponseFilter responseFilter,
+      HttpServerAdvanced::IHttpHandler::InterceptorCallback interceptor)
+      : innerHandler_(std::move(innerHandler)),
+        responseFilter_(std::move(responseFilter)),
+        interceptor_(std::move(interceptor)) {}
+
+  HandlerResult handleStep(HttpServerAdvanced::HttpContext &context) override {
+    HandlerResult result = interceptor_
+                               ? interceptor_(context, [this](HttpServerAdvanced::HttpContext &innerContext) {
+                                   return innerHandler_->handleStep(innerContext);
+                                 })
+                               : innerHandler_->handleStep(context);
+
+    if (result.isResponse() && responseFilter_) {
+      result.response = responseFilter_(std::move(result.response));
+    }
+
+    return result;
+  }
+
+  void handleBodyChunk(HttpServerAdvanced::HttpContext &context,
+                       const uint8_t *at, std::size_t length) override {
+    innerHandler_->handleBodyChunk(context, at, length);
+  }
+
+private:
+  std::unique_ptr<HttpServerAdvanced::IHttpHandler> innerHandler_;
+  HttpServerAdvanced::IHttpResponse::ResponseFilter responseFilter_;
+  HttpServerAdvanced::IHttpHandler::InterceptorCallback interceptor_;
+};
 } // namespace
 
 namespace HttpServerAdvanced {
@@ -54,19 +89,115 @@ StaticFileHandlerFactory::getLastWriteValue(const IFile &file) {
 // Public methods
 StaticFileHandlerFactory::StaticFileHandlerFactory(
     FileLocator &fileLocator,
-    HttpServerAdvanced::HttpContentTypes &contentTypes)
-    : contentTypes_(contentTypes), fileLocator_(&fileLocator) {}
+    HttpServerAdvanced::HttpContentTypes &contentTypes,
+    std::vector<ResponseFilterRule> responseFilterRules,
+    std::vector<InterceptorRule> interceptorRules,
+    std::vector<RequestPredicateRule> requestPredicateRules)
+    : contentTypes_(contentTypes),
+      fileLocator_(&fileLocator),
+      responseFilterRules_(std::move(responseFilterRules)),
+      interceptorRules_(std::move(interceptorRules)),
+      requestPredicateRules_(std::move(requestPredicateRules)) {}
 
 StaticFileHandlerFactory::StaticFileHandlerFactory(
     std::shared_ptr<FileLocator> fileLocator,
-    HttpServerAdvanced::HttpContentTypes &contentTypes)
+    HttpServerAdvanced::HttpContentTypes &contentTypes,
+    std::vector<ResponseFilterRule> responseFilterRules,
+    std::vector<InterceptorRule> interceptorRules,
+    std::vector<RequestPredicateRule> requestPredicateRules)
     : contentTypes_(contentTypes), ownedFileLocator_(std::move(fileLocator)),
-      fileLocator_(ownedFileLocator_.get()) {}
+      fileLocator_(ownedFileLocator_.get()),
+      responseFilterRules_(std::move(responseFilterRules)),
+      interceptorRules_(std::move(interceptorRules)),
+      requestPredicateRules_(std::move(requestPredicateRules)) {}
+
+bool StaticFileHandlerFactory::passesRequestPredicates(HttpContext &context) const {
+  for (const RequestPredicateRule &rule : requestPredicateRules_) {
+    if (!rule.predicate) {
+      continue;
+    }
+    if (!rule.matcher.canHandle(context)) {
+      continue;
+    }
+    if (!rule.predicate(context)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::decorateHandler(
+    HttpContext &context,
+    std::unique_ptr<IHttpHandler> innerHandler) const {
+  if (!innerHandler) {
+    return nullptr;
+  }
+
+  IHttpResponse::ResponseFilter responseFilter = nullptr;
+  for (const ResponseFilterRule &rule : responseFilterRules_) {
+    if (!rule.filter || !rule.matcher.canHandle(context)) {
+      continue;
+    }
+
+    if (!responseFilter) {
+      responseFilter = rule.filter;
+      continue;
+    }
+
+    auto previousFilter = responseFilter;
+    auto nextFilter = rule.filter;
+    responseFilter =
+        [previousFilter, nextFilter](std::unique_ptr<IHttpResponse> response)
+        -> std::unique_ptr<IHttpResponse> {
+      return nextFilter(previousFilter(std::move(response)));
+    };
+  }
+
+  IHttpHandler::InterceptorCallback interceptor = nullptr;
+  for (const InterceptorRule &rule : interceptorRules_) {
+    if (!rule.wrapper || !rule.matcher.canHandle(context)) {
+      continue;
+    }
+
+    if (!interceptor) {
+      interceptor = rule.wrapper;
+      continue;
+    }
+
+    auto previousInterceptor = interceptor;
+    auto nextInterceptor = rule.wrapper;
+    interceptor =
+        [previousInterceptor, nextInterceptor](HttpContext &innerContext,
+                                               IHttpHandler::InvocationCallback next)
+        -> IHttpHandler::HandlerResult {
+      return nextInterceptor(
+          innerContext,
+          [previousInterceptor, next](HttpContext &chainContext)
+              -> IHttpHandler::HandlerResult {
+            return previousInterceptor(chainContext, next);
+          });
+    };
+  }
+
+  if (!responseFilter && !interceptor) {
+    return innerHandler;
+  }
+
+  return std::make_unique<DecoratedStaticHandler>(
+      std::move(innerHandler), std::move(responseFilter),
+      std::move(interceptor));
+}
 
 bool StaticFileHandlerFactory::canHandle(HttpContext &context) {
   if (fileLocator_ == nullptr || !fileLocator_->canHandle(context.urlView())) {
     return false;
   }
+
+  if (!passesRequestPredicates(context)) {
+    return false;
+  }
+
   FileHandle file = fileLocator_->getFile(context);
   if (!file) {
     return false;
@@ -82,9 +213,9 @@ StaticFileHandlerFactory::create(HttpContext &context) {
   bool isHead = (method == HttpMethod::Head);
 
   if (!isGet && !isHead) {
-    return HttpHandler::create(StringResponse::create(
+    return decorateHandler(context, HttpHandler::create(StringResponse::create(
         HttpStatus::MethodNotAllowed(), "Method Not Allowed",
-        {std::move(HttpHeader::Allow("GET, HEAD"))}));
+        {std::move(HttpHeader::Allow("GET, HEAD"))})));
   }
 
   if (fileLocator_ == nullptr) {
@@ -93,8 +224,8 @@ StaticFileHandlerFactory::create(HttpContext &context) {
 
   FileHandle file = fileLocator_->getFile(context);
   if (!file) {
-    return HttpHandler::create(
-        StringResponse::create(HttpStatus::NotFound(), "Not Found", {}));
+    return decorateHandler(context, HttpHandler::create(
+      StringResponse::create(HttpStatus::NotFound(), "Not Found", {})));
   }
 
   const std::string_view filePath = file->path();
@@ -131,8 +262,8 @@ StaticFileHandlerFactory::create(HttpContext &context) {
   }
 
   std::unique_ptr<IByteSource> body = std::move(file);
-  return HttpHandler::create(std::make_unique<HttpResponse>(
-      HttpStatus::Ok(), std::move(body), std::move(headers)));
+  return decorateHandler(context, HttpHandler::create(std::make_unique<HttpResponse>(
+      HttpStatus::Ok(), std::move(body), std::move(headers))));
 }
 
 void StaticFileHandlerFactory::setFileLocator(FileLocator &fileLocator) {

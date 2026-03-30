@@ -2,12 +2,20 @@
 
 #if !defined(ARDUINO)
 
-#include "NativeSocketTransportImpl.h"
+#if defined(_WIN32)
+#include "windows/WindowsSocketTransport.h"
+#else
+#include "posix/PosixSocketTransport.h"
+#endif
 
 namespace HttpServerAdvanced {
 
 std::unique_ptr<ITransportFactory> createNativeSocketTransportFactory() {
-  return std::make_unique<Compat::platform::NativeSocketTransportFactory>();
+#if defined(_WIN32)
+  return std::make_unique<Compat::platform::windows::NativeSocketTransportFactory>();
+#else
+  return std::make_unique<Compat::platform::posix::NativeSocketTransportFactory>();
+#endif
 }
 } // namespace HttpServerAdvanced
 

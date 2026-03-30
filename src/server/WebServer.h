@@ -34,7 +34,7 @@ namespace HttpServerAdvanced
         }
     };
 
-    
+    using WebServer = FriendlyWebServer<HttpServerBase>;
 
 }
 

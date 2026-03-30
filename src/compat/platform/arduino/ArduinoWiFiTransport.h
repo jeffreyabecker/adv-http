@@ -6,4 +6,4 @@
 
 namespace HttpServerAdvanced {
 std::unique_ptr<ITransportFactory> createArduinoWiFiTransportFactory();
-}
+} // namespace HttpServerAdvanced

@@ -15,7 +15,8 @@ void StaticFilesBuilder::init(
   auto &handlerFactory = coreBuilder.handlerProviders();
   handlerFactory.addAt<StaticFileHandlerFactory>(
       0, std::make_shared<DefaultFileLocator>(fileLocator_),
-      coreBuilder.contentTypes());
+      coreBuilder.contentTypes(), std::move(responseFilterRules_),
+      std::move(interceptorRules_), std::move(requestPredicateRules_));
 }
 
 StaticFilesBuilder &StaticFilesBuilder::setPathPredicate(
@@ -41,6 +42,77 @@ StaticFilesBuilder &
 StaticFilesBuilder::setFilesystemContentRoot(std::string_view root) {
   fileLocator_.setFilesystemContentRoot(root);
   return *this;
+}
+
+StaticFilesBuilder &
+StaticFilesBuilder::apply(HandlerMatcher matcher,
+                          IHttpResponse::ResponseFilter filter) {
+  if (!filter) {
+    return *this;
+  }
+
+  responseFilterRules_.push_back(
+      {std::move(matcher), std::move(filter)});
+  return *this;
+}
+
+StaticFilesBuilder &
+StaticFilesBuilder::apply(std::string_view uriPattern,
+                          IHttpResponse::ResponseFilter filter) {
+  return apply(HandlerMatcher(uriPattern), std::move(filter));
+}
+
+StaticFilesBuilder &
+StaticFilesBuilder::apply(const char *uriPattern,
+                          IHttpResponse::ResponseFilter filter) {
+  return apply(HandlerMatcher(uriPattern), std::move(filter));
+}
+
+StaticFilesBuilder &
+StaticFilesBuilder::with(HandlerMatcher matcher,
+                         IHttpHandler::InterceptorCallback wrapper) {
+  if (!wrapper) {
+    return *this;
+  }
+
+  interceptorRules_.push_back({std::move(matcher), std::move(wrapper)});
+  return *this;
+}
+
+StaticFilesBuilder &
+StaticFilesBuilder::with(std::string_view uriPattern,
+                         IHttpHandler::InterceptorCallback wrapper) {
+  return with(HandlerMatcher(uriPattern), std::move(wrapper));
+}
+
+StaticFilesBuilder &
+StaticFilesBuilder::with(const char *uriPattern,
+                         IHttpHandler::InterceptorCallback wrapper) {
+  return with(HandlerMatcher(uriPattern), std::move(wrapper));
+}
+
+StaticFilesBuilder &
+StaticFilesBuilder::filterRequest(HandlerMatcher matcher,
+                                  IHttpHandler::Predicate predicate) {
+  if (!predicate) {
+    return *this;
+  }
+
+  requestPredicateRules_.push_back(
+      {std::move(matcher), std::move(predicate)});
+  return *this;
+}
+
+StaticFilesBuilder &
+StaticFilesBuilder::filterRequest(std::string_view uriPattern,
+                                  IHttpHandler::Predicate predicate) {
+  return filterRequest(HandlerMatcher(uriPattern), std::move(predicate));
+}
+
+StaticFilesBuilder &
+StaticFilesBuilder::filterRequest(const char *uriPattern,
+                                  IHttpHandler::Predicate predicate) {
+  return filterRequest(HandlerMatcher(uriPattern), std::move(predicate));
 }
 
 std::function<void(WebServerBuilder &)> &

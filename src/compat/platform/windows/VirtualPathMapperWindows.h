@@ -9,12 +9,12 @@ namespace HttpServerAdvanced
 {
     namespace Compat
     {
-        class VirtualPathMapper
+        class VirtualPathMapperWindows
         {
           public:
-            VirtualPathMapper() = default;
+            VirtualPathMapperWindows() = default;
 
-            explicit VirtualPathMapper(std::string_view scopedRootPath)
+            explicit VirtualPathMapperWindows(std::string_view scopedRootPath)
                 : rootPath_(NormalizeScopedRootPath(scopedRootPath))
             {
             }

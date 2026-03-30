@@ -12,6 +12,7 @@
 #include "../../src/staticfiles/DefaultFileLocator.h"
 #include "../../src/staticfiles/FileLocator.h"
 #include "../../src/staticfiles/StaticFileHandler.h"
+#include "../../src/staticfiles/StaticFilesBuilder.h"
 #include "../../src/server/HttpServerBase.h"
 
 #include <cstddef>
@@ -68,11 +69,26 @@ namespace
         {
         }
 
-        void prepare(std::string_view method, std::string_view url)
+        void prepare(std::string_view method, std::string_view url, bool complete = true)
         {
             methodStorage_.assign(method.data(), method.size());
             urlStorage_.assign(url.data(), url.size());
             TEST_ASSERT_EQUAL_INT(0, pipeline_->onMessageBegin(methodStorage_.c_str(), 1, 1, urlStorage_));
+            if (complete)
+            {
+                completeHeaders();
+            }
+        }
+
+        void addHeader(std::string_view name, std::string_view value)
+        {
+            nameStorage_.assign(name.data(), name.size());
+            valueStorage_.assign(value.data(), value.size());
+            TEST_ASSERT_EQUAL_INT(0, pipeline_->onHeader(nameStorage_, valueStorage_));
+        }
+
+        void completeHeaders()
+        {
             TEST_ASSERT_EQUAL_INT(0, pipeline_->onHeadersComplete());
         }
 
@@ -90,6 +106,8 @@ namespace
         HttpContext *context_ = nullptr;
         std::string methodStorage_;
         std::string urlStorage_;
+        std::string nameStorage_;
+        std::string valueStorage_;
     };
 
     struct FakeFileSpec
@@ -707,6 +725,139 @@ namespace
         TEST_ASSERT_EQUAL_STRING("3", TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentLength)->c_str());
     }
 
+    void test_static_file_handler_factory_matcher_scoped_response_filter_only_applies_when_matcher_matches()
+    {
+        FakeFileSystem fs;
+        fs.add({"/www/index.html", false, "<h1>home</h1>", 13, 1711152000});
+        fs.add({"/www/app.js", false, "console.log('ok');", 18, 1711152000});
+
+        HttpContentTypes contentTypes;
+        std::vector<StaticFileHandlerFactory::ResponseFilterRule> responseRules;
+        responseRules.push_back({
+            HandlerMatcher("/?.html"),
+            [](std::unique_ptr<IHttpResponse> response) -> std::unique_ptr<IHttpResponse>
+            {
+                response->headers().set("X-Template", "true", true);
+                return response;
+            }});
+
+        StaticFileHandlerFactory factory(std::make_shared<DefaultFileLocator>(fs), contentTypes, std::move(responseRules));
+
+        RequestContextHarness htmlHarness;
+        htmlHarness.prepare("GET", "/index.html");
+        htmlHarness.completeHeaders();
+        std::unique_ptr<IHttpHandler> htmlHandler = factory.create(htmlHarness.context());
+        const auto htmlResponse = TestSupport::CaptureResponse(htmlHandler->handleStep(htmlHarness.context()));
+        TEST_ASSERT_TRUE(TestSupport::FindCapturedHeader(htmlResponse, "X-Template").has_value());
+
+        RequestContextHarness jsHarness;
+        jsHarness.prepare("GET", "/app.js");
+        jsHarness.completeHeaders();
+        std::unique_ptr<IHttpHandler> jsHandler = factory.create(jsHarness.context());
+        const auto jsResponse = TestSupport::CaptureResponse(jsHandler->handleStep(jsHarness.context()));
+        TEST_ASSERT_FALSE(TestSupport::FindCapturedHeader(jsResponse, "X-Template").has_value());
+    }
+
+    void test_static_file_handler_factory_matcher_scoped_interceptor_only_applies_when_matcher_matches()
+    {
+        FakeFileSystem fs;
+        fs.add({"/www/index.html", false, "<h1>home</h1>", 13, 1711152000});
+        fs.add({"/www/app.js", false, "console.log('ok');", 18, 1711152000});
+
+        HttpContentTypes contentTypes;
+        std::vector<StaticFileHandlerFactory::InterceptorRule> interceptorRules;
+        interceptorRules.push_back({
+            HandlerMatcher("/?.html"),
+            [](HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+            {
+                IHttpHandler::HandlerResult result = next(context);
+                if (result.isResponse() && result.response)
+                {
+                    result.response->headers().set("X-Intercepted", "true", true);
+                }
+                return result;
+            }});
+
+        StaticFileHandlerFactory factory(std::make_shared<DefaultFileLocator>(fs), contentTypes, {}, std::move(interceptorRules));
+
+        RequestContextHarness htmlHarness;
+        htmlHarness.prepare("GET", "/index.html");
+        htmlHarness.completeHeaders();
+        std::unique_ptr<IHttpHandler> htmlHandler = factory.create(htmlHarness.context());
+        const auto htmlResponse = TestSupport::CaptureResponse(htmlHandler->handleStep(htmlHarness.context()));
+        TEST_ASSERT_TRUE(TestSupport::FindCapturedHeader(htmlResponse, "X-Intercepted").has_value());
+
+        RequestContextHarness jsHarness;
+        jsHarness.prepare("GET", "/app.js");
+        jsHarness.completeHeaders();
+        std::unique_ptr<IHttpHandler> jsHandler = factory.create(jsHarness.context());
+        const auto jsResponse = TestSupport::CaptureResponse(jsHandler->handleStep(jsHarness.context()));
+        TEST_ASSERT_FALSE(TestSupport::FindCapturedHeader(jsResponse, "X-Intercepted").has_value());
+    }
+
+    void test_static_file_handler_factory_matcher_scoped_request_predicate_limits_handling()
+    {
+        FakeFileSystem fs;
+        fs.add({"/www/secure/index.html", false, "secure", 6, 1711152000});
+        fs.add({"/www/public/index.html", false, "public", 6, 1711152000});
+
+        HttpContentTypes contentTypes;
+        std::vector<StaticFileHandlerFactory::RequestPredicateRule> predicateRules;
+        predicateRules.push_back({
+            HandlerMatcher("/secure/?"),
+            [](HttpContext &context)
+            {
+                return context.headers().exists("X-Allow", "1");
+            }});
+
+        StaticFileHandlerFactory factory(std::make_shared<DefaultFileLocator>(fs), contentTypes, {}, {}, std::move(predicateRules));
+
+        RequestContextHarness secureDeniedHarness;
+        secureDeniedHarness.prepare("GET", "/secure/index.html");
+        secureDeniedHarness.completeHeaders();
+        TEST_ASSERT_FALSE(factory.canHandle(secureDeniedHarness.context()));
+
+        RequestContextHarness publicHarness;
+        publicHarness.prepare("GET", "/public/index.html");
+        publicHarness.completeHeaders();
+        TEST_ASSERT_TRUE(factory.canHandle(publicHarness.context()));
+
+        RequestContextHarness secureAllowedHarness;
+        secureAllowedHarness.prepare("GET", "/secure/index.html", false);
+        secureAllowedHarness.addHeader("X-Allow", "1");
+        secureAllowedHarness.completeHeaders();
+        TEST_ASSERT_TRUE(factory.canHandle(secureAllowedHarness.context()));
+    }
+
+    void test_static_files_builder_supports_string_pattern_convenience_overloads()
+    {
+        FakeFileSystem fs;
+        StaticFilesBuilder builder(fs, nullptr);
+
+        builder.apply(
+            "/?.html",
+            [](std::unique_ptr<IHttpResponse> response) -> std::unique_ptr<IHttpResponse>
+            {
+                return response;
+            });
+
+        builder.with(
+            "/?.html",
+            [](HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+            {
+                return next(context);
+            });
+
+        builder.filterRequest(
+            "/?.html",
+            [](HttpContext &)
+            {
+                return true;
+            });
+
+        TEST_ASSERT_TRUE(true);
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -717,6 +868,10 @@ namespace
         RUN_TEST(test_static_file_handler_factory_serves_files_with_content_type_and_metadata_headers);
         RUN_TEST(test_static_file_handler_factory_handles_directory_gzip_and_method_restrictions);
         RUN_TEST(test_static_file_handler_factory_omits_metadata_headers_when_file_data_is_absent);
+        RUN_TEST(test_static_file_handler_factory_matcher_scoped_response_filter_only_applies_when_matcher_matches);
+        RUN_TEST(test_static_file_handler_factory_matcher_scoped_interceptor_only_applies_when_matcher_matches);
+        RUN_TEST(test_static_file_handler_factory_matcher_scoped_request_predicate_limits_handling);
+        RUN_TEST(test_static_files_builder_supports_string_pattern_convenience_overloads);
         return UNITY_END();
     }
 }
