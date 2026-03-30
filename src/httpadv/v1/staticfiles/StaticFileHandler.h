@@ -1,6 +1,6 @@
 #pragma once
-#include "../compat/IFileSystem.h"
-#include "../compat/ByteStream.h"
+#include "../transport/IFileSystem.h"
+#include "../transport/ByteStream.h"
 
 #include "../core/HttpContentTypes.h"
 #include "../core/HttpContext.h"

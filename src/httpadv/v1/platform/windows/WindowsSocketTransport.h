@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../TransportInterfaces.h"
+#include "../../transport/TransportInterfaces.h"
 
-#include "../../../core/Defines.h"
+#include "../../core/Defines.h"
 
 #include <winsock2.h>
 #include <ws2tcpip.h>

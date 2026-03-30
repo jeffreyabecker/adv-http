@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../compat/TransportInterfaces.h"
+#include "../transport/TransportInterfaces.h"
 
-#include "../compat/Clock.h"
+#include "../util/Clock.h"
 
 namespace httpadv::v1::pipeline
 {

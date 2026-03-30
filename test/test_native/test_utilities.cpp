@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include "../../src/httpadv/v1/compat/platform/PathMapper.h"
+#include "../../src/httpadv/v1/platform/PathMapper.h"
 #include "../../src/httpadv/v1/core/HttpContentTypes.h"
 #include "../../src/httpadv/v1/core/HttpMethod.h"
 #include "../../src/httpadv/v1/core/HttpStatus.h"

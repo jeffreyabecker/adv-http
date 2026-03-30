@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "../compat/ByteStream.h"
+#include "../transport/ByteStream.h"
 
 namespace httpadv::v1::streams
 {

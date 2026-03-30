@@ -4,7 +4,7 @@
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/compat/platform/memory/MemoryFileAdapter.h"
+#include "../../src/httpadv/v1/platform/memory/MemoryFileAdapter.h"
 
 using namespace httpadv::v1::core;
 using namespace httpadv::v1::handlers;

@@ -2,18 +2,16 @@
 #include <memory>
 #include <functional>
 
-#include "../compat/Clock.h"
+#include "../util/Clock.h"
 #include "../core/HttpTimeouts.h"
-#include "../compat/ByteStream.h"
+#include "../transport/ByteStream.h"
 #include "ConnectionSession.h"
 #include "HttpProtocolExecution.h"
 #include "IPipelineHandler.h"
 #include "IProtocolExecution.h"
 #include "RequestParser.h"
 #include "PipelineHandleClientResult.h"
-#include "../compat/TransportInterfaces.h"
-
-#include "../llhttp/include/llhttp.h"
+#include "../transport/TransportInterfaces.h"
 #include <cstddef>
 #include <cstdint>
 #include <optional>

@@ -5,7 +5,7 @@
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/compat/Clock.h"
+#include "../../src/httpadv/v1/util/Clock.h"
 #include "../../src/httpadv/v1/core/HttpContext.h"
 #include "../../src/httpadv/v1/core/HttpContextPhase.h"
 #include "../../src/httpadv/v1/handlers/HttpHandler.h"

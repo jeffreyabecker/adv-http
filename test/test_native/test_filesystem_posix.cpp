@@ -3,9 +3,9 @@
 #include <unity.h>
 
 #if defined(_WIN32)
-#include "../../src/httpadv/v1/compat/platform/windows/WindowsFileAdapter.h"
+#include "../../src/httpadv/v1/platform/windows/WindowsFileAdapter.h"
 #else
-#include "../../src/httpadv/v1/compat/platform/posix/PosixFileAdapter.h"
+#include "../../src/httpadv/v1/platform/posix/PosixFileAdapter.h"
 #endif
 
 #if defined(_WIN32)

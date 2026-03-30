@@ -1,5 +1,5 @@
 #pragma once
-#include "../compat/ByteStream.h"
+#include "../transport/ByteStream.h"
 namespace httpadv::v1::streams
 {
     using httpadv::v1::transport::AvailableResult;

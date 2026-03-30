@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../compat/Clock.h"
+#include "../util/Clock.h"
 #include "../pipeline/HttpPipeline.h"
 #include "../pipeline/IPipelineHandler.h"
 #include "../pipeline/PipelineHandleClientResult.h"
-#include "../compat/TransportInterfaces.h"
+#include "../transport/TransportInterfaces.h"
 #include "../core/HttpTimeouts.h"
 
 #include <memory>

@@ -3,7 +3,7 @@
 #include "ConnectionSession.h"
 #include "PipelineError.h"
 #include "RequestHandlingResult.h"
-#include "../compat/TransportInterfaces.h"
+#include "../transport/TransportInterfaces.h"
 
 namespace httpadv::v1::pipeline
 {

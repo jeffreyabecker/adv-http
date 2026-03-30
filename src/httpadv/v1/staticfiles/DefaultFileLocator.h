@@ -1,5 +1,5 @@
 #pragma once
-#include "../compat/IFileSystem.h"
+#include "../transport/IFileSystem.h"
 
 #include "../core/HttpContext.h"
 #include "FileLocator.h"

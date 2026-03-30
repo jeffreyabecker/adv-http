@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../compat/IFileSystem.h"
+#include "../transport/IFileSystem.h"
 #include "FileLocator.h"
 
 #include <memory>

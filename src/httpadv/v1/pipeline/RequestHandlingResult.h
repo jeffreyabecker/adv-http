@@ -5,7 +5,7 @@
 #include "ConnectionSession.h"
 #include "PipelineError.h"
 
-#include "../compat/ByteStream.h"
+#include "../transport/ByteStream.h"
 
 namespace httpadv::v1::pipeline
 {

@@ -1,5 +1,5 @@
 #pragma once
-#include "../compat/IFileSystem.h"
+#include "../transport/IFileSystem.h"
 #include "../core/HttpContentTypes.h"
 #include "../routing/HandlerProviderRegistry.h"
 #include "../server/WebServerBuilder.h"

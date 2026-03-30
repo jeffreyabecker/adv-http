@@ -4,7 +4,7 @@
 
 #include "../core/HttpTimeouts.h"
 #include "RequestHandlingResult.h"
-#include "../compat/ByteStream.h"
+#include "../transport/ByteStream.h"
 #include "PipelineError.h"
 
 #include <cstddef>

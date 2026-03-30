@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../compat/ByteStream.h"
+#include "../transport/ByteStream.h"
 #include "../core/Defines.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"

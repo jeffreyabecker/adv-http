@@ -3,7 +3,7 @@
 #include "../core/HttpStatus.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
-#include "../compat/ByteStream.h"
+#include "../transport/ByteStream.h"
 #include "ChunkedHttpResponseBodyStream.h"
 #include "IHttpResponse.h"
 

@@ -3,7 +3,7 @@
 #include "JsonResponse.h"
 #include "../core/HttpHeaderCollection.h"
 #include "HttpResponse.h"
-#include "../compat/ByteStream.h"
+#include "../transport/ByteStream.h"
 #include "../core/HttpContentTypes.h"
 
 namespace httpadv::v1::response

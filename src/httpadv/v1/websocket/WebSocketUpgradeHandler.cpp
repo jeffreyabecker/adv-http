@@ -4,7 +4,7 @@
 #include "WebSocketContext.h"
 #include "WebSocketProtocolExecution.h"
 
-#include "../compat/Span.h"
+#include "../util/Span.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
 #include "../core/HttpContext.h"

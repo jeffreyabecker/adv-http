@@ -4,7 +4,7 @@
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/compat/Clock.h"
+#include "../../src/httpadv/v1/util/Clock.h"
 
 using namespace httpadv::v1::core;
 using namespace httpadv::v1::handlers;

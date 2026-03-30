@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../compat/Availability.h"
-#include "../compat/Span.h"
+#include "Availability.h"
+#include "../util/Span.h"
 
 #include <algorithm>
 #include <cstddef>

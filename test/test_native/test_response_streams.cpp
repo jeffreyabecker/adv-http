@@ -9,7 +9,7 @@
 #include "../../src/httpadv/v1/response/FormResponse.h"
 #include "../../src/httpadv/v1/response/HttpResponse.h"
 #include "../../src/httpadv/v1/response/StringResponse.h"
-#include "../../src/httpadv/v1/compat/ByteStream.h"
+#include "../../src/httpadv/v1/transport/ByteStream.h"
 #include "../../src/httpadv/v1/streams/Streams.h"
 
 #include <algorithm>

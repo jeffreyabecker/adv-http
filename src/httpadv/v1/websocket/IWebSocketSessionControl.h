@@ -2,7 +2,7 @@
 
 #include "WebSocketFrameCodec.h"
 
-#include "../compat/Span.h"
+#include "../util/Span.h"
 
 #include <cstdint>
 #include <string_view>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../compat/Span.h"
+#include "../util/Span.h"
 
 #include <array>
 #include <cstddef>

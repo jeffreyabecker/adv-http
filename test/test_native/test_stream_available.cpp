@@ -4,8 +4,8 @@
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/compat/Availability.h"
-#include "../../src/httpadv/v1/compat/ByteStream.h"
+#include "../../src/httpadv/v1/transport/Availability.h"
+#include "../../src/httpadv/v1/transport/ByteStream.h"
 
 using namespace httpadv::v1::core;
 using namespace httpadv::v1::handlers;

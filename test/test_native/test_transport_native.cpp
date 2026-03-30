@@ -5,9 +5,9 @@
 #include <unity.h>
 
 #if defined(_WIN32)
-#include "../../src/httpadv/v1/compat/platform/windows/WindowsSocketTransport.h"
+#include "../../src/httpadv/v1/platform/windows/WindowsSocketTransport.h"
 #else
-#include "../../src/httpadv/v1/compat/platform/posix/PosixSocketTransport.h"
+#include "../../src/httpadv/v1/platform/posix/PosixSocketTransport.h"
 #endif
 
 #include <cstdint>

@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include "../compat/ByteStream.h"
+#include "../transport/ByteStream.h"
 #include "../core/Defines.h"
 
 namespace httpadv::v1::response

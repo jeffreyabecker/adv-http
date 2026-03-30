@@ -1,5 +1,5 @@
 #pragma once
-#include "../compat/Clock.h"
+#include "../util/Clock.h"
 #include "Defines.h"
 
 namespace httpadv::v1::core
