@@ -66,13 +66,5 @@ namespace httpadv::v1::transport
         virtual std::uint16_t remotePort() const = 0;
     };
 
-    class ITransportFactory
-    {
-    public:
-        virtual ~ITransportFactory() = default;
 
-        virtual std::unique_ptr<IServer> createServer(std::uint16_t port) = 0;
-        virtual std::unique_ptr<IClient> createClient(std::string_view address, std::uint16_t port) = 0;
-        virtual std::unique_ptr<IPeer> createPeer() = 0;
-    };
 }
