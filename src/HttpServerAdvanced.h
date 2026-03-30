@@ -45,6 +45,7 @@
 // Request routing
 #include "routing/BasicAuthentication.h"
 #include "routing/CrossOriginRequestSharing.h"
+#include "routing/ReplaceVariables.h"
 #include "routing/HandlerBuilder.h"
 #include "routing/HandlerMatcher.h"
 #include "routing/HandlerProviderRegistry.h"
@@ -118,6 +119,9 @@ using QueryParameters = HttpServerAdvanced::WebUtility::QueryParameters;
 using PostBodyData = QueryParameters;
 using HttpServerAdvanced::BasicAuth;
 using HttpServerAdvanced::CrossOriginRequestSharing;
+using HttpServerAdvanced::ReplaceVariables;
+using HttpServerAdvanced::ReplaceVariablesMissingValuePolicy;
+using HttpServerAdvanced::ReplaceVariablesOptions;
 using HttpServerAdvanced::HandlerMatcher;
 using HttpServerAdvanced::StaticFiles;
 using HttpServerAdvanced::WebUtility;

@@ -12,6 +12,7 @@
 #include "../../src/routing/HandlerMatcher.h"
 #include "../../src/routing/HandlerProviderRegistry.h"
 #include "../../src/routing/ProviderRegistryBuilder.h"
+#include "../../src/routing/ReplaceVariables.h"
 #include "../../src/response/StringResponse.h"
 #include "../../src/server/HttpServerBase.h"
 #include "../../src/server/WebServerBuilder.h"
@@ -996,6 +997,123 @@ namespace
         TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::AccessControlAllowHeaders, "X-Test"));
     }
 
+    void test_replace_variables_streaming_replaces_tokens_across_source_chunks_and_normalizes_headers()
+    {
+        HttpHeaderCollection headers;
+        headers.set(HttpHeaderNames::ContentType, "text/plain");
+        headers.set(HttpHeaderNames::ContentLength, "30");
+
+        std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
+            HttpStatus::Ok(),
+            std::make_unique<TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"Hello {{na", false}, {"me}} from {{ci", false}, {"ty}}!", false}}),
+            std::move(headers));
+
+        const std::vector<std::pair<std::string, std::string>> values = {
+            {"name", "Alice"},
+            {"city", "Berlin"}};
+
+        auto filter = ReplaceVariables(values);
+        response = filter(std::move(response));
+
+        TEST_ASSERT_FALSE(response->headers().exists(HttpHeaderNames::ContentLength));
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::TransferEncoding, "chunked"));
+
+        auto body = response->getBody();
+        TEST_ASSERT_EQUAL_STRING("Hello Alice from Berlin!", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+    }
+
+    void test_replace_variables_keeps_unresolved_tokens_by_default()
+    {
+        HttpHeaderCollection headers;
+        headers.set(HttpHeaderNames::ContentType, "text/plain");
+
+        std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
+            HttpStatus::Ok(),
+            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("{{missing}} + {{known}}")),
+            std::move(headers));
+
+        const std::vector<std::pair<std::string, std::string>> values = {
+            {"known", "ok"}};
+
+        auto filter = ReplaceVariables(values);
+        response = filter(std::move(response));
+
+        auto body = response->getBody();
+        TEST_ASSERT_EQUAL_STRING("{{missing}} + ok", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+    }
+
+    void test_replace_variables_respects_missing_value_policy_replace_with_empty()
+    {
+        HttpHeaderCollection headers;
+        headers.set(HttpHeaderNames::ContentType, "text/plain");
+
+        std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
+            HttpStatus::Ok(),
+            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("{{missing}} + {{known}}")),
+            std::move(headers));
+
+        const std::vector<std::pair<std::string, std::string>> values = {
+            {"known", "ok"}};
+
+        ReplaceVariablesOptions options;
+        options.missingValuePolicy = ReplaceVariablesMissingValuePolicy::ReplaceWithEmpty;
+        auto filter = ReplaceVariables(values, options);
+        response = filter(std::move(response));
+
+        auto body = response->getBody();
+        TEST_ASSERT_EQUAL_STRING(" + ok", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+    }
+
+    void test_replace_variables_skips_non_text_content_types()
+    {
+        HttpHeaderCollection headers;
+        headers.set(HttpHeaderNames::ContentType, "application/octet-stream");
+        headers.set(HttpHeaderNames::ContentLength, "9");
+
+        std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
+            HttpStatus::Ok(),
+            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("bin {{x}}")),
+            std::move(headers));
+
+        const std::vector<std::pair<std::string, std::string>> values = {
+            {"x", "ok"}};
+
+        auto filter = ReplaceVariables(values);
+        response = filter(std::move(response));
+
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::ContentLength, "9"));
+        TEST_ASSERT_FALSE(response->headers().exists(HttpHeaderNames::TransferEncoding));
+
+        auto body = response->getBody();
+        TEST_ASSERT_EQUAL_STRING("bin {{x}}", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+    }
+
+    void test_replace_variables_skips_content_encoded_responses()
+    {
+        HttpHeaderCollection headers;
+        headers.set(HttpHeaderNames::ContentType, "text/plain");
+        headers.set(HttpHeaderNames::ContentEncoding, "gzip");
+        headers.set(HttpHeaderNames::ContentLength, "8");
+
+        std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
+            HttpStatus::Ok(),
+            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("{{x}}")),
+            std::move(headers));
+
+        const std::vector<std::pair<std::string, std::string>> values = {
+            {"x", "ok"}};
+
+        auto filter = ReplaceVariables(values);
+        response = filter(std::move(response));
+
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::ContentEncoding, "gzip"));
+        TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::ContentLength, "8"));
+        TEST_ASSERT_FALSE(response->headers().exists(HttpHeaderNames::TransferEncoding));
+
+        auto body = response->getBody();
+        TEST_ASSERT_EQUAL_STRING("{{x}}", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -1016,6 +1134,11 @@ namespace
         RUN_TEST(test_basic_auth_accepts_valid_credentials_for_fixed_and_validator_overloads);
         RUN_TEST(test_cors_omits_optional_headers_and_repeated_application_preserves_existing_values);
         RUN_TEST(test_cors_does_not_overwrite_existing_headers);
+        RUN_TEST(test_replace_variables_streaming_replaces_tokens_across_source_chunks_and_normalizes_headers);
+        RUN_TEST(test_replace_variables_keeps_unresolved_tokens_by_default);
+        RUN_TEST(test_replace_variables_respects_missing_value_policy_replace_with_empty);
+        RUN_TEST(test_replace_variables_skips_non_text_content_types);
+        RUN_TEST(test_replace_variables_skips_content_encoded_responses);
         return UNITY_END();
     }
 }
