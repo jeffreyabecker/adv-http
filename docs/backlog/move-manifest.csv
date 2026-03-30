@@ -51,7 +51,6 @@ src/handlers/MultipartFormDataHandler.cpp,src/httpadv/v1/handlers/MultipartFormD
 src/handlers/MultipartFormDataHandler.h,src/httpadv/v1/handlers/MultipartFormDataHandler.h
 src/handlers/RawBodyHandler.cpp,src/httpadv/v1/handlers/RawBodyHandler.cpp
 src/handlers/RawBodyHandler.h,src/httpadv/v1/handlers/RawBodyHandler.h
-src/httpadv/namespace.h,src/httpadv/namespace.h
 src/pipeline/ConnectionSession.h,src/httpadv/v1/pipeline/ConnectionSession.h
 src/pipeline/HttpPipeline.cpp,src/httpadv/v1/pipeline/HttpPipeline.cpp
 src/pipeline/HttpPipeline.h,src/httpadv/v1/pipeline/HttpPipeline.h
