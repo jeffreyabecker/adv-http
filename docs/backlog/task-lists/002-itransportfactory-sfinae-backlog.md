@@ -23,6 +23,7 @@ Tasks
 - [ ] Update builder/consumer call sites to use the static construction pattern or shims.
 - [ ] Run native tests and Arduino verification; fix regressions.
 - [ ] Add migration documentation and sample changes for consumers.
+ - [ ] Refactor `ArduinoWifiTransport` implementation to expose implementation classes in headers (stop hiding implementation types inside the .cpp). Ensure the exposed types satisfy `transport_traits` detection and provide an incremental adaptor for existing consumers.
 
 Owner: TBD
 
@@ -33,3 +34,9 @@ References
 - Existing factory (example): [src/httpadv/v1/transport/ITransportFactory.h](src/httpadv/v1/transport/ITransportFactory.h)
 - Server builder usages: search for `ITransportFactory` and factory call sites in `src/`
 - Notes: see plans/websocket-support-plan.md and plans/externalize-request-owned-pipeline-state-implementation-plan.md for related design constraints.
+
+Arduino-specific notes
+
+- Problem: `ArduinoWifiTransport` currently hides its concrete implementation classes inside the translation unit (.cpp), which prevents compile-time detection (SFINAE) and static-construction patterns from working.
+- Proposed solution: move the minimal implementation-type declarations (or an `Impl` header) into a public header, and provide a thin inline adaptor that implements the required static methods (constructor/create) and forwards to the platform-specific implementation.
+- Acceptance: Arduino example builds and PlatformIO/Arduino targets compile; `transport_traits` detection works for `ArduinoWifiTransport`; no runtime regressions.
