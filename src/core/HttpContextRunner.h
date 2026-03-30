@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
     class HttpContext;
 
@@ -32,10 +32,10 @@ namespace HttpServerAdvanced
         virtual int onBody(const std::uint8_t *at, std::size_t length) = 0;
 
         virtual void advance(HttpContextPhaseFlags trigger) = 0;
-        virtual void onError(PipelineError error) = 0;
+        virtual void onError(httpadv::v1::pipeline::PipelineError error) = 0;
         virtual void onClientDisconnected() = 0;
 
         virtual bool hasPendingResult() const = 0;
-        virtual RequestHandlingResult takeResult() = 0;
+        virtual httpadv::v1::pipeline::RequestHandlingResult takeResult() = 0;
     };
 }

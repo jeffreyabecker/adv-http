@@ -10,29 +10,35 @@
 
 #include <ArduinoJson.h>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::handlers
 {
+    using httpadv::v1::handlers::ExtractArgsFromRequest;
+    using httpadv::v1::core::MAX_BUFFERED_JSON_BODY_LENGTH;
+    using httpadv::v1::response::IHttpResponse;
+    using httpadv::v1::routing::HandlerMatcher;
+    using httpadv::v1::handlers::RouteParameters;
+
     class JsonBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_JSON_BODY_LENGTH>
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, JsonDocument &&)> handler_;
+        std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, JsonDocument &&)> handler_;
         ExtractArgsFromRequest extractor_;
 
     public:
-        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
+        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpContext &context, RouteParameters &&, JsonDocument &&postData)
+        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](httpadv::v1::core::HttpContext &context, RouteParameters &&, JsonDocument &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
 
-        virtual IHttpHandler::HandlerResult handleBody(HttpContext &context, std::vector<uint8_t> &&body) override;
+        virtual IHttpHandler::HandlerResult handleBody(httpadv::v1::core::HttpContext &context, std::vector<uint8_t> &&body) override;
     };
     class Json
     {
     public:
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpContext &, JsonDocument &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, JsonDocument &&)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, JsonDocument &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, JsonDocument &&)>;
 
         static constexpr const char *DeserializationErrorItemKey = "Json::DeserializationError";
 
@@ -46,7 +52,7 @@ namespace HttpServerAdvanced
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler);
 
-        static const DeserializationError *deserializationError(const HttpContext &context)
+        static const DeserializationError *deserializationError(const httpadv::v1::core::HttpContext &context)
         {
             const auto &items = context.items();
             auto iterator = items.find(DeserializationErrorItemKey);
@@ -64,5 +70,5 @@ namespace HttpServerAdvanced
         }
     };
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::handlers
 #endif

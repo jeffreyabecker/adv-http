@@ -2,10 +2,10 @@
 
 #include <cassert>
 
-namespace HttpServerAdvanced {
+namespace httpadv::v1::server {
 
 HttpServerBase::HttpServerBase(std::unique_ptr<IServer> server)
-    : pipelineHandlerFactory_(nullptr), server_(std::move(server)), clock_(&DefaultClock()) {
+    : pipelineHandlerFactory_(nullptr), server_(std::move(server)), clock_(&httpadv::v1::util::DefaultClock()) {
     assert(server_ && "HttpServerBase requires a valid transport server");
 }
 
@@ -20,7 +20,7 @@ void HttpServerBase::handleClient() {
     }
 
     // Accept new connections up to the configured maximum
-    while (pipelines_.size() < HttpServerAdvanced::MAX_CONCURRENT_CONNECTIONS) {
+    while (pipelines_.size() < httpadv::v1::core::MAX_CONCURRENT_CONNECTIONS) {
         if (!server_) {
             return;
         }

@@ -9,7 +9,7 @@
 
 #include "KeyValuePairView.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::util
 {
     class WebUtility
     {

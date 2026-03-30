@@ -4,9 +4,16 @@
 
 #include "../compat/Clock.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::pipeline
 {
     class IProtocolExecution;
+}
+
+namespace httpadv::v1::server
+{
+    using httpadv::v1::transport::IClient;
+    using httpadv::v1::util::Clock;
+    using httpadv::v1::pipeline::IProtocolExecution;
 
     enum class ConnectionSessionResult
     {

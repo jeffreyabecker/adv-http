@@ -8,12 +8,12 @@
 
 #if defined(ARDUINO) && __has_include(<FS.h>)
 #include <FS.h>
-#include "../posix/VirtualPathMapperPosix.h"
+#include "../PathMapper.h"
 
 #include <optional>
 #include <utility>
 
-namespace HttpServerAdvanced::platform::arduino
+namespace httpadv::v1::platform::arduino
 {
             inline std::optional<std::size_t> FileSize(File& file, const bool isDirectory)
             {
@@ -52,7 +52,7 @@ namespace HttpServerAdvanced::platform::arduino
                 ArduinoFile(FS& fileSystem, File file, std::string fsPath, std::string path, bool directory,
                             std::optional<std::size_t> size, std::optional<uint32_t> lastWrite, FileOpenMode mode)
                     : fileSystem_(fileSystem), file_(std::move(file)), fsPath_(std::move(fsPath)), path_(std::move(path)),
-                      name_(std::string(VirtualPathMapperPosix::BasenameView(path_))), directory_(directory), size_(size),
+                      name_(std::string(httpadv::v1::platform::PosixPathMapper::BasenameView(path_))), directory_(directory), size_(size),
                       lastWrite_(lastWrite), mode_(mode)
                 {
                 }
@@ -83,7 +83,7 @@ namespace HttpServerAdvanced::platform::arduino
                     return atEndOfFile() ? ExhaustedResult() : TemporarilyUnavailableResult();
                 }
 
-                size_t read(HttpServerAdvanced::span<uint8_t> buffer) override
+                size_t read(httpadv::v1::util::span<uint8_t> buffer) override
                 {
                     if (directory_ || !file_ || !isReadable() || buffer.empty())
                     {
@@ -99,7 +99,7 @@ namespace HttpServerAdvanced::platform::arduino
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override
+                size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
                 {
                     if (directory_ || !file_ || !isReadable() || buffer.empty())
                     {
@@ -116,7 +116,7 @@ namespace HttpServerAdvanced::platform::arduino
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                std::size_t write(HttpServerAdvanced::span<const uint8_t> buffer) override
+                std::size_t write(httpadv::v1::util::span<const uint8_t> buffer) override
                 {
                     if (directory_ || !file_ || !isWritable() || buffer.empty())
                     {
@@ -229,12 +229,12 @@ namespace HttpServerAdvanced::platform::arduino
             {
               public:
                 explicit ArduinoFS(FS& fileSystem)
-                    : fileSystem_(fileSystem), mapper_(VirtualPathMapperPosix::NormalizeRootPath("/"))
+                    : fileSystem_(fileSystem), mapper_(httpadv::v1::platform::PosixPathMapper::NormalizeRootPath("/"))
                 {
                 }
 
                 ArduinoFS(FS& fileSystem, std::string_view rootPath)
-                    : fileSystem_(fileSystem), mapper_(VirtualPathMapperPosix::NormalizeRootPath(rootPath))
+                    : fileSystem_(fileSystem), mapper_(httpadv::v1::platform::PosixPathMapper::NormalizeRootPath(rootPath))
                 {
                 }
 
@@ -373,11 +373,11 @@ namespace HttpServerAdvanced::platform::arduino
                         std::string entryFsPath = CopyCString(entry.fullName());
                         if (entryFsPath.empty())
                         {
-                            entryFsPath = VirtualPathMapperPosix::JoinScopedPath(fsDirectoryPath, CopyCString(entry.name()));
+                            entryFsPath = httpadv::v1::platform::PosixPathMapper::JoinScopedPath(fsDirectoryPath, CopyCString(entry.name()));
                         }
 
-                        const std::string entryVirtualPath = VirtualPathMapperPosix::Join(virtualDirectoryPath, CopyCString(entry.name()));
-                        const DirectoryEntry directoryEntry{std::string(VirtualPathMapperPosix::BasenameView(entryVirtualPath)),
+                        const std::string entryVirtualPath = httpadv::v1::platform::PosixPathMapper::Join(virtualDirectoryPath, CopyCString(entry.name()));
+                        const DirectoryEntry directoryEntry{std::string(httpadv::v1::platform::PosixPathMapper::BasenameView(entryVirtualPath)),
                                                             entryVirtualPath, entry.isDirectory()};
                         if (!callback(directoryEntry))
                         {
@@ -417,16 +417,16 @@ namespace HttpServerAdvanced::platform::arduino
                 }
 
                 FS& fileSystem_;
-                VirtualPathMapperPosix mapper_{};
+                httpadv::v1::platform::PosixPathMapper mapper_{};
             };
-} // namespace HttpServerAdvanced::platform::arduino
+} // namespace httpadv::v1::platform::arduino
 
 #else
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::platform::arduino
 {
     class FS;
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::platform::arduino
 
 #endif

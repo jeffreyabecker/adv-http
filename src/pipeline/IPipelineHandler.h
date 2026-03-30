@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <string_view>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::pipeline
 {
 
 

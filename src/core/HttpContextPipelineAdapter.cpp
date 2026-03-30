@@ -1,6 +1,6 @@
 #include "HttpContextPipelineAdapter.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
     HttpContextPipelineAdapter::HttpContextPipelineAdapter(std::unique_ptr<HttpContextRunner> runner)
         : runner_(std::move(runner))
@@ -54,7 +54,7 @@ namespace HttpServerAdvanced
         return 0;
     }
 
-    void HttpContextPipelineAdapter::onError(PipelineError error)
+    void HttpContextPipelineAdapter::onError(httpadv::v1::pipeline::PipelineError error)
     {
         runner_->onError(error);
     }
@@ -79,7 +79,7 @@ namespace HttpServerAdvanced
         return runner_->hasPendingResult();
     }
 
-    RequestHandlingResult HttpContextPipelineAdapter::takeResult()
+    httpadv::v1::pipeline::RequestHandlingResult HttpContextPipelineAdapter::takeResult()
     {
         return runner_->takeResult();
     }

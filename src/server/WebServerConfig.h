@@ -5,8 +5,16 @@
 #include <type_traits>
 #include <utility>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::server
 {   
+    using httpadv::v1::core::HttpContentTypes;
+    using httpadv::v1::handlers::IHttpHandler;
+    using httpadv::v1::response::IHttpResponse;
+    using httpadv::v1::routing::HandlerBuilder;
+    using httpadv::v1::routing::HandlerMatcher;
+    using httpadv::v1::routing::HandlerProviderRegistry;
+    using httpadv::v1::routing::ProviderRegistryBuilder;
+
     class WebServerConfig
     {
     private:
@@ -48,24 +56,24 @@ namespace HttpServerAdvanced
         }
 
         // Template methods for handler registration
-        template <typename THandler = HttpServerAdvanced::GetRequest, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler = httpadv::v1::handlers::GetRequest, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const HandlerMatcher &request, const typename THandler::Invocation &handler)
         {
             return builder_.handlers().on<THandler>(request, handler);
         }
 
-        template <typename THandler = HttpServerAdvanced::GetRequest, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler = httpadv::v1::handlers::GetRequest, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const HandlerMatcher &request, const typename THandler::InvocationWithoutParams &handler)
         {
             return builder_.handlers().on<THandler>(request, handler);
         }
-        template <typename THandler = HttpServerAdvanced::GetRequest, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler = httpadv::v1::handlers::GetRequest, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const char *path, const typename THandler::Invocation &handler)
         {
             return builder_.handlers().on<THandler>(path, handler);
         }
 
-        template <typename THandler = HttpServerAdvanced::GetRequest, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler = httpadv::v1::handlers::GetRequest, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const char *path, const typename THandler::InvocationWithoutParams &handler)
         {
             return builder_.handlers().on<THandler>(path, handler);

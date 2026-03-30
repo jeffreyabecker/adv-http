@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::transport
 {
     enum class AvailabilityState
     {

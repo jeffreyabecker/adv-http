@@ -14,14 +14,16 @@
 #include <string>
 #include <string_view>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {   
+    using httpadv::v1::util::UriView;
+
     class HttpContextAccess;
 
     class HttpContext
     {
     public:
-        HttpContext(HttpServerAdvanced::HttpServerBase &server, IHttpContextHandlerFactory& handlerFactory)
+        HttpContext(httpadv::v1::server::HttpServerBase &server, IHttpContextHandlerFactory& handlerFactory)
             : server_(server),
               method_(), version_(), url_(), headers_(),
               remoteAddress_(), remotePort_(0), localAddress_(), localPort_(0),
@@ -31,7 +33,7 @@ namespace HttpServerAdvanced
 
 
     private:
-        HttpServerAdvanced::HttpServerBase &server_;
+        httpadv::v1::server::HttpServerBase &server_;
         const HttpContextPhaseFlags *completedPhases_ = nullptr;
         mutable std::map<std::string, std::any> items_;
 
@@ -77,7 +79,7 @@ namespace HttpServerAdvanced
             completedPhases_ = completedPhases;
         }
 
-        std::unique_ptr<IHttpHandler> createHandler()
+        std::unique_ptr<httpadv::v1::handlers::IHttpHandler> createHandler()
         {
             return handlerFactory_.create(*this);
         }
@@ -90,7 +92,7 @@ namespace HttpServerAdvanced
     public:
         ~HttpContext() = default;
 
-        inline HttpServerAdvanced::HttpServerBase &server() { return server_; }
+        inline httpadv::v1::server::HttpServerBase &server() { return server_; }
         inline HttpContextPhaseFlags completedPhases() const { return completedPhases_ != nullptr ? *completedPhases_ : 0; }
 
         // Legacy request accessors preserved on the final context type.
@@ -108,7 +110,7 @@ namespace HttpServerAdvanced
         inline std::map<std::string, std::any> &items() const{
             return items_;
         }
-        inline std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string body)
+        inline std::unique_ptr<httpadv::v1::response::IHttpResponse> createResponse(HttpStatus status, std::string body)
         {
             return handlerFactory_.createResponse(status, std::move(body));
         }
@@ -123,7 +125,7 @@ namespace HttpServerAdvanced
         }
 
     public:
-        static PipelineHandlerPtr createPipelineHandler(HttpServerAdvanced::HttpServerBase &server, IHttpContextHandlerFactory& handlerFactory);
+        static httpadv::v1::pipeline::PipelineHandlerPtr createPipelineHandler(httpadv::v1::server::HttpServerBase &server, IHttpContextHandlerFactory& handlerFactory);
 
         friend class DeferredRegistryHandler;
     };

@@ -8,7 +8,7 @@
 #include "HandlerRestrictions.h"
 #include "../routing/HandlerMatcher.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::handlers
 {
     class RawBodyBuffer
     {
@@ -40,7 +40,7 @@ namespace HttpServerAdvanced
     class RawBodyHandler : public IHttpHandler
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &, RawBodyBuffer)> handler_;
+        std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, RawBodyBuffer)> handler_;
         ExtractArgsFromRequest extractor_;
         HandlerResult response_;
         RouteParameters params_;
@@ -48,21 +48,21 @@ namespace HttpServerAdvanced
         size_t contentLength_{0};
 
     public:
-        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpContext &context, RouteParameters &, RawBodyBuffer buffer)
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](httpadv::v1::core::HttpContext &context, RouteParameters &, RawBodyBuffer buffer)
                        { return handler(context, buffer); }),
               extractor_(extractor) {}
 
-        virtual HandlerResult handleStep(HttpContext &context);
-        virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length);
+        virtual HandlerResult handleStep(httpadv::v1::core::HttpContext &context);
+        virtual void handleBodyChunk(httpadv::v1::core::HttpContext &context, const uint8_t *at, std::size_t length);
     };
     class RawBody
     {
     public:
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpContext &, RawBodyBuffer)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &, RawBodyBuffer)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RawBodyBuffer)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, RawBodyBuffer)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 
@@ -73,7 +73,7 @@ namespace HttpServerAdvanced
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler);
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler);
-        static void restrict(HandlerMatcher &baseUri)
+        static void restrict(httpadv::v1::routing::HandlerMatcher &baseUri)
         {
         }
     };

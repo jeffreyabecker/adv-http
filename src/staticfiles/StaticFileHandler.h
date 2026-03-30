@@ -15,7 +15,14 @@
 #include <string>
 #include <vector>
 
-namespace HttpServerAdvanced {
+namespace httpadv::v1::staticfiles {
+using httpadv::v1::core::HttpContext;
+using httpadv::v1::handlers::IHandlerProvider;
+using httpadv::v1::handlers::IHttpHandler;
+using httpadv::v1::response::IHttpResponse;
+using httpadv::v1::routing::HandlerMatcher;
+using httpadv::v1::transport::IFile;
+
 class StaticFileHandlerFactory : public IHandlerProvider {
 private:
   class DecoratedHandler;
@@ -37,7 +44,7 @@ public:
   };
 
 private:
-  HttpServerAdvanced::HttpContentTypes &contentTypes_;
+  httpadv::v1::core::HttpContentTypes &contentTypes_;
   std::shared_ptr<FileLocator> ownedFileLocator_{};
   FileLocator *fileLocator_ = nullptr;
   std::vector<ResponseFilterRule> responseFilterRules_;
@@ -51,12 +58,12 @@ private:
 
 public:
   StaticFileHandlerFactory(FileLocator &fileLocator,
-                           HttpServerAdvanced::HttpContentTypes &contentTypes,
+                           httpadv::v1::core::HttpContentTypes &contentTypes,
                            std::vector<ResponseFilterRule> responseFilterRules = {},
                            std::vector<InterceptorRule> interceptorRules = {},
                            std::vector<RequestPredicateRule> requestPredicateRules = {});
   StaticFileHandlerFactory(std::shared_ptr<FileLocator> fileLocator,
-                           HttpServerAdvanced::HttpContentTypes &contentTypes,
+                           httpadv::v1::core::HttpContentTypes &contentTypes,
                            std::vector<ResponseFilterRule> responseFilterRules = {},
                            std::vector<InterceptorRule> interceptorRules = {},
                            std::vector<RequestPredicateRule> requestPredicateRules = {});
@@ -65,4 +72,4 @@ public:
   void setFileLocator(FileLocator &fileLocator);
 };
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::staticfiles

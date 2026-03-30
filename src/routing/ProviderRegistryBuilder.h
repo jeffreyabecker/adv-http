@@ -15,8 +15,16 @@
 #include <string_view>
 #include <utility>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::routing
 {
+    using httpadv::v1::handlers::ExtractArgsFromRequest;
+    using httpadv::v1::handlers::GetRequest;
+    using httpadv::v1::handlers::HttpHandler;
+    using httpadv::v1::handlers::IHttpHandler;
+    using httpadv::v1::handlers::RouteParameters;
+    using httpadv::v1::websocket::WebSocketCallbacks;
+    using httpadv::v1::websocket::WebSocketUpgradeHandler;
+
     // Forward declaration
     template <typename THandler> class HandlerBuilder;
 
@@ -53,7 +61,7 @@ namespace HttpServerAdvanced
         inline void on(HandlerMatcher &request, IHttpHandler::Factory handler)
         {
             providerRegistry_.add(
-                [&request](HttpContext &context)
+                [&request](httpadv::v1::core::HttpContext &context)
                 {
                     return request.canHandle(context);
                 },
@@ -64,14 +72,14 @@ namespace HttpServerAdvanced
         {
             std::string registeredPath(path);
             providerRegistry_.add(
-                [registeredPath](HttpContext &context)
+                [registeredPath](httpadv::v1::core::HttpContext &context)
                 {
                     return WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(context) && defaultCheckUriPattern(context.uriView().path(), registeredPath);
                 },
-                [callbacks = std::move(callbacks)](HttpContext &) mutable -> std::unique_ptr<IHttpHandler>
+                [callbacks = std::move(callbacks)](httpadv::v1::core::HttpContext &) mutable -> std::unique_ptr<IHttpHandler>
                 {
                     return std::make_unique<HttpHandler>(
-                        [callbacks = std::move(callbacks)](HttpContext &context) mutable -> IHttpHandler::HandlerResult
+                        [callbacks = std::move(callbacks)](httpadv::v1::core::HttpContext &context) mutable -> IHttpHandler::HandlerResult
                         {
                             WebSocketUpgradeHandler upgradeHandler;
                             return upgradeHandler.handle(context, callbacks);
@@ -84,13 +92,13 @@ namespace HttpServerAdvanced
         }
 
         // Template methods for handler registration
-        template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const HandlerMatcher &request, const typename THandler::Invocation &handler)
         {
             HandlerMatcher req = request;
             THandler::restrict(req);
             // Adapt HandlerMatcher's ArgsExtractor (takes 2 params) to ExtractArgsFromRequest (takes 1 param)
-            ExtractArgsFromRequest adapterExtractor = [req](HttpContext &context) { return req.extractParameters(context); };
+            ExtractArgsFromRequest adapterExtractor = [req](httpadv::v1::core::HttpContext &context) { return req.extractParameters(context); };
             auto addHandler = [this](IHttpHandler::Predicate predicate, IHttpHandler::Factory factory)
             {
                 providerRegistry_.add(std::move(predicate), std::move(factory));
@@ -98,7 +106,7 @@ namespace HttpServerAdvanced
             return HandlerBuilder<THandler>(std::move(addHandler), request, handler, adapterExtractor);
         }
 
-        template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const HandlerMatcher &request, const typename THandler::InvocationWithoutParams &handler)
         {
             HandlerMatcher req = request;
@@ -109,13 +117,13 @@ namespace HttpServerAdvanced
             };
             return HandlerBuilder<THandler>(std::move(addHandler), request, handler);
         }
-        template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const char *path, const typename THandler::Invocation &handler)
         {
             HandlerMatcher request(path);
             THandler::restrict(request);
             // Adapt HandlerMatcher's ArgsExtractor (takes 2 params) to ExtractArgsFromRequest (takes 1 param)
-            ExtractArgsFromRequest adapterExtractor = [request](HttpContext &context) { return request.extractParameters(context); };
+            ExtractArgsFromRequest adapterExtractor = [request](httpadv::v1::core::HttpContext &context) { return request.extractParameters(context); };
             auto addHandler = [this](IHttpHandler::Predicate predicate, IHttpHandler::Factory factory)
             {
                 providerRegistry_.add(std::move(predicate), std::move(factory));
@@ -123,7 +131,7 @@ namespace HttpServerAdvanced
             return HandlerBuilder<THandler>(std::move(addHandler), request, handler, adapterExtractor);
         }
 
-        template <typename THandler, typename = std::enable_if_t<HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const char *path, const typename THandler::InvocationWithoutParams &handler)
         {
             HandlerMatcher request(path);
@@ -137,11 +145,11 @@ namespace HttpServerAdvanced
 
         void onNotFound(IHttpHandler::InvocationCallback invocation)
         {
-            providerRegistry_.setDefaultHandlerFactory([invocation](HttpContext &context)
-                                              { return std::make_unique<HttpHandler>(invocation, [](const HttpContext &)
+            providerRegistry_.setDefaultHandlerFactory([invocation](httpadv::v1::core::HttpContext &context)
+                                              { return std::make_unique<HttpHandler>(invocation, [](const httpadv::v1::core::HttpContext &)
                                                                                      { return true; }); });
         }
     };
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::routing
 
 

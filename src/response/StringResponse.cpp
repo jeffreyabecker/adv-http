@@ -4,11 +4,11 @@
 #include <string>
 #include <string_view>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::response
 {
     namespace
     {
-        HttpHeaderCollection buildHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength, std::string_view defaultContentType = HttpContentTypes::TextPlain)
+        HttpHeaderCollection buildHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength, std::string_view defaultContentType = httpadv::v1::core::HttpContentTypes::TextPlain)
         {
             HttpHeaderCollection headersCollection;
             for (const auto &header : headers)
@@ -65,7 +65,7 @@ namespace HttpServerAdvanced
     std::unique_ptr<IHttpResponse> StringResponse::create(HttpStatus status, const uint8_t *body, size_t length, std::initializer_list<HttpHeader> headers)
     {
         auto headersCollection = buildHeaders(headers, length);
-        auto bodySource = std::make_unique<VectorByteSource>(std::vector<uint8_t>(body, body + length));
+        auto bodySource = std::make_unique<httpadv::v1::transport::VectorByteSource>(std::vector<uint8_t>(body, body + length));
         return std::make_unique<HttpResponse>(status, std::move(bodySource), std::move(headersCollection));
     }
 

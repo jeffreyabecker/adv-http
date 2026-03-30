@@ -2,8 +2,10 @@
 #include "../compat/Clock.h"
 #include "Defines.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
+    using httpadv::v1::util::ClockMillis;
+
 
     /// @brief Timeouts related to HTTP Server operations
     ///

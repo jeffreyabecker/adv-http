@@ -3,8 +3,14 @@
 #include "../routing/HandlerProviderRegistry.h"
 #include "../response/StringResponse.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
+    using httpadv::v1::handlers::HandlerResult;
+    using httpadv::v1::handlers::IHttpHandler;
+    using httpadv::v1::response::IHttpResponse;
+    using httpadv::v1::response::StringResponse;
+    using httpadv::v1::routing::HandlerProviderRegistry;
+
     class HttpContext;
 
     class DeferredRegistryHandler : public IHttpHandler
@@ -72,7 +78,7 @@ namespace HttpServerAdvanced
             return StringResponse::create(status, std::move(body), {});
         }
     };
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::core
 
 
 

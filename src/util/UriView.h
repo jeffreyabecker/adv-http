@@ -5,7 +5,7 @@
 
 #include "HttpUtility.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::util
 {
     class UriView
     {

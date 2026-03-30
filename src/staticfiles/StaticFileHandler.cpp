@@ -13,19 +13,19 @@ bool EndsWith(std::string_view value, std::string_view suffix) {
              0;
 }
 
-class DecoratedStaticHandler : public HttpServerAdvanced::IHttpHandler {
+class DecoratedStaticHandler : public httpadv::v1::handlers::IHttpHandler {
 public:
   DecoratedStaticHandler(
-      std::unique_ptr<HttpServerAdvanced::IHttpHandler> innerHandler,
-      HttpServerAdvanced::IHttpResponse::ResponseFilter responseFilter,
-      HttpServerAdvanced::IHttpHandler::InterceptorCallback interceptor)
+      std::unique_ptr<httpadv::v1::handlers::IHttpHandler> innerHandler,
+      httpadv::v1::response::IHttpResponse::ResponseFilter responseFilter,
+      httpadv::v1::handlers::IHttpHandler::InterceptorCallback interceptor)
       : innerHandler_(std::move(innerHandler)),
         responseFilter_(std::move(responseFilter)),
         interceptor_(std::move(interceptor)) {}
 
-  HandlerResult handleStep(HttpServerAdvanced::HttpContext &context) override {
+  HandlerResult handleStep(httpadv::v1::core::HttpContext &context) override {
     HandlerResult result = interceptor_
-                               ? interceptor_(context, [this](HttpServerAdvanced::HttpContext &innerContext) {
+                               ? interceptor_(context, [this](httpadv::v1::core::HttpContext &innerContext) {
                                    return innerHandler_->handleStep(innerContext);
                                  })
                                : innerHandler_->handleStep(context);
@@ -37,19 +37,19 @@ public:
     return result;
   }
 
-  void handleBodyChunk(HttpServerAdvanced::HttpContext &context,
+  void handleBodyChunk(httpadv::v1::core::HttpContext &context,
                        const uint8_t *at, std::size_t length) override {
     innerHandler_->handleBodyChunk(context, at, length);
   }
 
 private:
-  std::unique_ptr<HttpServerAdvanced::IHttpHandler> innerHandler_;
-  HttpServerAdvanced::IHttpResponse::ResponseFilter responseFilter_;
-  HttpServerAdvanced::IHttpHandler::InterceptorCallback interceptor_;
+  std::unique_ptr<httpadv::v1::handlers::IHttpHandler> innerHandler_;
+  httpadv::v1::response::IHttpResponse::ResponseFilter responseFilter_;
+  httpadv::v1::handlers::IHttpHandler::InterceptorCallback interceptor_;
 };
 } // namespace
 
-namespace HttpServerAdvanced {
+namespace httpadv::v1::staticfiles {
 std::optional<std::string>
 StaticFileHandlerFactory::getEtag(const IFile &file) {
   const std::optional<std::size_t> size = file.size();
@@ -89,7 +89,7 @@ StaticFileHandlerFactory::getLastWriteValue(const IFile &file) {
 // Public methods
 StaticFileHandlerFactory::StaticFileHandlerFactory(
     FileLocator &fileLocator,
-    HttpServerAdvanced::HttpContentTypes &contentTypes,
+    httpadv::v1::core::HttpContentTypes &contentTypes,
     std::vector<ResponseFilterRule> responseFilterRules,
     std::vector<InterceptorRule> interceptorRules,
     std::vector<RequestPredicateRule> requestPredicateRules)
@@ -101,7 +101,7 @@ StaticFileHandlerFactory::StaticFileHandlerFactory(
 
 StaticFileHandlerFactory::StaticFileHandlerFactory(
     std::shared_ptr<FileLocator> fileLocator,
-    HttpServerAdvanced::HttpContentTypes &contentTypes,
+    httpadv::v1::core::HttpContentTypes &contentTypes,
     std::vector<ResponseFilterRule> responseFilterRules,
     std::vector<InterceptorRule> interceptorRules,
     std::vector<RequestPredicateRule> requestPredicateRules)
@@ -209,13 +209,13 @@ bool StaticFileHandlerFactory::canHandle(HttpContext &context) {
 std::unique_ptr<IHttpHandler>
 StaticFileHandlerFactory::create(HttpContext &context) {
   const std::string_view method = context.methodView();
-  bool isGet = (method == HttpMethod::Get);
-  bool isHead = (method == HttpMethod::Head);
+  bool isGet = (method == httpadv::v1::core::HttpMethod::Get);
+  bool isHead = (method == httpadv::v1::core::HttpMethod::Head);
 
   if (!isGet && !isHead) {
-    return decorateHandler(context, HttpHandler::create(StringResponse::create(
-        HttpStatus::MethodNotAllowed(), "Method Not Allowed",
-        {std::move(HttpHeader::Allow("GET, HEAD"))})));
+    return decorateHandler(context, httpadv::v1::handlers::HttpHandler::create(httpadv::v1::response::StringResponse::create(
+      httpadv::v1::core::HttpStatus::MethodNotAllowed(), "Method Not Allowed",
+      {std::move(httpadv::v1::core::HttpHeader::Allow("GET, HEAD"))})));
   }
 
   if (fileLocator_ == nullptr) {
@@ -224,8 +224,8 @@ StaticFileHandlerFactory::create(HttpContext &context) {
 
   FileHandle file = fileLocator_->getFile(context);
   if (!file) {
-    return decorateHandler(context, HttpHandler::create(
-      StringResponse::create(HttpStatus::NotFound(), "Not Found", {})));
+    return decorateHandler(context, httpadv::v1::handlers::HttpHandler::create(
+      httpadv::v1::response::StringResponse::create(httpadv::v1::core::HttpStatus::NotFound(), "Not Found", {})));
   }
 
   const std::string_view filePath = file->path();
@@ -239,31 +239,31 @@ StaticFileHandlerFactory::create(HttpContext &context) {
     contentType = contentTypes_.getContentTypeFromPath(filePath);
   }
 
-  HttpHeaderCollection headers;
-  headers.push_back(HttpHeader::ContentType(contentType));
+  httpadv::v1::core::HttpHeaderCollection headers;
+  headers.push_back(httpadv::v1::core::HttpHeader::ContentType(contentType));
   if (const std::optional<std::size_t> fileSize = file->size();
       fileSize.has_value()) {
     const std::string contentLength = std::to_string(*fileSize);
-    headers.push_back(HttpHeader::ContentLength(contentLength.c_str()));
+    headers.push_back(httpadv::v1::core::HttpHeader::ContentLength(contentLength.c_str()));
   }
 
   if (const std::optional<std::string> etag = getEtag(*file);
       etag.has_value()) {
-    headers.push_back(HttpHeader::ETag(std::move(*etag)));
+    headers.push_back(httpadv::v1::core::HttpHeader::ETag(std::move(*etag)));
   }
 
   if (const std::optional<std::string> lastModified = getLastWriteValue(*file);
       lastModified.has_value()) {
-    headers.push_back(HttpHeader::LastModified(std::move(*lastModified)));
+    headers.push_back(httpadv::v1::core::HttpHeader::LastModified(std::move(*lastModified)));
   }
 
   if (isGzipped) {
-    headers.push_back(HttpHeader::ContentEncoding("gzip"));
+    headers.push_back(httpadv::v1::core::HttpHeader::ContentEncoding("gzip"));
   }
 
-  std::unique_ptr<IByteSource> body = std::move(file);
-  return decorateHandler(context, HttpHandler::create(std::make_unique<HttpResponse>(
-      HttpStatus::Ok(), std::move(body), std::move(headers))));
+    std::unique_ptr<httpadv::v1::transport::IByteSource> body = std::move(file);
+    return decorateHandler(context, httpadv::v1::handlers::HttpHandler::create(std::make_unique<httpadv::v1::response::HttpResponse>(
+      httpadv::v1::core::HttpStatus::Ok(), std::move(body), std::move(headers))));
 }
 
 void StaticFileHandlerFactory::setFileLocator(FileLocator &fileLocator) {

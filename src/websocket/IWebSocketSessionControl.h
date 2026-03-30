@@ -7,8 +7,10 @@
 #include <cstdint>
 #include <string_view>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::websocket
 {
+    using httpadv::v1::util::span;
+
     enum class WebSocketSendResult
     {
         Queued,

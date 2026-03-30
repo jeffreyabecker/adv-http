@@ -1,7 +1,7 @@
 #include "HttpHeaderCollection.h"
 #include "HttpHeader.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
     void HttpHeaderCollection::set(const HttpHeader &header, bool forceOverwrite)
     {

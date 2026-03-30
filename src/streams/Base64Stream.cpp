@@ -1,7 +1,7 @@
 #include "Base64Stream.h"
 #include <cstring>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::streams
 {
     // Base64DecoderStream
 
@@ -52,12 +52,12 @@ namespace HttpServerAdvanced
     }
 
     Base64DecoderStream::Base64DecoderStream(const char *data, const char *dictionary)
-        : Base64DecoderStream(std::make_unique<SpanByteSource>(reinterpret_cast<const uint8_t *>(data), strlen(data)), strlen(data), dictionary)
+        : Base64DecoderStream(std::make_unique<httpadv::v1::transport::SpanByteSource>(reinterpret_cast<const uint8_t *>(data), strlen(data)), strlen(data), dictionary)
     {
     }
 
     Base64DecoderStream::Base64DecoderStream(const uint8_t *data, size_t length, const char *dictionary)
-        : Base64DecoderStream(std::make_unique<SpanByteSource>(data, length), length, dictionary)
+        : Base64DecoderStream(std::make_unique<httpadv::v1::transport::SpanByteSource>(data, length), length, dictionary)
     {
     }
 
@@ -75,30 +75,30 @@ namespace HttpServerAdvanced
     {
         if (bufferPos_ < bufferSize_)
         {
-            return AvailableBytes(static_cast<size_t>(bufferSize_ - bufferPos_));
+            return httpadv::v1::transport::AvailableBytes(static_cast<size_t>(bufferSize_ - bufferPos_));
         }
 
         if (totalLength_ > 0)
         {
             const size_t remaining = decodedLength_ > readPosition_ ? (decodedLength_ - readPosition_) : 0;
-            return remaining > 0 ? AvailableBytes(remaining) : ExhaustedResult();
+            return remaining > 0 ? httpadv::v1::transport::AvailableBytes(remaining) : httpadv::v1::transport::ExhaustedResult();
         }
 
         if (!underlyingStream_)
         {
-            return ExhaustedResult();
+            return httpadv::v1::transport::ExhaustedResult();
         }
 
         const AvailableResult underlyingAvailable = underlyingStream_->available();
         if (underlyingAvailable.hasBytes())
         {
-            return AvailableBytes((underlyingAvailable.count / 4) * 3);
+            return httpadv::v1::transport::AvailableBytes((underlyingAvailable.count / 4) * 3);
         }
 
         return underlyingAvailable;
     }
 
-    size_t Base64DecoderStream::read(HttpServerAdvanced::span<uint8_t> buffer)
+    size_t Base64DecoderStream::read(httpadv::v1::util::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -115,7 +115,7 @@ namespace HttpServerAdvanced
         return totalRead;
     }
 
-    size_t Base64DecoderStream::peek(HttpServerAdvanced::span<uint8_t> buffer)
+    size_t Base64DecoderStream::peek(httpadv::v1::util::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {
@@ -200,42 +200,42 @@ namespace HttpServerAdvanced
 
     Base64EncoderStream Base64EncoderStream::create(const uint8_t *data, size_t length, bool isUrlSafe, bool emitPadding)
     {
-        return Base64EncoderStream(std::make_unique<SpanByteSource>(data, length), length, isUrlSafe ? base64_url_chars : base64_chars, !isUrlSafe && emitPadding);
+        return Base64EncoderStream(std::make_unique<httpadv::v1::transport::SpanByteSource>(data, length), length, isUrlSafe ? base64_url_chars : base64_chars, !isUrlSafe && emitPadding);
     }
 
     Base64EncoderStream Base64EncoderStream::create(const char *data, bool isUrlSafe, bool emitPadding)
     {
-        return Base64EncoderStream(std::make_unique<SpanByteSource>(reinterpret_cast<const uint8_t *>(data), strlen(data)), strlen(data), isUrlSafe ? base64_url_chars : base64_chars, !isUrlSafe && emitPadding);
+        return Base64EncoderStream(std::make_unique<httpadv::v1::transport::SpanByteSource>(reinterpret_cast<const uint8_t *>(data), strlen(data)), strlen(data), isUrlSafe ? base64_url_chars : base64_chars, !isUrlSafe && emitPadding);
     }
 
     AvailableResult Base64EncoderStream::available()
     {
         if (bufferPos_ < bufferSize_)
         {
-            return AvailableBytes(static_cast<size_t>(bufferSize_ - bufferPos_));
+            return httpadv::v1::transport::AvailableBytes(static_cast<size_t>(bufferSize_ - bufferPos_));
         }
 
         if (totalLength_ > 0)
         {
             const size_t remaining = encodedLength_ > readPosition_ ? (encodedLength_ - readPosition_) : 0;
-            return remaining > 0 ? AvailableBytes(remaining) : ExhaustedResult();
+            return remaining > 0 ? httpadv::v1::transport::AvailableBytes(remaining) : httpadv::v1::transport::ExhaustedResult();
         }
 
         if (!underlyingStream_)
         {
-            return ExhaustedResult();
+            return httpadv::v1::transport::ExhaustedResult();
         }
 
         const AvailableResult underlyingAvailable = underlyingStream_->available();
         if (underlyingAvailable.hasBytes())
         {
-            return AvailableBytes(1);
+            return httpadv::v1::transport::AvailableBytes(1);
         }
 
         return underlyingAvailable;
     }
 
-    size_t Base64EncoderStream::read(HttpServerAdvanced::span<uint8_t> buffer)
+    size_t Base64EncoderStream::read(httpadv::v1::util::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -252,7 +252,7 @@ namespace HttpServerAdvanced
         return totalRead;
     }
 
-    size_t Base64EncoderStream::peek(HttpServerAdvanced::span<uint8_t> buffer)
+    size_t Base64EncoderStream::peek(httpadv::v1::util::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {

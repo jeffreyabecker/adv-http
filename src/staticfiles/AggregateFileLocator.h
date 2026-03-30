@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::staticfiles
 {
     class AggregateFileLocator : public FileLocator
     {

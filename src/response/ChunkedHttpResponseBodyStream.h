@@ -3,8 +3,11 @@
 #include "../compat/ByteStream.h"
 #include "../core/Defines.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::response
 {
+  using httpadv::v1::transport::AvailableResult;
+  using httpadv::v1::transport::IByteSource;
+
 
   /**
    * @brief Wraps a stream and emits HTTP chunked transfer encoding on-the-fly.
@@ -34,7 +37,7 @@ namespace HttpServerAdvanced
     size_t trailerPos_ = 0;
     size_t finalPos_ = 0;
 
-    static constexpr size_t chunkDataSize_ = HttpServerAdvanced::ETHERNET_FRAME_BUFFER_SIZE;
+    static constexpr size_t chunkDataSize_ = httpadv::v1::core::ETHERNET_FRAME_BUFFER_SIZE;
     static constexpr const char trailer_[3] = "\r\n";
     static constexpr const char finalChunk_[6] = "0\r\n\r\n";
 
@@ -50,9 +53,9 @@ namespace HttpServerAdvanced
     explicit ChunkedHttpResponseBodyStream(std::unique_ptr<IByteSource> innerSource);
     static std::unique_ptr<IByteSource> create(std::unique_ptr<IByteSource> innerSource);
     AvailableResult available() override;
-    size_t read(HttpServerAdvanced::span<uint8_t> buffer) override;
-    size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override;
+    size_t read(httpadv::v1::util::span<uint8_t> buffer) override;
+    size_t peek(httpadv::v1::util::span<uint8_t> buffer) override;
   };
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::response
 

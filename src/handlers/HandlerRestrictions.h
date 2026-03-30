@@ -5,15 +5,20 @@
 #include "../core/Defines.h"
 #include "../response/IHttpResponse.h"
 #include "IHttpHandler.h"
-namespace HttpServerAdvanced
+
+namespace httpadv::v1::routing
 {
-    class HandlerProviderRegistry;
     class HandlerMatcher;
-    
+}
+
+namespace httpadv::v1::handlers
+{
+    using httpadv::v1::response::IHttpResponse;
+
     // Forward declare for trait checking
     using RouteParameter = std::string;
     using RouteParameters = std::vector<RouteParameter>;
-    using ExtractArgsFromRequest = std::function<RouteParameters(class HttpContext &context)>;
+    using ExtractArgsFromRequest = std::function<RouteParameters(httpadv::v1::core::HttpContext &context)>;
 
     namespace HandlerRestrictions
     {
@@ -109,9 +114,9 @@ namespace HttpServerAdvanced
         };
 
         template <typename T>
-        struct has_restrict<T, std::void_t<decltype(T::restrict(std::declval<HandlerMatcher&>()))>> : std::true_type
+        struct has_restrict<T, std::void_t<decltype(T::restrict(std::declval<httpadv::v1::routing::HandlerMatcher&>()))>> : std::true_type
         {
         };
     }
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::handlers
 

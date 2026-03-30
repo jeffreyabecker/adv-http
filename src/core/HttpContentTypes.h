@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
     class HttpContentTypes
     {

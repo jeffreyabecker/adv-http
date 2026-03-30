@@ -1,7 +1,7 @@
 #include "AggregateFileLocator.h"
 #include "../core/HttpContext.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::staticfiles
 {
     void AggregateFileLocator::add(FileLocator *locator, bool takeOwnership)
     {

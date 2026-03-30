@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
     using HttpContextPhaseFlags = uint8_t;
     namespace HttpContextPhase

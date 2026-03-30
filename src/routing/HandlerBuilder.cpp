@@ -1,6 +1,6 @@
 #include "HandlerBuilder.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::routing
 {
     // Template specialization implementations will go here if needed
     // Note: HandlerBuilder is a template class, so most code must remain in the header

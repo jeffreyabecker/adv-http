@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::transport
 {
     inline int LegacyAvailableFromResult(const AvailableResult &result)
     {
@@ -38,21 +38,21 @@ namespace HttpServerAdvanced
         virtual ~IByteSource() = default;
 
         virtual AvailableResult available() = 0;
-        virtual size_t read(HttpServerAdvanced::span<uint8_t> buffer) = 0;
+        virtual size_t read(httpadv::v1::util::span<uint8_t> buffer) = 0;
         virtual int read(){
             uint8_t byte = 0;
-            return read(HttpServerAdvanced::span<uint8_t>(&byte, 1)) == 0 ? -1 : byte;
+            return read(httpadv::v1::util::span<uint8_t>(&byte, 1)) == 0 ? -1 : byte;
         }
         virtual size_t readBytes(uint8_t *buffer, size_t size)
         {
-            return read(HttpServerAdvanced::span<uint8_t>(buffer, size));
+            return read(httpadv::v1::util::span<uint8_t>(buffer, size));
         }
         virtual size_t peek(uint8_t *buffer, size_t size)
         {
-            return peek(HttpServerAdvanced::span<uint8_t>(buffer, size));
+            return peek(httpadv::v1::util::span<uint8_t>(buffer, size));
         }
 
-        virtual size_t peek(HttpServerAdvanced::span<uint8_t> buffer) = 0;
+        virtual size_t peek(httpadv::v1::util::span<uint8_t> buffer) = 0;
     };
 
     class IByteSink
@@ -62,17 +62,17 @@ namespace HttpServerAdvanced
 
         virtual std::size_t write(std::uint8_t byte)
         {
-            return write(HttpServerAdvanced::span<const uint8_t>(&byte, 1));
+            return write(httpadv::v1::util::span<const uint8_t>(&byte, 1));
         }
         virtual std::size_t write(std::uint8_t* buffer, std::size_t size)
         {
-            return write(HttpServerAdvanced::span<const uint8_t>(buffer, size));
+            return write(httpadv::v1::util::span<const uint8_t>(buffer, size));
         }
-        virtual std::size_t write(HttpServerAdvanced::span<const uint8_t> buffer) = 0;
+        virtual std::size_t write(httpadv::v1::util::span<const uint8_t> buffer) = 0;
 
         std::size_t write(std::string_view buffer)
         {
-            return write(HttpServerAdvanced::span<const uint8_t>(reinterpret_cast<const std::uint8_t *>(buffer.data()), buffer.size()));
+            return write(httpadv::v1::util::span<const uint8_t>(reinterpret_cast<const std::uint8_t *>(buffer.data()), buffer.size()));
         }
 
         virtual void flush() = 0;
@@ -87,13 +87,13 @@ namespace HttpServerAdvanced
     inline int ReadByte(IByteSource &source)
     {
         uint8_t byte = 0;
-        return source.read(HttpServerAdvanced::span<uint8_t>(&byte, 1)) == 0 ? -1 : byte;
+        return source.read(httpadv::v1::util::span<uint8_t>(&byte, 1)) == 0 ? -1 : byte;
     }
 
     inline int PeekByte(IByteSource &source)
     {
         uint8_t byte = 0;
-        return source.peek(HttpServerAdvanced::span<uint8_t>(&byte, 1)) == 0 ? -1 : byte;
+        return source.peek(httpadv::v1::util::span<uint8_t>(&byte, 1)) == 0 ? -1 : byte;
     }
 
     inline std::vector<uint8_t> ReadAsVector(IByteSource &source, size_t maxLength = SIZE_MAX)
@@ -114,7 +114,7 @@ namespace HttpServerAdvanced
         while (totalRead < maxLength)
         {
             const size_t chunkSize = (std::min)(sizeof(buffer), maxLength - totalRead);
-            const size_t bytesRead = source.read(HttpServerAdvanced::span<uint8_t>(buffer, chunkSize));
+            const size_t bytesRead = source.read(httpadv::v1::util::span<uint8_t>(buffer, chunkSize));
             if (bytesRead == 0)
             {
                 break;
@@ -136,7 +136,7 @@ namespace HttpServerAdvanced
     class SingleByteSource : public IByteSource
     {
     public:
-        size_t read(HttpServerAdvanced::span<uint8_t> buffer) override
+        size_t read(httpadv::v1::util::span<uint8_t> buffer) override
         {
             size_t totalRead = 0;
             while (totalRead < buffer.size())
@@ -153,7 +153,7 @@ namespace HttpServerAdvanced
             return totalRead;
         }
 
-        size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override
+        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
         {
             if (buffer.empty())
             {
@@ -198,14 +198,14 @@ namespace HttpServerAdvanced
             return AvailableBytes(size_ - position_);
         }
 
-        size_t read(HttpServerAdvanced::span<uint8_t> buffer) override
+        size_t read(httpadv::v1::util::span<uint8_t> buffer) override
         {
             const size_t copied = peek(buffer);
             position_ += copied;
             return copied;
         }
 
-        size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override
+        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
         {
             if (buffer.empty() || position_ >= size_ || data_ == nullptr)
             {
@@ -264,7 +264,7 @@ namespace HttpServerAdvanced
             return currentAvailability();
         }
 
-        size_t read(HttpServerAdvanced::span<uint8_t> buffer) override
+        size_t read(httpadv::v1::util::span<uint8_t> buffer) override
         {
             size_t totalRead = 0;
             while (totalRead < buffer.size())
@@ -275,7 +275,7 @@ namespace HttpServerAdvanced
                     break;
                 }
 
-                HttpServerAdvanced::span<uint8_t> destination(buffer.data() + totalRead, buffer.size() - totalRead);
+                httpadv::v1::util::span<uint8_t> destination(buffer.data() + totalRead, buffer.size() - totalRead);
                 const size_t bytesRead = sources_[currentIndex_]->read(destination);
                 if (bytesRead == 0)
                 {
@@ -288,7 +288,7 @@ namespace HttpServerAdvanced
             return totalRead;
         }
 
-        size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override
+        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
         {
             const AvailableResult availableResult = currentAvailability();
             if (!availableResult.hasBytes() || buffer.empty())

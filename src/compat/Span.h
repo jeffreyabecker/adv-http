@@ -15,7 +15,7 @@
 #  endif
 #endif
 
-namespace HttpServerAdvanced {
+namespace httpadv::v1::util {
 
 #if defined(HSA_USE_STD_SPAN)
 template <typename T>
@@ -32,8 +32,8 @@ template <typename T>
 using byte_span = TCB_SPAN_NAMESPACE_NAME::span<T>;
 
 #else
-#error "HttpServerAdvanced::span requires either a C++20 <span> or the compat/span.hpp (tcbrindle) implementation. Add src/compat/span.hpp or enable C++20 support."
+#error "httpadv::v1::util::span requires either a C++20 <span> or the compat/span.hpp (tcbrindle) implementation. Add src/compat/span.hpp or enable C++20 support."
 
 #endif // HSA_USE_STD_SPAN / HSA_USE_TCB_SPAN
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::util

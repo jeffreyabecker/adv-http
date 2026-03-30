@@ -1,6 +1,6 @@
 #include "PipelineError.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::pipeline
 {
     const char *PipelineErrorName(PipelineErrorCode c)
     {

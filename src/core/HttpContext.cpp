@@ -4,7 +4,7 @@
 #include "../handlers/IHttpHandler.h"
 #include "IHttpContextHandlerFactory.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
     class HttpContextAccess
     {
@@ -37,7 +37,7 @@ namespace HttpServerAdvanced
             request.setHeader(field, value);
         }
 
-        static std::unique_ptr<IHttpHandler> createHandler(HttpContext &request)
+        static std::unique_ptr<httpadv::v1::handlers::IHttpHandler> createHandler(HttpContext &request)
         {
             return request.createHandler();
         }
@@ -48,7 +48,7 @@ namespace HttpServerAdvanced
         class DefaultHttpContextRunner : public HttpContextRunner
         {
         public:
-            DefaultHttpContextRunner(HttpServerBase &server, IHttpContextHandlerFactory &handlerFactory)
+            DefaultHttpContextRunner(httpadv::v1::server::HttpServerBase &server, IHttpContextHandlerFactory &handlerFactory)
                 : context_(server, handlerFactory)
             {
                 HttpContextAccess::bindCompletedPhases(context_, &completedPhases_);
@@ -89,7 +89,7 @@ namespace HttpServerAdvanced
 
             int onBody(const std::uint8_t *at, std::size_t length) override
             {
-                IHttpHandler *handler = tryGetHandler();
+                httpadv::v1::handlers::IHttpHandler *handler = tryGetHandler();
                 if (bodyBytesReceived_ == 0)
                 {
                     advance(HttpContextPhase::BeginReadingBody);
@@ -111,7 +111,7 @@ namespace HttpServerAdvanced
                 handleStep();
             }
 
-            void onError(PipelineError error) override
+            void onError(httpadv::v1::pipeline::PipelineError error) override
             {
                 if (pendingResult_.hasValue())
                 {
@@ -123,22 +123,22 @@ namespace HttpServerAdvanced
 
                 switch (error.code())
                 {
-                case HttpServerAdvanced::PipelineErrorCode::InvalidVersion:
-                case HttpServerAdvanced::PipelineErrorCode::InvalidMethod:
+                case httpadv::v1::pipeline::PipelineErrorCode::InvalidVersion:
+                case httpadv::v1::pipeline::PipelineErrorCode::InvalidMethod:
                     status = HttpStatus::BadRequest();
                     message = "Bad Request: ";
                     break;
-                case HttpServerAdvanced::PipelineErrorCode::UriTooLong:
-                case HttpServerAdvanced::PipelineErrorCode::HeaderTooLarge:
-                case HttpServerAdvanced::PipelineErrorCode::BodyTooLarge:
+                case httpadv::v1::pipeline::PipelineErrorCode::UriTooLong:
+                case httpadv::v1::pipeline::PipelineErrorCode::HeaderTooLarge:
+                case httpadv::v1::pipeline::PipelineErrorCode::BodyTooLarge:
                     status = HttpStatus::PayloadTooLarge();
                     message = "Payload Too Large: ";
                     break;
-                case HttpServerAdvanced::PipelineErrorCode::Timeout:
+                case httpadv::v1::pipeline::PipelineErrorCode::Timeout:
                     status = HttpStatus::RequestTimeout();
                     message = "Request Timeout: ";
                     break;
-                case HttpServerAdvanced::PipelineErrorCode::UnsupportedMediaType:
+                case httpadv::v1::pipeline::PipelineErrorCode::UnsupportedMediaType:
                     status = HttpStatus::UnsupportedMediaType();
                     message = "Unsupported Media Type: ";
                     break;
@@ -148,8 +148,8 @@ namespace HttpServerAdvanced
                     break;
                 }
 
-                std::unique_ptr<IHttpResponse> response = context_.createResponse(status, message + std::string(error.message()));
-                setPendingResult(RequestHandlingResult::response(CreateResponseStream(std::move(response))));
+                std::unique_ptr<httpadv::v1::response::IHttpResponse> response = context_.createResponse(status, message + std::string(error.message()));
+                setPendingResult(httpadv::v1::pipeline::RequestHandlingResult::response(httpadv::v1::response::CreateResponseStream(std::move(response))));
                 markResponseStarted();
             }
 
@@ -162,21 +162,21 @@ namespace HttpServerAdvanced
                 return pendingResult_.hasValue();
             }
 
-            RequestHandlingResult takeResult() override
+            httpadv::v1::pipeline::RequestHandlingResult takeResult() override
             {
-                RequestHandlingResult result = std::move(pendingResult_);
-                pendingResult_ = RequestHandlingResult();
+                httpadv::v1::pipeline::RequestHandlingResult result = std::move(pendingResult_);
+                pendingResult_ = httpadv::v1::pipeline::RequestHandlingResult();
                 return result;
             }
 
         private:
             HttpContext context_;
-            std::unique_ptr<IHttpHandler> handler_;
-            RequestHandlingResult pendingResult_;
+            std::unique_ptr<httpadv::v1::handlers::IHttpHandler> handler_;
+            httpadv::v1::pipeline::RequestHandlingResult pendingResult_;
             std::size_t bodyBytesReceived_ = 0;
             HttpContextPhaseFlags completedPhases_ = 0;
 
-            IHttpHandler *tryGetHandler()
+            httpadv::v1::handlers::IHttpHandler *tryGetHandler()
             {
                 if (!handler_)
                 {
@@ -186,7 +186,7 @@ namespace HttpServerAdvanced
                 return handler_.get();
             }
 
-            void setPendingResult(RequestHandlingResult result)
+            void setPendingResult(httpadv::v1::pipeline::RequestHandlingResult result)
             {
                 pendingResult_ = std::move(result);
             }
@@ -203,22 +203,22 @@ namespace HttpServerAdvanced
                     return;
                 }
 
-                IHttpHandler *handler = tryGetHandler();
+                httpadv::v1::handlers::IHttpHandler *handler = tryGetHandler();
                 if (handler != nullptr)
                 {
-                    HandlerResult handlerResult = handler->handleStep(context_);
+                    httpadv::v1::handlers::HandlerResult handlerResult = handler->handleStep(context_);
                     if (handlerResult.hasValue())
                     {
                         switch (handlerResult.kind)
                         {
-                        case HandlerResult::Kind::Response:
-                            setPendingResult(RequestHandlingResult::response(CreateResponseStream(std::move(handlerResult.response))));
+                        case httpadv::v1::handlers::HandlerResult::Kind::Response:
+                            setPendingResult(httpadv::v1::pipeline::RequestHandlingResult::response(httpadv::v1::response::CreateResponseStream(std::move(handlerResult.response))));
                             markResponseStarted();
                             break;
-                        case HandlerResult::Kind::Upgrade:
-                            setPendingResult(RequestHandlingResult::upgrade(std::move(handlerResult.upgradedSession)));
+                        case httpadv::v1::handlers::HandlerResult::Kind::Upgrade:
+                            setPendingResult(httpadv::v1::pipeline::RequestHandlingResult::upgrade(std::move(handlerResult.upgradedSession)));
                             break;
-                        case HandlerResult::Kind::None:
+                        case httpadv::v1::handlers::HandlerResult::Kind::None:
                         default:
                             break;
                         }
@@ -229,17 +229,17 @@ namespace HttpServerAdvanced
 
                 if ((completedPhases_ & HttpContextPhase::CompletedReadingMessage) != 0 && !pendingResult_.hasValue())
                 {
-                    setPendingResult(RequestHandlingResult::noResponse());
+                    setPendingResult(httpadv::v1::pipeline::RequestHandlingResult::noResponse());
                 }
             }
         };
     }
 
-    PipelineHandlerPtr HttpContext::createPipelineHandler(HttpServerBase &server, IHttpContextHandlerFactory &handlerFactory)
+    httpadv::v1::pipeline::PipelineHandlerPtr HttpContext::createPipelineHandler(httpadv::v1::server::HttpServerBase &server, IHttpContextHandlerFactory &handlerFactory)
     {
-        return PipelineHandlerPtr(
+        return httpadv::v1::pipeline::PipelineHandlerPtr(
             new HttpContextPipelineAdapter(std::make_unique<DefaultHttpContextRunner>(server, handlerFactory)),
-            [](IPipelineHandler *handler)
+            [](httpadv::v1::pipeline::IPipelineHandler *handler)
             {
                 delete handler;
             });

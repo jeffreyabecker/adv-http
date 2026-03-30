@@ -6,8 +6,12 @@
 
 #include "../compat/ByteStream.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::streams
 {
+    using httpadv::v1::transport::AvailableResult;
+    using httpadv::v1::transport::IByteSource;
+    using httpadv::v1::transport::StdStringByteSource;
+
     /**
      * @brief A stream that decodes URI-encoded data (percent-encoding and + for space).
      */
@@ -29,8 +33,8 @@ namespace HttpServerAdvanced
         UriDecodingStream(const uint8_t *uri, size_t length);
         explicit UriDecodingStream(std::unique_ptr<IByteSource> innerStream);
         AvailableResult available() override;
-        size_t read(HttpServerAdvanced::span<uint8_t> buffer) override;
-        size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override;
+        size_t read(httpadv::v1::util::span<uint8_t> buffer) override;
+        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override;
 
     private:
         int readSingleByte();
@@ -59,8 +63,8 @@ namespace HttpServerAdvanced
         UriEncodingStream(const uint8_t *uri, size_t length);
         explicit UriEncodingStream(std::unique_ptr<IByteSource> innerStream);
         AvailableResult available() override;
-        size_t read(HttpServerAdvanced::span<uint8_t> buffer) override;
-        size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override;
+        size_t read(httpadv::v1::util::span<uint8_t> buffer) override;
+        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override;
 
     private:
         int readSingleByte();

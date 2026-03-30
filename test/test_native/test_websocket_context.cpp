@@ -1,5 +1,7 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
+#include "../../src/HttpServerAdvanced.h"
+
 #include <unity.h>
 
 #include "../../src/websocket\IWebSocketSessionControl.h"
@@ -10,9 +12,18 @@
 #include <string>
 #include <vector>
 
-using namespace HttpServerAdvanced;
+using namespace httpadv::v1::core;
+using namespace httpadv::v1::handlers;
+using namespace httpadv::v1::pipeline;
+using namespace httpadv::v1::response;
+using namespace httpadv::v1::routing;
+using namespace httpadv::v1::server;
+using namespace httpadv::v1::staticfiles;
+using namespace httpadv::v1::transport;
+using namespace httpadv::v1::util;
+using namespace httpadv::v1::websocket;
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::websocket
 {
     class WebSocketContextTestProbe
     {
@@ -151,7 +162,7 @@ namespace
 
 int run_test_websocket_context()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "websocket context",
         runUnitySuite,
         localSetUp,

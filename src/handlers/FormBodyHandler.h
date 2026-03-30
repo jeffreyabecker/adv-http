@@ -5,23 +5,30 @@
 #include "HandlerRestrictions.h"
 #include "../routing/HandlerMatcher.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::handlers
 {
+    using httpadv::v1::core::MAX_BUFFERED_FORM_BODY_LENGTH;
+    using httpadv::v1::handlers::ExtractArgsFromRequest;
+    using httpadv::v1::handlers::RouteParameters;
+    using httpadv::v1::response::IHttpResponse;
+    using httpadv::v1::routing::HandlerMatcher;
+    using httpadv::v1::util::WebUtility;
+
     class FormBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_FORM_BODY_LENGTH>
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, WebUtility::QueryParameters &&)> handler_;
+        std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, WebUtility::QueryParameters &&)> handler_;
         ExtractArgsFromRequest extractor_;
 
     public:
-        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
+        FormBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        FormBodyHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpContext &context, RouteParameters &&, WebUtility::QueryParameters &&postData)
+        FormBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, WebUtility::QueryParameters &&)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](httpadv::v1::core::HttpContext &context, RouteParameters &&, WebUtility::QueryParameters &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
 
-        virtual IHttpHandler::HandlerResult handleBody(HttpContext &context, std::vector<uint8_t> &&body) override;
+        virtual IHttpHandler::HandlerResult handleBody(httpadv::v1::core::HttpContext &context, std::vector<uint8_t> &&body) override;
     };
 
 
@@ -29,8 +36,8 @@ class Form
     {
     public:
         using PostBodyData = WebUtility::QueryParameters;
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpContext &, PostBodyData &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, PostBodyData &&)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, PostBodyData &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, PostBodyData &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 
@@ -47,5 +54,5 @@ class Form
         }
     };
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::handlers
 

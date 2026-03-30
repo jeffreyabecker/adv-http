@@ -1,6 +1,8 @@
 // dont do a pragma here because its a wrapper around other include files
 // #pragma once
 
+#include "httpadv/namespace.h"
+
 // Core HTTP types and utilities
 #include "compat/ByteStream.h"
 #include "compat/Compat.h"
@@ -90,48 +92,3 @@
 
 // Request handler factory
 #include "core/HttpContextHandlerFactory.h"
-
-using HttpServerAdvanced::Form;
-using HttpServerAdvanced::GetRequest;
-using HttpServerAdvanced::RawBody;
-using HttpServerAdvanced::WebServerBuilder;
-#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
-using HttpServerAdvanced::Json;
-using HttpServerAdvanced::JsonResponse;
-#endif
-using HttpServerAdvanced::Buffered;
-using HttpServerAdvanced::Multipart;
-using Upload = HttpServerAdvanced::Multipart;
-
-using HttpServerAdvanced::FormResponse;
-using HttpServerAdvanced::HttpContentTypes;
-using HttpServerAdvanced::HttpContext;
-using HttpServerAdvanced::HttpHandler;
-using HttpServerAdvanced::HttpHeader;
-using HttpServerAdvanced::HttpMethod;
-using HttpServerAdvanced::HttpResponse;
-using HttpServerAdvanced::HttpStatus;
-using HttpServerAdvanced::IHttpResponse;
-using HttpServerAdvanced::StringResponse;
-
-using QueryParameter = HttpServerAdvanced::WebUtility::QueryParameter;
-using QueryParameters = HttpServerAdvanced::WebUtility::QueryParameters;
-using PostBodyData = QueryParameters;
-using HttpServerAdvanced::BasicAuth;
-using HttpServerAdvanced::CrossOriginRequestSharing;
-using HttpServerAdvanced::ReplaceVariables;
-using HttpServerAdvanced::ReplaceVariablesMissingValuePolicy;
-using HttpServerAdvanced::ReplaceVariablesOptions;
-using HttpServerAdvanced::HandlerMatcher;
-using HttpServerAdvanced::StaticFiles;
-using HttpServerAdvanced::WebUtility;
-;
-using HttpServerAdvanced::StaticFilesBuilder;
-using Response = HttpServerAdvanced::IHttpHandler::HandlerResult;
-using Uri = HttpServerAdvanced::HandlerMatcher;
-using HttpServerAdvanced::MultipartFormDataBuffer;
-using HttpServerAdvanced::MultipartStatus;
-using HttpServerAdvanced::RawBodyBuffer;
-using HttpServerAdvanced::WebServerConfig;
-using WebServer =
-    HttpServerAdvanced::FriendlyWebServer<HttpServerAdvanced::HttpServerBase>;

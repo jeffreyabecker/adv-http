@@ -6,8 +6,12 @@
 #include "../core/HttpHeaderCollection.h"
 #include "../compat/ByteStream.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::response
 {
+  using httpadv::v1::core::HttpHeaderCollection;
+  using httpadv::v1::core::HttpStatus;
+  using httpadv::v1::transport::IByteSource;
+
   class IHttpResponse
   {
   public:
@@ -18,5 +22,5 @@ namespace HttpServerAdvanced
     virtual std::unique_ptr<IByteSource> getBody() = 0;
   };
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::response
 

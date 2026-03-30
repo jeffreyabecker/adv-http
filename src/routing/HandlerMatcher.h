@@ -7,18 +7,18 @@
 #include <string>
 #include <string_view>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::routing
 {
-    // Forward declaration
-    class HttpContext;
+    using httpadv::v1::handlers::RouteParameters;
+
     constexpr char REQUEST_MATCHER_PATH_DELIMITER = '/';
     class HandlerMatcher
     {
     public:
         using MethodChecker = std::function<bool(std::string_view allowedMethods, std::string_view method)>;
         using UriPatternChecker = std::function<bool(std::string_view uri, std::string_view uriPattern)>;
-        using ContentTypeChecker = std::function<bool(HttpContext &context, const std::vector<std::string> &allowedContentTypes)>;
-        using ArgsExtractor = std::function<RouteParameters(HttpContext &context, std::string_view uriPattern)>;
+        using ContentTypeChecker = std::function<bool(httpadv::v1::core::HttpContext &context, const std::vector<std::string> &allowedContentTypes)>;
+        using ArgsExtractor = std::function<RouteParameters(httpadv::v1::core::HttpContext &context, std::string_view uriPattern)>;
 
     protected:
         std::string uriPattern_;
@@ -65,13 +65,13 @@ namespace HttpServerAdvanced
 
         ~HandlerMatcher() = default;
 
-        bool operator()(HttpContext &context) const
+        bool operator()(httpadv::v1::core::HttpContext &context) const
         {
             return canHandle(context);
         }
 
-        bool canHandle(HttpContext &context) const;
-        RouteParameters extractParameters(HttpContext &context) const;
+        bool canHandle(httpadv::v1::core::HttpContext &context) const;
+        RouteParameters extractParameters(httpadv::v1::core::HttpContext &context) const;
     };
     class ParameterizedUri : public HandlerMatcher
     {
@@ -84,13 +84,13 @@ namespace HttpServerAdvanced
     // Default implementations
     bool defaultCheckMethod(std::string_view allowedMethods, std::string_view method);
 
-    bool defaultCheckContentType(HttpContext &context, const std::vector<std::string> &allowedContentTypes);
+    bool defaultCheckContentType(httpadv::v1::core::HttpContext &context, const std::vector<std::string> &allowedContentTypes);
 
     bool defaultCheckUriPattern(std::string_view uri, std::string_view uriPattern);
 
-    RouteParameters defaultExtractParameters(HttpContext &context, std::string_view uriPattern);
+    RouteParameters defaultExtractParameters(httpadv::v1::core::HttpContext &context, std::string_view uriPattern);
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::routing
 
 // Include HttpContext after class definition to resolve forward declaration
 #include "../core/HttpContext.h"

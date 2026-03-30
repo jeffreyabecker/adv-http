@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::response
 {
     namespace
     {
@@ -32,7 +32,7 @@ namespace HttpServerAdvanced
         FieldCollection &&data,
         std::initializer_list<HttpHeader> headers)
     {
-        auto formStream = std::make_unique<FormEncodingStream>(std::move(data));
+        auto formStream = std::make_unique<httpadv::v1::streams::FormEncodingStream>(std::move(data));
         const AvailableResult available = formStream->available();
         size_t contentLength = available.hasBytes() ? available.count : 0;
         auto headersCollection = buildFormHeaders(headers, contentLength);

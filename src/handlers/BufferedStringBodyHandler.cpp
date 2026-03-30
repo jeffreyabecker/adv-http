@@ -1,9 +1,9 @@
 #include "BufferedStringBodyHandler.h"
 #include "../routing/HandlerMatcher.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::handlers
 {
-    IHttpHandler::HandlerResult BufferedStringBodyHandler::handleBody(HttpContext &context, std::vector<uint8_t> &&body)
+    IHttpHandler::HandlerResult BufferedStringBodyHandler::handleBody(httpadv::v1::core::HttpContext &context, std::vector<uint8_t> &&body)
     {
         auto params = extractor_(context);
         std::string postData(reinterpret_cast<const char *>(body.data()), body.size());
@@ -12,7 +12,7 @@ namespace HttpServerAdvanced
 
     Buffered::Invocation Buffered::curryWithoutParams(InvocationWithoutParams handler)
     {
-        return [handler](HttpContext &context, RouteParameters &&, BodyData &&postData)
+        return [handler](httpadv::v1::core::HttpContext &context, RouteParameters &&, BodyData &&postData)
         {
             return handler(context, std::move(postData));
         };
@@ -20,35 +20,35 @@ namespace HttpServerAdvanced
 
     IHttpHandler::Factory Buffered::makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
     {
-        return [handler, extractor](HttpContext &context) -> std::unique_ptr<IHttpHandler>
+        return [handler, extractor](httpadv::v1::core::HttpContext &context) -> std::unique_ptr<IHttpHandler>
         {
             auto params = extractor(context);
-            return std::make_unique<BufferedStringBodyHandler>(handler, [params](HttpContext &c)
+            return std::make_unique<BufferedStringBodyHandler>(handler, [params](httpadv::v1::core::HttpContext &c)
                                                        { return params; });
         };
     }
 
     Buffered::Invocation Buffered::curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](HttpContext &context, RouteParameters &&params, BodyData &&postData)
+        return [interceptor, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params, BodyData &&postData)
         {
-            return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpContext &context) mutable
+            return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](httpadv::v1::core::HttpContext &context) mutable
                                { return handler(context, std::move(params), std::move(postData)); });
         };
     }
 
     Buffered::Invocation Buffered::applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](HttpContext &context, RouteParameters &&params, BodyData &&postData)
+        return [interceptor, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params, BodyData &&postData)
         {
-            return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpContext &context) mutable
+            return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](httpadv::v1::core::HttpContext &context) mutable
                                { return handler(context, std::move(params), std::move(postData)); });
         };
     }
 
     Buffered::Invocation Buffered::applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
     {
-        return [filter, handler](HttpContext &context, RouteParameters &&params, BodyData &&postData)
+        return [filter, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params, BodyData &&postData)
         {
             auto response = handler(context, std::move(params), std::move(postData));
             if (!response.isResponse())

@@ -2,7 +2,7 @@
 #include <cstddef>
 #include "Streams.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::streams
 {
     template <typename TSelf>
     class BoundedStreamIterable

@@ -6,7 +6,7 @@
 #include <string_view>
 #include "HttpHeader.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
   namespace HttpHeaderCollectionDetail
   {

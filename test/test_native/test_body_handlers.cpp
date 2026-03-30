@@ -1,6 +1,8 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/HttpTestFixtures.h"
 
+#include "../../src/HttpServerAdvanced.h"
+
 #include <unity.h>
 
 #include "../../src/core/HttpContext.h"
@@ -24,7 +26,16 @@
 #include "../../src/handlers/JsonBodyHandler.h"
 #endif
 
-using namespace HttpServerAdvanced;
+using namespace httpadv::v1::core;
+using namespace httpadv::v1::handlers;
+using namespace httpadv::v1::pipeline;
+using namespace httpadv::v1::response;
+using namespace httpadv::v1::routing;
+using namespace httpadv::v1::server;
+using namespace httpadv::v1::staticfiles;
+using namespace httpadv::v1::transport;
+using namespace httpadv::v1::util;
+using namespace httpadv::v1::websocket;
 
 namespace
 {
@@ -47,7 +58,7 @@ namespace
     {
     public:
         explicit RequestHarness(std::unique_ptr<IHttpHandler> handler)
-            : server_(std::make_unique<TestSupport::FakeServer>()),
+            : server_(std::make_unique<httpadv::v1::TestSupport::FakeServer>()),
               pendingHandler_(std::move(handler)),
               handlerPtr_(pendingHandler_.get()),
               factory_([this](HttpContext &) -> std::unique_ptr<IHttpHandler>
@@ -118,14 +129,14 @@ namespace
             if (result.kind == RequestHandlingResult::Kind::Response && result.responseStream)
             {
                 ++responseStreamCount_;
-                responseText_ = TestSupport::ReadByteSourceAsStdString(*result.responseStream);
+                responseText_ = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*result.responseStream);
             }
         }
 
         HttpServerBase server_;
         std::unique_ptr<IHttpHandler> pendingHandler_;
         IHttpHandler *handlerPtr_ = nullptr;
-        TestSupport::RecordingRequestHandlerFactory factory_;
+        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory_;
         std::unique_ptr<IPipelineHandler, std::function<void(IPipelineHandler *)>> pipeline_;
         std::size_t responseStreamCount_ = 0;
         std::string responseText_;
@@ -829,7 +840,7 @@ namespace
 
 int run_test_body_handlers()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "body handlers",
         runUnitySuite,
         localSetUp,

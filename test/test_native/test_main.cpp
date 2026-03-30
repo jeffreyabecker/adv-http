@@ -2,7 +2,7 @@
 
 #include <cstdio>
 
-namespace HttpServerAdvanced::TestSupport {
+namespace httpadv::v1::TestSupport {
 namespace {
 SuiteHook activeSetUpHook = nullptr;
 SuiteHook activeTearDownHook = nullptr;
@@ -25,17 +25,17 @@ int RunConsolidatedSuite(const char *suiteName, SuiteRunner runner,
   SetActiveSuiteHooks(nullptr, nullptr);
   return failureCount;
 }
-} // namespace HttpServerAdvanced::TestSupport
+} // namespace httpadv::v1::TestSupport
 
 void setUp() {
-  auto hook = HttpServerAdvanced::TestSupport::GetActiveSuiteSetUp();
+  auto hook = httpadv::v1::TestSupport::GetActiveSuiteSetUp();
   if (hook != nullptr) {
     hook();
   }
 }
 
 void tearDown() {
-  auto hook = HttpServerAdvanced::TestSupport::GetActiveSuiteTearDown();
+  auto hook = httpadv::v1::TestSupport::GetActiveSuiteTearDown();
   if (hook != nullptr) {
     hook();
   }

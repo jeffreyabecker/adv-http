@@ -1,11 +1,22 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
+#include "../../src/HttpServerAdvanced.h"
+
 #include <unity.h>
 
 #include "../../src/compat/Availability.h"
 #include "../../src/compat/ByteStream.h"
 
-using namespace HttpServerAdvanced;
+using namespace httpadv::v1::core;
+using namespace httpadv::v1::handlers;
+using namespace httpadv::v1::pipeline;
+using namespace httpadv::v1::response;
+using namespace httpadv::v1::routing;
+using namespace httpadv::v1::server;
+using namespace httpadv::v1::staticfiles;
+using namespace httpadv::v1::transport;
+using namespace httpadv::v1::util;
+using namespace httpadv::v1::websocket;
 
 namespace
 {
@@ -22,13 +33,13 @@ namespace
             return result_;
         }
 
-        size_t read(HttpServerAdvanced::span<uint8_t> buffer) override
+        size_t read(httpadv::v1::util::span<uint8_t> buffer) override
         {
             (void)buffer;
             return 0;
         }
 
-        size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override
+        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
         {
             (void)buffer;
             return 0;
@@ -118,10 +129,10 @@ namespace
         uint8_t readBuffer[3] = {};
 
         TEST_ASSERT_EQUAL_UINT64(5, source.available().count);
-        TEST_ASSERT_EQUAL_UINT64(2, source.peek(HttpServerAdvanced::span<uint8_t>(peekBuffer, 2)));
+        TEST_ASSERT_EQUAL_UINT64(2, source.peek(httpadv::v1::util::span<uint8_t>(peekBuffer, 2)));
         TEST_ASSERT_EQUAL_UINT8('h', peekBuffer[0]);
         TEST_ASSERT_EQUAL_UINT8('e', peekBuffer[1]);
-        TEST_ASSERT_EQUAL_UINT64(3, source.read(HttpServerAdvanced::span<uint8_t>(readBuffer, 3)));
+        TEST_ASSERT_EQUAL_UINT64(3, source.read(httpadv::v1::util::span<uint8_t>(readBuffer, 3)));
         TEST_ASSERT_EQUAL_UINT8('h', readBuffer[0]);
         TEST_ASSERT_EQUAL_UINT8('e', readBuffer[1]);
         TEST_ASSERT_EQUAL_UINT8('l', readBuffer[2]);
@@ -138,7 +149,7 @@ namespace
         uint8_t buffer[2] = {};
 
         TEST_ASSERT_TRUE(source.available().hasBytes());
-        TEST_ASSERT_EQUAL_UINT64(2, source.read(HttpServerAdvanced::span<uint8_t>(buffer, 2)));
+        TEST_ASSERT_EQUAL_UINT64(2, source.read(httpadv::v1::util::span<uint8_t>(buffer, 2)));
         TEST_ASSERT_EQUAL_UINT8('o', buffer[0]);
         TEST_ASSERT_EQUAL_UINT8('k', buffer[1]);
         TEST_ASSERT_TRUE(source.available().isExhausted());
@@ -173,7 +184,7 @@ namespace
 
 int run_test_stream_available()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "stream available",
         runUnitySuite,
         localSetUp,

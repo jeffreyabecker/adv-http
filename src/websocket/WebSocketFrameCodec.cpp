@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::websocket
 {
     namespace
     {

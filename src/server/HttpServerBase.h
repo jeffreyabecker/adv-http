@@ -15,8 +15,14 @@
 #include <any>
 #include <string_view>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::server
 {
+    using httpadv::v1::core::MAX_CONCURRENT_CONNECTIONS;
+    using httpadv::v1::core::HttpTimeouts;
+    using httpadv::v1::pipeline::HttpPipeline;
+    using httpadv::v1::pipeline::PipelineHandlerPtr;
+    using httpadv::v1::transport::IServer;
+    using httpadv::v1::util::Clock;
 
     class HttpServerBase
     {
@@ -54,6 +60,6 @@ namespace HttpServerAdvanced
         mutable std::map<std::string, std::any> items_;
     };
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::server
 
 

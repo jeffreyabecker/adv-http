@@ -1,12 +1,23 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
+#include "../../src/HttpServerAdvanced.h"
+
 #include <unity.h>
 
 #include "../../src/compat/platform/memory/MemoryFileAdapter.h"
 
-using namespace HttpServerAdvanced;
+using namespace httpadv::v1::core;
+using namespace httpadv::v1::handlers;
+using namespace httpadv::v1::pipeline;
+using namespace httpadv::v1::response;
+using namespace httpadv::v1::routing;
+using namespace httpadv::v1::server;
+using namespace httpadv::v1::staticfiles;
+using namespace httpadv::v1::transport;
+using namespace httpadv::v1::util;
+using namespace httpadv::v1::websocket;
 
-using NativeFSImpl = HttpServerAdvanced::platform::memory::MemoryFileSystem;
+using NativeFSImpl = httpadv::v1::platform::memory::MemoryFileSystem;
 
 namespace
 {
@@ -28,7 +39,7 @@ namespace
         TEST_ASSERT_NOT_NULL(writable.get());
 
         const std::vector<uint8_t> payload = {'h','i','!'};
-        TEST_ASSERT_EQUAL_UINT64(payload.size(), writable->write(HttpServerAdvanced::span<const uint8_t>(payload.data(), payload.size())));
+        TEST_ASSERT_EQUAL_UINT64(payload.size(), writable->write(httpadv::v1::util::span<const uint8_t>(payload.data(), payload.size())));
         writable->flush();
         writable->close();
 
@@ -52,7 +63,7 @@ namespace
         FileHandle f = fs->open("/dir/asset.txt", FileOpenMode::ReadWrite);
         TEST_ASSERT_NOT_NULL(f.get());
         const std::vector<uint8_t> payload = {'a'};
-        TEST_ASSERT_EQUAL_UINT64(1, f->write(HttpServerAdvanced::span<const uint8_t>(payload.data(), payload.size())));
+        TEST_ASSERT_EQUAL_UINT64(1, f->write(httpadv::v1::util::span<const uint8_t>(payload.data(), payload.size())));
         f->close();
 
         std::vector<DirectoryEntry> entries;
@@ -93,7 +104,7 @@ namespace
         FileHandle f = fs->open("/a.txt", FileOpenMode::ReadWrite);
         TEST_ASSERT_NOT_NULL(f.get());
         const std::vector<uint8_t> payload = {'x'};
-        TEST_ASSERT_EQUAL_UINT64(1, f->write(HttpServerAdvanced::span<const uint8_t>(payload.data(), payload.size())));
+        TEST_ASSERT_EQUAL_UINT64(1, f->write(httpadv::v1::util::span<const uint8_t>(payload.data(), payload.size())));
         f->close();
 
         TEST_ASSERT_TRUE(fs->exists("/a.txt"));
@@ -114,7 +125,7 @@ namespace
 
 int run_test_memory_filesystem()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "memory filesystem native",
         runUnitySuite,
         localSetUp,

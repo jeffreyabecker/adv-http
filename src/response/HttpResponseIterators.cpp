@@ -3,7 +3,7 @@
 #include <ctime>
 #include <cstring>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::response
 {
     std::string getHeaderDateValue()
     {

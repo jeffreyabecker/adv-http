@@ -2,7 +2,7 @@
 
 #include "../core/Defines.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::pipeline
 {
     HttpProtocolExecution::HttpProtocolExecution(PipelineHandlerPtr handler)
         : handler_(std::move(handler))
@@ -22,11 +22,11 @@ namespace HttpServerAdvanced
             return ConnectionSessionResult::Continue;
         }
 
-        std::uint8_t buffer[PIPELINE_STACK_BUFFER_SIZE] = {};
-        AvailableResult available = TemporarilyUnavailableResult();
+        std::uint8_t buffer[httpadv::v1::core::PIPELINE_STACK_BUFFER_SIZE] = {};
+        httpadv::v1::transport::AvailableResult available = httpadv::v1::transport::TemporarilyUnavailableResult();
         while ((available = client.available()).hasBytes())
         {
-            const std::size_t bytesRead = client.read(span<std::uint8_t>(buffer, sizeof(buffer)));
+            const std::size_t bytesRead = client.read(httpadv::v1::util::span<std::uint8_t>(buffer, sizeof(buffer)));
             if (bytesRead == 0)
             {
                 break;

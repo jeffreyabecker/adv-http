@@ -11,8 +11,10 @@
 #include <string_view>
 #include "../core/HttpContext.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::handlers
 {
+    using httpadv::v1::core::HttpHeader;
+
     inline bool tryParseHeaderLength(std::string_view value, size_t &parsedLength)
     {
         parsedLength = 0;
@@ -24,7 +26,7 @@ namespace HttpServerAdvanced
 
     // Template base for handlers that buffer request bodies.
     // MaxBuffered defaults to the library-configured value `MAX_BUFFERED_BODY_LENGTH`.
-    template <std::ptrdiff_t MaxBuffered = HttpServerAdvanced::MAX_BUFFERED_BODY_LENGTH>
+    template <std::ptrdiff_t MaxBuffered = httpadv::v1::core::MAX_BUFFERED_BODY_LENGTH>
     class BufferingHttpHandlerBase : public IHttpHandler
     {
     private:
@@ -36,11 +38,11 @@ namespace HttpServerAdvanced
     public:
         virtual ~BufferingHttpHandlerBase() = default;
 
-        virtual HandlerResult handleBody(HttpContext &context, std::vector<uint8_t> &&body) = 0;
+        virtual HandlerResult handleBody(httpadv::v1::core::HttpContext &context, std::vector<uint8_t> &&body) = 0;
 
-        HandlerResult handleStep(HttpContext &context) override
+        HandlerResult handleStep(httpadv::v1::core::HttpContext &context) override
         {
-            if (context.completedPhases() < HttpContextPhase::CompletedReadingMessage)
+            if (context.completedPhases() < httpadv::v1::core::HttpContextPhase::CompletedReadingMessage)
             {
                 return nullptr;
             }
@@ -53,7 +55,7 @@ namespace HttpServerAdvanced
             return handleBody(context, std::move(bodyBuffer_));
         }
 
-        void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length) override
+        void handleBodyChunk(httpadv::v1::core::HttpContext &context, const uint8_t *at, std::size_t length) override
         {
             const std::ptrdiff_t cfg = configuredMax;
             if (cfg == 0)
@@ -100,5 +102,5 @@ namespace HttpServerAdvanced
     // Convenience alias with default template parameter
     using DefaultBufferingHttpHandlerBase = BufferingHttpHandlerBase<>;
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::handlers
 

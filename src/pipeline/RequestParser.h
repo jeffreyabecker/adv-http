@@ -18,7 +18,7 @@
 #include <string>
 #include "../core/Defines.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::pipeline
 {
     enum class RequestParserEvent
     {
@@ -54,7 +54,7 @@ namespace HttpServerAdvanced
 
         If you wanted to pursue dynamic allocation, I'd suggest the hybrid approach with a 256-byte inline buffer—but only if profiling shows memory pressure in real workloads.
         */
-        std::array<char, HttpServerAdvanced::REQUEST_PARSER_BUFFER_LENGTH> buffer_{};
+        std::array<char, httpadv::v1::core::REQUEST_PARSER_BUFFER_LENGTH> buffer_{};
         std::size_t writePos_ = 0;
         std::size_t urlPos_ = 0;
         std::size_t urlLen_ = 0;

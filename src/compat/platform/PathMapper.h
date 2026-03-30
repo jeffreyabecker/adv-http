@@ -5,16 +5,66 @@
 #include <string_view>
 #include <vector>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::platform
 {
-    namespace platform
+    namespace detail
     {
-        class VirtualPathMapperWindows
+        struct PosixPathMapperTraits
         {
-          public:
-            VirtualPathMapperWindows() = default;
+            static constexpr char ScopedSeparator = '/';
 
-            explicit VirtualPathMapperWindows(std::string_view scopedRootPath)
+            static std::string normalizeScopedPath(std::string_view path)
+            {
+                std::string normalized(path);
+                std::replace(normalized.begin(), normalized.end(), '\\', '/');
+                return normalized;
+            }
+
+            static bool isScopedSeparator(char value)
+            {
+                return value == '/';
+            }
+
+            static std::size_t minimumRootLength(const std::string &normalized)
+            {
+                return normalized.empty() ? 0u : 1u;
+            }
+        };
+
+        struct WindowsPathMapperTraits
+        {
+            static constexpr char ScopedSeparator = '\\';
+
+            static std::string normalizeScopedPath(std::string_view path)
+            {
+                std::string normalized(path);
+                std::replace(normalized.begin(), normalized.end(), '/', '\\');
+                return normalized;
+            }
+
+            static bool isScopedSeparator(char value)
+            {
+                return value == '/' || value == '\\';
+            }
+
+            static std::size_t minimumRootLength(const std::string &normalized)
+            {
+                if (normalized.size() >= 2 && normalized[1] == ':')
+                {
+                    return 3u;
+                }
+
+                return normalized.empty() ? 0u : 1u;
+            }
+        };
+
+        template <typename Traits>
+        class PathMapperBase
+        {
+        public:
+            PathMapperBase() = default;
+
+            explicit PathMapperBase(std::string_view scopedRootPath)
                 : rootPath_(NormalizeScopedRootPath(scopedRootPath))
             {
             }
@@ -116,17 +166,14 @@ namespace HttpServerAdvanced
 
             static std::string NormalizeScopedPath(std::string_view path)
             {
-                std::string normalized(path);
-                std::replace(normalized.begin(), normalized.end(), '/', '\\');
-                return normalized;
+                return Traits::normalizeScopedPath(path);
             }
 
             static std::string NormalizeScopedRootPath(std::string_view path)
             {
                 std::string normalized = NormalizeScopedPath(path);
-                const std::size_t minimumLength =
-                    normalized.size() >= 2 && normalized[1] == ':' ? 3u : (normalized.empty() ? 0u : 1u);
-                while (normalized.size() > minimumLength && IsScopedSeparator(normalized.back()))
+                const std::size_t minimumLength = Traits::minimumRootLength(normalized);
+                while (normalized.size() > minimumLength && Traits::isScopedSeparator(normalized.back()))
                 {
                     normalized.pop_back();
                 }
@@ -142,9 +189,9 @@ namespace HttpServerAdvanced
                 }
 
                 std::string joined(base);
-                if (!IsScopedSeparator(joined.back()))
+                if (!Traits::isScopedSeparator(joined.back()))
                 {
-                    joined.push_back('\\');
+                    joined.push_back(Traits::ScopedSeparator);
                 }
 
                 joined.append(NormalizeScopedPath(name));
@@ -198,13 +245,20 @@ namespace HttpServerAdvanced
                 return WithLeadingSlash(path);
             }
 
-          private:
-            static bool IsScopedSeparator(char value)
-            {
-                return value == '/' || value == '\\';
-            }
-
+        private:
             std::string rootPath_{};
         };
-    } // namespace platform
-} // namespace HttpServerAdvanced
+    }
+
+    class PosixPathMapper : public detail::PathMapperBase<detail::PosixPathMapperTraits>
+    {
+    public:
+        using detail::PathMapperBase<detail::PosixPathMapperTraits>::PathMapperBase;
+    };
+
+    class WindowsPathMapper : public detail::PathMapperBase<detail::WindowsPathMapperTraits>
+    {
+    public:
+        using detail::PathMapperBase<detail::WindowsPathMapperTraits>::PathMapperBase;
+    };
+}

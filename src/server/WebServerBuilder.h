@@ -12,8 +12,13 @@
 
 #include "HttpServerBase.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::server
 {
+    using httpadv::v1::core::HttpContentTypes;
+    using httpadv::v1::core::HttpContext;
+    using httpadv::v1::core::HttpContextHandlerFactory;
+    using httpadv::v1::routing::HandlerProviderRegistry;
+    using httpadv::v1::routing::ProviderRegistryBuilder;
 
     class WebServerBuilder 
     {
@@ -66,6 +71,6 @@ namespace HttpServerAdvanced
         HttpContentTypes &contentTypes() { return contentTypes_; }
     };
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::server
 
 

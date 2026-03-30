@@ -15,7 +15,7 @@
 #include <memory>
 #include <string>
 
-namespace HttpServerAdvanced::platform::arduino {
+namespace httpadv::v1::platform::arduino {
 AvailableResult mapLegacyAvailable(int availableValue, bool connected) {
   if (availableValue > 0) {
     return AvailableBytes(static_cast<std::size_t>(availableValue));
@@ -73,11 +73,11 @@ public:
     return mapLegacyAvailable(client_.available(), client_.connected());
   }
 
-  std::size_t read(HttpServerAdvanced::span<std::uint8_t> buffer) override {
+  std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override {
     return buffer.empty() ? 0 : client_.read(buffer.data(), buffer.size());
   }
 
-  std::size_t peek(HttpServerAdvanced::span<std::uint8_t> buffer) override {
+  std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override {
     if (buffer.empty()) {
       return 0;
     }
@@ -92,7 +92,7 @@ public:
   }
 
   std::size_t
-  write(HttpServerAdvanced::span<const std::uint8_t> buffer) override {
+  write(httpadv::v1::util::span<const std::uint8_t> buffer) override {
     return buffer.empty() ? 0 : client_.write(buffer.data(), buffer.size());
   }
 
@@ -175,7 +175,7 @@ public:
   bool endPacket() override { return udp_.endPacket() != 0; }
 
   std::size_t
-  write(HttpServerAdvanced::span<const std::uint8_t> buffer) override {
+  write(httpadv::v1::util::span<const std::uint8_t> buffer) override {
     return buffer.empty() ? 0 : udp_.write(buffer.data(), buffer.size());
   }
 
@@ -192,11 +192,11 @@ public:
     return mapLegacyAvailable(udp_.available(), active_);
   }
 
-  std::size_t read(HttpServerAdvanced::span<std::uint8_t> buffer) override {
+  std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override {
     return buffer.empty() ? 0 : udp_.read(buffer.data(), buffer.size());
   }
 
-  std::size_t peek(HttpServerAdvanced::span<std::uint8_t> buffer) override {
+  std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override {
     if (buffer.empty()) {
       return 0;
     }
@@ -251,20 +251,20 @@ public:
   }
 };
 
-} // namespace HttpServerAdvanced::platform::arduino
+} // namespace httpadv::v1::platform::arduino
 
-namespace HttpServerAdvanced {
+namespace httpadv::v1::transport {
 std::unique_ptr<ITransportFactory> createArduinoWiFiTransportFactory() {
   return std::make_unique<platform::arduino::ArduinoWiFiTransportFactory>();
 }
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::transport
 
 #else
 
-namespace HttpServerAdvanced {
+namespace httpadv::v1::transport {
 std::unique_ptr<ITransportFactory> createArduinoWiFiTransportFactory() {
   return nullptr;
 }
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::transport
 
 #endif

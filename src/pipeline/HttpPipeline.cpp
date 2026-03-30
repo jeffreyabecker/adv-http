@@ -3,9 +3,9 @@
 
 #include "../server/HttpServerBase.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::pipeline
 {
-    HttpPipeline::HttpPipeline(std::unique_ptr<HttpServerAdvanced::IClient> client, HttpServerBase &server,
+    HttpPipeline::HttpPipeline(std::unique_ptr<httpadv::v1::transport::IClient> client, HttpServerBase &server,
                                                              const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,
                                                              const Clock &clock)
                 : client_(std::move(client)),
@@ -91,15 +91,15 @@ namespace HttpServerAdvanced
             }
         }
 
-        uint8_t buffer[HttpServerAdvanced::PIPELINE_STACK_BUFFER_SIZE];
-        AvailableResult available = TemporarilyUnavailableResult();
+        uint8_t buffer[httpadv::v1::core::PIPELINE_STACK_BUFFER_SIZE];
+        httpadv::v1::transport::AvailableResult available = httpadv::v1::transport::TemporarilyUnavailableResult();
         while ((available = responseStream_->available()).hasBytes())
         {
             const size_t bytesToRead = std::min<std::size_t>(sizeof(buffer), available.count);
-            const size_t bytesRead = responseStream_->read(HttpServerAdvanced::span<uint8_t>(buffer, bytesToRead));
+            const size_t bytesRead = responseStream_->read(httpadv::v1::util::span<uint8_t>(buffer, bytesToRead));
             if (bytesRead > 0)
             {
-                auto written = client_->write(HttpServerAdvanced::span<const uint8_t>(buffer, bytesRead));
+                auto written = client_->write(httpadv::v1::util::span<const uint8_t>(buffer, bytesRead));
                 startActivity();
                 if (written < bytesRead)
                 {
@@ -478,7 +478,7 @@ namespace HttpServerAdvanced
         return startMillis_;
     }
 
-    HttpServerAdvanced::IClient &HttpPipeline::client()
+    httpadv::v1::transport::IClient &HttpPipeline::client()
     {
         return *client_;
     }

@@ -1,7 +1,7 @@
 #include "HttpResponse.h"
 #include "../streams/Streams.h"
 #include "../core/HttpContentTypes.h"
-namespace HttpServerAdvanced
+namespace httpadv::v1::response
 {
 
     HttpResponse::HttpResponse(HttpStatus status, std::unique_ptr<IByteSource> body, HttpHeaderCollection &&headers)

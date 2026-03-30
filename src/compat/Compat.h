@@ -3,7 +3,7 @@
 #include "Clock.h"
 #include "IFileSystem.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::compat
 {
     // Canonical home for the supported compatibility seams.
     //

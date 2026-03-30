@@ -4,6 +4,6 @@
 
 #include <memory>
 
-namespace HttpServerAdvanced {
+namespace httpadv::v1::transport {
 std::unique_ptr<ITransportFactory> createArduinoWiFiTransportFactory();
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::transport

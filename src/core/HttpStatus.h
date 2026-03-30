@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <string>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
 
   class HttpStatus

@@ -13,7 +13,13 @@
 #include <string_view>
 #include <vector>
 
-namespace HttpServerAdvanced {
+namespace httpadv::v1::staticfiles {
+
+using httpadv::v1::handlers::IHttpHandler;
+using httpadv::v1::response::IHttpResponse;
+using httpadv::v1::routing::HandlerMatcher;
+using httpadv::v1::server::WebServerBuilder;
+using httpadv::v1::transport::IFileSystem;
 
 class StaticFilesBuilder {
 private:
@@ -29,7 +35,7 @@ private:
 
 protected:
   static constexpr const char *NAME = "StaticFiles";
-  void init(HttpServerAdvanced::WebServerBuilder &coreBuilder);
+  void init(httpadv::v1::server::WebServerBuilder &coreBuilder);
 
 public:
   StaticFilesBuilder(IFileSystem &fs,
@@ -57,4 +63,4 @@ public:
 std::function<void(WebServerBuilder &)> &
 StaticFiles(IFileSystem &fs,
             std::function<void(StaticFilesBuilder &)> setupFunc = nullptr);
-}; // namespace HttpServerAdvanced
+}; // namespace httpadv::v1::staticfiles

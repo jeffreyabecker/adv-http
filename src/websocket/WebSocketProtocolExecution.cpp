@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::websocket
 {
     namespace
     {
@@ -47,7 +47,7 @@ namespace HttpServerAdvanced
         context_.bindControl(this);
     }
 
-    ConnectionSessionResult WebSocketProtocolExecution::handle(IClient &client, const Clock &)
+    httpadv::v1::server::ConnectionSessionResult WebSocketProtocolExecution::handle(httpadv::v1::transport::IClient &client, const httpadv::v1::util::Clock &)
     {
         if (!client.connected())
         {
@@ -55,20 +55,20 @@ namespace HttpServerAdvanced
             context_.notifyError("WebSocket disconnected");
             context_.notifyClose(policy.closeCode, "");
             closeState_ = CloseState::Closed;
-            return ConnectionSessionResult::AbortConnection;
+            return httpadv::v1::server::ConnectionSessionResult::AbortConnection;
         }
 
         const bool hadPendingBeforeFlush = !pendingWrite_.empty();
         if (!flushPendingWrite(client))
         {
-            return ConnectionSessionResult::Continue;
+            return httpadv::v1::server::ConnectionSessionResult::Continue;
         }
 
         if (!handshakeWritten_)
         {
             handshakeWritten_ = true;
             context_.notifyOpen();
-            return ConnectionSessionResult::Continue;
+            return httpadv::v1::server::ConnectionSessionResult::Continue;
         }
 
         if (hadPendingBeforeFlush && closeState_ == CloseState::CloseQueued)
@@ -78,11 +78,11 @@ namespace HttpServerAdvanced
             {
                 context_.notifyClose(closeCode_, closeReason_);
                 closeState_ = CloseState::Closed;
-                return ConnectionSessionResult::Completed;
+                return httpadv::v1::server::ConnectionSessionResult::Completed;
             }
         }
 
-        std::array<std::uint8_t, PIPELINE_STACK_BUFFER_SIZE> readBuffer = {};
+        std::array<std::uint8_t, httpadv::v1::core::PIPELINE_STACK_BUFFER_SIZE> readBuffer = {};
         while (client.available().hasBytes())
         {
             const std::size_t bytesRead = client.read(span<std::uint8_t>(readBuffer.data(), readBuffer.size()));
@@ -113,7 +113,7 @@ namespace HttpServerAdvanced
                     {
                         context_.notifyClose(policy.closeCode, "");
                         closeState_ = CloseState::Closed;
-                        return ConnectionSessionResult::AbortConnection;
+                        return httpadv::v1::server::ConnectionSessionResult::AbortConnection;
                     }
 
                     queueCloseFrame(static_cast<WebSocketCloseCode>(policy.closeCode));
@@ -142,7 +142,7 @@ namespace HttpServerAdvanced
         {
             if (!flushPendingWrite(client))
             {
-                return ConnectionSessionResult::Continue;
+                return httpadv::v1::server::ConnectionSessionResult::Continue;
             }
         }
 
@@ -150,7 +150,7 @@ namespace HttpServerAdvanced
         {
             if (!flushPendingWrite(client))
             {
-                return ConnectionSessionResult::Continue;
+                return httpadv::v1::server::ConnectionSessionResult::Continue;
             }
 
             closeState_ = CloseState::CloseSent;
@@ -158,11 +158,11 @@ namespace HttpServerAdvanced
             {
                 context_.notifyClose(closeCode_, closeReason_);
                 closeState_ = CloseState::Closed;
-                return ConnectionSessionResult::Completed;
+                return httpadv::v1::server::ConnectionSessionResult::Completed;
             }
         }
 
-        return ConnectionSessionResult::Continue;
+        return httpadv::v1::server::ConnectionSessionResult::Continue;
     }
 
     WebSocketSendResult WebSocketProtocolExecution::sendText(std::string_view payload)
@@ -182,7 +182,7 @@ namespace HttpServerAdvanced
             return WebSocketSendResult::InvalidState;
         }
 
-        if (payload.size() > WsMaxMessageSize)
+        if (payload.size() > httpadv::v1::core::WsMaxMessageSize)
         {
             return WebSocketSendResult::TooLarge;
         }
@@ -217,7 +217,7 @@ namespace HttpServerAdvanced
             return WebSocketSendResult::InvalidState;
         }
 
-        if (payload.size() > WsMaxMessageSize)
+        if (payload.size() > httpadv::v1::core::WsMaxMessageSize)
         {
             return WebSocketSendResult::TooLarge;
         }
@@ -281,14 +281,14 @@ namespace HttpServerAdvanced
         return context_;
     }
 
-    void WebSocketProtocolExecution::onError(PipelineError error)
+    void WebSocketProtocolExecution::onError(httpadv::v1::pipeline::PipelineError error)
     {
         if (closeState_ == CloseState::Closed)
         {
             return;
         }
 
-        const WsClosePolicy policy = policyFor(error.code() == PipelineErrorCode::Timeout ? WsErrorCategory::IdleTimeout : WsErrorCategory::WriteFailure);
+        const WsClosePolicy policy = policyFor(error.code() == httpadv::v1::pipeline::PipelineErrorCode::Timeout ? WsErrorCategory::IdleTimeout : WsErrorCategory::WriteFailure);
         context_.notifyError(error.message());
         context_.notifyClose(policy.closeCode, "");
         closeState_ = CloseState::Closed;
@@ -312,9 +312,9 @@ namespace HttpServerAdvanced
         return false;
     }
 
-    RequestHandlingResult WebSocketProtocolExecution::takeResult()
+    httpadv::v1::pipeline::RequestHandlingResult WebSocketProtocolExecution::takeResult()
     {
-        return RequestHandlingResult();
+        return httpadv::v1::pipeline::RequestHandlingResult();
     }
 
     bool WebSocketProtocolExecution::isFinished() const
@@ -322,7 +322,7 @@ namespace HttpServerAdvanced
         return closeState_ == CloseState::Closed;
     }
 
-    bool WebSocketProtocolExecution::flushPendingWrite(IClient &client)
+    bool WebSocketProtocolExecution::flushPendingWrite(httpadv::v1::transport::IClient &client)
     {
         while (pendingWriteOffset_ < pendingWrite_.size())
         {
@@ -375,7 +375,7 @@ namespace HttpServerAdvanced
 
     void WebSocketProtocolExecution::handleParsedFrame(const WebSocketFrame &frame)
     {
-        if (frame.header.payloadLength > WsMaxFramePayloadSize)
+        if (frame.header.payloadLength > httpadv::v1::core::WsMaxFramePayloadSize)
         {
             const WsClosePolicy policy = policyFor(WsErrorCategory::MessageTooLarge);
             context_.notifyError("WebSocket frame payload too large");
@@ -436,7 +436,7 @@ namespace HttpServerAdvanced
         {
             if (frame.header.fin)
             {
-                if (frame.payload.size() > WsMaxMessageSize)
+                if (frame.payload.size() > httpadv::v1::core::WsMaxMessageSize)
                 {
                     const WsClosePolicy policy = policyFor(WsErrorCategory::MessageTooLarge);
                     context_.notifyError("WebSocket message too big");
@@ -523,10 +523,10 @@ namespace HttpServerAdvanced
     {
         if (payload.empty())
         {
-            return messageBuffer_.size() <= WsMaxMessageSize;
+            return messageBuffer_.size() <= httpadv::v1::core::WsMaxMessageSize;
         }
 
-        const std::size_t remaining = WsMaxMessageSize - (std::min)(messageBuffer_.size(), WsMaxMessageSize);
+        const std::size_t remaining = httpadv::v1::core::WsMaxMessageSize - (std::min)(messageBuffer_.size(), httpadv::v1::core::WsMaxMessageSize);
         if (payload.size() > remaining)
         {
             return false;

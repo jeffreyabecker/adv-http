@@ -12,7 +12,7 @@
 #include "../streams/UriStream.h"
 #include "HttpResponse.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::response
 {
     class FormResponse
     {

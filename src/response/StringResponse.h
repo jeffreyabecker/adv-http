@@ -12,8 +12,11 @@
 #include "HttpResponse.h"
 #include "../core/HttpContentTypes.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::response
 {
+    using httpadv::v1::core::HttpHeader;
+    using httpadv::v1::core::HttpStatus;
+
     class StringResponse
     {
     public:
@@ -33,6 +36,6 @@ namespace HttpServerAdvanced
     };
 
 
-}
+} // namespace httpadv::v1::response
 
 

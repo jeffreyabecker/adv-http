@@ -1,8 +1,10 @@
 #pragma once
 #include "../compat/ByteStream.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::streams
 {
+    using httpadv::v1::transport::SingleByteSource;
+
     class ReadStream : public SingleByteSource
     {
     public:

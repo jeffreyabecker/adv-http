@@ -3,7 +3,7 @@
 #include "WebServerConfig.h"
 #include <type_traits>
 #include <utility>
-namespace HttpServerAdvanced
+namespace httpadv::v1::server
 {
     template <typename THttpServer>
     class FriendlyWebServer : public THttpServer

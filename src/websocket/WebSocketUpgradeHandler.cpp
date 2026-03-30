@@ -20,7 +20,7 @@
 #include <string_view>
 #include <vector>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::websocket
 {
     namespace
     {
@@ -230,23 +230,23 @@ namespace HttpServerAdvanced
             source.append(WebSocketGuid);
 
             const std::array<std::uint8_t, 20> digest = sha1Digest(source);
-            return WebUtility::Base64Encode(digest.data(), digest.size(), false);
+            return httpadv::v1::util::WebUtility::Base64Encode(digest.data(), digest.size(), false);
         }
 
-        std::optional<WebSocketUpgradeHandler::UpgradeFailure> validateUpgradeRequest(const HttpContext &request, std::string &normalizedKey)
+        std::optional<WebSocketUpgradeHandler::UpgradeFailure> validateUpgradeRequest(const httpadv::v1::core::HttpContext &request, std::string &normalizedKey)
         {
             if (request.methodView() != "GET")
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::InvalidMethod;
             }
 
-            const auto connectionHeader = request.headers().find(HttpHeaderNames::Connection);
+            const auto connectionHeader = request.headers().find(httpadv::v1::core::HttpHeaderNames::Connection);
             if (!connectionHeader.has_value() || !containsTokenCaseInsensitive(connectionHeader->valueView(), UpgradeToken))
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::MissingUpgradeIntent;
             }
 
-            const auto upgradeHeader = request.headers().find(HttpHeaderNames::Upgrade);
+            const auto upgradeHeader = request.headers().find(httpadv::v1::core::HttpHeaderNames::Upgrade);
             if (!upgradeHeader.has_value())
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::MissingUpgradeIntent;
@@ -257,7 +257,7 @@ namespace HttpServerAdvanced
                 return WebSocketUpgradeHandler::UpgradeFailure::ConflictingHeaders;
             }
 
-            const auto versionHeader = request.headers().find(HttpHeaderNames::SecWebSocketVersion);
+            const auto versionHeader = request.headers().find(httpadv::v1::core::HttpHeaderNames::SecWebSocketVersion);
             if (!versionHeader.has_value())
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::UnsupportedVersion;
@@ -269,7 +269,7 @@ namespace HttpServerAdvanced
                 return WebSocketUpgradeHandler::UpgradeFailure::UnsupportedVersion;
             }
 
-            const auto keyHeader = request.headers().find(HttpHeaderNames::SecWebSocketKey);
+            const auto keyHeader = request.headers().find(httpadv::v1::core::HttpHeaderNames::SecWebSocketKey);
             if (!keyHeader.has_value())
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::InvalidKeyLength;
@@ -281,13 +281,13 @@ namespace HttpServerAdvanced
                 return WebSocketUpgradeHandler::UpgradeFailure::InvalidKeyLength;
             }
 
-            const std::vector<std::uint8_t> decodedKey = WebUtility::Base64Decode(normalizedKey, false);
+            const std::vector<std::uint8_t> decodedKey = httpadv::v1::util::WebUtility::Base64Decode(normalizedKey, false);
             if (decodedKey.size() != 16U)
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::MalformedKeyText;
             }
 
-            if (WebUtility::Base64Encode(decodedKey.data(), decodedKey.size(), false) != normalizedKey)
+            if (httpadv::v1::util::WebUtility::Base64Encode(decodedKey.data(), decodedKey.size(), false) != normalizedKey)
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::MalformedKeyText;
             }
@@ -308,7 +308,7 @@ namespace HttpServerAdvanced
             return response;
         }
 
-        WebSocketActivationSnapshot createActivationSnapshot(const HttpContext &request)
+        WebSocketActivationSnapshot createActivationSnapshot(const httpadv::v1::core::HttpContext &request)
         {
             WebSocketActivationSnapshot snapshot;
             snapshot.items = request.items();
@@ -324,23 +324,23 @@ namespace HttpServerAdvanced
         }
     }
 
-    bool WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(const HttpContext &request)
+    bool WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(const httpadv::v1::core::HttpContext &request)
     {
-        const HttpHeaderCollection &headers = request.headers();
-        if (headers.exists(HttpHeaderNames::SecWebSocketKey) ||
-            headers.exists(HttpHeaderNames::SecWebSocketVersion) ||
-            headers.exists(HttpHeaderNames::SecWebSocketProtocol))
+        const httpadv::v1::core::HttpHeaderCollection &headers = request.headers();
+        if (headers.exists(httpadv::v1::core::HttpHeaderNames::SecWebSocketKey) ||
+            headers.exists(httpadv::v1::core::HttpHeaderNames::SecWebSocketVersion) ||
+            headers.exists(httpadv::v1::core::HttpHeaderNames::SecWebSocketProtocol))
         {
             return true;
         }
 
-        const auto upgradeHeader = headers.find(HttpHeaderNames::Upgrade);
+        const auto upgradeHeader = headers.find(httpadv::v1::core::HttpHeaderNames::Upgrade);
         if (upgradeHeader.has_value() && containsTokenCaseInsensitive(upgradeHeader->valueView(), WebSocketUpgradeToken))
         {
             return true;
         }
 
-        const auto connectionHeader = headers.find(HttpHeaderNames::Connection);
+        const auto connectionHeader = headers.find(httpadv::v1::core::HttpHeaderNames::Connection);
         if (connectionHeader.has_value() && containsTokenCaseInsensitive(connectionHeader->valueView(), UpgradeToken))
         {
             return true;
@@ -349,7 +349,7 @@ namespace HttpServerAdvanced
         return false;
     }
 
-    HandlerResult WebSocketUpgradeHandler::handle(HttpContext &request, const WebSocketCallbacks &callbacks) const
+    HandlerResult WebSocketUpgradeHandler::handle(httpadv::v1::core::HttpContext &request, const WebSocketCallbacks &callbacks) const
     {
         std::string key;
         const std::optional<UpgradeFailure> failure = validateUpgradeRequest(request, key);
@@ -364,35 +364,35 @@ namespace HttpServerAdvanced
         return HandlerResult::upgradeResult(std::move(session));
     }
 
-    HandlerResult WebSocketUpgradeHandler::rejectUpgrade(HttpContext &request, UpgradeFailure failure)
+    HandlerResult WebSocketUpgradeHandler::rejectUpgrade(httpadv::v1::core::HttpContext &request, UpgradeFailure failure)
     {
-        HttpStatus status = HttpStatus::BadRequest();
+        httpadv::v1::core::HttpStatus status = httpadv::v1::core::HttpStatus::BadRequest();
         std::string message = "WebSocket upgrade rejected: malformed headers or key";
 
         switch (failure)
         {
         case UpgradeFailure::InvalidMethod:
-            status = HttpStatus::MethodNotAllowed();
+            status = httpadv::v1::core::HttpStatus::MethodNotAllowed();
             message = "WebSocket upgrade rejected: method must be GET";
             break;
         case UpgradeFailure::MissingUpgradeIntent:
-            status = HttpStatus::UpgradeRequired();
+            status = httpadv::v1::core::HttpStatus::UpgradeRequired();
             message = "WebSocket upgrade rejected: missing upgrade intent";
             break;
         case UpgradeFailure::UnsupportedVersion:
-            status = HttpStatus::BadRequest();
+            status = httpadv::v1::core::HttpStatus::BadRequest();
             message = "WebSocket upgrade rejected: unsupported version";
             break;
         case UpgradeFailure::InvalidKeyLength:
-            status = HttpStatus::BadRequest();
+            status = httpadv::v1::core::HttpStatus::BadRequest();
             message = "WebSocket upgrade rejected: invalid key length";
             break;
         case UpgradeFailure::MalformedKeyText:
-            status = HttpStatus::BadRequest();
+            status = httpadv::v1::core::HttpStatus::BadRequest();
             message = "WebSocket upgrade rejected: malformed key";
             break;
         case UpgradeFailure::ConflictingHeaders:
-            status = HttpStatus::BadRequest();
+            status = httpadv::v1::core::HttpStatus::BadRequest();
             message = "WebSocket upgrade rejected: conflicting headers";
             break;
         }

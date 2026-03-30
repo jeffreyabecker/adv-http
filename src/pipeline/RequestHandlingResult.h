@@ -7,8 +7,11 @@
 
 #include "../compat/ByteStream.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::pipeline
 {
+    using httpadv::v1::server::IConnectionSession;
+    using httpadv::v1::transport::IByteSource;
+
     struct RequestHandlingResult
     {
         enum class Kind

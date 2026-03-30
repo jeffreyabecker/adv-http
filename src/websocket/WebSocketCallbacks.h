@@ -6,8 +6,10 @@
 #include <functional>
 #include <string_view>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::websocket
 {
+    using httpadv::v1::util::span;
+
     class WebSocketContext;
 
     struct WebSocketCallbacks

@@ -8,7 +8,7 @@
 #include <chrono>
 #endif
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::util
 {
     using ClockMillis = std::uint32_t;
 

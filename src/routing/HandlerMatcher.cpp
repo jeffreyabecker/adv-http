@@ -8,8 +8,11 @@
 #include "../core/HttpContext.h"
 #include "../util/UriView.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::routing
 {
+    using httpadv::v1::core::HttpHeaderNames;
+    using httpadv::v1::handlers::RouteParameters;
+
     namespace
     {
         char toLowerAscii(char value)
@@ -49,9 +52,9 @@ namespace HttpServerAdvanced
         return allowedMethods.find(method) != std::string_view::npos;
     }
 
-    bool defaultCheckContentType(HttpContext &context, const std::vector<std::string> &allowedContentTypes)
+    bool defaultCheckContentType(httpadv::v1::core::HttpContext &context, const std::vector<std::string> &allowedContentTypes)
     {
-        std::optional<HttpHeader> contentType = context.headers().find("Content-Type");
+        std::optional<httpadv::v1::core::HttpHeader> contentType = context.headers().find("Content-Type");
         if (!contentType.has_value())
         {
             return false;
@@ -75,7 +78,7 @@ namespace HttpServerAdvanced
 
     bool defaultCheckUriPattern(std::string_view uri, std::string_view uriPattern)
     {
-        const std::string_view path = UriView(uri).path();
+        const std::string_view path = httpadv::v1::util::UriView(uri).path();
         std::size_t pathIndex = 0;
         std::size_t patternIndex = 0;
         std::size_t wildcardIndex = std::string_view::npos;
@@ -90,7 +93,7 @@ namespace HttpServerAdvanced
                 continue;
             }
 
-            if (patternIndex < uriPattern.size() && uriPattern[patternIndex] == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
+            if (patternIndex < uriPattern.size() && uriPattern[patternIndex] == httpadv::v1::core::REQUEST_MATCHER_PATH_WILDCARD_CHAR)
             {
                 wildcardIndex = patternIndex;
                 matchIndex = pathIndex;
@@ -108,7 +111,7 @@ namespace HttpServerAdvanced
             return false;
         }
 
-        while (patternIndex < uriPattern.size() && uriPattern[patternIndex] == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
+        while (patternIndex < uriPattern.size() && uriPattern[patternIndex] == httpadv::v1::core::REQUEST_MATCHER_PATH_WILDCARD_CHAR)
         {
             ++patternIndex;
         }
@@ -116,12 +119,12 @@ namespace HttpServerAdvanced
         return patternIndex == uriPattern.size();
     }
 
-    RouteParameters defaultExtractParameters(HttpContext &context, std::string_view uriPattern)
+    RouteParameters defaultExtractParameters(httpadv::v1::core::HttpContext &context, std::string_view uriPattern)
     {
         RouteParameters params;
-        auto v = UriView(context.urlView());
+        auto v = httpadv::v1::util::UriView(context.urlView());
         auto path = v.path();
-        if (uriPattern.find(REQUEST_MATCHER_PATH_WILDCARD_CHAR) == std::string_view::npos)
+        if (uriPattern.find(httpadv::v1::core::REQUEST_MATCHER_PATH_WILDCARD_CHAR) == std::string_view::npos)
         {
             return params;
         }
@@ -134,7 +137,7 @@ namespace HttpServerAdvanced
 
         while (t != tEnd && p != pEnd)
         {
-            if (*p == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
+            if (*p == httpadv::v1::core::REQUEST_MATCHER_PATH_WILDCARD_CHAR)
             {
                 // Wildcard: capture until next REQUEST_MATCHER_PATH_DELIMITER or end of string
                 currentParam.clear();
@@ -176,7 +179,7 @@ namespace HttpServerAdvanced
         }
 
         // Handle trailing wildcards
-        while (p != pEnd && *p == REQUEST_MATCHER_PATH_WILDCARD_CHAR)
+        while (p != pEnd && *p == httpadv::v1::core::REQUEST_MATCHER_PATH_WILDCARD_CHAR)
         {
             currentParam.clear();
             ++p;
@@ -330,7 +333,7 @@ namespace HttpServerAdvanced
     }
 
     // Public methods
-    bool HandlerMatcher::canHandle(HttpContext &context) const
+    bool HandlerMatcher::canHandle(httpadv::v1::core::HttpContext &context) const
     {
         if (!allowedMethods_.empty() && !methodChecker_(allowedMethods_, context.methodView()))
         {
@@ -352,7 +355,7 @@ namespace HttpServerAdvanced
         return true;
     }
 
-    RouteParameters HandlerMatcher::extractParameters(HttpContext &context) const
+    RouteParameters HandlerMatcher::extractParameters(httpadv::v1::core::HttpContext &context) const
     {
         return argsExtractor_(context, uriPattern_);
     }

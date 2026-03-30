@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::pipeline
 {
     enum class PipelineErrorCode : int32_t
     {

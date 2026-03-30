@@ -1,7 +1,7 @@
 #pragma once
 
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::pipeline
 {
 
 

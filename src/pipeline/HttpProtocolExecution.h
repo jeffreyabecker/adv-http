@@ -4,7 +4,7 @@
 #include "IPipelineHandler.h"
 #include "RequestParser.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::pipeline
 {
     class HttpProtocolExecution : public IProtocolExecution
     {

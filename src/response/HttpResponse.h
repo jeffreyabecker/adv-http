@@ -8,8 +8,11 @@
 #include "HttpResponseIterators.h"
 #include "IHttpResponse.h"
 #include <memory>
-namespace HttpServerAdvanced
+namespace httpadv::v1::response
 {
+  using httpadv::v1::core::HttpHeaderCollection;
+  using httpadv::v1::core::HttpStatus;
+  using httpadv::v1::transport::IByteSource;
 
   class HttpResponse : public IHttpResponse
   {
@@ -30,6 +33,6 @@ namespace HttpServerAdvanced
 
   std::unique_ptr<IByteSource> CreateResponseStream(std::unique_ptr<IHttpResponse> response);
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::response
 
 

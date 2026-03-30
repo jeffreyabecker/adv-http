@@ -2,7 +2,7 @@
 
 #include "HttpUtility.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::util
 {
     UriView::UriView()
         : UriView(std::string())

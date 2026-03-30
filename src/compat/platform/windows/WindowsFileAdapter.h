@@ -11,7 +11,7 @@
 
 #include <windows.h>
 
-#include "VirtualPathMapperWindows.h"
+#include "../PathMapper.h"
 
 #include <algorithm>
 #include <fstream>
@@ -21,8 +21,19 @@
 #include <string_view>
 #include <utility>
 
-namespace HttpServerAdvanced::platform::windows
+namespace httpadv::v1::platform::windows
 {
+            using httpadv::v1::transport::AvailableBytes;
+            using httpadv::v1::transport::AvailableResult;
+            using httpadv::v1::transport::DirectoryEntry;
+            using httpadv::v1::transport::DirectoryEntryCallback;
+            using httpadv::v1::transport::ExhaustedResult;
+            using httpadv::v1::transport::FileHandle;
+            using httpadv::v1::transport::IFile;
+            using httpadv::v1::transport::IFileSystem;
+            using httpadv::v1::transport::FileOpenMode;
+            using httpadv::v1::transport::TemporarilyUnavailableResult;
+
 
 
             struct FileMetadata
@@ -116,7 +127,7 @@ namespace HttpServerAdvanced::platform::windows
             inline bool EnumerateHostDirectory(std::string_view directoryPath, Callback&& callback)
             {
                 const std::string ownedDirectory(directoryPath);
-                const std::string searchPattern = VirtualPathMapperWindows::JoinScopedPath(ownedDirectory, "*");
+                const std::string searchPattern = httpadv::v1::platform::WindowsPathMapper::JoinScopedPath(ownedDirectory, "*");
 
                 WIN32_FIND_DATAA findData;
                 HANDLE handle = FindFirstFileA(searchPattern.c_str(), &findData);
@@ -187,7 +198,7 @@ namespace HttpServerAdvanced::platform::windows
                     return AvailableBytes(*size_ - position_);
                 }
 
-                size_t read(HttpServerAdvanced::span<uint8_t> buffer) override
+                size_t read(httpadv::v1::util::span<uint8_t> buffer) override
                 {
                     if (directory_ || stream_ == nullptr || !isReadable() || buffer.empty())
                     {
@@ -217,7 +228,7 @@ namespace HttpServerAdvanced::platform::windows
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override
+                size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
                 {
                     if (directory_ || stream_ == nullptr || !isReadable() || buffer.empty())
                     {
@@ -246,7 +257,7 @@ namespace HttpServerAdvanced::platform::windows
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                std::size_t write(HttpServerAdvanced::span<const uint8_t> buffer) override
+                std::size_t write(httpadv::v1::util::span<const uint8_t> buffer) override
                 {
                     if (stream_ == nullptr || directory_ || !isWritable() || buffer.empty())
                     {
@@ -307,7 +318,7 @@ namespace HttpServerAdvanced::platform::windows
 
                 std::string_view name() const override
                 {
-                    return VirtualPathMapperWindows::BasenameView(path_);
+                    return httpadv::v1::platform::WindowsPathMapper::BasenameView(path_);
                 }
 
                 std::string_view path() const override
@@ -506,8 +517,8 @@ namespace HttpServerAdvanced::platform::windows
                         [this, &hostDirectoryPath, &virtualDirectoryPath, &callback, recursive](std::string_view name,
                                                                                                 const bool isDirectory)
                         {
-                            const std::string entryHostPath = VirtualPathMapperWindows::JoinScopedPath(hostDirectoryPath, name);
-                            const std::string entryVirtualPath = VirtualPathMapperWindows::Join(virtualDirectoryPath, name);
+                            const std::string entryHostPath = httpadv::v1::platform::WindowsPathMapper::JoinScopedPath(hostDirectoryPath, name);
+                            const std::string entryVirtualPath = httpadv::v1::platform::WindowsPathMapper::Join(virtualDirectoryPath, name);
                             const DirectoryEntry entry{std::string(name), entryVirtualPath, isDirectory};
                             if (!callback(entry))
                             {
@@ -540,7 +551,7 @@ namespace HttpServerAdvanced::platform::windows
                     }
                 }
 
-                VirtualPathMapperWindows mapper_{};
+                httpadv::v1::platform::WindowsPathMapper mapper_{};
             };
 
-} // namespace HttpServerAdvanced::platform::windows
+} // namespace httpadv::v1::platform::windows

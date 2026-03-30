@@ -4,8 +4,11 @@
 #include <string>
 #include <string_view>
 #include "../response/HttpResponse.h"
-namespace HttpServerAdvanced
+namespace httpadv::v1::routing
 {
+    using httpadv::v1::core::HttpHeaderNames;
+    using httpadv::v1::response::HttpResponse;
+    using httpadv::v1::response::IHttpResponse;
 
     inline HttpResponse::ResponseFilter CrossOriginRequestSharing(std::string_view allowedOrigins = "*", std::string_view allowedMethods = "*", std::string_view allowedHeaders = "*",
                                                                   std::string_view allowedCredentials = "", std::string_view exposeHeaders = "", const int maxAge = -1, std::string_view requestHeaders = "", std::string_view requestMethods = "")

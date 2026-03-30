@@ -7,8 +7,10 @@
 #include <map>
 #include <string>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::websocket
 {
+    using httpadv::v1::core::HttpHeaderCollection;
+
     struct WebSocketActivationSnapshot
     {
         std::map<std::string, std::any> items;

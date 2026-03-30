@@ -6,12 +6,12 @@
 #include "../compat/ByteStream.h"
 #include "../core/HttpContentTypes.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::response
 {
 
     namespace
     {
-        HttpHeaderCollection buildJsonHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength)
+        HttpHeaderCollection buildJsonHeaders(std::initializer_list<httpadv::v1::core::HttpHeader> headers, size_t contentLength)
         {
             HttpHeaderCollection headersCollection;
             for (const auto &header : headers)
@@ -20,7 +20,7 @@ namespace HttpServerAdvanced
             }
             if (!headersCollection.exists(HttpHeaderNames::ContentType))
             {
-                headersCollection.set(HttpHeader(HttpHeaderNames::ContentType, HttpContentTypes::Json));
+                headersCollection.set(HttpHeader(HttpHeaderNames::ContentType, httpadv::v1::core::HttpContentTypes::Json));
             }
             if (!headersCollection.exists(HttpHeaderNames::ContentLength))
             {
@@ -30,7 +30,7 @@ namespace HttpServerAdvanced
         }
     }
 
-    std::unique_ptr<IHttpResponse> JsonResponse::create(HttpStatus status, const JsonDocument &doc, std::initializer_list<HttpHeader> headers)
+    std::unique_ptr<IHttpResponse> JsonResponse::create(HttpStatus status, const JsonDocument &doc, std::initializer_list<httpadv::v1::core::HttpHeader> headers)
     {
         // I'm not thrilled about this double serialization, but ArduinoJson doesn't provide a way to
         // serialize using a pull model.

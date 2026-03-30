@@ -1,11 +1,12 @@
 #pragma once
 
 #include "../handlers/HandlerResult.h"
+#include "../core/HttpContext.h"
 #include "WebSocketCallbacks.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::websocket
 {
-    class HttpContext;
+    using httpadv::v1::handlers::HandlerResult;
 
     class WebSocketUpgradeHandler
     {
@@ -20,10 +21,10 @@ namespace HttpServerAdvanced
             ConflictingHeaders
         };
 
-        static bool isWebSocketUpgradeCandidate(const HttpContext &request);
-        HandlerResult handle(HttpContext &request, const WebSocketCallbacks &callbacks) const;
+        static bool isWebSocketUpgradeCandidate(const httpadv::v1::core::HttpContext &request);
+        HandlerResult handle(httpadv::v1::core::HttpContext &request, const WebSocketCallbacks &callbacks) const;
 
     private:
-        static HandlerResult rejectUpgrade(HttpContext &request, UpgradeFailure failure);
+        static HandlerResult rejectUpgrade(httpadv::v1::core::HttpContext &request, UpgradeFailure failure);
     };
 }

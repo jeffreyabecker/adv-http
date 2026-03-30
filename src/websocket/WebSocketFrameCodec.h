@@ -7,8 +7,10 @@
 #include <cstdint>
 #include <vector>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::websocket
 {
+    using httpadv::v1::util::span;
+
     enum class WebSocketOpcode : std::uint8_t
     {
         Continuation = 0x0,

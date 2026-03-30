@@ -5,8 +5,11 @@
 #include <string_view>
 
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::staticfiles
 {
+    using httpadv::v1::core::HttpContext;
+    using httpadv::v1::transport::FileHandle;
+
     class FileLocator
     {
     public:
@@ -15,6 +18,6 @@ namespace HttpServerAdvanced
         virtual bool canHandle(std::string_view path) = 0;
     };
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::staticfiles
 
 

@@ -8,7 +8,7 @@
 #include "../streams/Base64Stream.h"
 #include "../streams/UriStream.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::util
 {
     namespace
     {
@@ -87,8 +87,8 @@ namespace HttpServerAdvanced
 
     std::string WebUtility::DecodeURIComponent(const char *str, std::size_t length)
     {
-        UriDecodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
-        auto decoded = ReadAsVector(uriStream);
+        httpadv::v1::streams::UriDecodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
+        auto decoded = httpadv::v1::transport::ReadAsVector(uriStream);
         return std::string(decoded.begin(), decoded.end());
     }
 
@@ -99,8 +99,8 @@ namespace HttpServerAdvanced
 
     std::string WebUtility::EncodeURIComponent(const char *str, std::size_t length)
     {
-        UriEncodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
-        auto encoded = ReadAsVector(uriStream);
+        httpadv::v1::streams::UriEncodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
+        auto encoded = httpadv::v1::transport::ReadAsVector(uriStream);
         return std::string(encoded.begin(), encoded.end());
     }
 
@@ -273,8 +273,8 @@ namespace HttpServerAdvanced
 
     std::string WebUtility::Base64Encode(const uint8_t *data, std::size_t length, bool urlCompatible)
     {
-        Base64EncoderStream base64Stream = Base64EncoderStream::create(data, length, urlCompatible);
-        return ReadAsStdString(base64Stream);
+        httpadv::v1::streams::Base64EncoderStream base64Stream = httpadv::v1::streams::Base64EncoderStream::create(data, length, urlCompatible);
+        return httpadv::v1::transport::ReadAsStdString(base64Stream);
     }
 
     std::string WebUtility::Base64Encode(std::string_view input, bool urlCompatible)
@@ -284,14 +284,14 @@ namespace HttpServerAdvanced
 
     std::vector<uint8_t> WebUtility::Base64Decode(std::string_view input, bool urlCompatible)
     {
-        Base64DecoderStream base64Stream = Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(input.data()), input.size(), urlCompatible);
-        return ReadAsVector(base64Stream);
+        httpadv::v1::streams::Base64DecoderStream base64Stream = httpadv::v1::streams::Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(input.data()), input.size(), urlCompatible);
+        return httpadv::v1::transport::ReadAsVector(base64Stream);
     }
 
     std::string WebUtility::Base64DecodeToString(const char *data, std::size_t length, bool urlCompatible)
     {
-        Base64DecoderStream base64Stream = Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(data), length, urlCompatible);
-        return ReadAsStdString(base64Stream);
+        httpadv::v1::streams::Base64DecoderStream base64Stream = httpadv::v1::streams::Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(data), length, urlCompatible);
+        return httpadv::v1::transport::ReadAsStdString(base64Stream);
     }
 
     std::string WebUtility::Base64DecodeToString(std::string_view input, bool urlCompatible)

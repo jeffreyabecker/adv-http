@@ -17,8 +17,22 @@
 #include <utility>
 #include <vector>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::routing
 {
+    using httpadv::v1::core::HttpContext;
+    using httpadv::v1::core::HttpHeader;
+    using httpadv::v1::core::HttpHeaderCollection;
+    using httpadv::v1::core::HttpHeaderNames;
+    using httpadv::v1::core::HttpStatus;
+    using httpadv::v1::handlers::IHttpHandler;
+    using httpadv::v1::response::IHttpResponse;
+    using httpadv::v1::response::HttpResponse;
+    using httpadv::v1::transport::AvailableBytes;
+    using httpadv::v1::transport::AvailableResult;
+    using httpadv::v1::transport::ExhaustedResult;
+    using httpadv::v1::transport::IByteSink;
+    using httpadv::v1::transport::IByteSource;
+
 #ifndef HTTPSERVER_ADVANCED_REPLACE_VARIABLES_MAX_TOKEN_BYTES
 #define HTTPSERVER_ADVANCED_REPLACE_VARIABLES_MAX_TOKEN_BYTES 128
 #endif
@@ -159,7 +173,7 @@ namespace HttpServerAdvanced
             {
             }
 
-            std::size_t write(HttpServerAdvanced::span<const std::uint8_t> buffer) override
+            std::size_t write(httpadv::v1::util::span<const std::uint8_t> buffer) override
             {
                 storage_.append(reinterpret_cast<const char *>(buffer.data()), buffer.size());
                 return buffer.size();
@@ -400,7 +414,7 @@ namespace HttpServerAdvanced
                 while (outputSize() < targetBytes && !streamExhausted_)
                 {
                     std::uint8_t readBuffer[64] = {};
-                    const std::size_t readCount = inner_->read(HttpServerAdvanced::span<std::uint8_t>(readBuffer, sizeof(readBuffer)));
+                    const std::size_t readCount = inner_->read(httpadv::v1::util::span<std::uint8_t>(readBuffer, sizeof(readBuffer)));
                     if (readCount == 0)
                     {
                         const AvailableResult available = inner_->available();
@@ -450,7 +464,7 @@ namespace HttpServerAdvanced
                 return inner_ ? inner_->available() : ExhaustedResult();
             }
 
-            std::size_t read(HttpServerAdvanced::span<std::uint8_t> buffer) override
+            std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override
             {
                 if (buffer.empty())
                 {
@@ -470,7 +484,7 @@ namespace HttpServerAdvanced
                 return copied;
             }
 
-            std::size_t peek(HttpServerAdvanced::span<std::uint8_t> buffer) override
+            std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override
             {
                 if (buffer.empty())
                 {
@@ -572,4 +586,4 @@ namespace HttpServerAdvanced
         return ReplaceVariables(std::move(resolver), std::move(options));
     }
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::routing

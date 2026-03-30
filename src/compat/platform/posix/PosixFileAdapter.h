@@ -2,7 +2,7 @@
 
 #include "../../IFileSystem.h"
 
-#include "VirtualPathMapperPosix.h"
+#include "../PathMapper.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
@@ -16,7 +16,7 @@
 #include <string_view>
 #include <utility>
 
-namespace HttpServerAdvanced::platform::posix
+namespace httpadv::v1::platform::posix
 {
             struct FileMetadata
             {
@@ -97,7 +97,7 @@ namespace HttpServerAdvanced::platform::posix
                     }
 
                     const std::string entryHostPath =
-                        VirtualPathMapperPosix::JoinScopedPath(ownedDirectory, name);
+                        httpadv::v1::platform::PosixPathMapper::JoinScopedPath(ownedDirectory, name);
                     bool isDirectory = false;
 #if defined(DT_DIR) && defined(DT_UNKNOWN)
                     if (current->d_type == DT_DIR)
@@ -165,7 +165,7 @@ namespace HttpServerAdvanced::platform::posix
                     return AvailableBytes(*size_ - position_);
                 }
 
-                size_t read(HttpServerAdvanced::span<uint8_t> buffer) override
+                size_t read(httpadv::v1::util::span<uint8_t> buffer) override
                 {
                     if (directory_ || stream_ == nullptr || !isReadable() || buffer.empty())
                     {
@@ -195,7 +195,7 @@ namespace HttpServerAdvanced::platform::posix
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override
+                size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
                 {
                     if (directory_ || stream_ == nullptr || !isReadable() || buffer.empty())
                     {
@@ -224,7 +224,7 @@ namespace HttpServerAdvanced::platform::posix
                     return static_cast<std::size_t>(bytesRead);
                 }
 
-                std::size_t write(HttpServerAdvanced::span<const uint8_t> buffer) override
+                std::size_t write(httpadv::v1::util::span<const uint8_t> buffer) override
                 {
                     if (stream_ == nullptr || directory_ || !isWritable() || buffer.empty())
                     {
@@ -285,7 +285,7 @@ namespace HttpServerAdvanced::platform::posix
 
                 std::string_view name() const override
                 {
-                    return VirtualPathMapperPosix::BasenameView(path_);
+                    return httpadv::v1::platform::PosixPathMapper::BasenameView(path_);
                 }
 
                 std::string_view path() const override
@@ -484,8 +484,8 @@ namespace HttpServerAdvanced::platform::posix
                         [this, &hostDirectoryPath, &virtualDirectoryPath, &callback, recursive](std::string_view name,
                                                                                                 const bool isDirectory)
                         {
-                            const std::string entryHostPath = VirtualPathMapperPosix::JoinScopedPath(hostDirectoryPath, name);
-                            const std::string entryVirtualPath = VirtualPathMapperPosix::Join(virtualDirectoryPath, name);
+                            const std::string entryHostPath = httpadv::v1::platform::PosixPathMapper::JoinScopedPath(hostDirectoryPath, name);
+                            const std::string entryVirtualPath = httpadv::v1::platform::PosixPathMapper::Join(virtualDirectoryPath, name);
                             const DirectoryEntry entry{std::string(name), entryVirtualPath, isDirectory};
                             if (!callback(entry))
                             {
@@ -518,7 +518,7 @@ namespace HttpServerAdvanced::platform::posix
                     }
                 }
 
-                VirtualPathMapperPosix mapper_{};
+                httpadv::v1::platform::PosixPathMapper mapper_{};
             };
             
-} // namespace HttpServerAdvanced::platform::posix
+} // namespace httpadv::v1::platform::posix

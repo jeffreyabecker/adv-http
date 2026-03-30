@@ -7,8 +7,18 @@
 #include "ChunkedHttpResponseBodyStream.h"
 #include "IHttpResponse.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::response
 {
+  using httpadv::v1::core::HttpHeader;
+  using httpadv::v1::core::HttpHeaderCollection;
+  using httpadv::v1::core::HttpHeaderNames;
+  using httpadv::v1::core::HttpStatus;
+  using httpadv::v1::transport::ConcatByteSource;
+  using httpadv::v1::transport::ExhaustedResult;
+  using httpadv::v1::transport::IByteSource;
+  using httpadv::v1::transport::AvailableResult;
+  using httpadv::v1::transport::SpanByteSource;
+  using httpadv::v1::transport::StdStringByteSource;
 
   // Helper functions
   std::string getHeaderDateValue();
@@ -102,12 +112,12 @@ namespace HttpServerAdvanced
       return source_ ? source_->available() : ExhaustedResult();
     }
 
-    size_t read(HttpServerAdvanced::span<uint8_t> buffer) override
+    size_t read(httpadv::v1::util::span<uint8_t> buffer) override
     {
       return source_ ? source_->read(buffer) : 0;
     }
 
-    size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override
+    size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
     {
       return source_ ? source_->peek(buffer) : 0;
     }
@@ -118,6 +128,6 @@ namespace HttpServerAdvanced
     return std::make_unique<HttpPipelineResponseSource>(std::move(response));
   }
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::response
 
 

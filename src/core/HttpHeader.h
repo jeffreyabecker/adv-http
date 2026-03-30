@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
   struct HttpHeaderNames
   {

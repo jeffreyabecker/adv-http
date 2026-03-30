@@ -19,9 +19,18 @@
 #include <optional>
 #include <algorithm>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::server
 {
     class HttpServerBase;
+}
+
+namespace httpadv::v1::pipeline
+{
+    using httpadv::v1::core::HttpTimeouts;
+    using httpadv::v1::server::HttpServerBase;
+    using httpadv::v1::util::Clock;
+    using httpadv::v1::util::ClockMillis;
+
     class HttpPipeline
     {
     public:
@@ -37,7 +46,7 @@ namespace HttpServerAdvanced
         };
 
     private:
-        std::unique_ptr<HttpServerAdvanced::IClient> client_;
+        std::unique_ptr<httpadv::v1::transport::IClient> client_;
         HttpServerBase &server_;
         const Clock &clock_;
         std::function<PipelineHandlerPtr()> handlerFactory_;
@@ -73,7 +82,7 @@ namespace HttpServerAdvanced
         IProtocolExecution *currentProtocolExecution();
         const IProtocolExecution *currentProtocolExecution() const;
     public:
-        HttpPipeline(std::unique_ptr<HttpServerAdvanced::IClient> client, HttpServerBase &server,
+        HttpPipeline(std::unique_ptr<httpadv::v1::transport::IClient> client, HttpServerBase &server,
                      const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,
                      const Clock &clock);
 
@@ -86,9 +95,9 @@ namespace HttpServerAdvanced
         void abortReadingRequest();
         void abortWritingResponse();
         ClockMillis startedAt() const;
-        HttpServerAdvanced::IClient &client();
+        httpadv::v1::transport::IClient &client();
         ConnectionState connectionState() const;
     };
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::pipeline
 

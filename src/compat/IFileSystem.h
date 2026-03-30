@@ -10,7 +10,7 @@
 
 #include "ByteStream.h"
 
-namespace HttpServerAdvanced {
+namespace httpadv::v1::transport {
 enum class FileOpenMode { Read, Write, ReadWrite };
 
 class IFile : public IByteChannel {
@@ -50,4 +50,4 @@ public:
                     const DirectoryEntryCallback &callback,
                     bool recursive = false) = 0;
 };
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::transport

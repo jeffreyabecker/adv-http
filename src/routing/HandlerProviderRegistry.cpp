@@ -4,15 +4,24 @@
 #include "../response/HttpResponse.h"
 #include "../response/StringResponse.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::routing
 {
 
-    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createDefaultHandler(HttpContext &context)
+    using httpadv::v1::core::HttpHeader;
+    using httpadv::v1::core::HttpHeaderNames;
+    using httpadv::v1::core::HttpStatus;
+    using httpadv::v1::handlers::HandlerProvider;
+    using httpadv::v1::handlers::HttpHandler;
+    using httpadv::v1::handlers::IHttpHandler;
+    using httpadv::v1::response::IHttpResponse;
+    using httpadv::v1::response::StringResponse;
+
+    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createDefaultHandler(httpadv::v1::core::HttpContext &context)
     {
         return std::make_unique<HttpHandler>(
             StringResponse::create(HttpStatus::NotFound(), "404 Not Found",
                                  {HttpHeader(HttpHeaderNames::ContentType, "text/plain")}),
-            [](const HttpContext &)
+            [](const httpadv::v1::core::HttpContext &)
             { return true; });
     }
 
@@ -31,22 +40,22 @@ namespace HttpServerAdvanced
         return std::make_unique<ResponseFilterApplicator>(std::move(innerHandler), globalResponseFilter_, globalRequestInterceptor_);
     }
 
-    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createContextHandler(HttpContext &context)
+    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createContextHandler(httpadv::v1::core::HttpContext &context)
     {
         if (!globalRequestFilter_ || globalRequestFilter_(context))
         {
             for (auto &creator : factories_)
             {
-                IHandlerProvider &factory = creator.get();
-                if (factory.canHandle(const_cast<HttpContext &>(context)))
+                httpadv::v1::handlers::IHandlerProvider &factory = creator.get();
+                if (factory.canHandle(const_cast<httpadv::v1::core::HttpContext &>(context)))
                 {
-                    return wrapHandler(factory.create(const_cast<HttpContext &>(context)));
+                    return wrapHandler(factory.create(const_cast<httpadv::v1::core::HttpContext &>(context)));
                 }
             }
         }
         auto inner = defaultFactory_
-                         ? defaultFactory_(const_cast<HttpContext &>(context))
-                         : createDefaultHandler(const_cast<HttpContext &>(context));
+                         ? defaultFactory_(const_cast<httpadv::v1::core::HttpContext &>(context))
+                         : createDefaultHandler(const_cast<httpadv::v1::core::HttpContext &>(context));
         return wrapHandler(std::move(inner));
     }
 
@@ -55,7 +64,7 @@ namespace HttpServerAdvanced
         defaultFactory_ = creator;
     }
 
-    void HandlerProviderRegistry::add(IHandlerProvider &handlerFactory, AddPosition position)
+    void HandlerProviderRegistry::add(httpadv::v1::handlers::IHandlerProvider &handlerFactory, AddPosition position)
     {
         if (position == AddAt::Beginning)
         {
@@ -86,8 +95,8 @@ namespace HttpServerAdvanced
 
     void HandlerProviderRegistry::add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position)
     {
-        add(predicate, [invocation](HttpContext &context)
-            { return std::make_unique<HttpHandler>(invocation, [](const HttpContext &)
+        add(predicate, [invocation](httpadv::v1::core::HttpContext &context)
+            { return std::make_unique<HttpHandler>(invocation, [](const httpadv::v1::core::HttpContext &)
                                                    { return true; }); }, position);
     }
 
@@ -101,7 +110,7 @@ namespace HttpServerAdvanced
         if( globalRequestFilter_)
         {
             auto previousFilter = globalRequestFilter_;
-            globalRequestFilter_ = [previousFilter, predicate](HttpContext &context) -> bool
+            globalRequestFilter_ = [previousFilter, predicate](httpadv::v1::core::HttpContext &context) -> bool
             {
                 return previousFilter(context) && predicate(context);
             };
@@ -140,9 +149,9 @@ namespace HttpServerAdvanced
         if (globalRequestInterceptor_)
         {
             auto previousInterceptor = globalRequestInterceptor_;
-            globalRequestInterceptor_ = [previousInterceptor, interceptor](HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+            globalRequestInterceptor_ = [previousInterceptor, interceptor](httpadv::v1::core::HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
             {
-                return interceptor(context, [previousInterceptor, next](HttpContext &ctx) -> IHttpHandler::HandlerResult
+                return interceptor(context, [previousInterceptor, next](httpadv::v1::core::HttpContext &ctx) -> IHttpHandler::HandlerResult
                                    { return previousInterceptor(ctx, next); });
             };
         }
@@ -152,7 +161,7 @@ namespace HttpServerAdvanced
         }
     }
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::routing
 
 
 

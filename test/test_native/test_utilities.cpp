@@ -11,8 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include "../../src/compat/platform/windows/VirtualPathMapperWindows.h"
-#include "../../src/compat/platform/posix/VirtualPathMapperPosix.h"
+#include "../../src/compat/platform/PathMapper.h"
 #include "../../src/core/HttpContentTypes.h"
 #include "../../src/core/HttpMethod.h"
 #include "../../src/core/HttpStatus.h"
@@ -38,7 +37,7 @@ namespace
 
     void test_parse_query_parameters_uses_std_string_payloads()
     {
-        const auto params = HttpServerAdvanced::WebUtility::ParseQueryParameters("name=Jane+Doe&role=admin&empty", strlen("name=Jane+Doe&role=admin&empty"));
+        const auto params = httpadv::v1::util::WebUtility::ParseQueryParameters("name=Jane+Doe&role=admin&empty", strlen("name=Jane+Doe&role=admin&empty"));
 
         TEST_ASSERT_EQUAL_UINT32(3, static_cast<uint32_t>(params.pairs().size()));
         const auto name = params.get("name");
@@ -57,37 +56,37 @@ namespace
     void test_web_utility_std_string_view_overloads_remain_available()
     {
         const std::string_view query = "first=one&second=two";
-        const auto pairs = HttpServerAdvanced::WebUtility::ParseQueryString(query);
+        const auto pairs = httpadv::v1::util::WebUtility::ParseQueryString(query);
 
         TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(pairs.size()));
         TEST_ASSERT_EQUAL_STRING("first", pairs[0].first.c_str());
         TEST_ASSERT_EQUAL_STRING("one", pairs[0].second.c_str());
 
-        const std::string encoded = HttpServerAdvanced::WebUtility::HtmlEncode(std::string_view("<&>\"'"));
+        const std::string encoded = httpadv::v1::util::WebUtility::HtmlEncode(std::string_view("<&>\"'"));
         TEST_ASSERT_EQUAL_STRING("&lt;&amp;&gt;&quot;&#39;", encoded.c_str());
 
-        const std::string decoded = HttpServerAdvanced::WebUtility::DecodeURIComponent(std::string_view("Jane%20Doe"));
+        const std::string decoded = httpadv::v1::util::WebUtility::DecodeURIComponent(std::string_view("Jane%20Doe"));
         TEST_ASSERT_EQUAL_STRING("Jane Doe", decoded.c_str());
     }
 
     void test_web_utility_base64_decode_to_std_string()
     {
-        const std::string decoded = HttpServerAdvanced::WebUtility::Base64DecodeToString(std::string_view("SmFuZSBEb2U="));
+        const std::string decoded = httpadv::v1::util::WebUtility::Base64DecodeToString(std::string_view("SmFuZSBEb2U="));
 
         TEST_ASSERT_EQUAL_STRING("Jane Doe", decoded.c_str());
     }
 
     void test_web_utility_base64_decode_invalid_input_returns_empty_output()
     {
-        const std::vector<uint8_t> decoded = HttpServerAdvanced::WebUtility::Base64Decode(std::string_view("!!!!"));
+        const std::vector<uint8_t> decoded = httpadv::v1::util::WebUtility::Base64Decode(std::string_view("!!!!"));
 
         TEST_ASSERT_TRUE(decoded.empty());
     }
 
     void test_web_utility_uri_encoding_preserves_current_percent_encoding_behavior()
     {
-        const std::string encodedFromView = HttpServerAdvanced::WebUtility::EncodeURIComponent(std::string_view("one two/three?four=five&six"));
-        const std::string encodedFromChars = HttpServerAdvanced::WebUtility::EncodeURIComponent("one two/three?four=five&six", strlen("one two/three?four=five&six"));
+        const std::string encodedFromView = httpadv::v1::util::WebUtility::EncodeURIComponent(std::string_view("one two/three?four=five&six"));
+        const std::string encodedFromChars = httpadv::v1::util::WebUtility::EncodeURIComponent("one two/three?four=five&six", strlen("one two/three?four=five&six"));
 
         TEST_ASSERT_EQUAL_STRING("one%20two%2Fthree%3Ffour%3Dfive%26six", encodedFromView.c_str());
         TEST_ASSERT_EQUAL_STRING(encodedFromView.c_str(), encodedFromChars.c_str());
@@ -95,10 +94,10 @@ namespace
 
     void test_web_utility_decode_uri_component_freezes_legacy_malformed_percent_handling()
     {
-        const std::string validDecoded = HttpServerAdvanced::WebUtility::DecodeURIComponent(std::string_view("alpha%2Fbeta+gamma"));
-        const std::string malformedHexDecoded = HttpServerAdvanced::WebUtility::DecodeURIComponent(std::string_view("%ZZ"));
-        const std::string partialPercentDecoded = HttpServerAdvanced::WebUtility::DecodeURIComponent(std::string_view("trail%"));
-        const std::string partialNibbleDecoded = HttpServerAdvanced::WebUtility::DecodeURIComponent(std::string_view("trail%A"));
+        const std::string validDecoded = httpadv::v1::util::WebUtility::DecodeURIComponent(std::string_view("alpha%2Fbeta+gamma"));
+        const std::string malformedHexDecoded = httpadv::v1::util::WebUtility::DecodeURIComponent(std::string_view("%ZZ"));
+        const std::string partialPercentDecoded = httpadv::v1::util::WebUtility::DecodeURIComponent(std::string_view("trail%"));
+        const std::string partialNibbleDecoded = httpadv::v1::util::WebUtility::DecodeURIComponent(std::string_view("trail%A"));
 
         TEST_ASSERT_EQUAL_STRING("alpha/beta gamma", validDecoded.c_str());
 
@@ -112,7 +111,7 @@ namespace
     void test_parse_query_parameters_freezes_empty_repeated_and_plus_decoded_values()
     {
         const std::string_view query = "=value&&name=&name=second&plus=one+two&trailing=";
-        const auto params = HttpServerAdvanced::WebUtility::ParseQueryParameters(query);
+        const auto params = httpadv::v1::util::WebUtility::ParseQueryParameters(query);
 
         TEST_ASSERT_EQUAL_UINT32(6, static_cast<uint32_t>(params.pairs().size()));
         TEST_ASSERT_EQUAL_UINT64(2, params.exists("name"));
@@ -142,7 +141,7 @@ namespace
 
     void test_uri_view_exposes_string_view_segments_and_query_payload()
     {
-        const HttpServerAdvanced::UriView uri("https://user@example.com:8443/path/to/resource?first=one&second=two#frag");
+        const httpadv::v1::util::UriView uri("https://user@example.com:8443/path/to/resource?first=one&second=two#frag");
 
         TEST_ASSERT_EQUAL_STRING("https", std::string(uri.scheme()).c_str());
         TEST_ASSERT_EQUAL_STRING("user", std::string(uri.userinfo()).c_str());
@@ -159,24 +158,24 @@ namespace
 
     void test_uri_view_handles_relative_query_only_fragment_only_and_authority_less_uris()
     {
-        const HttpServerAdvanced::UriView relativeUri("/docs/page?mode=edit#section-2");
+        const httpadv::v1::util::UriView relativeUri("/docs/page?mode=edit#section-2");
         TEST_ASSERT_TRUE(relativeUri.scheme().empty());
         TEST_ASSERT_TRUE(relativeUri.host().empty());
         TEST_ASSERT_EQUAL_STRING("/docs/page", std::string(relativeUri.path()).c_str());
         TEST_ASSERT_EQUAL_STRING("mode=edit", std::string(relativeUri.query()).c_str());
         TEST_ASSERT_EQUAL_STRING("section-2", std::string(relativeUri.fragment()).c_str());
 
-        const HttpServerAdvanced::UriView queryOnlyUri("?first=one&first=two");
+        const httpadv::v1::util::UriView queryOnlyUri("?first=one&first=two");
         TEST_ASSERT_TRUE(queryOnlyUri.path().empty());
         TEST_ASSERT_EQUAL_STRING("first=one&first=two", std::string(queryOnlyUri.query()).c_str());
         TEST_ASSERT_EQUAL_UINT64(2, queryOnlyUri.queryView().exists("first"));
 
-        const HttpServerAdvanced::UriView fragmentOnlyUri("#frag-only");
+        const httpadv::v1::util::UriView fragmentOnlyUri("#frag-only");
         TEST_ASSERT_TRUE(fragmentOnlyUri.path().empty());
         TEST_ASSERT_TRUE(fragmentOnlyUri.query().empty());
         TEST_ASSERT_EQUAL_STRING("frag-only", std::string(fragmentOnlyUri.fragment()).c_str());
 
-        const HttpServerAdvanced::UriView authorityLessUri("file:/tmp/data.json?download=true#anchor");
+        const httpadv::v1::util::UriView authorityLessUri("file:/tmp/data.json?download=true#anchor");
         TEST_ASSERT_EQUAL_STRING("file", std::string(authorityLessUri.scheme()).c_str());
         TEST_ASSERT_TRUE(authorityLessUri.host().empty());
         TEST_ASSERT_EQUAL_STRING("/tmp/data.json", std::string(authorityLessUri.path()).c_str());
@@ -186,7 +185,7 @@ namespace
 
     void test_header_collection_supports_string_view_lookups()
     {
-        HttpServerAdvanced::HttpHeaderCollection headers;
+        httpadv::v1::core::HttpHeaderCollection headers;
         headers.set("Content-Type", "application/json");
         headers.set("X-Test", "first", false);
         headers.set("X-Test", "second", false);
@@ -205,7 +204,7 @@ namespace
 
     void test_header_collection_freezes_merge_overwrite_and_set_cookie_semantics()
     {
-        HttpServerAdvanced::HttpHeaderCollection headers;
+        httpadv::v1::core::HttpHeaderCollection headers;
         headers.set("X-Test", "first");
         headers.set("X-Test", "second", false);
 
@@ -217,8 +216,8 @@ namespace
         TEST_ASSERT_TRUE(headers.exists("x-test", "replacement"));
         TEST_ASSERT_FALSE(headers.exists("x-test", "first,second"));
 
-        headers.set(HttpServerAdvanced::HttpHeader::SetCookie("a=1"), false);
-        headers.set(HttpServerAdvanced::HttpHeader::SetCookie("b=2"), false);
+        headers.set(httpadv::v1::core::HttpHeader::SetCookie("a=1"), false);
+        headers.set(httpadv::v1::core::HttpHeader::SetCookie("b=2"), false);
 
         TEST_ASSERT_EQUAL_UINT32(3, static_cast<uint32_t>(headers.size()));
         TEST_ASSERT_TRUE(headers.exists("set-cookie", "a=1"));
@@ -234,12 +233,12 @@ namespace
 
     void test_header_collection_preserves_insertion_slot_and_negative_lookup_behavior()
     {
-        HttpServerAdvanced::HttpHeaderCollection headers;
+        httpadv::v1::core::HttpHeaderCollection headers;
         headers.set("X-First", "one");
         headers.set("X-Second", "two");
         headers.set("X-First", "merged", false);
-        headers.set(HttpServerAdvanced::HttpHeader::SetCookie("a=1"), false);
-        headers.set(HttpServerAdvanced::HttpHeader::SetCookie("b=2"), false);
+        headers.set(httpadv::v1::core::HttpHeader::SetCookie("a=1"), false);
+        headers.set(httpadv::v1::core::HttpHeader::SetCookie("b=2"), false);
 
         TEST_ASSERT_EQUAL_UINT32(4, static_cast<uint32_t>(headers.size()));
         TEST_ASSERT_EQUAL_STRING("X-First", std::string(headers[0].nameView()).c_str());
@@ -256,7 +255,7 @@ namespace
 
     void test_http_header_preserves_standard_text_storage()
     {
-        const HttpServerAdvanced::HttpHeader header(std::string("X-Mode"), std::string("native"));
+        const httpadv::v1::core::HttpHeader header(std::string("X-Mode"), std::string("native"));
 
         TEST_ASSERT_EQUAL_STRING("X-Mode", std::string(header.nameView()).c_str());
         TEST_ASSERT_EQUAL_STRING("native", std::string(header.valueView()).c_str());
@@ -266,128 +265,122 @@ namespace
 
     void test_http_header_supports_empty_copy_and_move_semantics()
     {
-        const HttpServerAdvanced::HttpHeader emptyHeader{std::string(), std::string()};
+        const httpadv::v1::core::HttpHeader emptyHeader{std::string(), std::string()};
         TEST_ASSERT_TRUE(emptyHeader.nameView().empty());
         TEST_ASSERT_TRUE(emptyHeader.valueView().empty());
 
-        const HttpServerAdvanced::HttpHeader copiedHeader(emptyHeader);
+        const httpadv::v1::core::HttpHeader copiedHeader(emptyHeader);
         TEST_ASSERT_TRUE(copiedHeader.nameView().empty());
         TEST_ASSERT_TRUE(copiedHeader.valueView().empty());
 
-        HttpServerAdvanced::HttpHeader movedHeader(HttpServerAdvanced::HttpHeader("X-Trace", "abc123"));
+        httpadv::v1::core::HttpHeader movedHeader(httpadv::v1::core::HttpHeader("X-Trace", "abc123"));
         TEST_ASSERT_EQUAL_STRING("X-Trace", std::string(movedHeader.nameView()).c_str());
         TEST_ASSERT_EQUAL_STRING("abc123", std::string(movedHeader.valueView()).c_str());
     }
 
     void test_http_status_exposes_code_comparison_and_description_behavior()
     {
-        const HttpServerAdvanced::HttpStatus ok = HttpServerAdvanced::HttpStatus::Ok();
-        const HttpServerAdvanced::HttpStatus custom = HttpServerAdvanced::HttpStatus(299, "Custom Success");
+        const httpadv::v1::core::HttpStatus ok = httpadv::v1::core::HttpStatus::Ok();
+        const httpadv::v1::core::HttpStatus custom = httpadv::v1::core::HttpStatus(299, "Custom Success");
 
         TEST_ASSERT_EQUAL_UINT16(200, ok.code());
         TEST_ASSERT_EQUAL_STRING("OK", ok.toString());
         TEST_ASSERT_TRUE(ok == static_cast<uint16_t>(200));
-        TEST_ASSERT_TRUE(HttpServerAdvanced::HttpStatus::BadRequest() < HttpServerAdvanced::HttpStatus::InternalServerError());
+        TEST_ASSERT_TRUE(httpadv::v1::core::HttpStatus::BadRequest() < httpadv::v1::core::HttpStatus::InternalServerError());
         TEST_ASSERT_EQUAL_STRING("Custom Success", custom.toString());
     }
 
     void test_http_method_request_body_allowance_matches_current_policy()
     {
-        TEST_ASSERT_TRUE(HttpServerAdvanced::HttpMethod::isRequestBodyAllowed(HttpServerAdvanced::HttpMethod::Post));
-        TEST_ASSERT_TRUE(HttpServerAdvanced::HttpMethod::isRequestBodyAllowed(HttpServerAdvanced::HttpMethod::Put));
-        TEST_ASSERT_TRUE(HttpServerAdvanced::HttpMethod::isRequestBodyAllowed(HttpServerAdvanced::HttpMethod::Patch));
-        TEST_ASSERT_TRUE(HttpServerAdvanced::HttpMethod::isRequestBodyAllowed(HttpServerAdvanced::HttpMethod::Delete));
+        TEST_ASSERT_TRUE(httpadv::v1::core::HttpMethod::isRequestBodyAllowed(httpadv::v1::core::HttpMethod::Post));
+        TEST_ASSERT_TRUE(httpadv::v1::core::HttpMethod::isRequestBodyAllowed(httpadv::v1::core::HttpMethod::Put));
+        TEST_ASSERT_TRUE(httpadv::v1::core::HttpMethod::isRequestBodyAllowed(httpadv::v1::core::HttpMethod::Patch));
+        TEST_ASSERT_TRUE(httpadv::v1::core::HttpMethod::isRequestBodyAllowed(httpadv::v1::core::HttpMethod::Delete));
 
-        TEST_ASSERT_FALSE(HttpServerAdvanced::HttpMethod::isRequestBodyAllowed(HttpServerAdvanced::HttpMethod::Get));
-        TEST_ASSERT_FALSE(HttpServerAdvanced::HttpMethod::isRequestBodyAllowed(HttpServerAdvanced::HttpMethod::Head));
-        TEST_ASSERT_FALSE(HttpServerAdvanced::HttpMethod::isRequestBodyAllowed(HttpServerAdvanced::HttpMethod::Options));
-        TEST_ASSERT_FALSE(HttpServerAdvanced::HttpMethod::isRequestBodyAllowed("CUSTOM"));
+        TEST_ASSERT_FALSE(httpadv::v1::core::HttpMethod::isRequestBodyAllowed(httpadv::v1::core::HttpMethod::Get));
+        TEST_ASSERT_FALSE(httpadv::v1::core::HttpMethod::isRequestBodyAllowed(httpadv::v1::core::HttpMethod::Head));
+        TEST_ASSERT_FALSE(httpadv::v1::core::HttpMethod::isRequestBodyAllowed(httpadv::v1::core::HttpMethod::Options));
+        TEST_ASSERT_FALSE(httpadv::v1::core::HttpMethod::isRequestBodyAllowed("CUSTOM"));
     }
 
     void test_http_content_types_normalizes_extensions_and_falls_back_to_unknown()
     {
-        HttpServerAdvanced::HttpContentTypes contentTypes;
+        httpadv::v1::core::HttpContentTypes contentTypes;
 
-        TEST_ASSERT_EQUAL_STRING(HttpServerAdvanced::HttpContentTypes::Json, contentTypes.getContentTypeByExtension("JSON"));
-        TEST_ASSERT_EQUAL_STRING(HttpServerAdvanced::HttpContentTypes::Svg, contentTypes.getContentTypeFromPath("/assets/icon.SVG"));
-        TEST_ASSERT_EQUAL_STRING(HttpServerAdvanced::HttpContentTypes::Unknown, contentTypes.getContentTypeFromPath("/assets/README"));
+        TEST_ASSERT_EQUAL_STRING(httpadv::v1::core::HttpContentTypes::Json, contentTypes.getContentTypeByExtension("JSON"));
+        TEST_ASSERT_EQUAL_STRING(httpadv::v1::core::HttpContentTypes::Svg, contentTypes.getContentTypeFromPath("/assets/icon.SVG"));
+        TEST_ASSERT_EQUAL_STRING(httpadv::v1::core::HttpContentTypes::Unknown, contentTypes.getContentTypeFromPath("/assets/README"));
 
         contentTypes.set("MD", "text/markdown");
         TEST_ASSERT_EQUAL_STRING("text/markdown", contentTypes.getContentTypeByExtension("md"));
     }
 
-    void test_virtual_path_mapper_windows_normalizes_segments_and_names()
+    void test_windows_path_mapper_normalizes_segments_and_scoped_paths_directly()
     {
-        using HttpServerAdvanced::platform::VirtualPathMapperWindows;
+        using httpadv::v1::platform::WindowsPathMapper;
 
-        TEST_ASSERT_TRUE(VirtualPathMapperWindows::HasDriveLetterPrefix("C:/nested/asset.txt"));
-        TEST_ASSERT_FALSE(VirtualPathMapperWindows::HasDriveLetterPrefix("/nested/asset.txt"));
+        TEST_ASSERT_TRUE(WindowsPathMapper::HasDriveLetterPrefix("C:/nested/asset.txt"));
+        TEST_ASSERT_FALSE(WindowsPathMapper::HasDriveLetterPrefix("/nested/asset.txt"));
 
-        TEST_ASSERT_EQUAL_STRING("nested/asset.txt", VirtualPathMapperWindows::NormalizePath("C:\\nested\\.\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("outside.txt", VirtualPathMapperWindows::NormalizePath("../outside.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", VirtualPathMapperWindows::WithLeadingSlash("nested\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", VirtualPathMapperWindows::Join("/nested", "asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("asset.txt", std::string(VirtualPathMapperWindows::BasenameView("/nested/asset.txt")).c_str());
-        TEST_ASSERT_EQUAL_STRING("C:\\nested\\asset.txt", VirtualPathMapperWindows::NormalizeScopedPath("C:/nested/asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("C:\\nested\\asset.txt", VirtualPathMapperWindows::JoinScopedPath("C:\\nested", "asset.txt").c_str());
-    }
+        TEST_ASSERT_EQUAL_STRING("nested/asset.txt", WindowsPathMapper::NormalizePath("C:\\nested\\.\\asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("outside.txt", WindowsPathMapper::NormalizePath("../outside.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", WindowsPathMapper::WithLeadingSlash("nested\\asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", WindowsPathMapper::Join("/nested", "asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("asset.txt", std::string(WindowsPathMapper::BasenameView("/nested/asset.txt")).c_str());
+        TEST_ASSERT_EQUAL_STRING("C:\\nested\\asset.txt", WindowsPathMapper::NormalizeScopedPath("C:/nested/asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("C:\\nested\\asset.txt", WindowsPathMapper::JoinScopedPath("C:\\nested", "asset.txt").c_str());
 
-    void test_virtual_path_mapper_windows_constructs_from_chroot_spec()
-    {
-        using HttpServerAdvanced::platform::VirtualPathMapperWindows;
-
-        const VirtualPathMapperWindows unrooted;
+        const WindowsPathMapper unrooted;
         TEST_ASSERT_FALSE(unrooted.hasRootPath());
         TEST_ASSERT_TRUE(unrooted.rootPath().empty());
         TEST_ASSERT_EQUAL_STRING("nested\\asset.txt", unrooted.exposePath("nested\\asset.txt").c_str());
         TEST_ASSERT_EQUAL_STRING("nested\\asset.txt", unrooted.resolveScopedPath("nested\\asset.txt").c_str());
 
-        const VirtualPathMapperWindows rooted("assets/");
+        const WindowsPathMapper rooted("assets/");
         TEST_ASSERT_TRUE(rooted.hasRootPath());
         TEST_ASSERT_EQUAL_STRING("assets", rooted.rootPath().c_str());
         TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", rooted.exposePath("nested\\asset.txt").c_str());
         TEST_ASSERT_EQUAL_STRING("assets\\nested\\asset.txt", rooted.resolveScopedPath("nested\\asset.txt").c_str());
         TEST_ASSERT_EQUAL_STRING("assets", rooted.resolveScopedPath(".").c_str());
+        TEST_ASSERT_FALSE(rooted.resolveScopedPath("../outside.txt").find("..") != std::string::npos);
+        TEST_ASSERT_EQUAL_STRING("assets\\outside.txt", rooted.resolveScopedPath("../outside.txt").c_str());
     }
 
-    void test_virtual_path_mapper_posix_normalizes_segments_and_names()
+    void test_posix_path_mapper_normalizes_segments_and_scoped_paths_directly()
     {
-        using HttpServerAdvanced::platform::VirtualPathMapperPosix;
+        using httpadv::v1::platform::PosixPathMapper;
 
-        TEST_ASSERT_TRUE(VirtualPathMapperPosix::HasDriveLetterPrefix("C:/nested/asset.txt"));
-        TEST_ASSERT_FALSE(VirtualPathMapperPosix::HasDriveLetterPrefix("/nested/asset.txt"));
+        TEST_ASSERT_TRUE(PosixPathMapper::HasDriveLetterPrefix("C:/nested/asset.txt"));
+        TEST_ASSERT_FALSE(PosixPathMapper::HasDriveLetterPrefix("/nested/asset.txt"));
 
-        TEST_ASSERT_EQUAL_STRING("nested/asset.txt", VirtualPathMapperPosix::NormalizePath("C:\\nested\\.\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("outside.txt", VirtualPathMapperPosix::NormalizePath("../outside.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", VirtualPathMapperPosix::WithLeadingSlash("nested\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", VirtualPathMapperPosix::Join("/nested", "asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("asset.txt", std::string(VirtualPathMapperPosix::BasenameView("/nested/asset.txt")).c_str());
-        TEST_ASSERT_EQUAL_STRING("C:/nested/asset.txt", VirtualPathMapperPosix::NormalizeScopedPath("C:\\nested\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", VirtualPathMapperPosix::JoinScopedPath("/nested", "asset.txt").c_str());
-    }
+        TEST_ASSERT_EQUAL_STRING("nested/asset.txt", PosixPathMapper::NormalizePath("C:\\nested\\.\\asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("outside.txt", PosixPathMapper::NormalizePath("../outside.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", PosixPathMapper::WithLeadingSlash("nested\\asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", PosixPathMapper::Join("/nested", "asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("asset.txt", std::string(PosixPathMapper::BasenameView("/nested/asset.txt")).c_str());
+        TEST_ASSERT_EQUAL_STRING("C:/nested/asset.txt", PosixPathMapper::NormalizeScopedPath("C:\\nested\\asset.txt").c_str());
+        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", PosixPathMapper::JoinScopedPath("/nested", "asset.txt").c_str());
 
-    void test_virtual_path_mapper_posix_constructs_from_chroot_spec()
-    {
-        using HttpServerAdvanced::platform::VirtualPathMapperPosix;
-
-        const VirtualPathMapperPosix unrooted;
+        const PosixPathMapper unrooted;
         TEST_ASSERT_FALSE(unrooted.hasRootPath());
         TEST_ASSERT_TRUE(unrooted.rootPath().empty());
         TEST_ASSERT_EQUAL_STRING("nested\\asset.txt", unrooted.exposePath("nested\\asset.txt").c_str());
         TEST_ASSERT_EQUAL_STRING("nested/asset.txt", unrooted.resolveScopedPath("nested\\asset.txt").c_str());
 
-        const VirtualPathMapperPosix rooted("assets/");
+        const PosixPathMapper rooted("assets/");
         TEST_ASSERT_TRUE(rooted.hasRootPath());
         TEST_ASSERT_EQUAL_STRING("assets", rooted.rootPath().c_str());
         TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", rooted.exposePath("nested\\asset.txt").c_str());
         TEST_ASSERT_EQUAL_STRING("assets/nested/asset.txt", rooted.resolveScopedPath("nested\\asset.txt").c_str());
         TEST_ASSERT_EQUAL_STRING("assets", rooted.resolveScopedPath(".").c_str());
+        TEST_ASSERT_FALSE(rooted.resolveScopedPath("../outside.txt").find("..") != std::string::npos);
+        TEST_ASSERT_EQUAL_STRING("assets/outside.txt", rooted.resolveScopedPath("../outside.txt").c_str());
     }
 
     void test_html_encode_returns_empty_for_null_or_empty_inputs()
     {
-        const std::string encodedNull = HttpServerAdvanced::WebUtility::HtmlEncode(static_cast<const char *>(nullptr));
-        const std::string encodedEmpty = HttpServerAdvanced::WebUtility::HtmlEncode("", 0);
+        const std::string encodedNull = httpadv::v1::util::WebUtility::HtmlEncode(static_cast<const char *>(nullptr));
+        const std::string encodedEmpty = httpadv::v1::util::WebUtility::HtmlEncode("", 0);
 
         TEST_ASSERT_TRUE(encodedNull.empty());
         TEST_ASSERT_TRUE(encodedEmpty.empty());
@@ -395,15 +388,15 @@ namespace
 
     void test_html_encode_preserves_expected_entities_without_progmem_helpers()
     {
-        const std::string encoded = HttpServerAdvanced::WebUtility::HtmlEncode("<&>\"'", 5);
+        const std::string encoded = httpadv::v1::util::WebUtility::HtmlEncode("<&>\"'", 5);
 
         TEST_ASSERT_EQUAL_STRING("&lt;&amp;&gt;&quot;&#39;", encoded.c_str());
     }
 
     void test_html_attribute_encode_returns_empty_for_null_or_empty_inputs()
     {
-        const std::string encodedNull = HttpServerAdvanced::WebUtility::HtmlAttributeEncode(static_cast<const char *>(nullptr));
-        const std::string encodedEmpty = HttpServerAdvanced::WebUtility::HtmlAttributeEncode("", 0);
+        const std::string encodedNull = httpadv::v1::util::WebUtility::HtmlAttributeEncode(static_cast<const char *>(nullptr));
+        const std::string encodedEmpty = httpadv::v1::util::WebUtility::HtmlAttributeEncode("", 0);
 
         TEST_ASSERT_TRUE(encodedNull.empty());
         TEST_ASSERT_TRUE(encodedEmpty.empty());
@@ -411,17 +404,17 @@ namespace
 
     void test_html_attribute_encode_preserves_expected_entities_without_progmem_helpers()
     {
-        const std::string encoded = HttpServerAdvanced::WebUtility::HtmlAttributeEncode("<&>\"'", 5);
+        const std::string encoded = httpadv::v1::util::WebUtility::HtmlAttributeEncode("<&>\"'", 5);
 
         TEST_ASSERT_EQUAL_STRING("&lt;&amp;&gt;&quot;&#39;", encoded.c_str());
     }
 
     void test_javascript_string_encode_escapes_control_characters_and_quotes()
     {
-        const std::string encodedWithQuotes = HttpServerAdvanced::WebUtility::JavaScriptStringEncode(std::string_view("\"\\\n\t\x01"));
-        const std::string encodedWithoutQuotes = HttpServerAdvanced::WebUtility::JavaScriptStringEncode(std::string_view("plain"), false);
-        const std::string encodedEmptyWithQuotes = HttpServerAdvanced::WebUtility::JavaScriptStringEncode(std::string_view(), true);
-        const std::string encodedEmptyWithoutQuotes = HttpServerAdvanced::WebUtility::JavaScriptStringEncode(std::string_view(), false);
+        const std::string encodedWithQuotes = httpadv::v1::util::WebUtility::JavaScriptStringEncode(std::string_view("\"\\\n\t\x01"));
+        const std::string encodedWithoutQuotes = httpadv::v1::util::WebUtility::JavaScriptStringEncode(std::string_view("plain"), false);
+        const std::string encodedEmptyWithQuotes = httpadv::v1::util::WebUtility::JavaScriptStringEncode(std::string_view(), true);
+        const std::string encodedEmptyWithoutQuotes = httpadv::v1::util::WebUtility::JavaScriptStringEncode(std::string_view(), false);
 
         TEST_ASSERT_EQUAL_STRING("\"\\\"\\\\\\n\\t\\u0001\"", encodedWithQuotes.c_str());
         TEST_ASSERT_EQUAL_STRING("plain", encodedWithoutQuotes.c_str());
@@ -432,11 +425,11 @@ namespace
     void test_cors_string_view_overload_sets_headers()
     {
         std::string body("ok");
-        auto response = HttpServerAdvanced::StringResponse::create(
-            HttpServerAdvanced::HttpStatus::Ok(),
+        auto response = httpadv::v1::response::StringResponse::create(
+            httpadv::v1::core::HttpStatus::Ok(),
             std::move(body),
-            std::initializer_list<HttpServerAdvanced::HttpHeader>{});
-        auto filter = HttpServerAdvanced::CrossOriginRequestSharing(
+            std::initializer_list<httpadv::v1::core::HttpHeader>{});
+        auto filter = httpadv::v1::routing::CrossOriginRequestSharing(
             std::string_view("https://example.com"),
             std::string_view("GET,POST"),
             std::string_view("X-Test"),
@@ -448,40 +441,40 @@ namespace
 
         response = filter(std::move(response));
 
-        const auto allowOrigin = response->headers().find(std::string_view(HttpServerAdvanced::HttpHeaderNames::AccessControlAllowOrigin));
+        const auto allowOrigin = response->headers().find(std::string_view(httpadv::v1::core::HttpHeaderNames::AccessControlAllowOrigin));
         TEST_ASSERT_TRUE(allowOrigin.has_value());
         TEST_ASSERT_EQUAL_STRING("https://example.com", std::string(allowOrigin->valueView()).c_str());
 
-        const auto maxAge = response->headers().find(std::string_view(HttpServerAdvanced::HttpHeaderNames::AccessControlMaxAge));
+        const auto maxAge = response->headers().find(std::string_view(httpadv::v1::core::HttpHeaderNames::AccessControlMaxAge));
         TEST_ASSERT_TRUE(maxAge.has_value());
         TEST_ASSERT_EQUAL_STRING("60", std::string(maxAge->valueView()).c_str());
     }
 
     void test_request_handler_factory_std_text_overloads_delegate_to_std_string()
     {
-        HttpServerAdvanced::TestSupport::RecordingRequestHandlerFactory factory;
+        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory;
 
-        factory.createResponse(HttpServerAdvanced::HttpStatus::Ok(), std::string_view("first"));
+        factory.createResponse(httpadv::v1::core::HttpStatus::Ok(), std::string_view("first"));
         TEST_ASSERT_EQUAL_STRING("first", factory.lastResponseBody().c_str());
 
         const std::string second("second");
-        factory.createResponse(HttpServerAdvanced::HttpStatus::Ok(), second);
+        factory.createResponse(httpadv::v1::core::HttpStatus::Ok(), second);
         TEST_ASSERT_EQUAL_STRING("second", factory.lastResponseBody().c_str());
 
-        factory.createResponse(HttpServerAdvanced::HttpStatus::Ok(), "third");
+        factory.createResponse(httpadv::v1::core::HttpStatus::Ok(), "third");
         TEST_ASSERT_EQUAL_STRING("third", factory.lastResponseBody().c_str());
     }
 
     void test_http_context_items_exposes_std_string_keyed_map()
     {
-        using ItemsType = std::remove_reference_t<decltype(std::declval<const HttpServerAdvanced::HttpContext &>().items())>;
+        using ItemsType = std::remove_reference_t<decltype(std::declval<const httpadv::v1::core::HttpContext &>().items())>;
 
         TEST_ASSERT_TRUE((std::is_same_v<ItemsType, std::map<std::string, std::any>>));
     }
 
     void test_handler_matcher_uses_standard_text_configuration()
     {
-        HttpServerAdvanced::HandlerMatcher matcher(std::string_view("/files/*"), std::string_view("get,post"), {std::string_view("Application/Json"), std::string_view("text/plain")});
+        httpadv::v1::routing::HandlerMatcher matcher(std::string_view("/files/*"), std::string_view("get,post"), {std::string_view("Application/Json"), std::string_view("text/plain")});
 
         TEST_ASSERT_EQUAL_STRING("/files/*", std::string(matcher.getUriPattern()).c_str());
         TEST_ASSERT_EQUAL_STRING("GET,POST", std::string(matcher.getAllowedMethods()).c_str());
@@ -500,13 +493,13 @@ namespace
 
     void test_handler_matcher_default_helpers_use_standard_text_inputs()
     {
-        const std::string wildcardPattern = std::string("/files/") + HttpServerAdvanced::REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+        const std::string wildcardPattern = std::string("/files/") + httpadv::v1::core::REQUEST_MATCHER_PATH_WILDCARD_CHAR;
 
-        TEST_ASSERT_TRUE(HttpServerAdvanced::defaultCheckMethod(std::string_view("GET,POST"), std::string_view("GET")));
-        TEST_ASSERT_FALSE(HttpServerAdvanced::defaultCheckMethod(std::string_view("GET,POST"), std::string_view("PUT")));
+        TEST_ASSERT_TRUE(httpadv::v1::routing::defaultCheckMethod(std::string_view("GET,POST"), std::string_view("GET")));
+        TEST_ASSERT_FALSE(httpadv::v1::routing::defaultCheckMethod(std::string_view("GET,POST"), std::string_view("PUT")));
 
-        TEST_ASSERT_TRUE(HttpServerAdvanced::defaultCheckUriPattern(std::string_view("/files/report.txt"), wildcardPattern));
-        TEST_ASSERT_FALSE(HttpServerAdvanced::defaultCheckUriPattern(std::string_view("/files/report.txt"), std::string_view("/assets/*")));
+        TEST_ASSERT_TRUE(httpadv::v1::routing::defaultCheckUriPattern(std::string_view("/files/report.txt"), wildcardPattern));
+        TEST_ASSERT_FALSE(httpadv::v1::routing::defaultCheckUriPattern(std::string_view("/files/report.txt"), std::string_view("/assets/*")));
     }
 
     int runUnitySuite()
@@ -529,10 +522,8 @@ namespace
         RUN_TEST(test_http_status_exposes_code_comparison_and_description_behavior);
         RUN_TEST(test_http_method_request_body_allowance_matches_current_policy);
         RUN_TEST(test_http_content_types_normalizes_extensions_and_falls_back_to_unknown);
-        RUN_TEST(test_virtual_path_mapper_windows_normalizes_segments_and_names);
-        RUN_TEST(test_virtual_path_mapper_windows_constructs_from_chroot_spec);
-        RUN_TEST(test_virtual_path_mapper_posix_normalizes_segments_and_names);
-        RUN_TEST(test_virtual_path_mapper_posix_constructs_from_chroot_spec);
+        RUN_TEST(test_windows_path_mapper_normalizes_segments_and_scoped_paths_directly);
+        RUN_TEST(test_posix_path_mapper_normalizes_segments_and_scoped_paths_directly);
         RUN_TEST(test_html_encode_returns_empty_for_null_or_empty_inputs);
         RUN_TEST(test_html_encode_preserves_expected_entities_without_progmem_helpers);
         RUN_TEST(test_html_attribute_encode_returns_empty_for_null_or_empty_inputs);
@@ -549,7 +540,7 @@ namespace
 
 int run_test_utilities()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "utilities",
         runUnitySuite,
         localSetUp,

@@ -5,8 +5,12 @@
 #include "RequestHandlingResult.h"
 #include "../compat/TransportInterfaces.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::pipeline
 {
+    using httpadv::v1::server::ConnectionSessionResult;
+    using httpadv::v1::transport::IClient;
+    using httpadv::v1::util::Clock;
+
     class IProtocolExecution
     {
     public:

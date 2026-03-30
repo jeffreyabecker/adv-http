@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::websocket
 {
     enum class WsErrorCategory
     {

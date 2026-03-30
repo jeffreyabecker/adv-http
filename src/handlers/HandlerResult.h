@@ -5,8 +5,10 @@
 
 #include <memory>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::handlers
 {
+    using httpadv::v1::server::IConnectionSession;
+
     struct HandlerResult
     {
         enum class Kind
@@ -17,7 +19,7 @@ namespace HttpServerAdvanced
         };
 
         Kind kind = Kind::None;
-        std::unique_ptr<IHttpResponse> response;
+        std::unique_ptr<httpadv::v1::response::IHttpResponse> response;
         std::unique_ptr<IConnectionSession> upgradedSession;
 
         HandlerResult() = default;
@@ -26,13 +28,13 @@ namespace HttpServerAdvanced
         {
         }
 
-        HandlerResult(std::unique_ptr<IHttpResponse> httpResponse)
+        HandlerResult(std::unique_ptr<httpadv::v1::response::IHttpResponse> httpResponse)
             : kind(httpResponse ? Kind::Response : Kind::None),
               response(std::move(httpResponse))
         {
         }
 
-        static HandlerResult responseResult(std::unique_ptr<IHttpResponse> httpResponse)
+        static HandlerResult responseResult(std::unique_ptr<httpadv::v1::response::IHttpResponse> httpResponse)
         {
             return HandlerResult(std::move(httpResponse));
         }
@@ -60,7 +62,7 @@ namespace HttpServerAdvanced
             return kind == Kind::Upgrade;
         }
 
-        IHttpResponse *get() const
+        httpadv::v1::response::IHttpResponse *get() const
         {
             return response.get();
         }

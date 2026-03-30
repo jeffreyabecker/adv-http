@@ -11,11 +11,19 @@
 #include <string>
 #include <string_view>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::routing
 {
+    using httpadv::v1::core::HttpContext;
+    using httpadv::v1::core::HttpHeader;
+    using httpadv::v1::core::HttpHeaderNames;
+    using httpadv::v1::core::HttpStatus;
+    using httpadv::v1::handlers::IHttpHandler;
+    using httpadv::v1::response::IHttpResponse;
+    using httpadv::v1::response::StringResponse;
+
     namespace BasicAuthImpl
     {
-        inline bool CheckBasicAuthCredentials(HttpContext &context, std::function<bool(std::string_view, std::string_view)> validator,
+        inline bool CheckBasicAuthCredentials(httpadv::v1::core::HttpContext &context, std::function<bool(std::string_view, std::string_view)> validator,
                               std::function<void(std::string_view, std::string_view)> onSuccess)
         {
             auto authHeaderOpt = context.headers().find(HttpHeaderNames::Authorization);
@@ -30,7 +38,7 @@ namespace HttpServerAdvanced
             {
                 return false;
             }
-            const std::string decodedCredentials = HttpServerAdvanced::WebUtility::Base64DecodeToString(authHeaderValue.substr(Prefix.size()));
+            const std::string decodedCredentials = httpadv::v1::util::WebUtility::Base64DecodeToString(authHeaderValue.substr(Prefix.size()));
             const std::string_view decodedView(decodedCredentials.data(), decodedCredentials.size());
             const std::size_t separatorIndex = decodedView.find(':');
             if (separatorIndex == std::string_view::npos)
@@ -56,7 +64,7 @@ namespace HttpServerAdvanced
         }
     }
 
-    inline std::unique_ptr<IHttpResponse> defaultOnFailure(HttpContext &context, std::string_view realm)
+    inline std::unique_ptr<IHttpResponse> defaultOnFailure(httpadv::v1::core::HttpContext &context, std::string_view realm)
     {
         return StringResponse::create(
             HttpStatus::Unauthorized(),
@@ -66,11 +74,11 @@ namespace HttpServerAdvanced
 
     inline IHttpHandler::InterceptorCallback BasicAuth(std::function<bool(std::string_view, std::string_view)> validator, std::string_view realm = "Restricted Area",
                                                        std::function<void(std::string_view, std::string_view)> onSuccess = nullptr,
-                                                       std::function<std::unique_ptr<IHttpResponse>(HttpContext &context, std::string_view)> onFailure = defaultOnFailure)
+                                                       std::function<std::unique_ptr<IHttpResponse>(httpadv::v1::core::HttpContext &context, std::string_view)> onFailure = defaultOnFailure)
     {
         std::string realmValue(realm);
 
-        return [validator = std::move(validator), realmValue = std::move(realmValue), onSuccess = std::move(onSuccess), onFailure = std::move(onFailure)](HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+        return [validator = std::move(validator), realmValue = std::move(realmValue), onSuccess = std::move(onSuccess), onFailure = std::move(onFailure)](httpadv::v1::core::HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
         {
             if (BasicAuthImpl::CheckBasicAuthCredentials(context, validator, onSuccess))
             {
@@ -82,7 +90,7 @@ namespace HttpServerAdvanced
 
     inline IHttpHandler::InterceptorCallback BasicAuth(std::string_view expectedUsername, std::string_view expectedPassword, std::string_view realm = "Restricted Area",
                                                        std::function<void(std::string_view, std::string_view)> onSuccess = nullptr,
-                                                       std::function<std::unique_ptr<IHttpResponse>(HttpContext &context, std::string_view)> onFailure = defaultOnFailure)
+                                                       std::function<std::unique_ptr<IHttpResponse>(httpadv::v1::core::HttpContext &context, std::string_view)> onFailure = defaultOnFailure)
     {
         return BasicAuth(
             [expectedUsername, expectedPassword](std::string_view foundUsername, std::string_view foundPassword)

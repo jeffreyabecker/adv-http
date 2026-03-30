@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <algorithm>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::response
 {
 
     ChunkedHttpResponseBodyStream::ChunkedHttpResponseBodyStream(std::unique_ptr<IByteSource> innerSource)
@@ -52,22 +52,22 @@ namespace HttpServerAdvanced
             }
             if (state_ == State::Final)
             {
-                return AvailableBytes(sizeof(finalChunk_) - 1 - finalPos_);
+                return httpadv::v1::transport::AvailableBytes(sizeof(finalChunk_) - 1 - finalPos_);
             }
             if (headerLen_ == 0)
             {
-                return TemporarilyUnavailableResult();
+                return httpadv::v1::transport::TemporarilyUnavailableResult();
             }
-            return AvailableBytes((headerLen_ - headerPos_) + chunkRemaining_ + (sizeof(trailer_) - 1) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
+            return httpadv::v1::transport::AvailableBytes((headerLen_ - headerPos_) + chunkRemaining_ + (sizeof(trailer_) - 1) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Body:
-            return AvailableBytes(chunkRemaining_ + (sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
+            return httpadv::v1::transport::AvailableBytes(chunkRemaining_ + (sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Trailer:
-            return AvailableBytes((sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
+            return httpadv::v1::transport::AvailableBytes((sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Final:
-            return AvailableBytes(sizeof(finalChunk_) - 1 - finalPos_);
+            return httpadv::v1::transport::AvailableBytes(sizeof(finalChunk_) - 1 - finalPos_);
         case State::Done:
         default:
-            return ExhaustedResult();
+            return httpadv::v1::transport::ExhaustedResult();
         }
     }
 
@@ -167,7 +167,7 @@ namespace HttpServerAdvanced
         }
     }
 
-    size_t ChunkedHttpResponseBodyStream::read(HttpServerAdvanced::span<uint8_t> buffer)
+    size_t ChunkedHttpResponseBodyStream::read(httpadv::v1::util::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -184,7 +184,7 @@ namespace HttpServerAdvanced
         return totalRead;
     }
 
-    size_t ChunkedHttpResponseBodyStream::peek(HttpServerAdvanced::span<uint8_t> buffer)
+    size_t ChunkedHttpResponseBodyStream::peek(httpadv::v1::util::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {

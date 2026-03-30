@@ -1,6 +1,6 @@
 #include "WebSocketContext.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::websocket
 {
     WebSocketContext::WebSocketContext(WebSocketActivationSnapshot activation, WebSocketCallbacks callbacks)
         : activation_(std::move(activation)),

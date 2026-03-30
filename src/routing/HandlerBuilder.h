@@ -7,8 +7,13 @@
 #include <functional>
 #include <string_view>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::routing
 {
+    using httpadv::v1::handlers::ExtractArgsFromRequest;
+    using httpadv::v1::handlers::IHttpHandler;
+    using httpadv::v1::handlers::RouteParameters;
+    using httpadv::v1::response::IHttpResponse;
+
     template <typename THandler>
     class HandlerBuilder
     {
@@ -29,7 +34,7 @@ namespace HttpServerAdvanced
             }
             return THandler::makeFactory(invocation, extractor_);
         }
-        static RouteParameters EmptyParameters(HttpContext &context)
+        static RouteParameters EmptyParameters(httpadv::v1::core::HttpContext &context)
         {
             return {};
         }
@@ -61,7 +66,7 @@ namespace HttpServerAdvanced
             if (addHandler_)
             {
 
-                IHttpHandler::Predicate predicate = [matcher = std::move(matcher_), predicate = std::move(predicate_)](HttpContext &context)
+                IHttpHandler::Predicate predicate = [matcher = std::move(matcher_), predicate = std::move(predicate_)](httpadv::v1::core::HttpContext &context)
                 {
                     if (predicate)
                     {
@@ -132,7 +137,7 @@ namespace HttpServerAdvanced
         HandlerBuilder &filterRequest(IHttpHandler::Predicate predicate)
         {
             auto originalPredicate = predicate_;
-            predicate_ = [originalPredicate, predicate](HttpContext &context)
+            predicate_ = [originalPredicate, predicate](httpadv::v1::core::HttpContext &context)
             {
                 if (originalPredicate && !originalPredicate(context))
                 {
@@ -183,6 +188,6 @@ namespace HttpServerAdvanced
         }
     };
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::routing
 
 

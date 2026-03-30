@@ -1,7 +1,7 @@
 #include "MultipartFormDataHandler.h"
 #include <cstring>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::handlers
 {
     namespace
     {

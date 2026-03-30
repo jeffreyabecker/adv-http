@@ -5,36 +5,33 @@
 #include "../core/HttpContextPhase.h"
 #include "IHttpHandler.h"
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::handlers
 {
-    // Forward declaration
-    class HttpContext;
-
     class HttpHandler : public IHttpHandler
     {
     protected:
-        static const HttpContextPhaseFlags CallHandleAt = HttpContextPhase::CompletedReadingHeaders + HttpContextPhase::CompletedStartingLine;
-        std::function<bool(const HttpContext &)> filter_;
+        static const httpadv::v1::core::HttpContextPhaseFlags CallHandleAt = httpadv::v1::core::HttpContextPhase::CompletedReadingHeaders + httpadv::v1::core::HttpContextPhase::CompletedStartingLine;
+        std::function<bool(const httpadv::v1::core::HttpContext &)> filter_;
         IHttpHandler::InvocationCallback invocation_;
 
     public:
-        static bool defaultFilter(const HttpContext &context);
+        static bool defaultFilter(const httpadv::v1::core::HttpContext &context);
 
         HttpHandler(IHttpHandler::InvocationCallback invocation)
             : filter_(defaultFilter), invocation_(invocation) {}
 
-        HttpHandler(IHttpHandler::InvocationCallback invocation, std::function<bool(const HttpContext &)> filter)
+        HttpHandler(IHttpHandler::InvocationCallback invocation, std::function<bool(const httpadv::v1::core::HttpContext &)> filter)
             : filter_(filter), invocation_(invocation) {}
 
 
-        HttpHandler(std::unique_ptr<IHttpResponse> response, std::function<bool(const HttpContext &)> filter)
+        HttpHandler(std::unique_ptr<httpadv::v1::response::IHttpResponse> response, std::function<bool(const httpadv::v1::core::HttpContext &)> filter)
                         : filter_(filter),
-                            invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpContext &) mutable -> IHttpHandler::HandlerResult
+                            invocation_([resp = std::make_shared<std::unique_ptr<httpadv::v1::response::IHttpResponse>>(std::move(response))](httpadv::v1::core::HttpContext &) mutable -> IHttpHandler::HandlerResult
                                                     { return HandlerResult::responseResult(std::move(*resp)); }) {}
 
-        HttpHandler(std::unique_ptr<IHttpResponse> response)
-                        : filter_([](const HttpContext & req) { return true; }),
-                            invocation_([resp = std::make_shared<std::unique_ptr<IHttpResponse>>(std::move(response))](HttpContext &) mutable -> IHttpHandler::HandlerResult
+        HttpHandler(std::unique_ptr<httpadv::v1::response::IHttpResponse> response)
+                        : filter_([](const httpadv::v1::core::HttpContext & req) { return true; }),
+                            invocation_([resp = std::make_shared<std::unique_ptr<httpadv::v1::response::IHttpResponse>>(std::move(response))](httpadv::v1::core::HttpContext &) mutable -> IHttpHandler::HandlerResult
                                                     { return HandlerResult::responseResult(std::move(*resp)); }) {} // will be set via setPhaseFilter
 
         template <typename... Args>
@@ -45,9 +42,9 @@ namespace HttpServerAdvanced
 
         virtual ~HttpHandler() = default;
 
-        void setPhaseFilter(HttpContextPhaseFlags callAt);
+        void setPhaseFilter(httpadv::v1::core::HttpContextPhaseFlags callAt);
 
-        virtual HandlerResult handleStep(HttpContext &context) override
+        virtual HandlerResult handleStep(httpadv::v1::core::HttpContext &context) override
         {
             if (filter_(context))
             {
@@ -56,7 +53,7 @@ namespace HttpServerAdvanced
             return nullptr;
         }
 
-        virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length) override
+        virtual void handleBodyChunk(httpadv::v1::core::HttpContext &context, const uint8_t *at, std::size_t length) override
         {
             // Default implementation does nothing
         }
@@ -64,17 +61,17 @@ namespace HttpServerAdvanced
 
 }
 
-// Include HttpContext after class definition to resolve circular dependency
+// Include httpadv::v1::core::HttpContext after class definition to resolve circular dependency
 #include "../core/HttpContext.h"
 
-namespace HttpServerAdvanced {
-    inline bool HttpHandler::defaultFilter(const HttpContext &context) {
-        return context.completedPhases() == HttpContextPhase::CompletedReadingHeaders + HttpContextPhase::CompletedStartingLine;
+namespace httpadv::v1::handlers {
+    inline bool HttpHandler::defaultFilter(const httpadv::v1::core::HttpContext &context) {
+        return context.completedPhases() == httpadv::v1::core::HttpContextPhase::CompletedReadingHeaders + httpadv::v1::core::HttpContextPhase::CompletedStartingLine;
     }
 
     // Helper for setting filter when using phase-based constructor: call after construction
-    inline void HttpHandler::setPhaseFilter(HttpContextPhaseFlags callAt) {
-        filter_ = [callAt](const HttpContext &ctx) { return ctx.completedPhases() == callAt; };
+    inline void HttpHandler::setPhaseFilter(httpadv::v1::core::HttpContextPhaseFlags callAt) {
+        filter_ = [callAt](const httpadv::v1::core::HttpContext &ctx) { return ctx.completedPhases() == callAt; };
     }
 }
 

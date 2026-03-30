@@ -1,6 +1,6 @@
 #include "StaticFilesBuilder.h"
 
-namespace HttpServerAdvanced {
+namespace httpadv::v1::staticfiles {
 StaticFilesBuilder::StaticFilesBuilder(
     IFileSystem &fs, std::function<void(StaticFilesBuilder &)> setupFunc)
     : setupFunc_(setupFunc), fileLocator_(fs) {}
@@ -8,7 +8,7 @@ StaticFilesBuilder::StaticFilesBuilder(
 StaticFilesBuilder::~StaticFilesBuilder() {}
 
 void StaticFilesBuilder::init(
-    HttpServerAdvanced::WebServerBuilder &coreBuilder) {
+    httpadv::v1::server::WebServerBuilder &coreBuilder) {
   if (setupFunc_) {
     setupFunc_(*this);
   }
@@ -126,4 +126,4 @@ StaticFiles(IFileSystem &fs,
   return *instance;
 }
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::staticfiles

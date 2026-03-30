@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstring>
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
 
     class HttpMethod

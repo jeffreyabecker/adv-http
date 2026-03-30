@@ -10,17 +10,17 @@
 #include "../core/HttpHeaderCollection.h"
 #include "HttpHandler.h"
 #include "../response/IHttpResponse.h"
-namespace HttpServerAdvanced
+namespace httpadv::v1::handlers
 {
-    // Forward declarations
-    class HttpContext;
+    using httpadv::v1::core::HttpContext;
 
+    // Forward declarations
     class IHandlerProvider
     {
     public:
         virtual ~IHandlerProvider() = default;
-        virtual bool canHandle(HttpContext &context) = 0;
-        virtual std::unique_ptr<IHttpHandler> create(HttpContext &context) = 0;
+        virtual bool canHandle(httpadv::v1::core::HttpContext &context) = 0;
+        virtual std::unique_ptr<IHttpHandler> create(httpadv::v1::core::HttpContext &context) = 0;
     };
     class HandlerProvider : public IHandlerProvider
     {
@@ -31,11 +31,11 @@ namespace HttpServerAdvanced
     public:
         HandlerProvider(IHttpHandler::Factory factory, IHttpHandler::Predicate request)
             : factory_(factory), request_(request) {}
-        virtual bool canHandle(HttpContext &context) override
+        virtual bool canHandle(httpadv::v1::core::HttpContext &context) override
         {
             return request_(context);
         }
-        virtual std::unique_ptr<IHttpHandler> create(HttpContext &context) override
+        virtual std::unique_ptr<IHttpHandler> create(httpadv::v1::core::HttpContext &context) override
         {
             return factory_(context);
         }

@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::core
 {
 
     constexpr std::size_t ETHERNET_FRAME_BUFFER_SIZE = 1436; // Standard Ethernet MTU minus headers

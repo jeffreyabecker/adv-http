@@ -8,7 +8,7 @@
 #include <memory>
 #include <string_view>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::transport
 {
     class IClient : public IByteChannel
     {
@@ -54,12 +54,12 @@ namespace HttpServerAdvanced
         virtual bool beginPacket(std::string_view address, std::uint16_t port) = 0;
         virtual bool endPacket() = 0;
 
-        virtual std::size_t write(HttpServerAdvanced::span<const std::uint8_t> buffer) = 0;
+        virtual std::size_t write(httpadv::v1::util::span<const std::uint8_t> buffer) = 0;
 
         virtual AvailableResult parsePacket() = 0;
         virtual AvailableResult available() = 0;
-        virtual std::size_t read(HttpServerAdvanced::span<std::uint8_t> buffer) = 0;
-        virtual std::size_t peek(HttpServerAdvanced::span<std::uint8_t> buffer) = 0;
+        virtual std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) = 0;
+        virtual std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) = 0;
         virtual void flush() = 0;
 
         virtual std::string_view remoteAddress() const = 0;

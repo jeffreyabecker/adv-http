@@ -15,8 +15,18 @@
 #include "HandlerRestrictions.h"
 #include "../routing/HandlerMatcher.h"
 #include "../core/HttpContentTypes.h"
-namespace HttpServerAdvanced
+namespace httpadv::v1::handlers
 {
+    using httpadv::v1::core::HttpContentTypes;
+    using httpadv::v1::core::HttpHeader;
+    using httpadv::v1::core::HttpHeaderNames;
+    using httpadv::v1::core::HttpStatus;
+    using httpadv::v1::core::MULTIPART_FORM_DATA_BUFFER_SIZE;
+    using httpadv::v1::response::IHttpResponse;
+    using httpadv::v1::response::StringResponse;
+    using httpadv::v1::routing::HandlerMatcher;
+    using httpadv::v1::util::WebUtility;
+
     enum class MultipartStatus
     {
         FirstChunk,      // First chunk of a multipart form field
@@ -63,7 +73,7 @@ namespace HttpServerAdvanced
     {
 
     private:
-        std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &, MultipartFormDataBuffer)> handler_;
+        std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, MultipartFormDataBuffer)> handler_;
         ExtractArgsFromRequest extractor_;
         HandlerResult response_;
         RouteParameters params_;
@@ -88,11 +98,11 @@ namespace HttpServerAdvanced
         const uint8_t *findBoundary(const uint8_t *start, size_t len);
 
     public:
-        MultipartFormDataHandler(std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &, MultipartFormDataBuffer)> handler, ExtractArgsFromRequest extractor)
+        MultipartFormDataHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, MultipartFormDataBuffer)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        virtual HandlerResult handleStep(HttpContext &context)
+        virtual HandlerResult handleStep(httpadv::v1::core::HttpContext &context)
         {
-            if (!response_ && context.completedPhases() >= HttpContextPhase::CompletedReadingMessage)
+            if (!response_ && context.completedPhases() >= httpadv::v1::core::HttpContextPhase::CompletedReadingMessage)
             {
                 handleBodyChunk(context, nullptr, 0);
             }
@@ -102,7 +112,7 @@ namespace HttpServerAdvanced
             }
             return nullptr;
         }
-        virtual void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length)
+        virtual void handleBodyChunk(httpadv::v1::core::HttpContext &context, const uint8_t *at, std::size_t length)
         {
             if (response_)
             {
@@ -248,12 +258,12 @@ namespace HttpServerAdvanced
     {
     public:
         using PostBodyData = WebUtility::QueryParameters;
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpContext &, PostBodyData &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpContext &, RouteParameters &&, PostBodyData &&)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, PostBodyData &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, PostBodyData &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler)
         {
-            return [handler](HttpContext &context, RouteParameters &&, PostBodyData &&postData)
+            return [handler](httpadv::v1::core::HttpContext &context, RouteParameters &&, PostBodyData &&postData)
             {
                 return handler(context, std::move(postData));
             };
@@ -261,44 +271,44 @@ namespace HttpServerAdvanced
 
         static IHttpHandler::Factory makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
         {
-            return [handler, extractor](HttpContext &context) -> std::unique_ptr<IHttpHandler>
+            return [handler, extractor](httpadv::v1::core::HttpContext &context) -> std::unique_ptr<IHttpHandler>
             {
                 auto params = extractor(context);
-                // MultipartFormDataHandler expects handler of signature (HttpContext&, RouteParameters&, MultipartFormDataBuffer)
+                // MultipartFormDataHandler expects handler of signature (httpadv::v1::core::HttpContext&, RouteParameters&, MultipartFormDataBuffer)
                 // We'll create a simpler handler that just accepts the multipart buffer
-                auto wrappedHandler = [handler](HttpContext &ctx, RouteParameters &params, MultipartFormDataBuffer buffer)
+                auto wrappedHandler = [handler](httpadv::v1::core::HttpContext &ctx, RouteParameters &params, MultipartFormDataBuffer buffer)
                 {
                     // Handler expects PostBodyData (KeyValuePairView), not MultipartFormDataBuffer
                     // For now, just invoke with empty PostBodyData - this API mismatch needs design review
                     WebUtility::QueryParameters postData;
                     return handler(ctx, std::move(params), std::move(postData));
                 };
-                return std::make_unique<MultipartFormDataHandler>(wrappedHandler, ExtractArgsFromRequest([params](HttpContext &c)
+                return std::make_unique<MultipartFormDataHandler>(wrappedHandler, ExtractArgsFromRequest([params](httpadv::v1::core::HttpContext &c)
                                                                                                          { return params; }));
             };
         }
 
         static Invocation curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
+            return [interceptor, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
             {
-                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpContext &context) mutable
+                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](httpadv::v1::core::HttpContext &context) mutable
                                    { return handler(context, std::move(params), std::move(postData)); });
             };
         }
 
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
+            return [interceptor, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
             {
-                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](HttpContext &context) mutable
+                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](httpadv::v1::core::HttpContext &context) mutable
                                    { return handler(context, std::move(params), std::move(postData)); });
             };
         }
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
         {
-            return [filter, handler](HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
+            return [filter, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
             {
                 auto response = handler(context, std::move(params), std::move(postData));
                 if (!response.isResponse())
@@ -315,6 +325,6 @@ namespace HttpServerAdvanced
             baseUri.setAllowedContentTypes({HttpContentTypes::MultipartFormData});
         }
     };
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::handlers
 
 

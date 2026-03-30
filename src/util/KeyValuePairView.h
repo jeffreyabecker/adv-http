@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-namespace HttpServerAdvanced
+namespace httpadv::v1::util
 {
     template <typename TKey, typename TValue>
     class KeyValuePairView

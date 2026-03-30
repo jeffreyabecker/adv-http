@@ -28,6 +28,8 @@
 .pio/
 .venv/
 __pycache__/
+*.tmp
+test_temp_*.tmp
 
 # IDE
 .clangd/
