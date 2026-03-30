@@ -40,28 +40,7 @@ namespace HttpServerAdvanced::platform::memory
             return true;
         }
 
-        FileHandle open(std::string_view path, FileOpenMode mode) override
-        {
-            auto node = findNode(path);
-            if (!node)
-            {
-                // create file if opening for write
-                if (mode == FileOpenMode::Read)
-                {
-                    return nullptr;
-                }
-
-                node = createPath(path, false);
-            }
-
-            // If node exists and is directory, cannot open as file
-            if (node->isDirectory)
-            {
-                return nullptr;
-            }
-
-            return FileHandle(new MemoryFile(node, std::string(node->name), std::string(path), mode));
-        }
+        FileHandle open(std::string_view path, FileOpenMode mode) override;
 
         bool remove(std::string_view path) override
         {
@@ -449,5 +428,32 @@ namespace HttpServerAdvanced::platform::memory
         FileOpenMode mode_;
         bool closed_ = false;
     };
+
+} // namespace HttpServerAdvanced::platform::memory
+
+namespace HttpServerAdvanced::platform::memory
+{
+    inline FileHandle MemoryFileSystem::open(std::string_view path, FileOpenMode mode)
+    {
+        auto node = findNode(path);
+        if (!node)
+        {
+            // create file if opening for write
+            if (mode == FileOpenMode::Read)
+            {
+                return nullptr;
+            }
+
+            node = createPath(path, false);
+        }
+
+        // If node exists and is directory, cannot open as file
+        if (node->isDirectory)
+        {
+            return nullptr;
+        }
+
+        return FileHandle(new MemoryFile(node, std::string(node->name), std::string(path), mode));
+    }
 
 } // namespace HttpServerAdvanced::platform::memory

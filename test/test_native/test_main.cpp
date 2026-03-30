@@ -42,6 +42,7 @@ void tearDown() {
 }
 
 int run_test_filesystem_posix();
+int run_test_memory_filesystem();
 int run_test_native_smoke();
 int run_test_clock();
 int run_test_body_handlers();
@@ -80,6 +81,7 @@ int main(int, char **) {
   failureCount += run_test_websocket_frame_codec();
   failureCount += run_test_websocket_context();
   failureCount += run_test_filesystem_posix();
+  failureCount += run_test_memory_filesystem();
   failureCount += run_test_utilities();
 
   return failureCount;
