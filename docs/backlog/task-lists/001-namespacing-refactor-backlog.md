@@ -37,6 +37,10 @@ Refactor the codebase to adopt a responsibility-driven namespace hierarchy roote
 - [ ] Create an authoritative `source => target` move manifest for the `src/` tree and treat it as the single input for both `git mv` operations and include-rewrite patches.
 - [ ] Execute the path realignment as mechanical moves first, with no opportunistic logic edits mixed into the move commit.
 - [ ] Apply a follow-up include rewrite pass driven by the move manifest, then run builds/tests and fix only fallout caused by the relocation.
+ - [x] Create an authoritative `source => target` move manifest for the `src/` tree and treat it as the single input for both `git mv` operations and include-rewrite patches. (docs/backlog/move-manifest.csv)
+ - [x] Add mechanical move helper script at `scripts/apply_move_manifest.py` to perform `git mv` operations from the manifest (dry-run supported).
+ - [ ] Execute the path realignment as mechanical moves first, with no opportunistic logic edits mixed into the move commit.
+ - [ ] Apply a follow-up include rewrite pass driven by the move manifest, then run builds/tests and fix only fallout caused by the relocation.
 - [ ] Update examples, `docs/EXAMPLES.md`, and any README snippets to use `httpadv::...` symbols.
 - [ ] Remove global-scope symbols, shims, and aliases; run a repo-wide check to assert none remain.
 - [ ] Add CI checks: build matrix + a small check that searches for disallowed top-level declarations/usages (e.g., regex for `^class\\s+[A-Z]` at global scope or occurrences of `::HttpContext` outside `httpadv` namespace).
