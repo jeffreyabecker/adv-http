@@ -13,7 +13,7 @@
 #include <optional>
 #include <utility>
 
-namespace HttpServerAdvanced::Compat::platform::arduino
+namespace HttpServerAdvanced::platform::arduino
 {
             inline std::optional<std::size_t> FileSize(File& file, const bool isDirectory)
             {
@@ -419,7 +419,7 @@ namespace HttpServerAdvanced::Compat::platform::arduino
                 FS& fileSystem_;
                 VirtualPathMapperPosix mapper_{};
             };
-} // namespace HttpServerAdvanced::Compat::platform::arduino
+} // namespace HttpServerAdvanced::platform::arduino
 
 #else
 

@@ -318,7 +318,7 @@ namespace
 
     void test_virtual_path_mapper_windows_normalizes_segments_and_names()
     {
-        using HttpServerAdvanced::Compat::VirtualPathMapperWindows;
+        using HttpServerAdvanced::platform::VirtualPathMapperWindows;
 
         TEST_ASSERT_TRUE(VirtualPathMapperWindows::HasDriveLetterPrefix("C:/nested/asset.txt"));
         TEST_ASSERT_FALSE(VirtualPathMapperWindows::HasDriveLetterPrefix("/nested/asset.txt"));
@@ -334,7 +334,7 @@ namespace
 
     void test_virtual_path_mapper_windows_constructs_from_chroot_spec()
     {
-        using HttpServerAdvanced::Compat::VirtualPathMapperWindows;
+        using HttpServerAdvanced::platform::VirtualPathMapperWindows;
 
         const VirtualPathMapperWindows unrooted;
         TEST_ASSERT_FALSE(unrooted.hasRootPath());
@@ -352,7 +352,7 @@ namespace
 
     void test_virtual_path_mapper_posix_normalizes_segments_and_names()
     {
-        using HttpServerAdvanced::Compat::VirtualPathMapperPosix;
+        using HttpServerAdvanced::platform::VirtualPathMapperPosix;
 
         TEST_ASSERT_TRUE(VirtualPathMapperPosix::HasDriveLetterPrefix("C:/nested/asset.txt"));
         TEST_ASSERT_FALSE(VirtualPathMapperPosix::HasDriveLetterPrefix("/nested/asset.txt"));
@@ -368,7 +368,7 @@ namespace
 
     void test_virtual_path_mapper_posix_constructs_from_chroot_spec()
     {
-        using HttpServerAdvanced::Compat::VirtualPathMapperPosix;
+        using HttpServerAdvanced::platform::VirtualPathMapperPosix;
 
         const VirtualPathMapperPosix unrooted;
         TEST_ASSERT_FALSE(unrooted.hasRootPath());

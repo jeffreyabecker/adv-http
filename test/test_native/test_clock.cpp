@@ -18,14 +18,14 @@ namespace
 
     void test_manual_clock_starts_at_zero_by_default()
     {
-        Compat::ManualClock clock;
+        ManualClock clock;
 
         TEST_ASSERT_EQUAL_UINT32(0, clock.nowMillis());
     }
 
     void test_manual_clock_can_advance_and_set_time()
     {
-        Compat::ManualClock clock(10);
+        ManualClock clock(10);
 
         clock.advanceMillis(15);
         TEST_ASSERT_EQUAL_UINT32(25, clock.nowMillis());

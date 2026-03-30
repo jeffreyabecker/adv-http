@@ -39,7 +39,7 @@ namespace HttpServerAdvanced
     private:
         std::unique_ptr<HttpServerAdvanced::IClient> client_;
         HttpServerBase &server_;
-        const Compat::Clock &clock_;
+        const Clock &clock_;
         std::function<PipelineHandlerPtr()> handlerFactory_;
         std::unique_ptr<IByteSource> responseStream_;
         std::unique_ptr<IConnectionSession> activeSession_;
@@ -49,8 +49,8 @@ namespace HttpServerAdvanced
         bool disconnectNotified_ = false;
         bool timedOutUnrecoverably_ = false;
 
-        Compat::ClockMillis lastActivityMillis_;
-        Compat::ClockMillis startMillis_;
+        ClockMillis lastActivityMillis_;
+        ClockMillis startMillis_;
         std::uint32_t loopCount_;
         HttpTimeouts timeouts_;
 
@@ -69,13 +69,13 @@ namespace HttpServerAdvanced
         bool checkIdleTimeout();
         void setErroredUnrecoverably();
         void setConnectionState(ConnectionState state);
-        Compat::ClockMillis currentMillis() const;
+        ClockMillis currentMillis() const;
         IProtocolExecution *currentProtocolExecution();
         const IProtocolExecution *currentProtocolExecution() const;
     public:
         HttpPipeline(std::unique_ptr<HttpServerAdvanced::IClient> client, HttpServerBase &server,
                      const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,
-                     const Compat::Clock &clock);
+                     const Clock &clock);
 
         ~HttpPipeline() = default;
 
@@ -85,7 +85,7 @@ namespace HttpServerAdvanced
         void abort();
         void abortReadingRequest();
         void abortWritingResponse();
-        Compat::ClockMillis startedAt() const;
+        ClockMillis startedAt() const;
         HttpServerAdvanced::IClient &client();
         ConnectionState connectionState() const;
     };

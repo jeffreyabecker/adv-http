@@ -5,7 +5,7 @@
 namespace HttpServerAdvanced {
 
 HttpServerBase::HttpServerBase(std::unique_ptr<IServer> server)
-    : pipelineHandlerFactory_(nullptr), server_(std::move(server)), clock_(&Compat::DefaultClock()) {
+    : pipelineHandlerFactory_(nullptr), server_(std::move(server)), clock_(&DefaultClock()) {
     assert(server_ && "HttpServerBase requires a valid transport server");
 }
 
@@ -76,11 +76,11 @@ void HttpServerBase::setTimeouts(const HttpTimeouts &timeouts) {
     timeouts_ = timeouts;
 }
 
-void HttpServerBase::setClock(const Compat::Clock &clock) {
+void HttpServerBase::setClock(const Clock &clock) {
     clock_ = &clock;
 }
 
-const Compat::Clock &HttpServerBase::clock() const {
+const Clock &HttpServerBase::clock() const {
     return *clock_;
 }
 

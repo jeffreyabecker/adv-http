@@ -40,7 +40,7 @@ This repository keeps host-side unit coverage under a single consolidated native
 
 ## Timeout Guidance
 
-- Timeout-oriented native tests should use `Compat::ManualClock` from `src/compat/Clock.h`.
+- Timeout-oriented native tests should use `ManualClock` from `src/compat/Clock.h`.
 - Advance time explicitly in the test body; do not use sleeps or wall-clock delays.
 - When a server-facing test needs deterministic time, inject the manual clock through `HttpServerBase::setClock(...)` before exercising the code under test.
 

@@ -19,7 +19,7 @@ namespace HttpServerAdvanced
     public:
         WebSocketProtocolExecution(std::string handshakeResponse, WebSocketContext context);
 
-        ConnectionSessionResult handle(IClient &client, const Compat::Clock &clock) override;
+        ConnectionSessionResult handle(IClient &client, const Clock &clock) override;
         IProtocolExecution *protocolExecution() override
         {
             return this;

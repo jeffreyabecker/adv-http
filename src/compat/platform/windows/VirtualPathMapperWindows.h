@@ -7,7 +7,7 @@
 
 namespace HttpServerAdvanced
 {
-    namespace Compat
+    namespace platform
     {
         class VirtualPathMapperWindows
         {
@@ -206,5 +206,5 @@ namespace HttpServerAdvanced
 
             std::string rootPath_{};
         };
-    } // namespace Compat
+    } // namespace platform
 } // namespace HttpServerAdvanced

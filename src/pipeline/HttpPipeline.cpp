@@ -7,7 +7,7 @@ namespace HttpServerAdvanced
 {
     HttpPipeline::HttpPipeline(std::unique_ptr<HttpServerAdvanced::IClient> client, HttpServerBase &server,
                                                              const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,
-                                                             const Compat::Clock &clock)
+                                                             const Clock &clock)
                 : client_(std::move(client)),
                     server_(server),
                     clock_(clock),
@@ -233,7 +233,7 @@ namespace HttpServerAdvanced
 
     PipelineHandleClientResult HttpPipeline::checkStateInHandleClient()
     {
-        const Compat::ClockMillis currentMillis = this->currentMillis();
+        const ClockMillis currentMillis = this->currentMillis();
         if (currentMillis - startMillis_ > timeouts_.getTotalRequestLengthMs())
         {
             timedOutUnrecoverably_ = true;
@@ -317,7 +317,7 @@ namespace HttpServerAdvanced
 
     bool HttpPipeline::checkActivityTimeout()
     {
-        const Compat::ClockMillis currentMillis = this->currentMillis();
+        const ClockMillis currentMillis = this->currentMillis();
         if (currentMillis - lastActivityMillis_ > timeouts_.getActivityTimeout())
         {
             if (IProtocolExecution *execution = currentProtocolExecution())
@@ -342,8 +342,8 @@ namespace HttpServerAdvanced
             return true;
         }
 
-        const Compat::ClockMillis currentMillis = this->currentMillis();
-        Compat::ClockMillis timeout = timeouts_.getReadTimeout();
+        const ClockMillis currentMillis = this->currentMillis();
+        ClockMillis timeout = timeouts_.getReadTimeout();
         if (connectionState_ == ConnectionState::WritingHttpResponse || connectionState_ == ConnectionState::UpgradedSessionActive)
         {
             timeout = timeouts_.getActivityTimeout();
@@ -381,7 +381,7 @@ namespace HttpServerAdvanced
         connectionState_ = state;
     }
 
-    Compat::ClockMillis HttpPipeline::currentMillis() const
+    ClockMillis HttpPipeline::currentMillis() const
     {
         return clock_.nowMillis();
     }
@@ -473,7 +473,7 @@ namespace HttpServerAdvanced
         }
     }
 
-    Compat::ClockMillis HttpPipeline::startedAt() const
+    ClockMillis HttpPipeline::startedAt() const
     {
         return startMillis_;
     }

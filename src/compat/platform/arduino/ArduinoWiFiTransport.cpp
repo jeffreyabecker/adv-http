@@ -15,7 +15,7 @@
 #include <memory>
 #include <string>
 
-namespace HttpServerAdvanced::Compat::platform::arduino {
+namespace HttpServerAdvanced::platform::arduino {
 AvailableResult mapLegacyAvailable(int availableValue, bool connected) {
   if (availableValue > 0) {
     return AvailableBytes(static_cast<std::size_t>(availableValue));
@@ -251,11 +251,11 @@ public:
   }
 };
 
-} // namespace HttpServerAdvanced::Compat::platform::arduino
+} // namespace HttpServerAdvanced::platform::arduino
 
 namespace HttpServerAdvanced {
 std::unique_ptr<ITransportFactory> createArduinoWiFiTransportFactory() {
-  return std::make_unique<Compat::platform::arduino::ArduinoWiFiTransportFactory>();
+  return std::make_unique<platform::arduino::ArduinoWiFiTransportFactory>();
 }
 } // namespace HttpServerAdvanced
 

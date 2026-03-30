@@ -2,7 +2,11 @@
 
 #include <unity.h>
 
-#include "../../src/compat/platform/NativeSocketTransport.h"
+#if defined(_WIN32)
+#include "../../src/compat/platform/windows/WindowsSocketTransport.h"
+#else
+#include "../../src/compat/platform/posix/PosixSocketTransport.h"
+#endif
 
 #include <cstdint>
 #include <cstring>
@@ -103,8 +107,11 @@ void localSetUp() {}
 void localTearDown() {}
 
 void test_native_factory_creates_tcp_server_and_client_loopback() {
-  std::unique_ptr<ITransportFactory> factory =
-      createNativeSocketTransportFactory();
+#ifdef _WIN32
+  std::unique_ptr<ITransportFactory> factory = std::make_unique<platform::windows::NativeSocketTransportFactory>();
+#else
+  std::unique_ptr<ITransportFactory> factory = std::make_unique<platform::posix::NativeSocketTransportFactory>();
+#endif
   TEST_ASSERT_NOT_NULL(factory.get());
 
   std::unique_ptr<IServer> server = factory->createServer(0);
@@ -169,8 +176,11 @@ void test_native_factory_creates_tcp_server_and_client_loopback() {
 }
 
 void test_native_factory_creates_udp_peers_for_loopback_packets() {
-  std::unique_ptr<ITransportFactory> factory =
-      createNativeSocketTransportFactory();
+#ifdef _WIN32
+  std::unique_ptr<ITransportFactory> factory = std::make_unique<platform::windows::NativeSocketTransportFactory>();
+#else
+  std::unique_ptr<ITransportFactory> factory = std::make_unique<platform::posix::NativeSocketTransportFactory>();
+#endif
   TEST_ASSERT_NOT_NULL(factory.get());
 
   const std::uint16_t senderPort = allocateEphemeralUdpPort();

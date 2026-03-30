@@ -24,43 +24,43 @@ namespace HttpServerAdvanced
     private:
         /// @brief Maximum total time (ms) allowed for complete request processing
         /// @details Default: PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS
-        Compat::ClockMillis _totalRequestLengthMs = PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS;
+        ClockMillis _totalRequestLengthMs = PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS;
 
         /// @brief Maximum time (ms) between processing actions
         /// @details Default: PIPELINE_ACTIVITY_TIMEOUT
-        Compat::ClockMillis _activityTimeout = PIPELINE_ACTIVITY_TIMEOUT;
+        ClockMillis _activityTimeout = PIPELINE_ACTIVITY_TIMEOUT;
 
         /// @brief Maximum time (ms) to wait for incoming data
         /// @details Default: PIPELINE_READ_TIMEOUT
-        Compat::ClockMillis _readTimeout = PIPELINE_READ_TIMEOUT;
+        ClockMillis _readTimeout = PIPELINE_READ_TIMEOUT;
 
     public:
         // Getters
 
         /// @brief Get the maximum total request processing time
         /// @return Timeout value in milliseconds
-        Compat::ClockMillis getTotalRequestLengthMs() const { return _totalRequestLengthMs; }
+        ClockMillis getTotalRequestLengthMs() const { return _totalRequestLengthMs; }
 
         /// @brief Get the action timeout (time between processing steps)
         /// @return Timeout value in milliseconds
-        Compat::ClockMillis getActivityTimeout() const { return _activityTimeout; }
+        ClockMillis getActivityTimeout() const { return _activityTimeout; }
 
         /// @brief Get the read timeout (waiting for client data)
         /// @return Timeout value in milliseconds
-        Compat::ClockMillis getReadTimeout() const { return _readTimeout; }
+        ClockMillis getReadTimeout() const { return _readTimeout; }
 
         // Setters
 
         /// @brief Set the maximum total request processing time
         /// @param timeout Timeout value in milliseconds
-        void setTotalRequestLengthMs(Compat::ClockMillis timeout) { _totalRequestLengthMs = timeout; }
+        void setTotalRequestLengthMs(ClockMillis timeout) { _totalRequestLengthMs = timeout; }
 
         /// @brief Set the action timeout (time between processing steps)
         /// @param timeout Timeout value in milliseconds
-        void setActivityTimeout(Compat::ClockMillis timeout) { _activityTimeout = timeout; }
+        void setActivityTimeout(ClockMillis timeout) { _activityTimeout = timeout; }
 
         /// @brief Set the read timeout (waiting for client data)
         /// @param timeout Timeout value in milliseconds
-        void setReadTimeout(Compat::ClockMillis timeout) { _readTimeout = timeout; }
+        void setReadTimeout(ClockMillis timeout) { _readTimeout = timeout; }
     };
 }

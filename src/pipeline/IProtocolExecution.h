@@ -12,7 +12,7 @@ namespace HttpServerAdvanced
     public:
         virtual ~IProtocolExecution() = default;
 
-        virtual ConnectionSessionResult handle(IClient &client, const Compat::Clock &clock) = 0;
+        virtual ConnectionSessionResult handle(IClient &client, const Clock &clock) = 0;
         virtual void onError(PipelineError error) = 0;
         virtual void onDisconnect() = 0;
 

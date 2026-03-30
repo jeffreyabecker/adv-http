@@ -4,7 +4,7 @@
 // Core HTTP types and utilities
 #include "compat/ByteStream.h"
 #include "compat/Compat.h"
-#include "compat/platform/NativeFileAdapter.h"
+#include "compat/ByteStream.h"
 #include "core/Defines.h"
 #include "core/HttpContentTypes.h"
 #include "core/HttpContext.h"
@@ -53,7 +53,7 @@
 
 // HTTP pipeline
 
-#include "compat/platform/NativeSocketTransport.h"
+#include "compat/platform/arduino/ArduinoWiFiTransport.h"
 #include "compat/platform/arduino/ArduinoWiFiTransport.h"
 #include "llhttp/include/llhttp.h"
 #include "pipeline/HttpPipeline.h"

@@ -2,7 +2,17 @@
 
 #include <unity.h>
 
-#include "../../src/compat/platform/NativeFileAdapter.h"
+#if defined(_WIN32)
+#include "../../src/compat/platform/windows/WindowsFileAdapter.h"
+#else
+#include "../../src/compat/platform/posix/PosixFileAdapter.h"
+#endif
+
+#if defined(_WIN32)
+using NativeFSImpl = HttpServerAdvanced::platform::windows::WindowsFs;
+#else
+using NativeFSImpl = HttpServerAdvanced::platform::posix::PosixFS;
+#endif
 #include "../../src/core/HttpContentTypes.h"
 #include "../../src/staticfiles/DefaultFileLocator.h"
 
@@ -66,7 +76,7 @@ namespace
 
     void RemoveTree(std::string_view rootPath)
     {
-        std::unique_ptr<IFileSystem> fs = std::make_unique<Compat::platform::NativeFS>();
+        std::unique_ptr<IFileSystem> fs = std::make_unique<NativeFSImpl>();
         if (!fs)
         {
             return;
@@ -116,7 +126,7 @@ namespace
         const char *content = "hello-posix";
         TEST_ASSERT_TRUE(CreateBinaryFile(tmpPath, content));
 
-        std::unique_ptr<IFileSystem> fs = std::make_unique<Compat::platform::NativeFS>();
+        std::unique_ptr<IFileSystem> fs = std::make_unique<NativeFSImpl>();
         TEST_ASSERT_NOT_NULL(fs.get());
 
         FileHandle file = fs->open(tmpPath, FileOpenMode::Read);
@@ -131,7 +141,7 @@ namespace
 
     void test_native_file_factory_supports_directory_handles()
     {
-        std::unique_ptr<IFileSystem> fs = std::make_unique<Compat::platform::NativeFS>();
+        std::unique_ptr<IFileSystem> fs = std::make_unique<NativeFSImpl>();
         TEST_ASSERT_NOT_NULL(fs.get());
 
         FileHandle file = fs->open(".", FileOpenMode::Read);
@@ -146,7 +156,7 @@ namespace
     {
         const std::string tmpPath = MakeTempPath("file_write") + ".txt";
 
-        std::unique_ptr<IFileSystem> fs = std::make_unique<Compat::platform::NativeFS>();
+        std::unique_ptr<IFileSystem> fs = std::make_unique<NativeFSImpl>();
         TEST_ASSERT_NOT_NULL(fs.get());
 
         FileHandle writable = fs->open(tmpPath, FileOpenMode::ReadWrite);
@@ -176,14 +186,14 @@ namespace
         const std::string insidePath = JoinHostPath(nestedPath, "asset.txt");
         const std::string outsidePath = MakeTempPath("outside") + ".txt";
 
-        std::unique_ptr<IFileSystem> hostFs = std::make_unique<Compat::platform::NativeFS>();
+        std::unique_ptr<IFileSystem> hostFs = std::make_unique<NativeFSImpl>();
         TEST_ASSERT_NOT_NULL(hostFs.get());
         TEST_ASSERT_TRUE(hostFs->mkdir(rootPath));
         TEST_ASSERT_TRUE(hostFs->mkdir(nestedPath));
         TEST_ASSERT_TRUE(CreateBinaryFile(insidePath, "inside"));
         TEST_ASSERT_TRUE(CreateBinaryFile(outsidePath, "outside"));
 
-        std::unique_ptr<IFileSystem> rootedFs = std::make_unique<Compat::platform::NativeFS>(rootPath);
+        std::unique_ptr<IFileSystem> rootedFs = std::make_unique<NativeFSImpl>(rootPath);
         TEST_ASSERT_NOT_NULL(rootedFs.get());
 
         TEST_ASSERT_TRUE(rootedFs->exists("/nested/asset.txt"));
@@ -229,13 +239,13 @@ namespace
         const std::string nestedPath = JoinHostPath(rootPath, "nested");
         const std::string filePath = JoinHostPath(nestedPath, "asset.txt");
 
-        std::unique_ptr<IFileSystem> hostFs = std::make_unique<Compat::platform::NativeFS>();
+        std::unique_ptr<IFileSystem> hostFs = std::make_unique<NativeFSImpl>();
         TEST_ASSERT_NOT_NULL(hostFs.get());
         TEST_ASSERT_TRUE(hostFs->mkdir(rootPath));
         TEST_ASSERT_TRUE(hostFs->mkdir(nestedPath));
         TEST_ASSERT_TRUE(CreateBinaryFile(filePath, "asset"));
 
-        std::unique_ptr<IFileSystem> rootedFs = std::make_unique<Compat::platform::NativeFS>(rootPath);
+        std::unique_ptr<IFileSystem> rootedFs = std::make_unique<NativeFSImpl>(rootPath);
         TEST_ASSERT_NOT_NULL(rootedFs.get());
 
         TEST_ASSERT_TRUE(rootedFs->exists("C:\\nested\\asset.txt"));
@@ -263,7 +273,7 @@ namespace
 
     void test_default_file_locator_accepts_string_view_configuration()
     {
-        std::unique_ptr<IFileSystem> fs = std::make_unique<Compat::platform::NativeFS>();
+        std::unique_ptr<IFileSystem> fs = std::make_unique<NativeFSImpl>();
         TEST_ASSERT_NOT_NULL(fs.get());
         DefaultFileLocator locator(*fs);
 

@@ -249,7 +249,7 @@ namespace
         {
         }
 
-        ConnectionSessionResult handle(IClient &, const Compat::Clock &) override
+        ConnectionSessionResult handle(IClient &, const Clock &) override
         {
             if (handleCount_ != nullptr)
             {
@@ -277,7 +277,7 @@ namespace
         {
         }
 
-        ConnectionSessionResult handle(IClient &, const Compat::Clock &) override
+        ConnectionSessionResult handle(IClient &, const Clock &) override
         {
             ++handleCount_;
             if (scriptedIndex_ >= scriptedResults_.size())
@@ -447,7 +447,7 @@ namespace
             return handlerHistory_.size();
         }
 
-        Compat::ManualClock &clock()
+        ManualClock &clock()
         {
             return clock_;
         }
@@ -458,7 +458,7 @@ namespace
         }
 
     private:
-        Compat::ManualClock clock_;
+        ManualClock clock_;
         HttpTimeouts timeouts_;
         HttpServerBase server_;
         std::unique_ptr<HttpPipeline> pipeline_;
@@ -930,7 +930,7 @@ namespace
             "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
             "\r\n";
 
-        Compat::ManualClock clock(1000);
+        ManualClock clock(1000);
         HttpTimeouts timeouts;
         timeouts.setReadTimeout(25);
         timeouts.setActivityTimeout(40);
@@ -980,7 +980,7 @@ namespace
             "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
             "\r\n";
 
-        Compat::ManualClock clock(1000);
+        ManualClock clock(1000);
         HttpTimeouts timeouts;
         timeouts.setReadTimeout(25);
         timeouts.setActivityTimeout(40);
@@ -1027,7 +1027,7 @@ namespace
 
         static constexpr const char *PingFrame = "\x89\x82\x01\x02\x03\x04\x69\x6B";
 
-        Compat::ManualClock clock(1000);
+        ManualClock clock(1000);
         HttpTimeouts timeouts;
         timeouts.setReadTimeout(25);
         timeouts.setActivityTimeout(40);
@@ -1081,7 +1081,7 @@ namespace
 
         static constexpr const char *CloseFrame = "\x88\x82\x01\x02\x03\x04\x02\xEA";
 
-        Compat::ManualClock clock(1000);
+        ManualClock clock(1000);
         HttpTimeouts timeouts;
         timeouts.setReadTimeout(25);
         timeouts.setActivityTimeout(40);
@@ -1134,7 +1134,7 @@ namespace
             "\r\n";
         static constexpr const char *InvalidUnmaskedFrame = "\x81\x02ok";
 
-        Compat::ManualClock clock(1000);
+        ManualClock clock(1000);
         HttpTimeouts timeouts;
         timeouts.setReadTimeout(25);
         timeouts.setActivityTimeout(40);
@@ -1186,7 +1186,7 @@ namespace
             "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
             "\r\n";
 
-        Compat::ManualClock clock(1000);
+        ManualClock clock(1000);
         HttpTimeouts timeouts;
         timeouts.setReadTimeout(25);
         timeouts.setActivityTimeout(40);
@@ -1248,7 +1248,7 @@ namespace
 
         std::vector<std::string> callbackEvents;
 
-        Compat::ManualClock clock(1000);
+        ManualClock clock(1000);
         HttpTimeouts timeouts;
         timeouts.setReadTimeout(25);
         timeouts.setActivityTimeout(40);
@@ -1339,7 +1339,7 @@ namespace
         std::uint16_t capturedRemotePort = 0;
         std::uint16_t capturedLocalPort = 0;
 
-        Compat::ManualClock clock(1000);
+        ManualClock clock(1000);
         HttpTimeouts timeouts;
         timeouts.setReadTimeout(25);
         timeouts.setActivityTimeout(40);
@@ -1420,7 +1420,7 @@ namespace
             "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
             "\r\n";
 
-        Compat::ManualClock clock(1000);
+        ManualClock clock(1000);
         HttpTimeouts timeouts;
         timeouts.setReadTimeout(25);
         timeouts.setActivityTimeout(40);

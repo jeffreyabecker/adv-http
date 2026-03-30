@@ -11,7 +11,6 @@
 #include "ByteStream.h"
 
 namespace HttpServerAdvanced {
-namespace Compat {
 enum class FileOpenMode { Read, Write, ReadWrite };
 
 class IFile : public IByteChannel {
@@ -51,12 +50,4 @@ public:
                     const DirectoryEntryCallback &callback,
                     bool recursive = false) = 0;
 };
-} // namespace Compat
-
-using FileHandle = Compat::FileHandle;
-using DirectoryEntry = Compat::DirectoryEntry;
-using DirectoryEntryCallback = Compat::DirectoryEntryCallback;
-using FileOpenMode = Compat::FileOpenMode;
-using IFile = Compat::IFile;
-using IFileSystem = Compat::IFileSystem;
 } // namespace HttpServerAdvanced

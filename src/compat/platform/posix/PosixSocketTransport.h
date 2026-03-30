@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-namespace HttpServerAdvanced::Compat::platform::posix {
+namespace HttpServerAdvanced::platform::posix {
 
 using SocketHandle = int;
 constexpr SocketHandle InvalidSocketHandle = -1;
@@ -710,4 +710,4 @@ public:
   }
 };
 
-} // namespace HttpServerAdvanced::Compat::platform::posix
+} // namespace HttpServerAdvanced::platform::posix

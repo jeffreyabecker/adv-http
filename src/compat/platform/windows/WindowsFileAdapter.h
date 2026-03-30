@@ -21,7 +21,7 @@
 #include <string_view>
 #include <utility>
 
-namespace HttpServerAdvanced::Compat::platform::windows
+namespace HttpServerAdvanced::platform::windows
 {
 
 
@@ -543,4 +543,4 @@ namespace HttpServerAdvanced::Compat::platform::windows
                 VirtualPathMapperWindows mapper_{};
             };
 
-} // namespace HttpServerAdvanced::Compat::platform::windows
+} // namespace HttpServerAdvanced::platform::windows

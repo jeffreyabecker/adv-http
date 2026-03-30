@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 
-namespace HttpServerAdvanced::Compat::platform::windows {
+namespace HttpServerAdvanced::platform::windows {
 
 using SocketHandle = SOCKET;
 constexpr SocketHandle InvalidSocketHandle = INVALID_SOCKET;
@@ -711,4 +711,4 @@ public:
   }
 };
 
-} // namespace HttpServerAdvanced::Compat::platform::windows
+} // namespace HttpServerAdvanced::platform::windows

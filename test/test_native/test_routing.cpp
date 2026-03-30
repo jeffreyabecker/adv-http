@@ -598,7 +598,7 @@ namespace
         TEST_ASSERT_NOT_NULL(result.upgradedSession.get());
 
         TestSupport::FakeClient client;
-        Compat::ManualClock clock(1000);
+        ManualClock clock(1000);
         const ConnectionSessionResult firstStep = result.upgradedSession->handle(client, clock);
 
         TEST_ASSERT_EQUAL_INT(static_cast<int>(ConnectionSessionResult::Continue), static_cast<int>(firstStep));

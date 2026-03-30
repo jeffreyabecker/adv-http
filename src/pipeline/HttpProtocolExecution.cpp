@@ -13,7 +13,7 @@ namespace HttpServerAdvanced
         }
     }
 
-    ConnectionSessionResult HttpProtocolExecution::handle(IClient &client, const Compat::Clock &)
+    ConnectionSessionResult HttpProtocolExecution::handle(IClient &client, const Clock &)
     {
         consumedInput_ = false;
 

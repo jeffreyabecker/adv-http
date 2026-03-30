@@ -31,8 +31,8 @@ namespace HttpServerAdvanced
 
         HttpTimeouts &timeouts();
         void setTimeouts(const HttpTimeouts &timeouts);
-        void setClock(const Compat::Clock &clock);
-        const Compat::Clock &clock() const;
+        void setClock(const Clock &clock);
+        const Clock &clock() const;
 
 
         void setPipelineHandlerFactory(std::function<PipelineHandlerPtr(HttpServerBase &)> factory);
@@ -50,7 +50,7 @@ namespace HttpServerAdvanced
         // Multiple concurrent pipelines (one per accepted client)
         std::vector<std::unique_ptr<HttpPipeline>> pipelines_;
         HttpTimeouts timeouts_;
-        const Compat::Clock *clock_;
+        const Clock *clock_;
         mutable std::map<std::string, std::any> items_;
     };
 

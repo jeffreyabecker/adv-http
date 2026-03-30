@@ -16,10 +16,8 @@
 #include <string_view>
 #include <utility>
 
-namespace HttpServerAdvanced::Compat::platform::posix
+namespace HttpServerAdvanced::platform::posix
 {
-
-
             struct FileMetadata
             {
                 bool exists = false;
@@ -523,4 +521,4 @@ namespace HttpServerAdvanced::Compat::platform::posix
                 VirtualPathMapperPosix mapper_{};
             };
             
-} // namespace HttpServerAdvanced::Compat::platform::posix
+} // namespace HttpServerAdvanced::platform::posix

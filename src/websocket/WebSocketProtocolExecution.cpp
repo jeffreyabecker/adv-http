@@ -47,7 +47,7 @@ namespace HttpServerAdvanced
         context_.bindControl(this);
     }
 
-    ConnectionSessionResult WebSocketProtocolExecution::handle(IClient &client, const Compat::Clock &)
+    ConnectionSessionResult WebSocketProtocolExecution::handle(IClient &client, const Clock &)
     {
         if (!client.connected())
         {

@@ -11,7 +11,7 @@ namespace HttpServerAdvanced
     public:
         explicit HttpProtocolExecution(PipelineHandlerPtr handler);
 
-        ConnectionSessionResult handle(IClient &client, const Compat::Clock &clock) override;
+        ConnectionSessionResult handle(IClient &client, const Clock &clock) override;
         void onError(PipelineError error) override;
         void onDisconnect() override;
         bool hasPendingResult() const override;

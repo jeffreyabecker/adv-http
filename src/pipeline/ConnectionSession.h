@@ -20,7 +20,7 @@ namespace HttpServerAdvanced
     {
     public:
         virtual ~IConnectionSession() = default;
-        virtual ConnectionSessionResult handle(IClient &client, const Compat::Clock &clock) = 0;
+        virtual ConnectionSessionResult handle(IClient &client, const Clock &clock) = 0;
         virtual IProtocolExecution *protocolExecution()
         {
             return nullptr;

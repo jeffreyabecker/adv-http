@@ -1,3 +1,11 @@
-#include "../../src/compat/platform/NativeFileAdapter.h"
+#if defined(_WIN32)
+#include "../../src/compat/platform/windows/WindowsFileAdapter.h"
+#else
+#include "../../src/compat/platform/posix/PosixFileAdapter.h"
+#endif
 
-// Removed platform-specific includes as they are consolidated.
+#if defined(_WIN32)
+using NativeFSImpl = HttpServerAdvanced::platform::windows::WindowsFs;
+#else
+using NativeFSImpl = HttpServerAdvanced::platform::posix::PosixFS;
+#endif
