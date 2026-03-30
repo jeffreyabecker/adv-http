@@ -1,10 +1,10 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
-#include "../../src/HttpServerAdvanced.h"
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/compat/Clock.h"
+#include "../../src/httpadv/v1/compat/Clock.h"
 
 using namespace httpadv::v1::core;
 using namespace httpadv::v1::handlers;

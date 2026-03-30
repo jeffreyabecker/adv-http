@@ -1,12 +1,12 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/HttpTestFixtures.h"
 
-#include "../../src/HttpServerAdvanced.h"
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/core/Defines.h"
-#include "../../src/pipeline/RequestParser.h"
+#include "../../src/httpadv/v1/core/Defines.h"
+#include "../../src/httpadv/v1/pipeline/RequestParser.h"
 
 #include <cstdint>
 #include <string>

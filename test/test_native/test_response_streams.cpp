@@ -1,16 +1,16 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/ByteStreamFixtures.h"
 
-#include "../../src/HttpServerAdvanced.h"
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/response/ChunkedHttpResponseBodyStream.h"
-#include "../../src/response/FormResponse.h"
-#include "../../src/response/HttpResponse.h"
-#include "../../src/response/StringResponse.h"
-#include "../../src/compat/ByteStream.h"
-#include "../../src/streams/Streams.h"
+#include "../../src/httpadv/v1/response/ChunkedHttpResponseBodyStream.h"
+#include "../../src/httpadv/v1/response/FormResponse.h"
+#include "../../src/httpadv/v1/response/HttpResponse.h"
+#include "../../src/httpadv/v1/response/StringResponse.h"
+#include "../../src/httpadv/v1/compat/ByteStream.h"
+#include "../../src/httpadv/v1/streams/Streams.h"
 
 #include <algorithm>
 #include <map>
@@ -19,7 +19,7 @@
 
 #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 #include <ArduinoJson.h>
-#include "../../src/response/JsonResponse.h"
+#include "../../src/httpadv/v1/response/JsonResponse.h"
 #endif
 
 using namespace httpadv::v1::core;

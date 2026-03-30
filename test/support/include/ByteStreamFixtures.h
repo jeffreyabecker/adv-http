@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../src/compat/ByteStream.h"
+#include "../../../src/httpadv/v1/httpadv/v1/compat/ByteStream.h"
 
 #include <algorithm>
 #include <cstddef>

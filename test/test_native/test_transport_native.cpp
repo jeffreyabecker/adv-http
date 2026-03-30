@@ -1,13 +1,13 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
-#include "../../src/HttpServerAdvanced.h"
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
 
 #include <unity.h>
 
 #if defined(_WIN32)
-#include "../../src/compat/platform/windows/WindowsSocketTransport.h"
+#include "../../src/httpadv/v1/compat/platform/windows/WindowsSocketTransport.h"
 #else
-#include "../../src/compat/platform/posix/PosixSocketTransport.h"
+#include "../../src/httpadv/v1/compat/platform/posix/PosixSocketTransport.h"
 #endif
 
 #include <cstdint>

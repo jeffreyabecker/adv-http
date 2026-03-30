@@ -1,11 +1,11 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include\HttpTestFixtures.h"
 
-#include "../../src/HttpServerAdvanced.h"
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/pipeline/PipelineError.h"
+#include "../../src/httpadv/v1/pipeline/PipelineError.h"
 
 using namespace httpadv::v1::core;
 using namespace httpadv::v1::handlers;

@@ -1,18 +1,18 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/HttpTestFixtures.h"
 
-#include "../../src/HttpServerAdvanced.h"
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/core/HttpContext.h"
-#include "../../src/core/HttpContextPhase.h"
-#include "../../src/handlers/BufferedStringBodyHandler.h"
-#include "../../src/handlers/BufferingHttpHandlerBase.h"
-#include "../../src/handlers/FormBodyHandler.h"
-#include "../../src/handlers/MultipartFormDataHandler.h"
-#include "../../src/handlers/RawBodyHandler.h"
-#include "../../src/server/HttpServerBase.h"
+#include "../../src/httpadv/v1/core/HttpContext.h"
+#include "../../src/httpadv/v1/core/HttpContextPhase.h"
+#include "../../src/httpadv/v1/handlers/BufferedStringBodyHandler.h"
+#include "../../src/httpadv/v1/handlers/BufferingHttpHandlerBase.h"
+#include "../../src/httpadv/v1/handlers/FormBodyHandler.h"
+#include "../../src/httpadv/v1/handlers/MultipartFormDataHandler.h"
+#include "../../src/httpadv/v1/handlers/RawBodyHandler.h"
+#include "../../src/httpadv/v1/server/HttpServerBase.h"
 
 #include <cstdint>
 #include <functional>
@@ -23,7 +23,7 @@
 
 #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 #include <ArduinoJson.h>
-#include "../../src/handlers/JsonBodyHandler.h"
+#include "../../src/httpadv/v1/handlers/JsonBodyHandler.h"
 #endif
 
 using namespace httpadv::v1::core;

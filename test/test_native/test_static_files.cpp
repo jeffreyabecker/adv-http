@@ -3,17 +3,17 @@
 
 #include <unity.h>
 
-#include "../../src/compat/IFileSystem.h"
-#include "../../src/core/HttpContentTypes.h"
-#include "../../src/core/HttpHeader.h"
-#include "../../src/core/HttpContext.h"
-#include "../../src/handlers/HttpHandler.h"
-#include "../../src/staticfiles/AggregateFileLocator.h"
-#include "../../src/staticfiles/DefaultFileLocator.h"
-#include "../../src/staticfiles/FileLocator.h"
-#include "../../src/staticfiles/StaticFileHandler.h"
-#include "../../src/staticfiles/StaticFilesBuilder.h"
-#include "../../src/server/HttpServerBase.h"
+#include "../../src/httpadv/v1/compat/IFileSystem.h"
+#include "../../src/httpadv/v1/core/HttpContentTypes.h"
+#include "../../src/httpadv/v1/core/HttpHeader.h"
+#include "../../src/httpadv/v1/core/HttpContext.h"
+#include "../../src/httpadv/v1/handlers/HttpHandler.h"
+#include "../../src/httpadv/v1/staticfiles/AggregateFileLocator.h"
+#include "../../src/httpadv/v1/staticfiles/DefaultFileLocator.h"
+#include "../../src/httpadv/v1/staticfiles/FileLocator.h"
+#include "../../src/httpadv/v1/staticfiles/StaticFileHandler.h"
+#include "../../src/httpadv/v1/staticfiles/StaticFilesBuilder.h"
+#include "../../src/httpadv/v1/server/HttpServerBase.h"
 
 #include <cstddef>
 #include <cstdint>

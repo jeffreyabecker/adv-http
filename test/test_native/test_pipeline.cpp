@@ -1,24 +1,24 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/HttpTestFixtures.h"
 
-#include "../../src/HttpServerAdvanced.h"
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/compat/Clock.h"
-#include "../../src/core/HttpContext.h"
-#include "../../src/core/HttpTimeouts.h"
-#include "../../src/handlers/HttpHandler.h"
-#include "../../src/pipeline/HttpPipeline.h"
-#include "../../src/pipeline/IPipelineHandler.h"
-#include "../../src/pipeline/PipelineError.h"
-#include "../../src/pipeline/PipelineHandleClientResult.h"
-#include "../../src/routing/HandlerMatcher.h"
-#include "../../src/response/StringResponse.h"
-#include "../../src/server/HttpServerBase.h"
-#include "../../src/websocket/WebSocketCallbacks.h"
-#include "../../src/websocket/WebSocketContext.h"
-#include "../../src/websocket/WebSocketUpgradeHandler.h"
+#include "../../src/httpadv/v1/compat/Clock.h"
+#include "../../src/httpadv/v1/core/HttpContext.h"
+#include "../../src/httpadv/v1/core/HttpTimeouts.h"
+#include "../../src/httpadv/v1/handlers/HttpHandler.h"
+#include "../../src/httpadv/v1/pipeline/HttpPipeline.h"
+#include "../../src/httpadv/v1/pipeline/IPipelineHandler.h"
+#include "../../src/httpadv/v1/pipeline/PipelineError.h"
+#include "../../src/httpadv/v1/pipeline/PipelineHandleClientResult.h"
+#include "../../src/httpadv/v1/routing/HandlerMatcher.h"
+#include "../../src/httpadv/v1/response/StringResponse.h"
+#include "../../src/httpadv/v1/server/HttpServerBase.h"
+#include "../../src/httpadv/v1/websocket/WebSocketCallbacks.h"
+#include "../../src/httpadv/v1/websocket/WebSocketContext.h"
+#include "../../src/httpadv/v1/websocket/WebSocketUpgradeHandler.h"
 
 #include <cstddef>
 #include <cstdint>

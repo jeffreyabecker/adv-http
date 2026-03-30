@@ -1,19 +1,19 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/HttpTestFixtures.h"
 
-#include "../../src/HttpServerAdvanced.h"
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/compat/Clock.h"
-#include "../../src/core/HttpContext.h"
-#include "../../src/core/HttpContextPhase.h"
-#include "../../src/handlers/HttpHandler.h"
-#include "../../src/pipeline/RequestParser.h"
-#include "../../src/routing/HandlerMatcher.h"
-#include "../../src/server/HttpServerBase.h"
-#include "../../src/websocket/WebSocketCallbacks.h"
-#include "../../src/websocket/WebSocketUpgradeHandler.h"
+#include "../../src/httpadv/v1/compat/Clock.h"
+#include "../../src/httpadv/v1/core/HttpContext.h"
+#include "../../src/httpadv/v1/core/HttpContextPhase.h"
+#include "../../src/httpadv/v1/handlers/HttpHandler.h"
+#include "../../src/httpadv/v1/pipeline/RequestParser.h"
+#include "../../src/httpadv/v1/routing/HandlerMatcher.h"
+#include "../../src/httpadv/v1/server/HttpServerBase.h"
+#include "../../src/httpadv/v1/websocket/WebSocketCallbacks.h"
+#include "../../src/httpadv/v1/websocket/WebSocketUpgradeHandler.h"
 
 #include <memory>
 #include <cstring>

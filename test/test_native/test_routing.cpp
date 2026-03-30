@@ -3,21 +3,21 @@
 
 #include <unity.h>
 
-#include "../../src/compat/Clock.h"
-#include "../../src/core/HttpHeader.h"
-#include "../../src/core/HttpContext.h"
-#include "../../src/handlers/HandlerTypes.h"
-#include "../../src/routing/BasicAuthentication.h"
-#include "../../src/routing/CrossOriginRequestSharing.h"
-#include "../../src/routing/HandlerMatcher.h"
-#include "../../src/routing/HandlerProviderRegistry.h"
-#include "../../src/routing/ProviderRegistryBuilder.h"
-#include "../../src/routing/ReplaceVariables.h"
-#include "../../src/response/StringResponse.h"
-#include "../../src/server/HttpServerBase.h"
-#include "../../src/server/WebServerBuilder.h"
-#include "../../src/server/WebServerConfig.h"
-#include "../../src/websocket/WebSocketCallbacks.h"
+#include "../../src/httpadv/v1/compat/Clock.h"
+#include "../../src/httpadv/v1/core/HttpHeader.h"
+#include "../../src/httpadv/v1/core/HttpContext.h"
+#include "../../src/httpadv/v1/handlers/HandlerTypes.h"
+#include "../../src/httpadv/v1/routing/BasicAuthentication.h"
+#include "../../src/httpadv/v1/routing/CrossOriginRequestSharing.h"
+#include "../../src/httpadv/v1/routing/HandlerMatcher.h"
+#include "../../src/httpadv/v1/routing/HandlerProviderRegistry.h"
+#include "../../src/httpadv/v1/routing/ProviderRegistryBuilder.h"
+#include "../../src/httpadv/v1/routing/ReplaceVariables.h"
+#include "../../src/httpadv/v1/response/StringResponse.h"
+#include "../../src/httpadv/v1/server/HttpServerBase.h"
+#include "../../src/httpadv/v1/server/WebServerBuilder.h"
+#include "../../src/httpadv/v1/server/WebServerConfig.h"
+#include "../../src/httpadv/v1/websocket/WebSocketCallbacks.h"
 
 #include <any>
 #include <cstddef>

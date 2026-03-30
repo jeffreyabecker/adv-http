@@ -1,10 +1,10 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
-#include "../../src/HttpServerAdvanced.h"
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/websocket/WebSocketFrameCodec.h"
+#include "../../src/httpadv/v1/websocket/WebSocketFrameCodec.h"
 
 #include <array>
 #include <cstdint>

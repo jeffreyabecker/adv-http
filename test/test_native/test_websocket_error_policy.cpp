@@ -1,10 +1,10 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
-#include "../../src/HttpServerAdvanced.h"
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/websocket/WebSocketErrorPolicy.h"
+#include "../../src/httpadv/v1/websocket/WebSocketErrorPolicy.h"
 
 using namespace httpadv::v1::core;
 using namespace httpadv::v1::handlers;

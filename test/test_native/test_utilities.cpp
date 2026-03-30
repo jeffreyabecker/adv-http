@@ -11,19 +11,19 @@
 #include <utility>
 #include <vector>
 
-#include "../../src/compat/platform/PathMapper.h"
-#include "../../src/core/HttpContentTypes.h"
-#include "../../src/core/HttpMethod.h"
-#include "../../src/core/HttpStatus.h"
-#include "../../src/core/IHttpContextHandlerFactory.h"
-#include "../../src/core/Defines.h"
-#include "../../src/core/HttpContext.h"
-#include "../../src/util/HttpUtility.h"
-#include "../../src/core/HttpHeaderCollection.h"
-#include "../../src/routing/CrossOriginRequestSharing.h"
-#include "../../src/routing/HandlerMatcher.h"
-#include "../../src/response/StringResponse.h"
-#include "../../src/util/UriView.h"
+#include "../../src/httpadv/v1/compat/platform/PathMapper.h"
+#include "../../src/httpadv/v1/core/HttpContentTypes.h"
+#include "../../src/httpadv/v1/core/HttpMethod.h"
+#include "../../src/httpadv/v1/core/HttpStatus.h"
+#include "../../src/httpadv/v1/core/IHttpContextHandlerFactory.h"
+#include "../../src/httpadv/v1/core/Defines.h"
+#include "../../src/httpadv/v1/core/HttpContext.h"
+#include "../../src/httpadv/v1/util/HttpUtility.h"
+#include "../../src/httpadv/v1/core/HttpHeaderCollection.h"
+#include "../../src/httpadv/v1/routing/CrossOriginRequestSharing.h"
+#include "../../src/httpadv/v1/routing/HandlerMatcher.h"
+#include "../../src/httpadv/v1/response/StringResponse.h"
+#include "../../src/httpadv/v1/util/UriView.h"
 
 namespace
 {

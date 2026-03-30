@@ -3,9 +3,9 @@
 #include <unity.h>
 
 #if defined(_WIN32)
-#include "../../src/compat/platform/windows/WindowsFileAdapter.h"
+#include "../../src/httpadv/v1/compat/platform/windows/WindowsFileAdapter.h"
 #else
-#include "../../src/compat/platform/posix/PosixFileAdapter.h"
+#include "../../src/httpadv/v1/compat/platform/posix/PosixFileAdapter.h"
 #endif
 
 #if defined(_WIN32)
@@ -13,8 +13,8 @@ using NativeFSImpl = httpadv::v1::platform::windows::WindowsFs;
 #else
 using NativeFSImpl = httpadv::v1::platform::posix::PosixFS;
 #endif
-#include "../../src/core/HttpContentTypes.h"
-#include "../../src/staticfiles/DefaultFileLocator.h"
+#include "../../src/httpadv/v1/core/HttpContentTypes.h"
+#include "../../src/httpadv/v1/staticfiles/DefaultFileLocator.h"
 
 #include <cstdio>
 #include <cstring>
