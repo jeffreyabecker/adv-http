@@ -684,7 +684,7 @@ private:
   std::uint16_t remotePort_ = 0;
 };
 
-class NativeSocketTransportFactory {
+class WindowsSocketTransportFactory {
 public:
   static std::unique_ptr<IServer> createServer(std::uint16_t port) {
     return std::make_unique<WindowsServer>(port);

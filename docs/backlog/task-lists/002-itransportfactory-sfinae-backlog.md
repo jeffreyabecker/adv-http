@@ -44,7 +44,6 @@ Priority: Medium
 References
 
 - Static traits + adapter: [src/httpadv/v1/transport/TransportTraits.h](src/httpadv/v1/transport/TransportTraits.h)
-- Migration include: [src/httpadv/v1/transport/ITransportFactory.h](src/httpadv/v1/transport/ITransportFactory.h)
 - Native validation: [test/test_native/test_transport_native.cpp](test/test_native/test_transport_native.cpp)
 - Server builder usages: search for `ITransportFactory` and factory call sites in `src/`
 - Notes: see plans/websocket-support-plan.md and plans/externalize-request-owned-pipeline-state-implementation-plan.md for related design constraints.

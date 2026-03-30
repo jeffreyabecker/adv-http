@@ -62,33 +62,5 @@ namespace httpadv::v1::transport
     template <typename TFactory>
     inline constexpr bool IsStaticTransportFactoryV = IsStaticTransportFactory<TFactory>::value;
 
-    template <typename TFactory, typename = void>
-    class StaticTransportFactoryAdapter;
 
-    template <typename TFactory>
-    class StaticTransportFactoryAdapter<TFactory, std::enable_if_t<IsStaticTransportFactoryV<TFactory>>> final
-        : public ITransportFactory
-    {
-    public:
-        std::unique_ptr<IServer> createServer(std::uint16_t port) override
-        {
-            return TFactory::createServer(port);
-        }
-
-        std::unique_ptr<IClient> createClient(std::string_view address, std::uint16_t port) override
-        {
-            return TFactory::createClient(address, port);
-        }
-
-        std::unique_ptr<IPeer> createPeer() override
-        {
-            return TFactory::createPeer();
-        }
-    };
-
-    template <typename TFactory, std::enable_if_t<IsStaticTransportFactoryV<TFactory>, int> = 0>
-    std::unique_ptr<ITransportFactory> makeTransportFactory()
-    {
-        return std::make_unique<StaticTransportFactoryAdapter<TFactory>>();
-    }
 }

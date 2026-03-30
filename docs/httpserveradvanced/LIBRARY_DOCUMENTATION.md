@@ -73,7 +73,6 @@ Transport factories now have a compile-time primary path and a runtime compatibi
 
 - [src/httpadv/v1/platform/windows/WindowsSocketTransport.h](src/httpadv/v1/platform/windows/WindowsSocketTransport.h) and [src/httpadv/v1/platform/posix/PosixSocketTransport.h](src/httpadv/v1/platform/posix/PosixSocketTransport.h) now use static factory methods directly.
 - [src/httpadv/v1/platform/arduino/ArduinoWiFiTransport.h](src/httpadv/v1/platform/arduino/ArduinoWiFiTransport.h) now exposes its adapter types in the header so the Arduino transport can participate in compile-time detection.
-- [src/httpadv/v1/transport/ITransportFactory.h](src/httpadv/v1/transport/ITransportFactory.h) is now the migration include for code that still wants the legacy runtime interface plus the new adapter helpers.
 
 ### Migration Examples
 

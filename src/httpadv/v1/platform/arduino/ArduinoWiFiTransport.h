@@ -290,8 +290,3 @@ public:
 
 } // namespace httpadv::v1::platform::arduino
 
-namespace httpadv::v1::transport {
-inline std::unique_ptr<ITransportFactory> createArduinoWiFiTransportFactory() {
-	return makeTransportFactory<platform::arduino::ArduinoWiFiTransportFactory>();
-}
-} // namespace httpadv::v1::transport

@@ -254,9 +254,9 @@ private:
   SocketHandle handle_ = InvalidSocketHandle;
 };
 
-class NativeSocketClient : public IClient {
+class PosixSocketClient : public IClient {
 public:
-  explicit NativeSocketClient(SocketHandle socketHandle)
+  explicit PosixSocketClient(SocketHandle socketHandle)
       : socket_(socketHandle) {
     refreshEndpointInfo();
   }
@@ -408,9 +408,9 @@ private:
   std::uint32_t timeoutMs_ = 0;
 };
 
-class NativeSocketServer : public IServer {
+class PosixSocketServer : public IServer {
 public:
-  explicit NativeSocketServer(std::uint16_t port)
+  explicit PosixSocketServer(std::uint16_t port)
       : configuredPort_(port), localPort_(port) {}
 
   std::unique_ptr<IClient> accept() override {
@@ -426,7 +426,7 @@ public:
       return isWouldBlockError(errorCode) || isInterruptedError(errorCode) ? nullptr : nullptr;
     }
 
-    return std::make_unique<NativeSocketClient>(accepted);
+    return std::make_unique<PosixSocketClient>(accepted);
   }
 
   void begin() override {
@@ -492,7 +492,7 @@ private:
   std::uint16_t localPort_ = 0;
 };
 
-class NativeSocketPeer : public IPeer {
+class PosixSocketPeer : public IPeer {
 public:
   bool begin(std::uint16_t port) override { return openSocket(port); }
 
@@ -673,10 +673,10 @@ private:
   std::uint16_t remotePort_ = 0;
 };
 
-class NativeSocketTransportFactory {
+class PosixSocketTransportFactory {
 public:
   static std::unique_ptr<IServer> createServer(std::uint16_t port) {
-    return std::make_unique<NativeSocketServer>(port);
+    return std::make_unique<PosixSocketServer>(port);
   }
 
   static std::unique_ptr<IClient> createClient(std::string_view address,
@@ -702,11 +702,11 @@ public:
       return nullptr;
     }
 
-    return std::make_unique<NativeSocketClient>(socketHandle.release());
+    return std::make_unique<PosixSocketClient>(socketHandle.release());
   }
 
   static std::unique_ptr<IPeer> createPeer() {
-    return std::make_unique<NativeSocketPeer>();
+    return std::make_unique<PosixSocketPeer>();
   }
 };
 

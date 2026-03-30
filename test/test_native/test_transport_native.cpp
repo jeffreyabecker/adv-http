@@ -42,9 +42,9 @@ using namespace httpadv::v1::platform;
 
 namespace {
 #ifdef _WIN32
-using NativeTransportFactory = httpadv::v1::platform::windows::NativeSocketTransportFactory;
+using NativeTransportFactory = httpadv::v1::platform::windows::WindowsSocketTransportFactory;
 #else
-using NativeTransportFactory = platform::posix::NativeSocketTransportFactory;
+using NativeTransportFactory = platform::posix::PosixSocketTransportFactory;
 #endif
 
 static_assert(IsStaticTransportFactoryV<NativeTransportFactory>,
@@ -191,14 +191,13 @@ void test_native_factory_creates_tcp_server_and_client_loopback() {
 }
 
 void test_native_factory_creates_udp_peers_for_loopback_packets() {
-  std::unique_ptr<ITransportFactory> factory = makeTransportFactory<NativeTransportFactory>();
-  TEST_ASSERT_NOT_NULL(factory.get());
+
 
   const std::uint16_t senderPort = allocateEphemeralUdpPort();
   const std::uint16_t receiverPort = allocateEphemeralUdpPort();
 
-  std::unique_ptr<IPeer> sender = factory->createPeer();
-  std::unique_ptr<IPeer> receiver = factory->createPeer();
+  std::unique_ptr<IPeer> sender = NativeTransportFactory::createPeer();
+  std::unique_ptr<IPeer> receiver = NativeTransportFactory::createPeer();
   TEST_ASSERT_NOT_NULL(sender.get());
   TEST_ASSERT_NOT_NULL(receiver.get());
 
