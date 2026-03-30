@@ -4,9 +4,6 @@
 #include "httpadv/namespace.h"
 
 // Core HTTP types and utilities
-#include "httpadv/v1/transport/ByteStream.h"
-#include "httpadv/v1/util/Compat.h"
-#include "httpadv/v1/transport/ByteStream.h"
 #include "httpadv/v1/core/Defines.h"
 #include "httpadv/v1/core/HttpContentTypes.h"
 #include "httpadv/v1/core/HttpContext.h"
@@ -17,6 +14,9 @@
 #include "httpadv/v1/core/HttpStatus.h"
 #include "httpadv/v1/core/HttpTimeouts.h"
 #include "httpadv/v1/core/IHttpContextHandlerFactory.h"
+#include "httpadv/v1/transport/ByteStream.h"
+#include "httpadv/v1/util/Compat.h"
+
 
 // HTTP Handlers
 #include "httpadv/v1/handlers/BufferedStringBodyHandler.h"
@@ -47,23 +47,24 @@
 // Request routing
 #include "httpadv/v1/routing/BasicAuthentication.h"
 #include "httpadv/v1/routing/CrossOriginRequestSharing.h"
-#include "httpadv/v1/routing/ReplaceVariables.h"
 #include "httpadv/v1/routing/HandlerBuilder.h"
 #include "httpadv/v1/routing/HandlerMatcher.h"
 #include "httpadv/v1/routing/HandlerProviderRegistry.h"
 #include "httpadv/v1/routing/ProviderRegistryBuilder.h"
+#include "httpadv/v1/routing/ReplaceVariables.h"
+
 
 // HTTP pipeline
 
-#include "httpadv/v1/platform/arduino/ArduinoWiFiTransport.h"
-#include "httpadv/v1/platform/arduino/ArduinoWiFiTransport.h"
-#include "llhttp/include/llhttp.h"
 #include "httpadv/v1/pipeline/HttpPipeline.h"
 #include "httpadv/v1/pipeline/IPipelineHandler.h"
 #include "httpadv/v1/pipeline/NetClient.h"
 #include "httpadv/v1/pipeline/PipelineError.h"
 #include "httpadv/v1/pipeline/PipelineHandleClientResult.h"
 #include "httpadv/v1/pipeline/RequestParser.h"
+#include "httpadv/v1/platform/arduino/ArduinoWiFiTransport.h"
+#include "llhttp/include/llhttp.h"
+
 
 // Static file serving
 #include "httpadv/v1/staticfiles/AggregateFileLocator.h"
@@ -95,28 +96,28 @@
 
 // Convenience aliases in the httpadv (unversioned) namespace so consumers
 // can reference common types without fully qualifying `httpadv::v1::...`.
-namespace httpadv
-{
-	// Server / builder
-	using WebServer = v1::server::WebServer;
-	using WebServerBuilder = v1::server::WebServerBuilder;
-	using WebServerConfig = v1::server::WebServerConfig;
-	using HttpServerBase = v1::server::HttpServerBase;
+namespace httpadv {
+// Server / builder
+using WebServer = v1::server::WebServer;
+using WebServerBuilder = v1::server::WebServerBuilder;
+using WebServerConfig = v1::server::WebServerConfig;
+using HttpServerBase = v1::server::HttpServerBase;
 
-	// Pipeline / transport
-	namespace transport = v1::transport;
-	using IClient = v1::transport::IClient;
-	using IFileSystem = v1::transport::IFileSystem;
+// Pipeline / transport
+namespace transport = v1::transport;
+using IClient = v1::transport::IClient;
+using IFileSystem = v1::transport::IFileSystem;
 
-	// Utilities
-	using Clock = v1::util::Clock;
-	using UriView = v1::util::UriView;
+// Utilities
+using Clock = v1::util::Clock;
+using UriView = v1::util::UriView;
 
-	// Common handler/response types
-	using IHttpHandler = v1::handlers::IHttpHandler;
-	using HttpResponse = v1::response::HttpResponse;
-	using StringResponse = v1::response::StringResponse;
+// Common handler/response types
+using IHttpHandler = v1::handlers::IHttpHandler;
+using HttpResponse = v1::response::HttpResponse;
+using StringResponse = v1::response::StringResponse;
 
-	// Routing helpers
-	using HandlerBuilder = v1::routing::HandlerBuilder;
-}
+// Routing helpers
+template <typename THandler>
+using HandlerBuilder = v1::routing::HandlerBuilder<THandler>;
+} // namespace httpadv

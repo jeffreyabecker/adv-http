@@ -1,8 +1,5 @@
 #pragma once
 
-namespace httpadv
-{
-    inline namespace v1
-    {
-    }
-}
+namespace httpadv {
+namespace v1 {}
+} // namespace httpadv

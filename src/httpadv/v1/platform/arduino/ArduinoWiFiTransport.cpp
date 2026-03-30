@@ -16,6 +16,16 @@
 #include <string>
 
 namespace httpadv::v1::platform::arduino {
+using httpadv::v1::transport::AvailableBytes;
+using httpadv::v1::transport::AvailableResult;
+using httpadv::v1::transport::ErrorResult;
+using httpadv::v1::transport::ExhaustedResult;
+using httpadv::v1::transport::IClient;
+using httpadv::v1::transport::IPeer;
+using httpadv::v1::transport::IServer;
+using httpadv::v1::transport::ITransportFactory;
+using httpadv::v1::transport::TemporarilyUnavailableResult;
+
 AvailableResult mapLegacyAvailable(int availableValue, bool connected) {
   if (availableValue > 0) {
     return AvailableBytes(static_cast<std::size_t>(availableValue));
