@@ -3,10 +3,10 @@
 # Namespacing Refactor — Clean greenfield migration
 
 ## Summary
-Refactor the codebase to adopt a responsibility-driven namespace hierarchy rooted at `httpserver` (with an `inline namespace v1` for versioning). Because this is a greenfield project, perform an in-place migration: move types and implementations directly into their final namespaces and remove all compatibility shims, aliases, or temporary adapters. Deliver a single, clean public API surface, update headers and examples, and ensure the project continues to build across supported targets.
+Refactor the codebase to adopt a responsibility-driven namespace hierarchy rooted at `httpadv` (with an `inline namespace v1` for versioning). Because this is a greenfield project, perform an in-place migration: move types and implementations directly into their final namespaces and remove all compatibility shims, aliases, or temporary adapters. Deliver a single, clean public API surface, update headers and examples, and ensure the project continues to build across supported targets.
 
 ## Goal / Acceptance Criteria
-- All public API types are declared inside `httpserver::...` (inside `inline namespace v1`) and organized by responsibility (core, pipeline, handlers, routing, server, transport, response, websocket, staticfiles, util).
+- All public API types are declared inside `httpadv::...` (inside `inline namespace v1`) and organized by responsibility (core, pipeline, handlers, routing, server, transport, response, websocket, staticfiles, util).
 - No global-scope symbols remain (no `::HttpContext`, etc.).
 - No compatibility shims, `using` aliases, or temporary adapter headers remain in the tree after completion.
 - Project builds successfully for all supported targets/profiles and unit/native tests pass.
@@ -16,8 +16,8 @@ Refactor the codebase to adopt a responsibility-driven namespace hierarchy roote
 ## Tasks (checklist)
 - [x] Design namespace map and conventions (names, casing, `v1` inline namespace, public vs internal split).
 - [x] Draft this backlog and required acceptance criteria.
-- [ ] Create `include/httpserver/namespace.h` to declare `namespace httpserver { inline namespace v1 { } }` and to document migration rules.
-- [ ] Establish header layout under `include/httpserver/` (one header per public concept/module) and add a small README describing include rules.
+- [ ] Create `include/httpadv/namespace.h` to declare `namespace httpadv { inline namespace v1 { } }` and to document migration rules.
+- [ ] Establish header layout under `include/httpadv/` (one header per public concept/module) and add a small README describing include rules.
 - [ ] For each module, relocate declarations into their final namespace and update header guards / include paths:
   - [ ] `core` (e.g., `HttpContext`, `HttpHeader`, `HttpHeaderCollection`)
   - [ ] `pipeline` (parsing/execution split as needed)
@@ -31,9 +31,9 @@ Refactor the codebase to adopt a responsibility-driven namespace hierarchy roote
   - [ ] `util` (Span, Clock, small portability wrappers)
 - [ ] Update all `.cpp` translation units to the new namespaces and fix references.
 - [ ] Update `library.properties` / top-level public include (`HttpServerAdvanced.h`) to expose the new headers; ensure PlatformIO/Arduino includes still work.
-- [ ] Update examples, `docs/EXAMPLES.md`, and any README snippets to use `httpserver::...` symbols.
+- [ ] Update examples, `docs/EXAMPLES.md`, and any README snippets to use `httpadv::...` symbols.
 - [ ] Remove global-scope symbols, shims, and aliases; run a repo-wide check to assert none remain.
-- [ ] Add CI checks: build matrix + a small check that searches for disallowed top-level declarations/usages (e.g., regex for `^class\\s+[A-Z]` at global scope or occurrences of `::HttpContext` outside `httpserver` namespace).
+- [ ] Add CI checks: build matrix + a small check that searches for disallowed top-level declarations/usages (e.g., regex for `^class\\s+[A-Z]` at global scope or occurrences of `::HttpContext` outside `httpadv` namespace).
 - [ ] Run full builds/tests across supported PlatformIO profiles and native targets; iterate until green.
 - [ ] Final review, sign-off, and bump library version + changelog entry.
 
