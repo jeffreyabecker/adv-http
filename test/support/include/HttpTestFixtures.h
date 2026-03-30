@@ -2,10 +2,10 @@
 
 #include "ByteStreamFixtures.h"
 
-#include "../../../src/httpadv/v1/httpadv/v1/core/IHttpContextHandlerFactory.h"
-#include "../../../src/httpadv/v1/httpadv/v1/pipeline/IPipelineHandler.h"
-#include "../../../src/httpadv/v1/httpadv/v1/compat/TransportInterfaces.h"
-#include "../../../src/httpadv/v1/httpadv/v1/response/StringResponse.h"
+#include "../../../src/httpadv/v1/core/IHttpContextHandlerFactory.h"
+#include "../../../src/httpadv/v1/pipeline/IPipelineHandler.h"
+#include "../../../src/httpadv/v1/compat/TransportInterfaces.h"
+#include "../../../src/httpadv/v1/response/StringResponse.h"
 
 #include <cstddef>
 #include <cstdint>
