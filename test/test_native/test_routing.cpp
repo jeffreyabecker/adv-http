@@ -3,21 +3,21 @@
 
 #include <unity.h>
 
-#include "../../src/compat/Clock.h"
-#include "../../src/core/HttpHeader.h"
-#include "../../src/core/HttpContext.h"
-#include "../../src/handlers/HandlerTypes.h"
-#include "../../src/routing/BasicAuthentication.h"
-#include "../../src/routing/CrossOriginRequestSharing.h"
-#include "../../src/routing/HandlerMatcher.h"
-#include "../../src/routing/HandlerProviderRegistry.h"
-#include "../../src/routing/ProviderRegistryBuilder.h"
-#include "../../src/routing/ReplaceVariables.h"
-#include "../../src/response/StringResponse.h"
-#include "../../src/server/HttpServerBase.h"
-#include "../../src/server/WebServerBuilder.h"
-#include "../../src/server/WebServerConfig.h"
-#include "../../src/websocket/WebSocketCallbacks.h"
+#include "../../src/httpadv/v1/util/Clock.h"
+#include "../../src/httpadv/v1/core/HttpHeader.h"
+#include "../../src/httpadv/v1/core/HttpContext.h"
+#include "../../src/httpadv/v1/handlers/HandlerTypes.h"
+#include "../../src/httpadv/v1/routing/BasicAuthentication.h"
+#include "../../src/httpadv/v1/routing/CrossOriginRequestSharing.h"
+#include "../../src/httpadv/v1/routing/HandlerMatcher.h"
+#include "../../src/httpadv/v1/routing/HandlerProviderRegistry.h"
+#include "../../src/httpadv/v1/routing/ProviderRegistryBuilder.h"
+#include "../../src/httpadv/v1/routing/ReplaceVariables.h"
+#include "../../src/httpadv/v1/response/StringResponse.h"
+#include "../../src/httpadv/v1/server/HttpServerBase.h"
+#include "../../src/httpadv/v1/server/WebServerBuilder.h"
+#include "../../src/httpadv/v1/server/WebServerConfig.h"
+#include "../../src/httpadv/v1/websocket/WebSocketCallbacks.h"
 
 #include <any>
 #include <cstddef>
@@ -30,7 +30,15 @@
 #include <utility>
 #include <vector>
 
-using namespace HttpServerAdvanced;
+using namespace httpadv::v1::core;
+using namespace httpadv::v1::handlers;
+using namespace httpadv::v1::pipeline;
+using namespace httpadv::v1::response;
+using namespace httpadv::v1::routing;
+using namespace httpadv::v1::server;
+using namespace httpadv::v1::transport;
+using namespace httpadv::v1::util;
+using namespace httpadv::v1::websocket;
 
 namespace
 {
@@ -144,7 +152,7 @@ namespace
     {
     public:
         RequestContextHarness()
-            : server_(std::make_unique<HttpServerBase>(std::make_unique<TestSupport::FakeServer>())),
+            : server_(std::make_unique<HttpServerBase>(std::make_unique<httpadv::v1::TestSupport::FakeServer>())),
               handler_(std::make_unique<NoOpHandler>()),
               factory_([this](HttpContext &context) -> std::unique_ptr<IHttpHandler>
               {
@@ -183,7 +191,7 @@ namespace
     private:
         std::unique_ptr<HttpServerBase> server_;
         std::unique_ptr<IHttpHandler> handler_;
-        TestSupport::RecordingRequestHandlerFactory factory_;
+        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory_;
         PipelineHandlerPtr pipeline_;
         HttpContext *context_ = nullptr;
         std::string methodStorage_;
@@ -195,7 +203,7 @@ namespace
     struct AuthInvocationResult
     {
         bool nextCalled = false;
-        std::optional<TestSupport::CapturedResponse> response;
+        std::optional<httpadv::v1::TestSupport::CapturedResponse> response;
     };
 
     void localSetUp()
@@ -221,9 +229,9 @@ namespace
         harness.completeHeaders();
     }
 
-    TestSupport::CapturedResponse captureHandlerResponse(IHttpHandler &handler, HttpContext &context)
+    httpadv::v1::TestSupport::CapturedResponse captureHandlerResponse(IHttpHandler &handler, HttpContext &context)
     {
-        return TestSupport::CaptureResponse(handler.handleStep(context));
+        return httpadv::v1::TestSupport::CaptureResponse(handler.handleStep(context));
     }
 
     AuthInvocationResult invokeAuth(IHttpHandler::InterceptorCallback interceptor, HttpContext &context)
@@ -237,7 +245,7 @@ namespace
 
         if (response.isResponse())
         {
-            result.response = TestSupport::CaptureResponse(std::move(response));
+            result.response = httpadv::v1::TestSupport::CaptureResponse(std::move(response));
         }
 
         return result;
@@ -444,7 +452,7 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(1, innerHandler->bodyChunkCount());
         TEST_ASSERT_EQUAL_STRING("abc", innerHandler->body().c_str());
 
-        const auto filterHeader = TestSupport::FindCapturedHeader(response, "X-Filter");
+        const auto filterHeader = httpadv::v1::TestSupport::FindCapturedHeader(response, "X-Filter");
         TEST_ASSERT_TRUE(filterHeader.has_value());
         TEST_ASSERT_EQUAL_STRING("one,two", filterHeader->c_str());
 
@@ -534,7 +542,7 @@ namespace
         RequestContextHarness configHarness;
         prepareRequest(configHarness, "GET", "/config/path");
 
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
         WebServerBuilder webBuilder(server);
         WebServerConfig config(server, webBuilder);
         const std::string configPattern = std::string("/config/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
@@ -597,7 +605,7 @@ namespace
         TEST_ASSERT_TRUE(result.isUpgrade());
         TEST_ASSERT_NOT_NULL(result.upgradedSession.get());
 
-        TestSupport::FakeClient client;
+        httpadv::v1::TestSupport::FakeClient client;
         ManualClock clock(1000);
         const ConnectionSessionResult firstStep = result.upgradedSession->handle(client, clock);
 
@@ -842,7 +850,7 @@ namespace
         TEST_ASSERT_NOT_NULL(routeParam);
         TEST_ASSERT_EQUAL_STRING("readme", routeParam->c_str());
 
-        const auto builderFilter = TestSupport::FindCapturedHeader(matchedResponse, "X-Builder-Filter");
+        const auto builderFilter = httpadv::v1::TestSupport::FindCapturedHeader(matchedResponse, "X-Builder-Filter");
         TEST_ASSERT_TRUE(builderFilter.has_value());
         TEST_ASSERT_EQUAL_STRING("applied", builderFilter->c_str());
 
@@ -877,7 +885,7 @@ namespace
         TEST_ASSERT_FALSE(missingHeaderResult.nextCalled);
         TEST_ASSERT_TRUE(missingHeaderResult.response.has_value());
         TEST_ASSERT_EQUAL_UINT16(401, missingHeaderResult.response->status.code());
-        const auto missingHeaderChallenge = TestSupport::FindCapturedHeader(*missingHeaderResult.response, HttpHeaderNames::WwwAuthenticate);
+        const auto missingHeaderChallenge = httpadv::v1::TestSupport::FindCapturedHeader(*missingHeaderResult.response, HttpHeaderNames::WwwAuthenticate);
         TEST_ASSERT_TRUE(missingHeaderChallenge.has_value());
         TEST_ASSERT_EQUAL_STRING("Basic realm=\"Admin Area\"", missingHeaderChallenge->c_str());
 
@@ -1005,7 +1013,7 @@ namespace
 
         std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"Hello {{na", false}, {"me}} from {{ci", false}, {"ty}}!", false}}),
+            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"Hello {{na", false}, {"me}} from {{ci", false}, {"ty}}!", false}}),
             std::move(headers));
 
         const std::vector<std::pair<std::string, std::string>> values = {
@@ -1019,7 +1027,7 @@ namespace
         TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::TransferEncoding, "chunked"));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING("Hello Alice from Berlin!", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("Hello Alice from Berlin!", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     void test_replace_variables_keeps_unresolved_tokens_by_default()
@@ -1029,7 +1037,7 @@ namespace
 
         std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("{{missing}} + {{known}}")),
+            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("{{missing}} + {{known}}")),
             std::move(headers));
 
         const std::vector<std::pair<std::string, std::string>> values = {
@@ -1039,7 +1047,7 @@ namespace
         response = filter(std::move(response));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING("{{missing}} + ok", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("{{missing}} + ok", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     void test_replace_variables_respects_missing_value_policy_replace_with_empty()
@@ -1049,7 +1057,7 @@ namespace
 
         std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("{{missing}} + {{known}}")),
+            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("{{missing}} + {{known}}")),
             std::move(headers));
 
         const std::vector<std::pair<std::string, std::string>> values = {
@@ -1061,7 +1069,7 @@ namespace
         response = filter(std::move(response));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING(" + ok", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING(" + ok", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     void test_replace_variables_skips_non_text_content_types()
@@ -1072,7 +1080,7 @@ namespace
 
         std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("bin {{x}}")),
+            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("bin {{x}}")),
             std::move(headers));
 
         const std::vector<std::pair<std::string, std::string>> values = {
@@ -1085,7 +1093,7 @@ namespace
         TEST_ASSERT_FALSE(response->headers().exists(HttpHeaderNames::TransferEncoding));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING("bin {{x}}", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("bin {{x}}", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     void test_replace_variables_skips_content_encoded_responses()
@@ -1097,7 +1105,7 @@ namespace
 
         std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("{{x}}")),
+            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("{{x}}")),
             std::move(headers));
 
         const std::vector<std::pair<std::string, std::string>> values = {
@@ -1111,7 +1119,7 @@ namespace
         TEST_ASSERT_FALSE(response->headers().exists(HttpHeaderNames::TransferEncoding));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING("{{x}}", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("{{x}}", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     int runUnitySuite()
@@ -1145,7 +1153,7 @@ namespace
 
 int run_test_routing()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "routing",
         runUnitySuite,
         localSetUp,

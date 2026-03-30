@@ -1,11 +1,13 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+
 #include <unity.h>
 
 #if defined(_WIN32)
-#include "../../src/compat/platform/windows/WindowsSocketTransport.h"
+#include "../../src/httpadv/v1/platform/windows/WindowsSocketTransport.h"
 #else
-#include "../../src/compat/platform/posix/PosixSocketTransport.h"
+#include "../../src/httpadv/v1/platform/posix/PosixSocketTransport.h"
 #endif
 
 #include <cstdint>
@@ -25,7 +27,17 @@
 #include <unistd.h>
 #endif
 
-using namespace HttpServerAdvanced;
+using namespace httpadv::v1::core;
+using namespace httpadv::v1::handlers;
+using namespace httpadv::v1::pipeline;
+using namespace httpadv::v1::response;
+using namespace httpadv::v1::routing;
+using namespace httpadv::v1::server;
+using namespace httpadv::v1::staticfiles;
+using namespace httpadv::v1::transport;
+using namespace httpadv::v1::util;
+using namespace httpadv::v1::websocket;
+using namespace httpadv::v1::platform;
 
 namespace {
 #ifdef _WIN32
@@ -108,7 +120,7 @@ void localTearDown() {}
 
 void test_native_factory_creates_tcp_server_and_client_loopback() {
 #ifdef _WIN32
-  std::unique_ptr<ITransportFactory> factory = std::make_unique<platform::windows::NativeSocketTransportFactory>();
+  std::unique_ptr<ITransportFactory> factory = std::make_unique<httpadv::v1::platform::windows::NativeSocketTransportFactory>();
 #else
   std::unique_ptr<ITransportFactory> factory = std::make_unique<platform::posix::NativeSocketTransportFactory>();
 #endif
@@ -145,7 +157,7 @@ void test_native_factory_creates_tcp_server_and_client_loopback() {
   TEST_ASSERT_TRUE(available.hasBytes());
   std::uint8_t buffer[8] = {};
   TEST_ASSERT_EQUAL_UINT64(
-      5, accepted->read(HttpServerAdvanced::span<std::uint8_t>(buffer, 5)));
+      5, accepted->read(httpadv::v1::util::span<std::uint8_t>(buffer, 5)));
   TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const std::uint8_t *>("hello"),
                                 buffer, 5);
 
@@ -159,12 +171,12 @@ void test_native_factory_creates_tcp_server_and_client_loopback() {
 
   TEST_ASSERT_TRUE(available.hasBytes());
   TEST_ASSERT_EQUAL_UINT64(
-      5, client->peek(HttpServerAdvanced::span<std::uint8_t>(buffer, 5)));
+      5, client->peek(httpadv::v1::util::span<std::uint8_t>(buffer, 5)));
   TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const std::uint8_t *>("world"),
                                 buffer, 5);
   std::memset(buffer, 0, sizeof(buffer));
   TEST_ASSERT_EQUAL_UINT64(
-      5, client->read(HttpServerAdvanced::span<std::uint8_t>(buffer, 5)));
+      5, client->read(httpadv::v1::util::span<std::uint8_t>(buffer, 5)));
   TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const std::uint8_t *>("world"),
                                 buffer, 5);
 
@@ -177,7 +189,7 @@ void test_native_factory_creates_tcp_server_and_client_loopback() {
 
 void test_native_factory_creates_udp_peers_for_loopback_packets() {
 #ifdef _WIN32
-  std::unique_ptr<ITransportFactory> factory = std::make_unique<platform::windows::NativeSocketTransportFactory>();
+  std::unique_ptr<ITransportFactory> factory = std::make_unique<httpadv::v1::platform::windows::NativeSocketTransportFactory>();
 #else
   std::unique_ptr<ITransportFactory> factory = std::make_unique<platform::posix::NativeSocketTransportFactory>();
 #endif
@@ -197,7 +209,7 @@ void test_native_factory_creates_udp_peers_for_loopback_packets() {
   TEST_ASSERT_TRUE(sender->beginPacket("127.0.0.1", receiverPort));
   const std::uint8_t pingBytes[] = {'p', 'i', 'n', 'g'};
   TEST_ASSERT_EQUAL_UINT64(
-      4, sender->write(HttpServerAdvanced::span<const std::uint8_t>(
+      4, sender->write(httpadv::v1::util::span<const std::uint8_t>(
              pingBytes, sizeof(pingBytes))));
   TEST_ASSERT_TRUE(sender->endPacket());
 
@@ -210,12 +222,12 @@ void test_native_factory_creates_udp_peers_for_loopback_packets() {
 
   std::uint8_t buffer[8] = {};
   TEST_ASSERT_EQUAL_UINT64(
-      4, receiver->peek(HttpServerAdvanced::span<std::uint8_t>(buffer, 4)));
+      4, receiver->peek(httpadv::v1::util::span<std::uint8_t>(buffer, 4)));
   TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const std::uint8_t *>("ping"),
                                 buffer, 4);
   std::memset(buffer, 0, sizeof(buffer));
   TEST_ASSERT_EQUAL_UINT64(
-      4, receiver->read(HttpServerAdvanced::span<std::uint8_t>(buffer, 4)));
+      4, receiver->read(httpadv::v1::util::span<std::uint8_t>(buffer, 4)));
   TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const std::uint8_t *>("ping"),
                                 buffer, 4);
   TEST_ASSERT_TRUE(receiver->available().isTemporarilyUnavailable());
@@ -235,6 +247,6 @@ int runUnitySuite() {
 } // namespace
 
 int run_test_transport_native() {
-  return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+  return httpadv::v1::TestSupport::RunConsolidatedSuite(
       "native transport", runUnitySuite, localSetUp, localTearDown);
 }

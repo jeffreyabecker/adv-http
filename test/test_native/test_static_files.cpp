@@ -3,17 +3,17 @@
 
 #include <unity.h>
 
-#include "../../src/compat/IFileSystem.h"
-#include "../../src/core/HttpContentTypes.h"
-#include "../../src/core/HttpHeader.h"
-#include "../../src/core/HttpContext.h"
-#include "../../src/handlers/HttpHandler.h"
-#include "../../src/staticfiles/AggregateFileLocator.h"
-#include "../../src/staticfiles/DefaultFileLocator.h"
-#include "../../src/staticfiles/FileLocator.h"
-#include "../../src/staticfiles/StaticFileHandler.h"
-#include "../../src/staticfiles/StaticFilesBuilder.h"
-#include "../../src/server/HttpServerBase.h"
+#include "../../src/httpadv/v1/transport/IFileSystem.h"
+#include "../../src/httpadv/v1/core/HttpContentTypes.h"
+#include "../../src/httpadv/v1/core/HttpHeader.h"
+#include "../../src/httpadv/v1/core/HttpContext.h"
+#include "../../src/httpadv/v1/handlers/HttpHandler.h"
+#include "../../src/httpadv/v1/staticfiles/AggregateFileLocator.h"
+#include "../../src/httpadv/v1/staticfiles/DefaultFileLocator.h"
+#include "../../src/httpadv/v1/staticfiles/FileLocator.h"
+#include "../../src/httpadv/v1/staticfiles/StaticFileHandler.h"
+#include "../../src/httpadv/v1/staticfiles/StaticFilesBuilder.h"
+#include "../../src/httpadv/v1/server/HttpServerBase.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -26,7 +26,16 @@
 #include <utility>
 #include <vector>
 
-using namespace HttpServerAdvanced;
+using namespace httpadv::v1::core;
+using namespace httpadv::v1::handlers;
+using namespace httpadv::v1::pipeline;
+using namespace httpadv::v1::response;
+using namespace httpadv::v1::routing;
+using namespace httpadv::v1::server;
+using namespace httpadv::v1::staticfiles;
+using namespace httpadv::v1::transport;
+using namespace httpadv::v1::util;
+using namespace httpadv::v1::websocket;
 
 namespace
 {
@@ -58,7 +67,7 @@ namespace
     {
     public:
         RequestContextHarness()
-            : server_(std::make_unique<HttpServerBase>(std::make_unique<TestSupport::FakeServer>())),
+            : server_(std::make_unique<HttpServerBase>(std::make_unique<httpadv::v1::TestSupport::FakeServer>())),
               handler_(std::make_unique<NoOpHandler>()),
               factory_([this](HttpContext &context) -> std::unique_ptr<IHttpHandler>
               {
@@ -101,7 +110,7 @@ namespace
     private:
         std::unique_ptr<HttpServerBase> server_;
         std::unique_ptr<IHttpHandler> handler_;
-        TestSupport::RecordingRequestHandlerFactory factory_;
+        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory_;
         PipelineHandlerPtr pipeline_;
         HttpContext *context_ = nullptr;
         std::string methodStorage_;
@@ -142,7 +151,7 @@ namespace
             return AvailableBytes(spec_.content.size() - position_);
         }
 
-        size_t read(HttpServerAdvanced::span<uint8_t> buffer) override
+        size_t read(httpadv::v1::util::span<uint8_t> buffer) override
         {
             if (spec_.directory || closed_ || buffer.empty())
             {
@@ -154,7 +163,7 @@ namespace
             return copied;
         }
 
-        size_t peek(HttpServerAdvanced::span<uint8_t> buffer) override
+        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
         {
             if (spec_.directory || closed_ || buffer.empty())
             {
@@ -169,7 +178,7 @@ namespace
             return copied;
         }
 
-        std::size_t write(HttpServerAdvanced::span<const uint8_t>) override
+        std::size_t write(httpadv::v1::util::span<const uint8_t>) override
         {
             return 0;
         }
@@ -659,15 +668,15 @@ namespace
 
         TEST_ASSERT_TRUE(factory.canHandle(harness.context()));
         std::unique_ptr<IHttpHandler> handler = factory.create(harness.context());
-        const auto response = TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
 
         TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
         TEST_ASSERT_EQUAL_STRING("console.log('ok');", response.body.c_str());
-        TEST_ASSERT_TRUE(TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentType).has_value());
-        TEST_ASSERT_EQUAL_STRING("application/javascript", TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentType)->c_str());
-        TEST_ASSERT_EQUAL_STRING("18", TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentLength)->c_str());
-        TEST_ASSERT_TRUE(TestSupport::FindCapturedHeader(response, HttpHeaderNames::ETag).has_value());
-        TEST_ASSERT_TRUE(TestSupport::FindCapturedHeader(response, HttpHeaderNames::LastModified).has_value());
+        TEST_ASSERT_TRUE(httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentType).has_value());
+        TEST_ASSERT_EQUAL_STRING("application/javascript", httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentType)->c_str());
+        TEST_ASSERT_EQUAL_STRING("18", httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentLength)->c_str());
+        TEST_ASSERT_TRUE(httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ETag).has_value());
+        TEST_ASSERT_TRUE(httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::LastModified).has_value());
     }
 
     void test_static_file_handler_factory_handles_directory_gzip_and_method_restrictions()
@@ -683,25 +692,25 @@ namespace
         RequestContextHarness getHarness;
         getHarness.prepare("GET", "/site");
         std::unique_ptr<IHttpHandler> getHandler = factory.create(getHarness.context());
-        const auto getResponse = TestSupport::CaptureResponse(getHandler->handleStep(getHarness.context()));
+        const auto getResponse = httpadv::v1::TestSupport::CaptureResponse(getHandler->handleStep(getHarness.context()));
 
         TEST_ASSERT_EQUAL_UINT16(200, getResponse.status.code());
         TEST_ASSERT_EQUAL_STRING("gzipped-index", getResponse.body.c_str());
-        TEST_ASSERT_EQUAL_STRING("text/html", TestSupport::FindCapturedHeader(getResponse, HttpHeaderNames::ContentType)->c_str());
-        TEST_ASSERT_EQUAL_STRING("gzip", TestSupport::FindCapturedHeader(getResponse, HttpHeaderNames::ContentEncoding)->c_str());
+        TEST_ASSERT_EQUAL_STRING("text/html", httpadv::v1::TestSupport::FindCapturedHeader(getResponse, HttpHeaderNames::ContentType)->c_str());
+        TEST_ASSERT_EQUAL_STRING("gzip", httpadv::v1::TestSupport::FindCapturedHeader(getResponse, HttpHeaderNames::ContentEncoding)->c_str());
 
         RequestContextHarness headHarness;
         headHarness.prepare("HEAD", "/site");
         std::unique_ptr<IHttpHandler> headHandler = factory.create(headHarness.context());
-        const auto headResponse = TestSupport::CaptureResponse(headHandler->handleStep(headHarness.context()));
+        const auto headResponse = httpadv::v1::TestSupport::CaptureResponse(headHandler->handleStep(headHarness.context()));
         TEST_ASSERT_EQUAL_UINT16(200, headResponse.status.code());
 
         RequestContextHarness postHarness;
         postHarness.prepare("POST", "/site");
         std::unique_ptr<IHttpHandler> postHandler = factory.create(postHarness.context());
-        const auto postResponse = TestSupport::CaptureResponse(postHandler->handleStep(postHarness.context()));
+        const auto postResponse = httpadv::v1::TestSupport::CaptureResponse(postHandler->handleStep(postHarness.context()));
         TEST_ASSERT_EQUAL_UINT16(405, postResponse.status.code());
-        TEST_ASSERT_EQUAL_STRING("GET, HEAD", TestSupport::FindCapturedHeader(postResponse, HttpHeaderNames::Allow)->c_str());
+        TEST_ASSERT_EQUAL_STRING("GET, HEAD", httpadv::v1::TestSupport::FindCapturedHeader(postResponse, HttpHeaderNames::Allow)->c_str());
     }
 
     void test_static_file_handler_factory_omits_metadata_headers_when_file_data_is_absent()
@@ -716,13 +725,13 @@ namespace
         RequestContextHarness harness;
         harness.prepare("GET", "/raw.bin");
         std::unique_ptr<IHttpHandler> handler = factory.create(harness.context());
-        const auto response = TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
 
         TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
         TEST_ASSERT_EQUAL_STRING("abc", response.body.c_str());
-        TEST_ASSERT_FALSE(TestSupport::FindCapturedHeader(response, HttpHeaderNames::ETag).has_value());
-        TEST_ASSERT_FALSE(TestSupport::FindCapturedHeader(response, HttpHeaderNames::LastModified).has_value());
-        TEST_ASSERT_EQUAL_STRING("3", TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentLength)->c_str());
+        TEST_ASSERT_FALSE(httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ETag).has_value());
+        TEST_ASSERT_FALSE(httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::LastModified).has_value());
+        TEST_ASSERT_EQUAL_STRING("3", httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentLength)->c_str());
     }
 
     void test_static_file_handler_factory_matcher_scoped_response_filter_only_applies_when_matcher_matches()
@@ -747,15 +756,15 @@ namespace
         htmlHarness.prepare("GET", "/index.html");
         htmlHarness.completeHeaders();
         std::unique_ptr<IHttpHandler> htmlHandler = factory.create(htmlHarness.context());
-        const auto htmlResponse = TestSupport::CaptureResponse(htmlHandler->handleStep(htmlHarness.context()));
-        TEST_ASSERT_TRUE(TestSupport::FindCapturedHeader(htmlResponse, "X-Template").has_value());
+        const auto htmlResponse = httpadv::v1::TestSupport::CaptureResponse(htmlHandler->handleStep(htmlHarness.context()));
+        TEST_ASSERT_TRUE(httpadv::v1::TestSupport::FindCapturedHeader(htmlResponse, "X-Template").has_value());
 
         RequestContextHarness jsHarness;
         jsHarness.prepare("GET", "/app.js");
         jsHarness.completeHeaders();
         std::unique_ptr<IHttpHandler> jsHandler = factory.create(jsHarness.context());
-        const auto jsResponse = TestSupport::CaptureResponse(jsHandler->handleStep(jsHarness.context()));
-        TEST_ASSERT_FALSE(TestSupport::FindCapturedHeader(jsResponse, "X-Template").has_value());
+        const auto jsResponse = httpadv::v1::TestSupport::CaptureResponse(jsHandler->handleStep(jsHarness.context()));
+        TEST_ASSERT_FALSE(httpadv::v1::TestSupport::FindCapturedHeader(jsResponse, "X-Template").has_value());
     }
 
     void test_static_file_handler_factory_matcher_scoped_interceptor_only_applies_when_matcher_matches()
@@ -784,15 +793,15 @@ namespace
         htmlHarness.prepare("GET", "/index.html");
         htmlHarness.completeHeaders();
         std::unique_ptr<IHttpHandler> htmlHandler = factory.create(htmlHarness.context());
-        const auto htmlResponse = TestSupport::CaptureResponse(htmlHandler->handleStep(htmlHarness.context()));
-        TEST_ASSERT_TRUE(TestSupport::FindCapturedHeader(htmlResponse, "X-Intercepted").has_value());
+        const auto htmlResponse = httpadv::v1::TestSupport::CaptureResponse(htmlHandler->handleStep(htmlHarness.context()));
+        TEST_ASSERT_TRUE(httpadv::v1::TestSupport::FindCapturedHeader(htmlResponse, "X-Intercepted").has_value());
 
         RequestContextHarness jsHarness;
         jsHarness.prepare("GET", "/app.js");
         jsHarness.completeHeaders();
         std::unique_ptr<IHttpHandler> jsHandler = factory.create(jsHarness.context());
-        const auto jsResponse = TestSupport::CaptureResponse(jsHandler->handleStep(jsHarness.context()));
-        TEST_ASSERT_FALSE(TestSupport::FindCapturedHeader(jsResponse, "X-Intercepted").has_value());
+        const auto jsResponse = httpadv::v1::TestSupport::CaptureResponse(jsHandler->handleStep(jsHarness.context()));
+        TEST_ASSERT_FALSE(httpadv::v1::TestSupport::FindCapturedHeader(jsResponse, "X-Intercepted").has_value());
     }
 
     void test_static_file_handler_factory_matcher_scoped_request_predicate_limits_handling()
@@ -878,7 +887,7 @@ namespace
 
 int run_test_static_files()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "static files",
         runUnitySuite,
         localSetUp,

@@ -1,16 +1,18 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/HttpTestFixtures.h"
 
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+
 #include <unity.h>
 
-#include "../../src/core/HttpContext.h"
-#include "../../src/core/HttpContextPhase.h"
-#include "../../src/handlers/BufferedStringBodyHandler.h"
-#include "../../src/handlers/BufferingHttpHandlerBase.h"
-#include "../../src/handlers/FormBodyHandler.h"
-#include "../../src/handlers/MultipartFormDataHandler.h"
-#include "../../src/handlers/RawBodyHandler.h"
-#include "../../src/server/HttpServerBase.h"
+#include "../../src/httpadv/v1/core/HttpContext.h"
+#include "../../src/httpadv/v1/core/HttpContextPhase.h"
+#include "../../src/httpadv/v1/handlers/BufferedStringBodyHandler.h"
+#include "../../src/httpadv/v1/handlers/BufferingHttpHandlerBase.h"
+#include "../../src/httpadv/v1/handlers/FormBodyHandler.h"
+#include "../../src/httpadv/v1/handlers/MultipartFormDataHandler.h"
+#include "../../src/httpadv/v1/handlers/RawBodyHandler.h"
+#include "../../src/httpadv/v1/server/HttpServerBase.h"
 
 #include <cstdint>
 #include <functional>
@@ -21,10 +23,19 @@
 
 #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 #include <ArduinoJson.h>
-#include "../../src/handlers/JsonBodyHandler.h"
+#include "../../src/httpadv/v1/handlers/JsonBodyHandler.h"
 #endif
 
-using namespace HttpServerAdvanced;
+using namespace httpadv::v1::core;
+using namespace httpadv::v1::handlers;
+using namespace httpadv::v1::pipeline;
+using namespace httpadv::v1::response;
+using namespace httpadv::v1::routing;
+using namespace httpadv::v1::server;
+using namespace httpadv::v1::staticfiles;
+using namespace httpadv::v1::transport;
+using namespace httpadv::v1::util;
+using namespace httpadv::v1::websocket;
 
 namespace
 {
@@ -47,7 +58,7 @@ namespace
     {
     public:
         explicit RequestHarness(std::unique_ptr<IHttpHandler> handler)
-            : server_(std::make_unique<TestSupport::FakeServer>()),
+            : server_(std::make_unique<httpadv::v1::TestSupport::FakeServer>()),
               pendingHandler_(std::move(handler)),
               handlerPtr_(pendingHandler_.get()),
               factory_([this](HttpContext &) -> std::unique_ptr<IHttpHandler>
@@ -118,14 +129,14 @@ namespace
             if (result.kind == RequestHandlingResult::Kind::Response && result.responseStream)
             {
                 ++responseStreamCount_;
-                responseText_ = TestSupport::ReadByteSourceAsStdString(*result.responseStream);
+                responseText_ = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*result.responseStream);
             }
         }
 
         HttpServerBase server_;
         std::unique_ptr<IHttpHandler> pendingHandler_;
         IHttpHandler *handlerPtr_ = nullptr;
-        TestSupport::RecordingRequestHandlerFactory factory_;
+        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory_;
         std::unique_ptr<IPipelineHandler, std::function<void(IPipelineHandler *)>> pipeline_;
         std::size_t responseStreamCount_ = 0;
         std::string responseText_;
@@ -829,7 +840,7 @@ namespace
 
 int run_test_body_handlers()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "body handlers",
         runUnitySuite,
         localSetUp,

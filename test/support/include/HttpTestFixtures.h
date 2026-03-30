@@ -2,10 +2,10 @@
 
 #include "ByteStreamFixtures.h"
 
-#include "../../../src/core/IHttpContextHandlerFactory.h"
-#include "../../../src/pipeline/IPipelineHandler.h"
-#include "../../../src/compat/TransportInterfaces.h"
-#include "../../../src/response/StringResponse.h"
+#include "../../../src/httpadv/v1/core/IHttpContextHandlerFactory.h"
+#include "../../../src/httpadv/v1/pipeline/IPipelineHandler.h"
+#include "../../../src/httpadv/v1/transport/TransportInterfaces.h"
+#include "../../../src/httpadv/v1/response/StringResponse.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -18,14 +18,24 @@
 #include <utility>
 #include <vector>
 
-namespace HttpServerAdvanced::TestSupport
+namespace httpadv
 {
-    struct CapturedResponse
+    inline namespace v1
     {
-        HttpStatus status;
-        std::vector<std::pair<std::string, std::string>> headers;
-        std::string body;
-    };
+        namespace TestSupport
+        {
+            using namespace httpadv::v1::core;
+            using namespace httpadv::v1::handlers;
+            using namespace httpadv::v1::pipeline;
+            using namespace httpadv::v1::response;
+            using namespace httpadv::v1::transport;
+            using namespace httpadv::v1::util;
+            struct CapturedResponse
+            {
+                HttpStatus status;
+                std::vector<std::pair<std::string, std::string>> headers;
+                std::string body;
+            };
 
     inline CapturedResponse CaptureResponse(std::unique_ptr<IHttpResponse> response)
     {
@@ -404,17 +414,17 @@ namespace HttpServerAdvanced::TestSupport
             return readable_.available();
         }
 
-        std::size_t read(HttpServerAdvanced::span<std::uint8_t> buffer) override
+        std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override
         {
             return readable_.read(buffer);
         }
 
-        std::size_t peek(HttpServerAdvanced::span<std::uint8_t> buffer) override
+        std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override
         {
             return readable_.peek(buffer);
         }
 
-        std::size_t write(HttpServerAdvanced::span<const std::uint8_t> buffer) override
+        std::size_t write(httpadv::v1::util::span<const std::uint8_t> buffer) override
         {
             if (!connected())
             {
@@ -453,7 +463,7 @@ namespace HttpServerAdvanced::TestSupport
             }
 
             std::uint8_t byte = 0;
-            return readable_.peek(HttpServerAdvanced::span<std::uint8_t>(&byte, 1)) > 0;
+            return readable_.peek(httpadv::v1::util::span<std::uint8_t>(&byte, 1)) > 0;
         }
 
         std::string_view remoteAddress() const override
@@ -640,4 +650,6 @@ namespace HttpServerAdvanced::TestSupport
         bool began_ = false;
         bool ended_ = false;
     };
+        }
+    }
 }

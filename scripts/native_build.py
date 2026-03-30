@@ -5,12 +5,28 @@ import shutil
 import sys
 
 
+def _resolve_compiler_dir(build_env):
+    compiler_path = build_env.subst("$CXX")
+    if compiler_path:
+        if os.path.isabs(compiler_path):
+            compiler_dir = os.path.dirname(compiler_path)
+            if compiler_dir:
+                return compiler_dir
+
+        resolved_path = shutil.which(compiler_path)
+        if resolved_path:
+            compiler_dir = os.path.dirname(resolved_path)
+            if compiler_dir:
+                return compiler_dir
+
+    return ""
+
+
 def _copy_runtime_dll(target, source, env):
     if not sys.platform.startswith("win"):
         return
 
-    compiler_path = env.subst("$CXX")
-    compiler_dir = os.path.dirname(compiler_path) if compiler_path else ""
+    compiler_dir = _resolve_compiler_dir(env)
     if not compiler_dir:
         return
 
@@ -25,8 +41,7 @@ if sys.platform.startswith("win"):
     env.Append(LIBS=["ws2_32"])
     env.Append(LINKFLAGS=["-static-libgcc", "-static-libstdc++"])
 
-    compiler_path = env.subst("$CXX")
-    compiler_dir = os.path.dirname(compiler_path) if compiler_path else ""
+    compiler_dir = _resolve_compiler_dir(env)
     if compiler_dir:
         env.PrependENVPath("PATH", compiler_dir)
 

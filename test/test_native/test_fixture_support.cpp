@@ -1,11 +1,22 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include\HttpTestFixtures.h"
 
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+
 #include <unity.h>
 
-#include "../../src/pipeline/PipelineError.h"
+#include "../../src/httpadv/v1/pipeline/PipelineError.h"
 
-using namespace HttpServerAdvanced;
+using namespace httpadv::v1::core;
+using namespace httpadv::v1::handlers;
+using namespace httpadv::v1::pipeline;
+using namespace httpadv::v1::response;
+using namespace httpadv::v1::routing;
+using namespace httpadv::v1::server;
+using namespace httpadv::v1::staticfiles;
+using namespace httpadv::v1::transport;
+using namespace httpadv::v1::util;
+using namespace httpadv::v1::websocket;
 
 namespace
 {
@@ -19,7 +30,7 @@ namespace
 
     void test_recording_request_handler_factory_records_response_status_and_body()
     {
-        TestSupport::RecordingRequestHandlerFactory factory;
+        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory;
 
         auto response = factory.createResponse(HttpStatus::Created(), std::string_view("created"));
 
@@ -29,12 +40,12 @@ namespace
         TEST_ASSERT_EQUAL_STRING("created", factory.lastResponseBody().c_str());
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING("created", TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("created", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     void test_recording_request_handler_factory_supports_inherited_response_overloads()
     {
-        TestSupport::RecordingRequestHandlerFactory factory;
+        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory;
 
         factory.createResponse(HttpStatus::Ok(), "first");
         factory.createResponse(HttpStatus::Accepted(), std::string_view("second"));
@@ -53,24 +64,24 @@ namespace
             std::string("payload"),
             {HttpHeader::ContentType("text/plain"), HttpHeader::Connection("close")});
 
-        const TestSupport::CapturedResponse captured = TestSupport::CaptureResponse(std::move(response));
+        const httpadv::v1::TestSupport::CapturedResponse captured = httpadv::v1::TestSupport::CaptureResponse(std::move(response));
 
         TEST_ASSERT_EQUAL_UINT16(200, captured.status.code());
         TEST_ASSERT_GREATER_OR_EQUAL_UINT64(2, captured.headers.size());
         TEST_ASSERT_EQUAL_STRING("payload", captured.body.c_str());
 
-        const auto contentType = TestSupport::FindCapturedHeader(captured, "content-type");
+        const auto contentType = httpadv::v1::TestSupport::FindCapturedHeader(captured, "content-type");
         TEST_ASSERT_TRUE(contentType.has_value());
         TEST_ASSERT_EQUAL_STRING("text/plain", contentType->c_str());
 
-        const auto connection = TestSupport::FindCapturedHeader(captured, "Connection");
+        const auto connection = httpadv::v1::TestSupport::FindCapturedHeader(captured, "Connection");
         TEST_ASSERT_TRUE(connection.has_value());
         TEST_ASSERT_EQUAL_STRING("close", connection->c_str());
     }
 
     void test_pipeline_event_recorder_tracks_events_addresses_and_response_callback()
     {
-        TestSupport::PipelineEventRecorder recorder;
+        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
         std::string deliveredBody;
 
         const std::uint8_t bodyBytes[] = {'o', 'k'};
@@ -84,13 +95,13 @@ namespace
         recorder.onResponseCompleted();
         recorder.onClientDisconnected();
         recorder.onError(PipelineError(PipelineErrorCode::BadRequest));
-        recorder.emitResponseResult(std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText("response")));
+        recorder.emitResponseResult(std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("response")));
 
         TEST_ASSERT_TRUE(recorder.hasPendingResult());
         RequestHandlingResult result = recorder.takeResult();
         TEST_ASSERT_TRUE(result.kind == RequestHandlingResult::Kind::Response);
         TEST_ASSERT_NOT_NULL(result.responseStream.get());
-        deliveredBody = TestSupport::ReadByteSourceAsStdString(*result.responseStream);
+        deliveredBody = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*result.responseStream);
 
         TEST_ASSERT_EQUAL_STRING("POST", recorder.method().c_str());
         TEST_ASSERT_EQUAL_STRING("/submit", recorder.url().c_str());
@@ -113,19 +124,19 @@ namespace
         TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::BadRequest);
         TEST_ASSERT_EQUAL_STRING("response", deliveredBody.c_str());
         TEST_ASSERT_EQUAL_UINT64(11, recorder.events().size());
-        TEST_ASSERT_TRUE(recorder.events()[0].kind == TestSupport::PipelineEventKind::MessageBegin);
-        TEST_ASSERT_TRUE(recorder.events()[1].kind == TestSupport::PipelineEventKind::AddressesSet);
-        TEST_ASSERT_TRUE(recorder.events()[2].kind == TestSupport::PipelineEventKind::Header);
-        TEST_ASSERT_TRUE(recorder.events()[10].kind == TestSupport::PipelineEventKind::RequestResultDelivered);
+        TEST_ASSERT_TRUE(recorder.events()[0].kind == httpadv::v1::TestSupport::PipelineEventKind::MessageBegin);
+        TEST_ASSERT_TRUE(recorder.events()[1].kind == httpadv::v1::TestSupport::PipelineEventKind::AddressesSet);
+        TEST_ASSERT_TRUE(recorder.events()[2].kind == httpadv::v1::TestSupport::PipelineEventKind::Header);
+        TEST_ASSERT_TRUE(recorder.events()[10].kind == httpadv::v1::TestSupport::PipelineEventKind::RequestResultDelivered);
     }
 
     void test_fake_client_supports_scripted_reads_partial_writes_and_disconnect_tracking()
     {
-        TestSupport::FakeClient client({{"ab", false}, {"", true}, {"cd", false}}, "192.168.1.20", 4000, "192.168.1.10", 8080);
+        httpadv::v1::TestSupport::FakeClient client({{"ab", false}, {"", true}, {"cd", false}}, "192.168.1.20", 4000, "192.168.1.10", 8080);
         client.setWriteScript({2, 3});
         client.setTimeout(250);
 
-        const std::string drained = TestSupport::DrainByteSourceWithAvailability(client);
+        const std::string drained = httpadv::v1::TestSupport::DrainByteSourceWithAvailability(client);
         const std::size_t firstWrite = client.write(std::string_view("hello"));
         const std::size_t secondWrite = client.write(std::string_view("abc"));
         client.flush();
@@ -154,26 +165,26 @@ namespace
 
     void test_fake_client_remains_connected_while_unread_buffered_input_exists()
     {
-        TestSupport::FakeClient client({{"xyz", false}});
+        httpadv::v1::TestSupport::FakeClient client({{"xyz", false}});
         std::uint8_t oneByte[1] = {};
 
         client.disconnect();
         TEST_ASSERT_TRUE(client.connected());
 
-        TEST_ASSERT_EQUAL_UINT64(1, client.read(HttpServerAdvanced::span<std::uint8_t>(oneByte, 1)));
+        TEST_ASSERT_EQUAL_UINT64(1, client.read(httpadv::v1::util::span<std::uint8_t>(oneByte, 1)));
         TEST_ASSERT_EQUAL_UINT8('x', oneByte[0]);
         TEST_ASSERT_TRUE(client.connected());
 
-        TEST_ASSERT_EQUAL_UINT64(1, client.read(HttpServerAdvanced::span<std::uint8_t>(oneByte, 1)));
-        TEST_ASSERT_EQUAL_UINT64(1, client.read(HttpServerAdvanced::span<std::uint8_t>(oneByte, 1)));
+        TEST_ASSERT_EQUAL_UINT64(1, client.read(httpadv::v1::util::span<std::uint8_t>(oneByte, 1)));
+        TEST_ASSERT_EQUAL_UINT64(1, client.read(httpadv::v1::util::span<std::uint8_t>(oneByte, 1)));
         TEST_ASSERT_FALSE(client.connected());
     }
 
     void test_fake_server_tracks_begin_accept_end_and_preserves_client_order()
     {
-        TestSupport::FakeServer server("10.0.0.1", 8080);
-        server.enqueue(std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{"first", false}}, "10.0.0.2", 1001, "10.0.0.1", 8080));
-        server.enqueue(std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{"second", false}}, "10.0.0.3", 1002, "10.0.0.1", 8080));
+        httpadv::v1::TestSupport::FakeServer server("10.0.0.1", 8080);
+        server.enqueue(std::make_unique<httpadv::v1::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{"first", false}}, "10.0.0.2", 1001, "10.0.0.1", 8080));
+        server.enqueue(std::make_unique<httpadv::v1::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{"second", false}}, "10.0.0.3", 1002, "10.0.0.1", 8080));
 
         server.begin();
 
@@ -214,7 +225,7 @@ namespace
 
 int run_test_fixture_support()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "fixture support",
         runUnitySuite,
         localSetUp,

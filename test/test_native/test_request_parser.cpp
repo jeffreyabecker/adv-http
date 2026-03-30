@@ -1,43 +1,54 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/HttpTestFixtures.h"
 
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+
 #include <unity.h>
 
-#include "../../src/core/Defines.h"
-#include "../../src/pipeline/RequestParser.h"
+#include "../../src/httpadv/v1/core/Defines.h"
+#include "../../src/httpadv/v1/pipeline/RequestParser.h"
 
 #include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
 
-using namespace HttpServerAdvanced;
+using namespace httpadv::v1::core;
+using namespace httpadv::v1::handlers;
+using namespace httpadv::v1::pipeline;
+using namespace httpadv::v1::response;
+using namespace httpadv::v1::routing;
+using namespace httpadv::v1::server;
+using namespace httpadv::v1::staticfiles;
+using namespace httpadv::v1::transport;
+using namespace httpadv::v1::util;
+using namespace httpadv::v1::websocket;
 
 namespace
 {
     constexpr std::string_view MaxSupportedCustomMethod = "UNSUBSCRIBE";
-    static_assert(MaxSupportedCustomMethod.size() == HttpServerAdvanced::MAX_REQUEST_METHOD_LENGTH);
+    static_assert(MaxSupportedCustomMethod.size() == httpadv::v1::core::MAX_REQUEST_METHOD_LENGTH);
 
-    class CallbackReturnRecorder : public TestSupport::PipelineEventRecorder
+    class CallbackReturnRecorder : public httpadv::v1::TestSupport::PipelineEventRecorder
     {
     public:
         int onHeadersComplete() override
         {
-            const int baseResult = TestSupport::PipelineEventRecorder::onHeadersComplete();
+            const int baseResult = httpadv::v1::TestSupport::PipelineEventRecorder::onHeadersComplete();
             (void)baseResult;
             return headersCompleteReturnCode;
         }
 
         int onBody(const std::uint8_t *at, std::size_t length) override
         {
-            const int baseResult = TestSupport::PipelineEventRecorder::onBody(at, length);
+            const int baseResult = httpadv::v1::TestSupport::PipelineEventRecorder::onBody(at, length);
             (void)baseResult;
             return bodyReturnCode;
         }
 
         int onMessageComplete() override
         {
-            const int baseResult = TestSupport::PipelineEventRecorder::onMessageComplete();
+            const int baseResult = httpadv::v1::TestSupport::PipelineEventRecorder::onMessageComplete();
             (void)baseResult;
             return messageCompleteReturnCode;
         }
@@ -96,7 +107,7 @@ namespace
         return parser.execute(reinterpret_cast<const std::uint8_t *>(text.data()), text.size());
     }
 
-    std::size_t FirstEventIndex(const std::vector<TestSupport::RecordedPipelineEvent> &events, TestSupport::PipelineEventKind kind)
+    std::size_t FirstEventIndex(const std::vector<httpadv::v1::TestSupport::RecordedPipelineEvent> &events, httpadv::v1::TestSupport::PipelineEventKind kind)
     {
         for (std::size_t i = 0; i < events.size(); ++i)
         {
@@ -111,7 +122,7 @@ namespace
 
     void test_request_parser_accepts_custom_method_verbatim()
     {
-        TestSupport::PipelineEventRecorder recorder;
+        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
         const std::string request = BuildRequest("PURGE", "/cache");
@@ -129,12 +140,12 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(1, recorder.messageCompleteCount());
         TEST_ASSERT_TRUE(recorder.errors().empty());
         TEST_ASSERT_TRUE(parser.shouldKeepAlive());
-        TEST_ASSERT_TRUE(recorder.events()[0].kind == TestSupport::PipelineEventKind::MessageBegin);
+        TEST_ASSERT_TRUE(recorder.events()[0].kind == httpadv::v1::TestSupport::PipelineEventKind::MessageBegin);
     }
 
     void test_request_parser_preserves_split_custom_method_bytes()
     {
-        TestSupport::PipelineEventRecorder recorder;
+        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
         const std::string secondChunk = "SEARCH /upnp HTTP/1.1\r\nHost: example.test\r\n\r\n";
@@ -153,7 +164,7 @@ namespace
 
     void test_request_parser_rejects_invalid_custom_method_token()
     {
-        TestSupport::PipelineEventRecorder recorder;
+        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
         const std::string request = BuildRequest("BAD(METHOD", "/broken");
@@ -162,12 +173,12 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(0, consumed);
         TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
         TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::InvalidMethodError);
-        TEST_ASSERT_TRUE(recorder.events()[0].kind == TestSupport::PipelineEventKind::Error);
+        TEST_ASSERT_TRUE(recorder.events()[0].kind == httpadv::v1::TestSupport::PipelineEventKind::Error);
     }
 
     void test_request_parser_accepts_custom_method_at_explicit_limit()
     {
-        TestSupport::PipelineEventRecorder recorder;
+        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
         const std::string request = BuildRequest(MaxSupportedCustomMethod, "/limit");
@@ -181,26 +192,26 @@ namespace
 
     void test_request_parser_rejects_custom_method_past_explicit_limit()
     {
-        TestSupport::PipelineEventRecorder recorder;
+        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
-        const std::string method = std::string(HttpServerAdvanced::MAX_REQUEST_METHOD_LENGTH + 1U, 'M');
+        const std::string method = std::string(httpadv::v1::core::MAX_REQUEST_METHOD_LENGTH + 1U, 'M');
         const std::string request = BuildRequest(method, "/too-long");
         const std::size_t consumed = ExecuteText(parser, request);
 
         TEST_ASSERT_EQUAL_UINT64(0, consumed);
         TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
         TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::InvalidMethodError);
-        TEST_ASSERT_TRUE(recorder.events()[0].kind == TestSupport::PipelineEventKind::Error);
+        TEST_ASSERT_TRUE(recorder.events()[0].kind == httpadv::v1::TestSupport::PipelineEventKind::Error);
     }
 
     void test_request_parser_accepts_uri_exactly_at_limit_and_rejects_uri_past_limit()
     {
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
-            const std::string uri = "/" + RepeatChar('u', HttpServerAdvanced::MAX_REQUEST_URI_LENGTH - 1);
+            const std::string uri = "/" + RepeatChar('u', httpadv::v1::core::MAX_REQUEST_URI_LENGTH - 1);
             const std::string request = BuildRequest("GET", uri);
             const std::size_t consumed = ExecuteText(parser, request);
 
@@ -210,10 +221,10 @@ namespace
         }
 
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
-            const std::string uri = "/" + RepeatChar('u', HttpServerAdvanced::MAX_REQUEST_URI_LENGTH);
+            const std::string uri = "/" + RepeatChar('u', httpadv::v1::core::MAX_REQUEST_URI_LENGTH);
             const std::string request = BuildRequest("GET", uri);
             const std::size_t consumed = ExecuteText(parser, request);
 
@@ -226,11 +237,11 @@ namespace
     void test_request_parser_accepts_header_name_and_value_at_limits_and_rejects_overflow()
     {
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
-            const std::string headerName = RepeatChar('N', HttpServerAdvanced::MAX_REQUEST_HEADER_NAME_LENGTH);
-            const std::string headerValue = RepeatChar('V', HttpServerAdvanced::MAX_REQUEST_HEADER_VALUE_LENGTH);
+            const std::string headerName = RepeatChar('N', httpadv::v1::core::MAX_REQUEST_HEADER_NAME_LENGTH);
+            const std::string headerValue = RepeatChar('V', httpadv::v1::core::MAX_REQUEST_HEADER_VALUE_LENGTH);
             const std::string request = BuildRequestWithHeaders(
                 "GET /limit HTTP/1.1",
                 {
@@ -246,10 +257,10 @@ namespace
         }
 
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
-            const std::string tooLongHeaderName = RepeatChar('N', HttpServerAdvanced::MAX_REQUEST_HEADER_NAME_LENGTH + 1);
+            const std::string tooLongHeaderName = RepeatChar('N', httpadv::v1::core::MAX_REQUEST_HEADER_NAME_LENGTH + 1);
             const std::string request = BuildRequestWithHeaders(
                 "GET /overflow-name HTTP/1.1",
                 {
@@ -263,10 +274,10 @@ namespace
         }
 
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
-            const std::string tooLongHeaderValue = RepeatChar('V', HttpServerAdvanced::MAX_REQUEST_HEADER_VALUE_LENGTH + 1);
+            const std::string tooLongHeaderValue = RepeatChar('V', httpadv::v1::core::MAX_REQUEST_HEADER_VALUE_LENGTH + 1);
             const std::string request = BuildRequestWithHeaders(
                 "GET /overflow-value HTTP/1.1",
                 {
@@ -283,12 +294,12 @@ namespace
     void test_request_parser_accepts_header_count_at_limit_and_rejects_overflow_header_count()
     {
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
             std::vector<std::pair<std::string, std::string>> headers;
-            headers.reserve(HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT);
-            for (std::size_t i = 0; i < HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT; ++i)
+            headers.reserve(httpadv::v1::core::MAX_REQUEST_HEADER_COUNT);
+            for (std::size_t i = 0; i < httpadv::v1::core::MAX_REQUEST_HEADER_COUNT; ++i)
             {
                 headers.emplace_back("X-H" + std::to_string(i), "v");
             }
@@ -297,17 +308,17 @@ namespace
             const std::size_t consumed = ExecuteText(parser, request);
 
             TEST_ASSERT_EQUAL_UINT64(request.size(), consumed);
-            TEST_ASSERT_EQUAL_UINT64(HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT, recorder.headers().size());
+            TEST_ASSERT_EQUAL_UINT64(httpadv::v1::core::MAX_REQUEST_HEADER_COUNT, recorder.headers().size());
             TEST_ASSERT_TRUE(recorder.errors().empty());
         }
 
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
             std::vector<std::pair<std::string, std::string>> headers;
-            headers.reserve(HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT + 1);
-            for (std::size_t i = 0; i < HttpServerAdvanced::MAX_REQUEST_HEADER_COUNT + 1; ++i)
+            headers.reserve(httpadv::v1::core::MAX_REQUEST_HEADER_COUNT + 1);
+            for (std::size_t i = 0; i < httpadv::v1::core::MAX_REQUEST_HEADER_COUNT + 1; ++i)
             {
                 headers.emplace_back("X-O" + std::to_string(i), "v");
             }
@@ -324,7 +335,7 @@ namespace
     void test_request_parser_maps_malformed_request_errors_for_url_header_token_content_length_and_version()
     {
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
             const std::string request = "GET /bad url HTTP/1.1\r\nHost: example.test\r\n\r\n";
 
@@ -337,7 +348,7 @@ namespace
         }
 
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
             const std::string request = "GET /ok HTTP/1.1\r\nBad[Header: value\r\n\r\n";
 
@@ -347,7 +358,7 @@ namespace
         }
 
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
             const std::string request = "GET /ok HTTP/1.1\r\nContent-Length: nope\r\n\r\n";
 
@@ -357,7 +368,7 @@ namespace
         }
 
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
             const std::string request = "GET /ok HTTP/12.1\r\nHost: example.test\r\n\r\n";
 
@@ -369,7 +380,7 @@ namespace
 
     void test_request_parser_orders_events_and_stitches_split_headers_and_body_chunks()
     {
-        TestSupport::PipelineEventRecorder recorder;
+        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
         const std::string chunk1 = "POST";
@@ -401,10 +412,10 @@ namespace
         TEST_ASSERT_TRUE(recorder.errors().empty());
 
         const auto &events = recorder.events();
-        const std::size_t messageBeginIndex = FirstEventIndex(events, TestSupport::PipelineEventKind::MessageBegin);
-        const std::size_t headersCompleteIndex = FirstEventIndex(events, TestSupport::PipelineEventKind::HeadersComplete);
-        const std::size_t bodyIndex = FirstEventIndex(events, TestSupport::PipelineEventKind::BodyChunk);
-        const std::size_t messageCompleteIndex = FirstEventIndex(events, TestSupport::PipelineEventKind::MessageComplete);
+        const std::size_t messageBeginIndex = FirstEventIndex(events, httpadv::v1::TestSupport::PipelineEventKind::MessageBegin);
+        const std::size_t headersCompleteIndex = FirstEventIndex(events, httpadv::v1::TestSupport::PipelineEventKind::HeadersComplete);
+        const std::size_t bodyIndex = FirstEventIndex(events, httpadv::v1::TestSupport::PipelineEventKind::BodyChunk);
+        const std::size_t messageCompleteIndex = FirstEventIndex(events, httpadv::v1::TestSupport::PipelineEventKind::MessageComplete);
 
         TEST_ASSERT_TRUE(messageBeginIndex < headersCompleteIndex);
         TEST_ASSERT_TRUE(headersCompleteIndex < bodyIndex);
@@ -449,7 +460,7 @@ namespace
 
     void test_request_parser_reset_allows_reuse_for_subsequent_request()
     {
-        TestSupport::PipelineEventRecorder recorder;
+        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
         const std::string firstRequest = BuildRequest("GET", "/first");
@@ -470,7 +481,7 @@ namespace
     void test_request_parser_end_of_input_finishes_complete_messages_and_errors_on_incomplete_input()
     {
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
             const std::string request = BuildRequest("GET", "/eof-ok");
@@ -481,7 +492,7 @@ namespace
         }
 
         {
-            TestSupport::PipelineEventRecorder recorder;
+            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
             const std::string incomplete = "GET /eof-fail HTTP/1.1\r\n";
@@ -514,7 +525,7 @@ namespace
 
 int run_test_request_parser()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "request parser",
         runUnitySuite,
         localSetUp,

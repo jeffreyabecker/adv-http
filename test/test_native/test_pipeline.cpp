@@ -1,22 +1,24 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/HttpTestFixtures.h"
 
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+
 #include <unity.h>
 
-#include "../../src/compat/Clock.h"
-#include "../../src/core/HttpContext.h"
-#include "../../src/core/HttpTimeouts.h"
-#include "../../src/handlers/HttpHandler.h"
-#include "../../src/pipeline/HttpPipeline.h"
-#include "../../src/pipeline/IPipelineHandler.h"
-#include "../../src/pipeline/PipelineError.h"
-#include "../../src/pipeline/PipelineHandleClientResult.h"
-#include "../../src/routing/HandlerMatcher.h"
-#include "../../src/response/StringResponse.h"
-#include "../../src/server/HttpServerBase.h"
-#include "../../src/websocket/WebSocketCallbacks.h"
-#include "../../src/websocket/WebSocketContext.h"
-#include "../../src/websocket/WebSocketUpgradeHandler.h"
+#include "../../src/httpadv/v1/util/Clock.h"
+#include "../../src/httpadv/v1/core/HttpContext.h"
+#include "../../src/httpadv/v1/core/HttpTimeouts.h"
+#include "../../src/httpadv/v1/handlers/HttpHandler.h"
+#include "../../src/httpadv/v1/pipeline/HttpPipeline.h"
+#include "../../src/httpadv/v1/pipeline/IPipelineHandler.h"
+#include "../../src/httpadv/v1/pipeline/PipelineError.h"
+#include "../../src/httpadv/v1/pipeline/PipelineHandleClientResult.h"
+#include "../../src/httpadv/v1/routing/HandlerMatcher.h"
+#include "../../src/httpadv/v1/response/StringResponse.h"
+#include "../../src/httpadv/v1/server/HttpServerBase.h"
+#include "../../src/httpadv/v1/websocket/WebSocketCallbacks.h"
+#include "../../src/httpadv/v1/websocket/WebSocketContext.h"
+#include "../../src/httpadv/v1/websocket/WebSocketUpgradeHandler.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -28,7 +30,16 @@
 #include <utility>
 #include <vector>
 
-using namespace HttpServerAdvanced;
+using namespace httpadv::v1::core;
+using namespace httpadv::v1::handlers;
+using namespace httpadv::v1::pipeline;
+using namespace httpadv::v1::response;
+using namespace httpadv::v1::routing;
+using namespace httpadv::v1::server;
+using namespace httpadv::v1::staticfiles;
+using namespace httpadv::v1::transport;
+using namespace httpadv::v1::util;
+using namespace httpadv::v1::websocket;
 
 namespace
 {
@@ -357,7 +368,7 @@ namespace
 
     std::unique_ptr<IByteSource> makeTextSource(std::string_view text)
     {
-        return std::make_unique<TestSupport::ScriptedByteSource>(TestSupport::ScriptedByteSource::FromText(text));
+        return std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText(text));
     }
 
     class BlockingByteSource : public IByteSource
@@ -368,12 +379,12 @@ namespace
             return TemporarilyUnavailableResult();
         }
 
-        std::size_t read(HttpServerAdvanced::span<std::uint8_t>) override
+        std::size_t read(httpadv::v1::util::span<std::uint8_t>) override
         {
             return 0;
         }
 
-        std::size_t peek(HttpServerAdvanced::span<std::uint8_t>) override
+        std::size_t peek(httpadv::v1::util::span<std::uint8_t>) override
         {
             return 0;
         }
@@ -390,13 +401,13 @@ namespace
             std::string localAddress = "10.0.0.1",
             uint16_t localPort = 8080)
             : clock_(1000),
-              server_(std::make_unique<TestSupport::FakeServer>())
+              server_(std::make_unique<httpadv::v1::TestSupport::FakeServer>())
         {
             timeouts_.setReadTimeout(25);
             timeouts_.setActivityTimeout(40);
             timeouts_.setTotalRequestLengthMs(200);
 
-            auto client = std::make_unique<TestSupport::FakeClient>(
+            auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(
                 readSteps,
                 std::move(remoteAddress),
                 remotePort,
@@ -427,7 +438,7 @@ namespace
             return *pipeline_;
         }
 
-        TestSupport::FakeClient &client()
+        httpadv::v1::TestSupport::FakeClient &client()
         {
             return *client_;
         }
@@ -462,7 +473,7 @@ namespace
         HttpTimeouts timeouts_;
         HttpServerBase server_;
         std::unique_ptr<HttpPipeline> pipeline_;
-        TestSupport::FakeClient *client_ = nullptr;
+        httpadv::v1::TestSupport::FakeClient *client_ = nullptr;
         ScenarioHandler *handler_ = nullptr;
         std::vector<std::unique_ptr<ScenarioHandler>> handlerHistory_;
     };
@@ -475,12 +486,12 @@ namespace
     {
     }
 
-    TestSupport::RecordingRequestHandlerFactory createWebSocketAwareRequestFactory(
+    httpadv::v1::TestSupport::RecordingRequestHandlerFactory createWebSocketAwareRequestFactory(
         std::string_view path,
         WebSocketCallbacks callbacks = {},
-        TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback handlerFactory = nullptr)
+        httpadv::v1::TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback handlerFactory = nullptr)
     {
-        return TestSupport::RecordingRequestHandlerFactory(
+        return httpadv::v1::TestSupport::RecordingRequestHandlerFactory(
             [registeredPath = std::string(path), callbacks = std::move(callbacks), handlerFactory = std::move(handlerFactory)](HttpContext &context) mutable -> std::unique_ptr<IHttpHandler>
             {
                 if (handlerFactory)
@@ -860,7 +871,7 @@ namespace
             {
                 handler.setOnMessageComplete([](ScenarioHandler &scenario)
                 {
-                    scenario.emitResponse(std::make_unique<TestSupport::ScriptedByteSource>(
+                    scenario.emitResponse(std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(
                         std::initializer_list<std::pair<const char *, bool>>{{"ab", false}, {"", true}, {"cd", false}, {"", true}, {"ef", false}}));
                 });
             });
@@ -897,7 +908,7 @@ namespace
             {
                 handler.setOnMessageComplete([](ScenarioHandler &scenario)
                 {
-                    scenario.emitResponse(std::make_unique<TestSupport::ScriptedByteSource>(
+                    scenario.emitResponse(std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(
                         std::initializer_list<std::pair<const char *, bool>>{{"ab", false}, {"", true}, {"cd", false}}));
                 });
             });
@@ -936,7 +947,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
@@ -945,8 +956,8 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
-        TestSupport::FakeClient *clientPtr = client.get();
+        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
+        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -986,7 +997,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
@@ -995,8 +1006,8 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
-        TestSupport::FakeClient *clientPtr = client.get();
+        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
+        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1033,7 +1044,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
@@ -1042,9 +1053,9 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<TestSupport::FakeClient>(
+        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {PingFrame, false}});
-        TestSupport::FakeClient *clientPtr = client.get();
+        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1087,7 +1098,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
@@ -1096,9 +1107,9 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<TestSupport::FakeClient>(
+        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {CloseFrame, false}});
-        TestSupport::FakeClient *clientPtr = client.get();
+        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1140,7 +1151,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
@@ -1149,9 +1160,9 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<TestSupport::FakeClient>(
+        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {InvalidUnmaskedFrame, false}});
-        TestSupport::FakeClient *clientPtr = client.get();
+        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1192,7 +1203,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
@@ -1201,8 +1212,8 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
-        TestSupport::FakeClient *clientPtr = client.get();
+        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
+        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
         clientPtr->setWriteScript({8, 0, 8, 0, 256});
 
         HttpPipeline pipeline(
@@ -1278,7 +1289,7 @@ namespace
             callbackEvents.push_back(std::string("error:") + std::string(message));
         };
 
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             callbacks,
@@ -1287,9 +1298,9 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<TestSupport::FakeClient>(
+        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {TextFrame, false}, {BinaryFrame, false}, {CloseFrame, false}});
-        TestSupport::FakeClient *clientPtr = client.get();
+        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1365,7 +1376,7 @@ namespace
             TEST_ASSERT_TRUE(context.isOpen());
         };
 
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>("192.168.4.1", 8080));
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>("192.168.4.1", 8080));
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             callbacks,
@@ -1375,7 +1386,7 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<TestSupport::FakeClient>(
+        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}},
             "10.1.2.3",
             4321,
@@ -1426,7 +1437,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/other",
             {},
@@ -1443,8 +1454,8 @@ namespace
                     });
             });
 
-        auto client = std::make_unique<TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
-        TestSupport::FakeClient *clientPtr = client.get();
+        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
+        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1496,7 +1507,7 @@ namespace
 
 int run_test_pipeline()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "pipeline",
         runUnitySuite,
         localSetUp,

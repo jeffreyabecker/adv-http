@@ -27,7 +27,7 @@ namespace
 
 int run_test_native_smoke()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "native smoke",
         runUnitySuite,
         localSetUp,

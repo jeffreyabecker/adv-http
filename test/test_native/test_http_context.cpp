@@ -1,17 +1,19 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/HttpTestFixtures.h"
 
+#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+
 #include <unity.h>
 
-#include "../../src/compat/Clock.h"
-#include "../../src/core/HttpContext.h"
-#include "../../src/core/HttpContextPhase.h"
-#include "../../src/handlers/HttpHandler.h"
-#include "../../src/pipeline/RequestParser.h"
-#include "../../src/routing/HandlerMatcher.h"
-#include "../../src/server/HttpServerBase.h"
-#include "../../src/websocket/WebSocketCallbacks.h"
-#include "../../src/websocket/WebSocketUpgradeHandler.h"
+#include "../../src/httpadv/v1/util/Clock.h"
+#include "../../src/httpadv/v1/core/HttpContext.h"
+#include "../../src/httpadv/v1/core/HttpContextPhase.h"
+#include "../../src/httpadv/v1/handlers/HttpHandler.h"
+#include "../../src/httpadv/v1/pipeline/RequestParser.h"
+#include "../../src/httpadv/v1/routing/HandlerMatcher.h"
+#include "../../src/httpadv/v1/server/HttpServerBase.h"
+#include "../../src/httpadv/v1/websocket/WebSocketCallbacks.h"
+#include "../../src/httpadv/v1/websocket/WebSocketUpgradeHandler.h"
 
 #include <memory>
 #include <cstring>
@@ -19,7 +21,16 @@
 #include <string_view>
 #include <vector>
 
-using namespace HttpServerAdvanced;
+using namespace httpadv::v1::core;
+using namespace httpadv::v1::handlers;
+using namespace httpadv::v1::pipeline;
+using namespace httpadv::v1::response;
+using namespace httpadv::v1::routing;
+using namespace httpadv::v1::server;
+using namespace httpadv::v1::staticfiles;
+using namespace httpadv::v1::transport;
+using namespace httpadv::v1::util;
+using namespace httpadv::v1::websocket;
 
 namespace
 {
@@ -74,7 +85,7 @@ namespace
     {
     }
 
-    TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback createWebSocketUpgradeHandlerFactory(
+    httpadv::v1::TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback createWebSocketUpgradeHandlerFactory(
         std::string_view path,
         WebSocketCallbacks callbacks = {})
     {
@@ -96,13 +107,13 @@ namespace
 
     void test_http_context_preserves_custom_method_through_factory_and_handler_steps()
     {
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
         std::unique_ptr<CapturingHandler> capturingHandler = std::make_unique<CapturingHandler>();
         CapturingHandler *capturingHandlerPtr = capturingHandler.get();
         std::vector<std::string> factoryMethods;
         std::vector<HttpContextPhaseFlags> factoryPhases;
 
-        TestSupport::RecordingRequestHandlerFactory factory(
+        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(
             [&factoryMethods, &factoryPhases, &capturingHandler](HttpContext &context) -> std::unique_ptr<IHttpHandler>
             {
                 factoryMethods.push_back(std::string(context.methodView()));
@@ -149,10 +160,10 @@ namespace
         std::string_view method,
         std::string_view path,
         const std::vector<std::pair<std::string, std::string>> &headers,
-        TestSupport::RecordingRequestHandlerFactory &factory,
+        httpadv::v1::TestSupport::RecordingRequestHandlerFactory &factory,
         RequestHandlingResult::Kind expectedKind)
     {
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
         auto pipelineHandler = HttpContext::createPipelineHandler(server, factory);
         RequestParser parser(*pipelineHandler);
 
@@ -180,7 +191,7 @@ namespace
         {
             TEST_ASSERT_NOT_NULL(result.responseStream.get());
             TEST_ASSERT_NULL(result.upgradedSession.get());
-            return TestSupport::ReadByteSourceAsStdString(*result.responseStream);
+            return httpadv::v1::TestSupport::ReadByteSourceAsStdString(*result.responseStream);
         }
 
         return std::string();
@@ -188,8 +199,8 @@ namespace
 
     void test_http_context_websocket_upgrade_accepts_split_request_and_returns_upgrade_session()
     {
-        HttpServerBase server(std::make_unique<TestSupport::FakeServer>());
-        TestSupport::RecordingRequestHandlerFactory factory(
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(
             createWebSocketUpgradeHandlerFactory("/chat"));
 
         auto pipelineHandler = HttpContext::createPipelineHandler(server, factory);
@@ -219,7 +230,7 @@ namespace
         TEST_ASSERT_NOT_NULL(result.upgradedSession.get());
         TEST_ASSERT_NULL(result.responseStream.get());
 
-        TestSupport::FakeClient client;
+        httpadv::v1::TestSupport::FakeClient client;
         ManualClock clock(1000);
         const ConnectionSessionResult firstStep = result.upgradedSession->handle(client, clock);
 
@@ -235,7 +246,7 @@ namespace
     void test_http_context_websocket_upgrade_rejects_invalid_requests_with_deterministic_statuses()
     {
         {
-            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "POST",
                 "/chat",
@@ -254,7 +265,7 @@ namespace
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -272,7 +283,7 @@ namespace
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -290,7 +301,7 @@ namespace
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -309,7 +320,7 @@ namespace
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -328,7 +339,7 @@ namespace
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -347,7 +358,7 @@ namespace
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -366,7 +377,7 @@ namespace
         }
 
         {
-            TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -398,7 +409,7 @@ namespace
 
 int run_test_http_context()
 {
-    return HttpServerAdvanced::TestSupport::RunConsolidatedSuite(
+    return httpadv::v1::TestSupport::RunConsolidatedSuite(
         "http request",
         runUnitySuite,
         localSetUp,
