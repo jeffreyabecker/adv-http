@@ -1998,7 +1998,7 @@ Proposed constant names and default values (for Option A):
 | constexpr name | Macro | Default | Rationale |
 |---|---|---|---|
 | `WsMaxFramePayloadSize` | `HTTPSERVER_ADVANCED_WEBSOCKET_MAX_FRAME_PAYLOAD_SIZE` | 4096 | One Ethernet MTU with headroom; fits a typical small JSON message |
-| `WsMaxMessageSize` | `HTTPSERVER_ADVANCED_WEBSOCKET_MAX_MESSAGE_SIZE` | 8192 | Two frame payloads; conservative for RP2040 heap |
+| `WsMaxMessageSize` | `HTTPSERVER_ADVANCED_WEBSOCKET_MAX_MESSAGE_SIZE` | 8192 | Two frame payloads; conservative for small-memory embedded targets |
 | `WsIdleTimeoutMs` | `HTTPSERVER_ADVANCED_WEBSOCKET_IDLE_TIMEOUT_MS` | 30000 | 30 s; generous for embedded keepalive |
 | `WsCloseTimeoutMs` | `HTTPSERVER_ADVANCED_WEBSOCKET_CLOSE_TIMEOUT_MS` | 2000 | 2 s; enough for compliant clients to echo CLOSE |
 
@@ -2011,7 +2011,7 @@ Working comparison:
 Initial recommendation:
 
 - Prefer Option A (all compile-time constants) for the first implementation, following the existing `Defines.h` pattern exactly.
-- Defaults should be conservative for RP2040 and ESP-class targets as listed above.
+- Defaults should be conservative for small-memory embedded targets as listed above.
 - Per-route limit customization can be revisited once concrete use cases are identified.
 
 Decision:
@@ -2043,7 +2043,7 @@ Alternatives not chosen:
 
 Decision criteria:
 - Follow the project constant pattern exactly.
-- Default values should fit RP2040 and ESP-class targets conservatively.
+- Default values should fit small-memory embedded targets conservatively.
 - Limit names should remain stable even if the implementation evolves.
 
 ### 13. Error Mapping And Close Policy

@@ -1,6 +1,6 @@
-# Library Comparison: WebServer vs HttpServerAdvanced
+# Library Comparison: Framework WebServer vs HttpServerAdvanced
 
-A comprehensive analysis of the rp2040 platform's **WebServer** library versus **HttpServerAdvanced**, covering memory utilization, functionality, safety, and ease of use.
+A focused comparison between a framework-provided **WebServer** implementation and **HttpServerAdvanced**, covering memory utilization, functionality, safety, and ease of use. The contrast is useful because HttpServerAdvanced keeps the HTTP application core portable across embedded and desktop targets instead of coupling application logic to one runtime stack.
 
 ---
 
@@ -40,7 +40,7 @@ A comprehensive analysis of the rp2040 platform's **WebServer** library versus *
 
 **Key Functionality Differences:**
 - WebServer offers simpler API but lacks input size limits
-- HttpServerAdvanced has optional ArduinoJson integration and middleware architecture
+- HttpServerAdvanced has optional JSON support and middleware architecture
 - WebServer supports Digest Auth and Regex routing (not in HttpServerAdvanced)
 - HttpServerAdvanced provides fine-grained CORS control per-route
 
@@ -113,7 +113,7 @@ This pattern creates unbounded heap growth for large POST bodies.
 | `BufferingHttpHandlerBase` | `std::vector<uint8_t>` with reserve | Bounded by `MAX_BUFFERED_BODY_LENGTH` (2KB) |
 | Handler factory | `std::unique_ptr<IHttpHandler>` | Single handler per request |
 | Response stream | `std::unique_ptr<Stream>` | Single stream per response |
-| `String` for URL/headers | Arduino String | Bounded by defined limits |
+| Request text storage | Compatibility-owned text values | Bounded by defined limits |
 
 **Bounded buffer pattern**:
 ```cpp
@@ -297,7 +297,7 @@ HttpServerAdvanced uses an incremental response serializer (`HttpPipelineRespons
 | Latency | Slight increase for first byte | Constant memory for any response size |
 | Complexity | Byte-source composition machinery | Composable, testable stream components |
 
-**For RP2040 with 264KB RAM:** the serializer-state overhead is still tiny compared with buffering multi-kilobyte responses in memory.
+**For small-RAM embedded targets:** the serializer-state overhead is still tiny compared with buffering multi-kilobyte responses in memory.
 
 ### WebServer Response Approach (Comparison)
 
@@ -372,7 +372,7 @@ server.addHook([](const String& method, const String& url, WiFiClient* client, .
 | Multipart Form Data | ✅ Built-in | ✅ `MultipartFormDataHandler` |
 | File Uploads | ✅ Callback-based | ✅ Streaming with status events |
 | Raw Body Access | ✅ Callback-based | ✅ `RawBodyHandler` |
-| JSON Body Parsing | ❌ Manual | ✅ `JsonBodyHandler` (optional ArduinoJson integration) |
+| JSON Body Parsing | ❌ Manual | ✅ `JsonBodyHandler` when optional JSON support is enabled |
 | Request Header Access | ✅ By name/index | ✅ `HttpHeaderCollection` |
 | Remote Address Access | ✅ `client()` | ✅ `request.remoteAddress()` |
 
@@ -479,7 +479,7 @@ server.addHook([](const String& method, const String& url, WiFiClient* client, .
 | Use After Free | ⚠️ Manual delete | ✅ RAII/smart pointers |
 | Double Free | ⚠️ Manual management | ✅ Smart pointers |
 | Null Pointer Access | ⚠️ Some unchecked | ✅ Null checks throughout |
-| String Buffer Overrun | ⚠️ Arduino String limits | ✅ Explicit size checks |
+| String Growth Risk | ⚠️ Framework-owned dynamic strings | ✅ Explicit size checks |
 
 ---
 
@@ -487,9 +487,10 @@ server.addHook([](const String& method, const String& url, WiFiClient* client, .
 
 ### Getting Started
 
+Network bootstrap is intentionally omitted from both snippets below because connection setup is platform-owned. The comparison focuses on handler registration and request processing shape.
+
 **WebServer - Hello World:**
 ```cpp
-#include <WiFi.h>
 #include <WebServer.h>
 
 WebServer server(80);
@@ -499,7 +500,6 @@ void handleRoot() {
 }
 
 void setup() {
-    WiFi.begin(ssid, password);
     server.on("/", handleRoot);
     server.begin();
 }
@@ -520,7 +520,6 @@ Response helloHandler(HttpContext &request) {
 }
 
 void setup() {
-    WiFi.begin(ssid, password);
     server.cfg().on<GetRequest>("/", helloHandler);
     server.begin();
 }
@@ -571,7 +570,7 @@ void handleJson() {
 void handleJsonPost() {
     // Manual JSON parsing
     String body = server.arg("plain");
-    // Use ArduinoJson manually...
+    // Parse JSON with the application's chosen JSON library...
 }
 ```
 
@@ -591,7 +590,7 @@ Response handleJsonPost(HttpContext &request, JsonDocument &&body) {
 }
 ```
 
-**Verdict**: HttpServerAdvanced has significant advantage when its optional ArduinoJson integration is enabled.
+**Verdict**: HttpServerAdvanced has significant advantage when its optional JSON support is enabled.
 
 ### Authentication
 
@@ -734,7 +733,7 @@ return StringResponse::create(
 | Real-world Patterns | ⚠️ Limited | ✅ More comprehensive |
 | Error Handling | ⚠️ Often omitted | ✅ Included |
 | Comments | ⚠️ Sparse | ✅ Documented |
-| WiFi Setup | Inline | Abstracted to include |
+| Platform Bootstrap | Inline | Adapter-owned |
 | Progressive Complexity | ⚠️ Flat | ✅ Categorized |
 
 ---

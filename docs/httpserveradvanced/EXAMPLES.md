@@ -1,19 +1,19 @@
 # HttpServerAdvanced Examples Plan
 
-Examples organized by complexity and feature coverage. Each example builds on concepts from previous ones.
+Examples are organized by complexity and feature coverage. Each example builds on concepts from previous ones and is intended to keep the HTTP application layer portable across embedded and desktop targets.
 
-JSON examples assume the optional ArduinoJson integration is enabled. HTTPS/TLS server examples are intentionally out of scope for this repository.
+Planned examples should isolate target bootstrapping from request handling so the same routing, handler, response, and static-file logic can be exercised in firmware builds and native host-side runs. JSON examples assume optional JSON support is enabled. HTTPS/TLS server examples are intentionally out of scope for this repository.
 
 ---
 
 ## 1. Getting Started
 
 ### 1.1 HelloWorld
-**File**: `examples/HelloWorld/HelloWorld.ino`  
+**File**: `examples/HelloWorld/main.cpp`  
 **Features**: Basic server setup, single GET endpoint, text response  
 **Concepts**:
 - `WebServer` instantiation
-- `server.use()` configuration pattern
+- application bootstrap separated from route wiring
 - `GetRequest` handler
 - `StringResponse::create()` usage
 
@@ -25,7 +25,7 @@ GET /status   → JSON status response
 ---
 
 ### 1.2 MultipleRoutes
-**File**: `examples/MultipleRoutes/MultipleRoutes.ino`  
+**File**: `examples/MultipleRoutes/main.cpp`  
 **Features**: Multiple endpoints, different response types  
 **Concepts**:
 - Multiple `.on<GetRequest>()` registrations
@@ -35,17 +35,17 @@ GET /status   → JSON status response
 
 ```
 GET /          → HTML welcome page
-GET /api/time  → JSON with current millis
-GET /api/heap  → JSON with free heap
+GET /api/time  → JSON with current timestamp
+GET /api/health → JSON with runtime health data
 ```
 
 ---
 ### 1.3 StaticFiles
-**File**: `examples/StaticFiles/StaticFiles.ino`  
+**File**: `examples/StaticFiles/main.cpp`  
 **Features**: Serving files from filesystem  
 **Concepts**:
 - `StaticFiles()` builder
-- LittleFS setup
+- filesystem adapter setup
 - Path prefixes and content root
 - MIME type auto-detection
 
@@ -60,7 +60,7 @@ GET /api/data     → API route (not static)
 ## 2. Request Data
 
 ### 2.1 UrlParameters
-**File**: `examples/UrlParameters/UrlParameters.ino`  
+**File**: `examples/UrlParameters/main.cpp`  
 **Features**: Parameterized routes, extracting URL segments  
 **Concepts**:
 - Wildcard routes: `/api/users/?` (`?` is the default value of `REQUEST_MATCHER_PATH_WILDCARD_CHAR`)
@@ -77,7 +77,7 @@ GET /gpio/5/set/1      → Set GPIO 5 HIGH
 ---
 
 ### 2.2 QueryStrings
-**File**: `examples/QueryStrings/QueryStrings.ino`  
+**File**: `examples/QueryStrings/main.cpp`  
 **Features**: Parsing query string parameters  
 **Concepts**:
 - `HttpContext.uri()` access
@@ -92,7 +92,7 @@ GET /config?wifi=ssid&pass=pw → Configuration endpoint
 ---
 
 ### 2.3 FormParsing
-**File**: `examples/FormParsing/FormParsing.ino`  
+**File**: `examples/FormParsing/main.cpp`  
 **Features**: POST form data handling  
 **Concepts**:
 - `Form` handler type
@@ -107,11 +107,11 @@ POST /settings → Key-value configuration
 ---
 
 ### 2.4 JsonApi
-**File**: `examples/JsonApi/JsonApi.ino`  
+**File**: `examples/JsonApi/main.cpp`  
 **Features**: JSON request/response API  
 **Concepts**:
 - `Json` handler type
-- ArduinoJson `JsonDocument` access
+- `JsonDocument` access when optional JSON support is enabled
 - JSON response building
 
 ```
@@ -125,7 +125,7 @@ POST /api/led     → {"state": true} to control LED
 ## 3. Security
 
 ### 3.1 BasicAuthentication
-**File**: `examples/BasicAuthentication/BasicAuthentication.ino`  
+**File**: `examples/BasicAuthentication/main.cpp`  
 **Features**: HTTP Basic Auth protection  
 **Concepts**:
 - `BasicAuth()` interceptor
@@ -142,7 +142,7 @@ GET /admin    → Different credentials
 ---
 
 ### 3.2 CorsSupport
-**File**: `examples/CorsSupport/CorsSupport.ino`  
+**File**: `examples/CorsSupport/main.cpp`  
 **Features**: Cross-Origin Resource Sharing  
 **Concepts**:
 - `CrossOriginRequestSharing()` response filter
@@ -160,7 +160,7 @@ POST    /api/data  → With CORS headers
 ## 4. Advanced Patterns
 
 ### 4.1 InterceptorPipeline
-**File**: `examples/InterceptorPipeline/InterceptorPipeline.ino`  
+**File**: `examples/InterceptorPipeline/main.cpp`  
 **Features**: Custom middleware/interceptors  
 **Concepts**:
 - Writing custom `InterceptorCallback`
@@ -176,7 +176,7 @@ Logging → Auth → Handler → CORS → Response
 ---
 
 ### 4.2 ResponseFilters
-**File**: `examples/ResponseFilters/ResponseFilters.ino`  
+**File**: `examples/ResponseFilters/main.cpp`  
 **Features**: Response modification  
 **Concepts**:
 - Custom `ResponseFilter` functions
@@ -191,7 +191,7 @@ All responses get Server header, timing header
 ---
 
 ### 4.3 RawBodyStreaming
-**File**: `examples/RawBodyStreaming/RawBodyStreaming.ino`  
+**File**: `examples/RawBodyStreaming/main.cpp`  
 **Features**: Streaming large request bodies  
 **Concepts**:
 - `RawBody` handler type
@@ -207,7 +207,7 @@ POST /bulk      → Large data ingestion
 ---
 
 ### 4.4 CustomHandlerMatcher
-**File**: `examples/CustomHandlerMatcher/CustomHandlerMatcher.ino`  
+**File**: `examples/CustomHandlerMatcher/main.cpp`  
 **Features**: Advanced route matching  
 **Concepts**:
 - Custom `MethodChecker`
@@ -222,7 +222,7 @@ Match /api/v{1,2}/users with custom logic
 ---
 
 ### 4.5 ErrorHandling
-**File**: `examples/ErrorHandling/ErrorHandling.ino`  
+**File**: `examples/ErrorHandling/main.cpp`  
 **Features**: Error responses and not-found handling  
 **Concepts**:
 - `onNotFound()` default handler
@@ -240,7 +240,7 @@ POST /invalid  → 400 Bad Request
 ## 5. Real-World Applications
 
 ### 5.1 RestfulApi
-**File**: `examples/RestfulApi/RestfulApi.ino`  
+**File**: `examples/RestfulApi/main.cpp`  
 **Features**: Full REST API example  
 **Concepts**:
 - GET/POST/PUT/DELETE patterns
@@ -267,7 +267,7 @@ DELETE /api/items/?    → Delete item
 ---
 
 ### 5.2 WebDashboard
-**File**: `examples/WebDashboard/WebDashboard.ino`  
+**File**: `examples/WebDashboard/main.cpp`  
 **Features**: Full web application  
 **Concepts**:
 - Static files for HTML/CSS/JS
@@ -284,11 +284,11 @@ DELETE /api/items/?    → Delete item
 ---
 
 ### 5.3 OtaUpdate
-**File**: `examples/OtaUpdate/OtaUpdate.ino`  
+**File**: `examples/OtaUpdate/main.cpp`  
 **Features**: Over-the-air firmware updates  
 **Concepts**:
 - Multipart or RawBody for firmware binary
-- Flash writing with ArduinoOTA or rp2040 SDK
+- Platform-owned firmware update hook or bootloader integration
 - Progress tracking
 - Verification and reboot
 
@@ -300,18 +300,18 @@ GET  /version → Current firmware version
 ---
 
 ### 6.4 CaptivePortal
-**File**: `examples/CaptivePortal/CaptivePortal.ino`  
-**Features**: WiFi provisioning portal  
+**File**: `examples/CaptivePortal/main.cpp`  
+**Features**: Wireless provisioning portal  
 **Concepts**:
 - AP mode configuration
 - DNS server for captive portal
-- WiFi scanning and connection
+- Network scanning and connection
 - Credential storage
 
 ```
 Any request → Redirect to /setup
-/setup      → WiFi configuration page
-/connect    → Attempt WiFi connection
+/setup      → Network configuration page
+/connect    → Attempt network connection
 ```
 
 ---
@@ -344,8 +344,8 @@ Each example should include:
 ```
 examples/
   ExampleName/
-    ExampleName.ino      # Main sketch
-    README.md            # Example description, wiring, expected behavior
+    main.cpp             # Target bootstrap plus application wiring
+    README.md            # Example description, environment notes, expected behavior
     fs/                  # Filesystem data (if needed)
       wwwroot/
         index.html

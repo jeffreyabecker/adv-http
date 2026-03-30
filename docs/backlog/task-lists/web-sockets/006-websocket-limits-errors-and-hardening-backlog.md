@@ -12,7 +12,7 @@ This phase tightens resource and failure behavior so the initial WebSocket imple
 
 - Frame, message, queue, and idle-lifetime limits are explicit and configurable through the project’s constant pattern.
 - Protocol violations and transport failures produce deterministic internal errors and close behavior.
-- Memory and buffer ownership remain bounded and reviewable on RP2040 and ESP-class targets.
+- Memory and buffer ownership remain bounded and reviewable on small-memory embedded targets and native validation builds.
 - Stuck or malformed clients cannot leave the pipeline in a half-live state indefinitely.
 
 ## Locked Decisions Applied Here

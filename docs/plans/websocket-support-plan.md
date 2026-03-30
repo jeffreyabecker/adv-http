@@ -161,7 +161,7 @@ That scope is enough to validate the architecture without dragging in optional R
 - The current `HttpContext` type mixes request parsing, handler selection, and response dispatch. Supporting upgrade cleanly may require splitting those concerns instead of adding another flag.
 - The current pipeline result model is transaction-oriented. WebSocket sessions are connection-oriented and may stay alive indefinitely, so timeout policy and completion semantics need to be redefined.
 - If the existing handler model is stretched too far, the code may end up with awkward dual semantics where some handlers return `IHttpResponse` and others secretly seize the connection. That should be avoided.
-- Large-frame buffering strategy matters on RP2040 and ESP-class targets. The implementation should prefer incremental parsing and bounded buffers over whole-message accumulation by default.
+- Large-frame buffering strategy matters on small-memory embedded targets. The implementation should prefer incremental parsing and bounded buffers over whole-message accumulation by default.
 - Server-driven sends may require a session-owned outbound queue. If that is omitted initially, the API should be explicit about when sending is legal.
 
 ## Suggested Follow-Up Work

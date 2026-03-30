@@ -1,7 +1,4 @@
-consumed interface definitions:
-https://github.com/earlephilhower/arduino-pico/blob/master/cores/rp2040/FS.h
-https://github.com/earlephilhower/arduino-pico/blob/master/cores/rp2040/FS.cpp
-https://github.com/earlephilhower/arduino-pico/blob/master/cores/rp2040/FSImpl.h
-
-https://github.com/arduino/ArduinoCore-API/blob/1.5.2/api/Stream.h
-https://github.com/arduino/ArduinoCore-API/blob/1.5.2/api/Print.h
+compatibility seam notes:
+- Filesystem adapter behavior should track the library-owned semantics defined in `src/compat/IFileSystem.h` and the filesystem adapter implementation.
+- Stream and print-like behavior should stay aligned with the compatibility abstractions consumed by the HTTP core rather than any single runtime API.
+- Preserve portable expectations first; keep any runtime-specific shape contained inside adapter code.

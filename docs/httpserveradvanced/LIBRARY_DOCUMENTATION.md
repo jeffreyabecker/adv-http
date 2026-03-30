@@ -1,6 +1,6 @@
 # HttpServerAdvanced Library Documentation
 
-A comprehensive, pipeline-based HTTP server library for Arduino/RP2040 (Pico W) platforms with advanced routing and handler patterns. JSON integration is optional and enabled only when `ArduinoJson` is available or `HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON=1` is set. HTTPS/TLS server support is not part of the maintained library surface.
+A comprehensive, pipeline-based HTTP server library for cross-platform application code that targets both embedded and desktop environments. The HTTP core, routing, handlers, and response pipeline are designed to remain portable while transport, filesystem, clock, and framework-owned integration points stay at the platform boundary. Optional JSON support can be enabled through the library build configuration when the JSON dependency is available. HTTPS/TLS server support is not part of the maintained library surface.
 
 ---
 
@@ -25,7 +25,7 @@ A comprehensive, pipeline-based HTTP server library for Arduino/RP2040 (Pico W) 
 
 ## Architecture Overview
 
-HttpServerAdvanced uses a **pipeline-based architecture** inspired by modern web frameworks (ASP.NET, Express.js). The library separates concerns into distinct layers:
+HttpServerAdvanced uses a **pipeline-based architecture** inspired by modern web frameworks (ASP.NET, Express.js). The library separates concerns into a portable application core plus adapter-oriented platform edges:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -52,6 +52,8 @@ HttpServerAdvanced uses a **pipeline-based architecture** inspired by modern web
 - **RAII/Smart Pointers**: All dynamic memory managed via `std::unique_ptr`
 - **Factory Pattern**: Handlers created on-demand per request
 - **Fluent Builder API**: Chainable configuration methods
+- **Cross-Platform Core**: Request handling, routing, and response composition are designed to move unchanged between embedded and desktop targets
+- **Adapter Boundaries**: Transport, filesystem, timing, and framework-specific integration stay behind explicit seams
 - **Static Buffers**: Configurable bounded memory for embedded constraints
 
 ---
@@ -326,7 +328,7 @@ Handlers process HTTP requests and generate responses.
 | Type | HTTP Method | Body Type | Signature |
 |------|-------------|-----------|-----------|
 | `GetRequest` | GET | None | `(HttpContext&, args...) → IHttpResponse` |
-| `Json` | POST/PUT | ArduinoJson (optional) | `(HttpContext&, JsonDocument&, args...) → IHttpResponse` when JSON support is enabled |
+| `Json` | POST/PUT | Optional JSON document | `(HttpContext&, JsonDocument&, args...) → IHttpResponse` when JSON support is enabled |
 | `Form` | POST | URL-encoded | `(HttpContext&, FormData&, args...) → IHttpResponse` |
 | `Multipart` | POST | multipart/form-data | `(HttpContext&, MultipartData&, args...) → IHttpResponse` |
 | `RawBody` | POST/PUT | Raw bytes | `(HttpContext&, Buffer&, args...) → IHttpResponse` |
@@ -598,7 +600,7 @@ public:
 ```cpp
 class JsonResponse {
 public:
-    // From ArduinoJson document
+    // From a parsed JSON document
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, const JsonDocument& doc);
     static std::unique_ptr<IHttpResponse> create(const JsonDocument& doc);  // 200 OK
     
@@ -733,7 +735,7 @@ public:
 
 **Location:** `src/staticfiles/`
 
-Serves static files from a filesystem (LittleFS, SD, etc.).
+Serves static files from a platform-provided filesystem adapter, whether the content lives on embedded flash, removable storage, or a host-backed filesystem.
 
 #### Classes
 
@@ -798,7 +800,9 @@ std::function<void(WebServerBuilder&)>& StaticFiles(FS& fs, std::function<void(S
 **Usage:**
 
 ```cpp
-server.use(StaticFiles(LittleFS, [](StaticFilesBuilder& files) {
+auto& contentFs = getContentFileSystem();
+
+server.use(StaticFiles(contentFs, [](StaticFilesBuilder& files) {
     files.setFilesystemContentRoot("/www")
          .setRequestPathPrefixes("/", "/api");
 }));
@@ -1039,7 +1043,7 @@ server.cfg().on<GetRequest>(ParameterizedUri("/users/:id"),
 
 ### JSON API
 
-This pattern requires optional ArduinoJson support to be enabled.
+This pattern requires optional JSON support to be enabled.
 
 ```cpp
 server.cfg().on<Json>("/api/data", [](HttpContext& req, JsonDocument& body, std::vector<String>& args) {
@@ -1047,7 +1051,7 @@ server.cfg().on<Json>("/api/data", [](HttpContext& req, JsonDocument& body, std:
     
     JsonDocument response;
     response["received"] = name;
-    response["timestamp"] = millis();
+    response["timestamp"] = currentTimestampMs();
     return JsonResponse::create(response);
 });
 ```
@@ -1087,9 +1091,9 @@ server.cfg().on<GetRequest>("/api/data", handler).apply(cors);
 ### Static Files
 
 ```cpp
-#include <LittleFS.h>
+auto& contentFs = getContentFileSystem();
 
-server.use(StaticFiles(LittleFS, [](StaticFilesBuilder& files) {
+server.use(StaticFiles(contentFs, [](StaticFilesBuilder& files) {
     files.setFilesystemContentRoot("/www")
          .setRequestPathPrefixes("/static", "/api");
 }));
@@ -1100,7 +1104,7 @@ server.use(StaticFiles(LittleFS, [](StaticFilesBuilder& files) {
 ```cpp
 // Log all requests
 server.cfg().with([](HttpContext& req, IHttpHandler::InvocationCallback next) {
-    Serial.printf("[%s] %s\n", req.method().c_str(), req.uri().c_str());
+    logRequest(req.method(), req.uri());
     return next(req);
 });
 
@@ -1231,4 +1235,4 @@ read() called by HttpPipeline
 2. **No intermediate string concatenation** for headers
 3. **Body can be arbitrarily large** (streamed from file, generated on-the-fly)
 4. **Chunked transfer encoding** integrates naturally via `ChunkedHttpResponseBodyStream`
-5. **Suitable for memory-constrained embedded systems** like RP2040 (264KB RAM)
+5. **Suitable for memory-constrained embedded systems** while remaining practical to validate in native desktop test runs

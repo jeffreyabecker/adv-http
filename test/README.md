@@ -2,6 +2,8 @@
 
 This repository keeps host-side unit coverage under a single consolidated native lane in `test/test_native/`. The lane is intentionally socket-free and is the primary place for parser, request, response, routing, and fixture-driven transport tests.
 
+The native lane exists to protect the library's cross-platform design: the same HTTP application logic should stay usable in desktop-hosted tests and embedded integrations, with platform or framework adapters isolated at the edges.
+
 ## Runner Rules
 
 - `test/test_native/test_main.cpp` is the only native `main()` entrypoint in the repository.
