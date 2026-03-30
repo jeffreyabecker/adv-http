@@ -69,35 +69,6 @@ Transport factories now have a compile-time primary path and a runtime compatibi
 - [src/httpadv/v1/transport/TransportTraits.h](src/httpadv/v1/transport/TransportTraits.h) detects that contract and exposes `IsStaticTransportFactoryV<TFactory>`.
 - The same header also exposes `makeTransportFactory<TFactory>()` for legacy code that still needs a `std::unique_ptr<ITransportFactory>`.
 
-### Current Implementations
-
-- [src/httpadv/v1/platform/windows/WindowsSocketTransport.h](src/httpadv/v1/platform/windows/WindowsSocketTransport.h) and [src/httpadv/v1/platform/posix/PosixSocketTransport.h](src/httpadv/v1/platform/posix/PosixSocketTransport.h) now use static factory methods directly.
-- [src/httpadv/v1/platform/arduino/ArduinoWiFiTransport.h](src/httpadv/v1/platform/arduino/ArduinoWiFiTransport.h) now exposes its adapter types in the header so the Arduino transport can participate in compile-time detection.
-
-### Migration Examples
-
-Static construction:
-
-```cpp
-using NativeTransportFactory = httpadv::v1::platform::posix::NativeSocketTransportFactory;
-
-auto server = NativeTransportFactory::createServer(8080);
-auto client = NativeTransportFactory::createClient("127.0.0.1", 8080);
-auto peer = NativeTransportFactory::createPeer();
-```
-
-Legacy compatibility:
-
-```cpp
-using NativeTransportFactory = httpadv::v1::platform::posix::NativeSocketTransportFactory;
-
-std::unique_ptr<httpadv::v1::transport::ITransportFactory> factory =
-    httpadv::v1::transport::makeTransportFactory<NativeTransportFactory>();
-```
-
-Validation currently covers the native transport path in [test/test_native/test_transport_native.cpp](test/test_native/test_transport_native.cpp). Arduino-target compile verification still needs an example/sketch-scoped build lane.
-
----
 
 ## WebSocket Support Scope
 
