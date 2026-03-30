@@ -15,6 +15,7 @@
 #include "httpadv/v1/core/HttpTimeouts.h"
 #include "httpadv/v1/core/IHttpContextHandlerFactory.h"
 #include "httpadv/v1/transport/ByteStream.h"
+#include "httpadv/v1/transport/TransportTraits.h"
 #include "httpadv/v1/util/Compat.h"
 
 

@@ -1,6 +1,7 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
 #include "../../src/httpadv/v1/HttpServerAdvanced.h"
+#include "../../src/httpadv/v1/transport/TransportTraits.h"
 
 #include <unity.h>
 
@@ -40,6 +41,15 @@ using namespace httpadv::v1::websocket;
 using namespace httpadv::v1::platform;
 
 namespace {
+#ifdef _WIN32
+using NativeTransportFactory = httpadv::v1::platform::windows::NativeSocketTransportFactory;
+#else
+using NativeTransportFactory = platform::posix::NativeSocketTransportFactory;
+#endif
+
+static_assert(IsStaticTransportFactoryV<NativeTransportFactory>,
+              "Native socket transport must expose static factory methods");
+
 #ifdef _WIN32
 using TestSocketHandle = SOCKET;
 constexpr TestSocketHandle InvalidTestSocketHandle = INVALID_SOCKET;
@@ -119,21 +129,14 @@ void localSetUp() {}
 void localTearDown() {}
 
 void test_native_factory_creates_tcp_server_and_client_loopback() {
-#ifdef _WIN32
-  std::unique_ptr<ITransportFactory> factory = std::make_unique<httpadv::v1::platform::windows::NativeSocketTransportFactory>();
-#else
-  std::unique_ptr<ITransportFactory> factory = std::make_unique<platform::posix::NativeSocketTransportFactory>();
-#endif
-  TEST_ASSERT_NOT_NULL(factory.get());
-
-  std::unique_ptr<IServer> server = factory->createServer(0);
+  std::unique_ptr<IServer> server = NativeTransportFactory::createServer(0);
   TEST_ASSERT_NOT_NULL(server.get());
   server->begin();
 
   TEST_ASSERT_GREATER_THAN_UINT16(0, server->port());
 
   std::unique_ptr<IClient> client =
-      factory->createClient("127.0.0.1", server->port());
+      NativeTransportFactory::createClient("127.0.0.1", server->port());
   TEST_ASSERT_NOT_NULL(client.get());
   client->setTimeout(250);
   TEST_ASSERT_EQUAL_UINT32(250, client->getTimeout());
@@ -188,11 +191,7 @@ void test_native_factory_creates_tcp_server_and_client_loopback() {
 }
 
 void test_native_factory_creates_udp_peers_for_loopback_packets() {
-#ifdef _WIN32
-  std::unique_ptr<ITransportFactory> factory = std::make_unique<httpadv::v1::platform::windows::NativeSocketTransportFactory>();
-#else
-  std::unique_ptr<ITransportFactory> factory = std::make_unique<platform::posix::NativeSocketTransportFactory>();
-#endif
+  std::unique_ptr<ITransportFactory> factory = makeTransportFactory<NativeTransportFactory>();
   TEST_ASSERT_NOT_NULL(factory.get());
 
   const std::uint16_t senderPort = allocateEphemeralUdpPort();

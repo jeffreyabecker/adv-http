@@ -27,7 +27,6 @@ using httpadv::v1::transport::ExhaustedResult;
 using httpadv::v1::transport::IClient;
 using httpadv::v1::transport::IPeer;
 using httpadv::v1::transport::IServer;
-using httpadv::v1::transport::ITransportFactory;
 using httpadv::v1::transport::TemporarilyUnavailableResult;
 using httpadv::v1::core::MAX_CONCURRENT_CONNECTIONS;
 
@@ -685,14 +684,14 @@ private:
   std::uint16_t remotePort_ = 0;
 };
 
-class NativeSocketTransportFactory : public ITransportFactory {
+class NativeSocketTransportFactory {
 public:
-  std::unique_ptr<IServer> createServer(std::uint16_t port) override {
+  static std::unique_ptr<IServer> createServer(std::uint16_t port) {
     return std::make_unique<WindowsServer>(port);
   }
 
-  std::unique_ptr<IClient> createClient(std::string_view address,
-                                        std::uint16_t port) override {
+  static std::unique_ptr<IClient> createClient(std::string_view address,
+                                               std::uint16_t port) {
     if (!socketRuntime().initialized()) {
       return nullptr;
     }
@@ -717,7 +716,7 @@ public:
     return std::make_unique<WindowsClient>(socketHandle.release());
   }
 
-  std::unique_ptr<IPeer> createPeer() override {
+  static std::unique_ptr<IPeer> createPeer() {
     return std::make_unique<WindowsPeer>();
   }
 };

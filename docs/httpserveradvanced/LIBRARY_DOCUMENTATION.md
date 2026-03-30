@@ -19,7 +19,8 @@ A comprehensive, pipeline-based HTTP server library for cross-platform applicati
    - [Utilities](#9-utilities)
 3. [Class Relationships](#class-relationships)
 4. [Usage Patterns](#usage-patterns)
-5. [WebSocket Support Scope](#websocket-support-scope)
+5. [Transport Factory Migration](#transport-factory-migration)
+6. [WebSocket Support Scope](#websocket-support-scope)
 
 ---
 
@@ -55,6 +56,47 @@ HttpServerAdvanced uses a **pipeline-based architecture** inspired by modern web
 - **Cross-Platform Core**: Request handling, routing, and response composition are designed to move unchanged between embedded and desktop targets
 - **Adapter Boundaries**: Transport, filesystem, timing, and framework-specific integration stay behind explicit seams
 - **Static Buffers**: Configurable bounded memory for embedded constraints
+
+---
+
+## Transport Factory Migration
+
+Transport factories now have a compile-time primary path and a runtime compatibility path.
+
+### Static Factory Contract
+
+- A transport factory type should expose static `createServer(std::uint16_t)`, `createClient(std::string_view, std::uint16_t)`, and `createPeer()` methods.
+- [src/httpadv/v1/transport/TransportTraits.h](src/httpadv/v1/transport/TransportTraits.h) detects that contract and exposes `IsStaticTransportFactoryV<TFactory>`.
+- The same header also exposes `makeTransportFactory<TFactory>()` for legacy code that still needs a `std::unique_ptr<ITransportFactory>`.
+
+### Current Implementations
+
+- [src/httpadv/v1/platform/windows/WindowsSocketTransport.h](src/httpadv/v1/platform/windows/WindowsSocketTransport.h) and [src/httpadv/v1/platform/posix/PosixSocketTransport.h](src/httpadv/v1/platform/posix/PosixSocketTransport.h) now use static factory methods directly.
+- [src/httpadv/v1/platform/arduino/ArduinoWiFiTransport.h](src/httpadv/v1/platform/arduino/ArduinoWiFiTransport.h) now exposes its adapter types in the header so the Arduino transport can participate in compile-time detection.
+- [src/httpadv/v1/transport/ITransportFactory.h](src/httpadv/v1/transport/ITransportFactory.h) is now the migration include for code that still wants the legacy runtime interface plus the new adapter helpers.
+
+### Migration Examples
+
+Static construction:
+
+```cpp
+using NativeTransportFactory = httpadv::v1::platform::posix::NativeSocketTransportFactory;
+
+auto server = NativeTransportFactory::createServer(8080);
+auto client = NativeTransportFactory::createClient("127.0.0.1", 8080);
+auto peer = NativeTransportFactory::createPeer();
+```
+
+Legacy compatibility:
+
+```cpp
+using NativeTransportFactory = httpadv::v1::platform::posix::NativeSocketTransportFactory;
+
+std::unique_ptr<httpadv::v1::transport::ITransportFactory> factory =
+    httpadv::v1::transport::makeTransportFactory<NativeTransportFactory>();
+```
+
+Validation currently covers the native transport path in [test/test_native/test_transport_native.cpp](test/test_native/test_transport_native.cpp). Arduino-target compile verification still needs an example/sketch-scoped build lane.
 
 ---
 

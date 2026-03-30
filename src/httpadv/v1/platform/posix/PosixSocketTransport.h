@@ -673,14 +673,14 @@ private:
   std::uint16_t remotePort_ = 0;
 };
 
-class NativeSocketTransportFactory : public ITransportFactory {
+class NativeSocketTransportFactory {
 public:
-  std::unique_ptr<IServer> createServer(std::uint16_t port) override {
+  static std::unique_ptr<IServer> createServer(std::uint16_t port) {
     return std::make_unique<NativeSocketServer>(port);
   }
 
-  std::unique_ptr<IClient> createClient(std::string_view address,
-                                        std::uint16_t port) override {
+  static std::unique_ptr<IClient> createClient(std::string_view address,
+                                               std::uint16_t port) {
     if (!socketRuntime().initialized()) {
       return nullptr;
     }
@@ -705,7 +705,7 @@ public:
     return std::make_unique<NativeSocketClient>(socketHandle.release());
   }
 
-  std::unique_ptr<IPeer> createPeer() override {
+  static std::unique_ptr<IPeer> createPeer() {
     return std::make_unique<NativeSocketPeer>();
   }
 };
