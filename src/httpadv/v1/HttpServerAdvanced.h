@@ -63,7 +63,7 @@
 #include "httpadv/v1/pipeline/PipelineError.h"
 #include "httpadv/v1/pipeline/PipelineHandleClientResult.h"
 #include "httpadv/v1/pipeline/RequestParser.h"
-#include "httpadv/v1/platform/arduino/ArduinoWiFiTransport.h"
+#include "httpadv/v1/platform/TransportFactory.h"
 #include "llhttp/include/llhttp.h"
 
 

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
+  "name": "HttpServerAdvanced",
+  "version": "0.1.0",
+  "description": "A cross-platform HTTP server library for embedded and desktop applications with a framework-independent core",
+  "frameworks": "*",
+  "platforms": "*",
+  "headers": [
+    "HttpServerAdvanced.h"
+  ],
+  "dependencies": [
+    {
+      "name": "bblanchon/ArduinoJson",
+      "version": "^7.4.2"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jeffreyabecker/adv-http"
+  },
+  "build": {
+    "includeDir": "src",
+    "srcDir": "src",
+    "libLDFMode": "chain+",
+    "libCompatMode": "soft"
+  }
+}
