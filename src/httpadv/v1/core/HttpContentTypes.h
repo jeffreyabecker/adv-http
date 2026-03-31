@@ -38,6 +38,7 @@ namespace httpadv::v1::core
         static constexpr const char *Pdf = "application/pdf";
         static constexpr const char *Zip = "application/zip";
         static constexpr const char *Gz = "application/gzip";
+        static constexpr const char *Br = "application/brotli";
         static constexpr const char *Mp3 = "audio/mpeg";
         static constexpr const char *Mp4 = "video/mp4";
         static constexpr const char *Webm = "video/webm";
@@ -99,6 +100,7 @@ namespace httpadv::v1::core
                 {"pdf", Pdf},
                 {"zip", Zip},
                 {"gz", Gz},
+                {"br", Br},
                 {"mp3", Mp3},
                 {"mp4", Mp4},
                 {"webm", Webm},

@@ -230,9 +230,13 @@ StaticFileHandlerFactory::create(HttpContext &context) {
 
   const std::string_view filePath = file->path();
   const bool isGzipped = EndsWith(filePath, ".gz");
+  const bool isBrotli = EndsWith(filePath, ".br");
 
   const char *contentType = nullptr;
   if (isGzipped) {
+    contentType = contentTypes_.getContentTypeFromPath(
+        filePath.substr(0, filePath.size() - 3));
+  } else if (isBrotli) {
     contentType = contentTypes_.getContentTypeFromPath(
         filePath.substr(0, filePath.size() - 3));
   } else {
@@ -259,6 +263,9 @@ StaticFileHandlerFactory::create(HttpContext &context) {
 
   if (isGzipped) {
     headers.push_back(httpadv::v1::core::HttpHeader::ContentEncoding("gzip"));
+  }
+  if (isBrotli) {
+    headers.push_back(httpadv::v1::core::HttpHeader::ContentEncoding("br"));
   }
 
     std::unique_ptr<httpadv::v1::transport::IByteSource> body = std::move(file);

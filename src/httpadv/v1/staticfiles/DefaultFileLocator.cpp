@@ -120,6 +120,11 @@ FileHandle DefaultFileLocator::getFile(HttpContext &context) {
 
     FileHandle file = OpenFile(filesystem_, path);
     if (!file) {
+        std::string brPath = path + ".br";
+        file = OpenFile(filesystem_, brPath);
+        if (file) {
+            return file;
+        }
         std::string gzPath = path + ".gz";
         file = OpenFile(filesystem_, gzPath);
         if (file) {
@@ -133,8 +138,12 @@ FileHandle DefaultFileLocator::getFile(HttpContext &context) {
         file->close();
         file = OpenFile(filesystem_, indexPath);
         if (!file) {
-            std::string gzIndexPath = indexPath + ".gz";
-            file = OpenFile(filesystem_, gzIndexPath);
+            std::string brIndexPath = indexPath + ".br";
+            file = OpenFile(filesystem_, brIndexPath);
+            if (!file) {
+                std::string gzIndexPath = indexPath + ".gz";
+                file = OpenFile(filesystem_, gzIndexPath);
+            }
         }
     }
     return file;
