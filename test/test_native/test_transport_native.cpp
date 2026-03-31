@@ -11,6 +11,8 @@
 #include "../../src/httpadv/v1/platform/posix/PosixSocketTransport.h"
 #endif
 
+#include "../../src/httpadv/v1/platform/TransportFactory.h"
+
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -189,7 +191,10 @@ void test_native_factory_creates_tcp_server_and_client_loopback() {
   TEST_ASSERT_FALSE(accepted->connected());
   server->end();
 }
-
+void test_native_factory_wrapper_can_be_instantiated() {
+  httpadv::v1::platform::TransportFactory transportFactory;
+  TEST_ASSERT_NOT_NULL(&transportFactory);
+}
 void test_native_factory_creates_udp_peers_for_loopback_packets() {
 
 
@@ -238,6 +243,7 @@ void test_native_factory_creates_udp_peers_for_loopback_packets() {
 
 int runUnitySuite() {
   UNITY_BEGIN();
+  RUN_TEST(test_native_factory_wrapper_can_be_instantiated);
   RUN_TEST(test_native_factory_creates_tcp_server_and_client_loopback);
   RUN_TEST(test_native_factory_creates_udp_peers_for_loopback_packets);
   return UNITY_END();

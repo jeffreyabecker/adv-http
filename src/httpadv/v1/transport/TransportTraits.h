@@ -62,5 +62,13 @@ namespace httpadv::v1::transport
     template <typename TFactory>
     inline constexpr bool IsStaticTransportFactoryV = IsStaticTransportFactory<TFactory>::value;
 
+    class ITransportFactory
+    {
+    public:
+        virtual ~ITransportFactory() = default;
 
+        virtual std::unique_ptr<IServer> createServer(std::uint16_t port) = 0;
+        virtual std::unique_ptr<IClient> createClient(std::string_view address, std::uint16_t port) = 0;
+        virtual std::unique_ptr<IPeer> createPeer() = 0;
+    };
 }
