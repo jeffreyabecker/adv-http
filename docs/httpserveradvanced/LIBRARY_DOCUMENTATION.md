@@ -339,12 +339,12 @@ Handlers process HTTP requests and generate responses.
 
 | Type | HTTP Method | Body Type | Signature |
 |------|-------------|-----------|-----------|
-| `GetRequest` | GET | None | `(HttpContext&, args...) → IHttpResponse` |
-| `Json` | POST/PUT | Optional JSON document | `(HttpContext&, JsonDocument&, args...) → IHttpResponse` when JSON support is enabled |
-| `Form` | POST | URL-encoded | `(HttpContext&, FormData&, args...) → IHttpResponse` |
-| `Multipart` | POST | multipart/form-data | `(HttpContext&, MultipartData&, args...) → IHttpResponse` |
-| `RawBody` | POST/PUT | Raw bytes | `(HttpContext&, Buffer&, args...) → IHttpResponse` |
-| `BufferedString` | POST/PUT | String | `(HttpContext&, String&, args...) → IHttpResponse` |
+| `GetRequest` | User-defined | None | `(HttpContext&, RouteParameters&&) → HandlerResult` or `(HttpContext&) → HandlerResult` |
+| `Json` | User-defined | Buffered JSON document | `(HttpContext&, RouteParameters&&, JsonDocument&&) → HandlerResult` when JSON support is enabled |
+| `Form` | User-defined | URL-encoded body | `(HttpContext&, RouteParameters&&, QueryParameters&&) → HandlerResult` |
+| `Multipart` | User-defined | multipart/form-data | `(HttpContext&, RouteParameters&&, PostBodyData&&) → HandlerResult` |
+| `RawBody` | User-defined | Raw bytes | `(HttpContext&, RouteParameters&, RawBodyBuffer) → HandlerResult` |
+| `BufferedString` | User-defined | Buffered string body | `(HttpContext&, RouteParameters&&, std::string&&) → HandlerResult` |
 
 #### IHttpHandler Interface
 
@@ -390,10 +390,10 @@ Each handler type (GetRequest, Json, Form, etc.) follows this pattern. `Json` is
 
 ```cpp
 struct Json {
-    using Invocation = std::function<HandlerResult(HttpContext&, JsonDocument&, std::vector<String>&)>;
-    using InvocationWithoutParams = std::function<HandlerResult(HttpContext&, JsonDocument&)>;
+    using Invocation = std::function<HandlerResult(HttpContext&, RouteParameters&&, JsonDocument&&)>;
+    using InvocationWithoutParams = std::function<HandlerResult(HttpContext&, JsonDocument&&)>;
     
-    // Restrict matcher to appropriate content types/methods
+    // Restrict matcher to application/json requests
     static void restrict(HandlerMatcher& matcher);
     
     // Create handler factory
@@ -402,6 +402,7 @@ struct Json {
     // Curry helpers for interceptors
     static Invocation curryInterceptor(IHttpHandler::InterceptorCallback, Invocation);
     static Invocation curryWithoutParams(InvocationWithoutParams);
+    static Invocation applyFilter(IHttpHandler::InterceptorCallback, Invocation);
     
     // Response filter application
     static Invocation applyResponseFilter(IHttpResponse::ResponseFilter, Invocation);
@@ -421,7 +422,7 @@ The routing module provides URL pattern matching and handler registration.
 | Class | Purpose |
 |-------|---------|
 | `HandlerMatcher` | Matches requests by URI pattern, method, content type |
-| `ParameterizedUri` | HandlerMatcher variant for `/path/:param` patterns |
+| `ParameterizedUri` | HandlerMatcher variant for wildcard path-segment patterns such as `/users/?` |
 | `HandlerBuilder<T>` | Fluent builder for configuring handlers |
 | `HandlerProviderRegistry` | Central registry of handler factories |
 | `ProviderRegistryBuilder` | Builder API for registering handlers |
@@ -435,15 +436,15 @@ Matches incoming requests against patterns:
 ```cpp
 class HandlerMatcher {
 public:
-    HandlerMatcher(const String& uriPattern, 
-                   const String& allowedMethods = "",
-                   const std::initializer_list<String>& allowedContentTypes = {});
+    HandlerMatcher(std::string_view uriPattern,
+                   std::string_view allowedMethods = "",
+                   const std::initializer_list<std::string_view>& allowedContentTypes = {});
     
     // Check if this matcher handles the request
     bool canHandle(HttpContext& context) const;
     
-    // Extract URI parameters (e.g., /users/:id → ["123"])
-    std::vector<String> extractParameters(HttpContext& context) const;
+    // Extract wildcard path segments in order (e.g., /users/? -> ["123"])
+    RouteParameters extractParameters(HttpContext& context) const;
     
     // Setters for custom matching logic
     void setMethodChecker(MethodChecker checker);
@@ -458,9 +459,14 @@ public:
 For dynamic URL segments:
 
 ```cpp
-// Matches /users/:id, /posts/:postId/comments/:commentId
-ParameterizedUri("/users/:id");
+// Matches /users/42 and captures {"42"}
+ParameterizedUri("/users/?");
+
+// Matches /users/42/devices/7 and captures {"42", "7"}
+ParameterizedUri("/users/?/devices/?");
 ```
+
+`RouteParameters` is currently an ordered `std::vector<std::string>`. Path parameters are positional rather than named, so handlers should treat `params[0]`, `params[1]`, and so on as the captured wildcard segments.
 
 #### HandlerBuilder
 
@@ -614,7 +620,6 @@ class JsonResponse {
 public:
     // From a parsed JSON document
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, const JsonDocument& doc);
-    static std::unique_ptr<IHttpResponse> create(const JsonDocument& doc);  // 200 OK
     
     // With additional headers
     static std::unique_ptr<IHttpResponse> create(HttpStatus status, const JsonDocument& doc,
@@ -1046,11 +1051,12 @@ void loop() {
 ### Route Parameters
 
 ```cpp
-server.cfg().on<GetRequest>(ParameterizedUri("/users/:id"), 
-    [](HttpContext& req, std::vector<String>& args) {
-        String userId = args[0];
+server.cfg().on<GetRequest>(ParameterizedUri("/users/?"),
+    [](HttpContext& req, RouteParameters&& params) {
+        const std::string& userId = params[0];
         return StringResponse::text("User: " + userId);
-    });
+    })
+    .allowMethods("GET");
 ```
 
 ### JSON API
@@ -1058,14 +1064,48 @@ server.cfg().on<GetRequest>(ParameterizedUri("/users/:id"),
 This pattern requires optional JSON support to be enabled.
 
 ```cpp
-server.cfg().on<Json>("/api/data", [](HttpContext& req, JsonDocument& body, std::vector<String>& args) {
-    String name = body["name"] | "anonymous";
-    
+server.cfg().on<Json>("/api/data", [](HttpContext& req, JsonDocument&& body) {
+    const std::string name = body["name"].isNull()
+        ? std::string("anonymous")
+        : body["name"].template as<std::string>();
+
     JsonDocument response;
     response["received"] = name;
-    response["timestamp"] = currentTimestampMs();
-    return JsonResponse::create(response);
-});
+    response["contentType"] = "application/json";
+    return JsonResponse::create(HttpStatus::Ok(), response);
+})
+    .allowMethods("POST");
+```
+
+### JSON API With Path Parameters
+
+Use `ParameterizedUri` when the JSON body and the route path both carry request state. Wildcard segments are captured into `RouteParameters` in the same order they appear in the pattern.
+
+```cpp
+server.cfg().on<Json>(
+    ParameterizedUri("/api/users/?/devices/?/commands"),
+    [](HttpContext& req, RouteParameters&& params, JsonDocument&& body) {
+        const std::string& userId = params[0];
+        const std::string& deviceId = params[1];
+        const std::string action = body["action"].isNull()
+            ? std::string("status")
+            : body["action"].template as<std::string>();
+        const int priority = body["priority"].isNull()
+            ? 0
+            : body["priority"].template as<int>();
+
+        JsonDocument response;
+        response["userId"] = userId;
+        response["deviceId"] = deviceId;
+        response["action"] = action;
+        response["priority"] = priority;
+        response["accepted"] = true;
+        return JsonResponse::create(HttpStatus::Accepted(), response);
+    })
+    .allowMethods("POST");
+```
+
+If you need explicit validation, check `params.size()` before indexing and use `Json::deserializationError(req)` to detect malformed JSON payloads.
 ```
 
 ### Form Handling
