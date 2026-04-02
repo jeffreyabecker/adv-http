@@ -184,16 +184,42 @@ TIMEOUT_CLIENT_BODY            = 10000
 TIMEOUT_KEEP_ALIVE             = 15000
 ```
 
-#### HttpContext
+#### HttpRequestContext
 
-The central context object passed through the pipeline:
+The abstract request surface exposed to application callbacks and middleware:
 
 ```cpp
-class HttpContext : public IPipelineHandler {
+class HttpRequestContext {
+public:
+    virtual std::string_view version() const = 0;
+    virtual std::string_view versionView() const = 0;
+    virtual const char* method() const = 0;
+    virtual std::string_view methodView() const = 0;
+    virtual std::string_view url() const = 0;
+    virtual std::string_view urlView() const = 0;
+    virtual const HttpHeaderCollection& headers() const = 0;
+    virtual std::string_view remoteAddress() const = 0;
+    virtual uint16_t remotePort() const = 0;
+    virtual std::string_view localAddress() const = 0;
+    virtual uint16_t localPort() const = 0;
+    virtual std::map<std::string, std::any>& items() const = 0;
+    virtual UriView& uriView() const = 0;
+    virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string body) = 0;
+};
+```
+
+Use `HttpRequestContext` in consumer-facing handlers, predicates, and interceptors when you only need request metadata, shared items, or response creation. It is implemented by `HttpContext`, which remains the concrete runtime object owned by the parser and pipeline.
+
+#### HttpContext
+
+The concrete request context passed through the pipeline:
+
+```cpp
+class HttpContext : public HttpRequestContext, public IPipelineHandler {
     // Request properties
-    const String& method() const;
-    const String& uri() const;
-    const String& version() const;
+    std::string_view methodView() const;
+    std::string_view urlView() const;
+    std::string_view versionView() const;
     const HttpHeaderCollection& headers() const;
     std::string_view remoteAddress() const;
     
@@ -339,12 +365,12 @@ Handlers process HTTP requests and generate responses.
 
 | Type | HTTP Method | Body Type | Signature |
 |------|-------------|-----------|-----------|
-| `GetRequest` | User-defined | None | `(HttpContext&, RouteParameters&&) → HandlerResult` or `(HttpContext&) → HandlerResult` |
-| `Json` | User-defined | Buffered JSON document | `(HttpContext&, RouteParameters&&, JsonDocument&&) → HandlerResult` when JSON support is enabled |
-| `Form` | User-defined | URL-encoded body | `(HttpContext&, RouteParameters&&, QueryParameters&&) → HandlerResult` |
-| `Multipart` | User-defined | multipart/form-data | `(HttpContext&, RouteParameters&&, PostBodyData&&) → HandlerResult` |
-| `RawBody` | User-defined | Raw bytes | `(HttpContext&, RouteParameters&, RawBodyBuffer) → HandlerResult` |
-| `BufferedString` | User-defined | Buffered string body | `(HttpContext&, RouteParameters&&, std::string&&) → HandlerResult` |
+| `GetRequest` | User-defined | None | `(HttpRequestContext&, RouteParameters&&) → HandlerResult` or `(HttpRequestContext&) → HandlerResult` |
+| `Json` | User-defined | Buffered JSON document | `(HttpRequestContext&, RouteParameters&&, JsonDocument&&) → HandlerResult` when JSON support is enabled |
+| `Form` | User-defined | URL-encoded body | `(HttpRequestContext&, RouteParameters&&, QueryParameters&&) → HandlerResult` |
+| `Multipart` | User-defined | multipart/form-data | `(HttpRequestContext&, RouteParameters&&, PostBodyData&&) → HandlerResult` |
+| `RawBody` | User-defined | Raw bytes | `(HttpRequestContext&, RouteParameters&, RawBodyBuffer) → HandlerResult` |
+| `BufferedString` | User-defined | Buffered string body | `(HttpRequestContext&, RouteParameters&&, std::string&&) → HandlerResult` |
 
 #### IHttpHandler Interface
 
@@ -352,9 +378,15 @@ Handlers process HTTP requests and generate responses.
 class IHttpHandler {
 public:
     using HandlerResult = std::unique_ptr<IHttpResponse>;
-    using InvocationCallback = std::function<HandlerResult(HttpContext&)>;
-    using InterceptorCallback = std::function<HandlerResult(HttpContext&, InvocationCallback)>;
-    using Predicate = std::function<bool(HttpContext&)>;
+    class InvocationNext {
+    public:
+        HandlerResult operator()() const;
+        HttpRequestContext& context() const;
+    };
+
+    using InvocationCallback = std::function<HandlerResult(HttpRequestContext&)>;
+    using InterceptorCallback = std::function<HandlerResult(HttpRequestContext&, InvocationNext)>;
+    using Predicate = std::function<bool(HttpRequestContext&)>;
     using Factory = std::function<std::unique_ptr<IHttpHandler>(HttpContext&)>;
     
     // Called to process request (may be called multiple times for body chunks)
@@ -390,8 +422,8 @@ Each handler type (GetRequest, Json, Form, etc.) follows this pattern. `Json` is
 
 ```cpp
 struct Json {
-    using Invocation = std::function<HandlerResult(HttpContext&, RouteParameters&&, JsonDocument&&)>;
-    using InvocationWithoutParams = std::function<HandlerResult(HttpContext&, JsonDocument&&)>;
+    using Invocation = std::function<HandlerResult(HttpRequestContext&, RouteParameters&&, JsonDocument&&)>;
+    using InvocationWithoutParams = std::function<HandlerResult(HttpRequestContext&, JsonDocument&&)>;
     
     // Restrict matcher to application/json requests
     static void restrict(HandlerMatcher& matcher);
@@ -443,7 +475,7 @@ public:
     // Check if this matcher handles the request
     bool canHandle(HttpContext& context) const;
     
-    // Extract named path segments (e.g., /users/:id -> {"id": "123"})
+    // Extract named and glob path matches (e.g., /users/:id -> {"id": "123"})
     RouteParameters extractParameters(HttpContext& context) const;
     
     // Setters for custom matching logic
@@ -1038,7 +1070,7 @@ void setup() {
     WiFi.begin("SSID", "password");
     while (WiFi.status() != WL_CONNECTED) delay(500);
     
-    server.cfg().on<GetRequest>("/", [](HttpContext& req) {
+    server.cfg().on<GetRequest>("/", [](HttpRequestContext& req) {
         return StringResponse::text("Hello World!");
     });
     
@@ -1054,9 +1086,21 @@ void loop() {
 
 ```cpp
 server.cfg().on<GetRequest>(ParameterizedUri("/users/:id"),
-    [](HttpContext& req, RouteParameters&& params) {
+    [](HttpRequestContext& req, RouteParameters&& params) {
         const std::string& userId = params.at("id");
         return StringResponse::text("User: " + userId);
+    })
+    .allowMethods("GET");
+```
+
+Glob captures are available through ordinal keys in the same map:
+
+```cpp
+server.cfg().on<GetRequest>(HandlerMatcher("**/*.html"),
+    [](HttpRequestContext& req, RouteParameters&& params) {
+        const std::string& directory = params.at("0");
+        const std::string& fileName = params.at("1");
+        return StringResponse::text("HTML file: " + directory + "/" + fileName);
     })
     .allowMethods("GET");
 ```
@@ -1066,7 +1110,7 @@ server.cfg().on<GetRequest>(ParameterizedUri("/users/:id"),
 This pattern requires optional JSON support to be enabled.
 
 ```cpp
-server.cfg().on<Json>("/api/data", [](HttpContext& req, JsonDocument&& body) {
+server.cfg().on<Json>("/api/data", [](HttpRequestContext& req, JsonDocument&& body) {
     const std::string name = body["name"].isNull()
         ? std::string("anonymous")
         : body["name"].template as<std::string>();
@@ -1081,12 +1125,12 @@ server.cfg().on<Json>("/api/data", [](HttpContext& req, JsonDocument&& body) {
 
 ### JSON API With Path Parameters
 
-Use `ParameterizedUri` when the JSON body and the route path both carry request state. Named path segments are captured into `RouteParameters` by key.
+Use `ParameterizedUri` when the JSON body and the route path both carry request state. Named path segments are captured into `RouteParameters` by key, and glob path segments are captured using ordinal string keys.
 
 ```cpp
 server.cfg().on<Json>(
     ParameterizedUri("/api/users/:userId/devices/:deviceId/commands"),
-    [](HttpContext& req, RouteParameters&& params, JsonDocument&& body) {
+    [](HttpRequestContext& req, RouteParameters&& params, JsonDocument&& body) {
         const std::string& userId = params.at("userId");
         const std::string& deviceId = params.at("deviceId");
         const std::string action = body["action"].isNull()
@@ -1107,13 +1151,14 @@ server.cfg().on<Json>(
     .allowMethods("POST");
 ```
 
+For glob-aware APIs, patterns such as `HandlerMatcher("/api/content/**/*.html")` populate `params.at("0")`, `params.at("1")`, and so on in match order.
+
 If you need explicit validation, check `params.size()` before indexing and use `Json::deserializationError(req)` to detect malformed JSON payloads.
-```
 
 ### Form Handling
 
 ```cpp
-server.cfg().on<Form>("/submit", [](HttpContext& req, FormData& form, std::vector<String>& args) {
+server.cfg().on<Form>("/submit", [](HttpRequestContext& req, WebUtility::QueryParameters&& form) {
     auto name = form.get("name");
     auto email = form.get("email");
     return StringResponse::text("Received: " + name.value_or("") + ", " + email.value_or(""));
@@ -1125,7 +1170,7 @@ server.cfg().on<Form>("/submit", [](HttpContext& req, FormData& form, std::vecto
 ```cpp
 auto adminAuth = BasicAuth("admin", "secret", "Admin Area");
 
-server.cfg().on<GetRequest>("/admin", [](HttpContext& req) {
+server.cfg().on<GetRequest>("/admin", [](HttpRequestContext& req) {
     return StringResponse::html("<h1>Admin Panel</h1>");
 }).with(adminAuth);
 ```
@@ -1157,15 +1202,15 @@ server.use(StaticFiles(contentFs, [](StaticFilesBuilder& files) {
 
 ```cpp
 // Log all requests
-server.cfg().with([](HttpContext& req, IHttpHandler::InvocationCallback next) {
-    logRequest(req.method(), req.uri());
-    return next(req);
+server.cfg().with([](HttpRequestContext& req, IHttpHandler::InvocationNext next) {
+    logRequest(req.method(), req.url());
+    return next();
 });
 
 // Global interceptors and response filters wrap matched handlers as well as the fallback handler.
 
 // Filter requests
-server.cfg().filterRequest([](HttpContext& req) {
+server.cfg().filterRequest([](HttpRequestContext& req) {
     return req.remoteAddress() != "192.168.1.100";  // Block IP
 });
 
