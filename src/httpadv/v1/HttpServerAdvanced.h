@@ -6,6 +6,7 @@
 // Core HTTP types and utilities
 #include "httpadv/v1/core/Defines.h"
 #include "httpadv/v1/core/HttpContentTypes.h"
+#include "httpadv/v1/core/HttpRequestContext.h"
 #include "httpadv/v1/core/HttpContext.h"
 #include "httpadv/v1/core/HttpContextPhase.h"
 #include "httpadv/v1/core/HttpHeader.h"
@@ -112,6 +113,7 @@ using IFileSystem = v1::transport::IFileSystem;
 // Utilities
 using Clock = v1::util::Clock;
 using UriView = v1::util::UriView;
+using HttpRequestContext = v1::core::HttpRequestContext;
 
 // Common handler/response types
 using IHttpHandler = v1::handlers::IHttpHandler;

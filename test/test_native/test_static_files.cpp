@@ -743,7 +743,7 @@ namespace
         HttpContentTypes contentTypes;
         std::vector<StaticFileHandlerFactory::ResponseFilterRule> responseRules;
         responseRules.push_back({
-            HandlerMatcher("/?.html"),
+            HandlerMatcher("/index.html"),
             [](std::unique_ptr<IHttpResponse> response) -> std::unique_ptr<IHttpResponse>
             {
                 response->headers().set("X-Template", "true", true);
@@ -776,7 +776,7 @@ namespace
         HttpContentTypes contentTypes;
         std::vector<StaticFileHandlerFactory::InterceptorRule> interceptorRules;
         interceptorRules.push_back({
-            HandlerMatcher("/?.html"),
+            HandlerMatcher("/index.html"),
             [](HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
             {
                 IHttpHandler::HandlerResult result = next(context);
@@ -813,7 +813,7 @@ namespace
         HttpContentTypes contentTypes;
         std::vector<StaticFileHandlerFactory::RequestPredicateRule> predicateRules;
         predicateRules.push_back({
-            HandlerMatcher("/secure/?"),
+            HandlerMatcher("/secure/:fileName"),
             [](HttpContext &context)
             {
                 return context.headers().exists("X-Allow", "1");
@@ -844,21 +844,21 @@ namespace
         StaticFilesBuilder builder(fs, nullptr);
 
         builder.apply(
-            "/?.html",
+            "/index.html",
             [](std::unique_ptr<IHttpResponse> response) -> std::unique_ptr<IHttpResponse>
             {
                 return response;
             });
 
         builder.with(
-            "/?.html",
+            "/index.html",
             [](HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
             {
                 return next(context);
             });
 
         builder.filterRequest(
-            "/?.html",
+            "/index.html",
             [](HttpContext &)
             {
                 return true;

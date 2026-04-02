@@ -253,8 +253,8 @@ namespace
 
     void test_handler_matcher_covers_exact_wildcard_and_parameter_extraction()
     {
-        const std::string filesWildcardPattern = std::string("/files/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
-        const std::string nestedWildcardPattern = std::string("/users/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR + "/photos/" + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+        const std::string filesWildcardPattern = "/files/:fileName";
+        const std::string nestedWildcardPattern = "/users/:userId/photos/:photoId";
 
         RequestContextHarness exactHarness;
         prepareRequest(
@@ -274,21 +274,21 @@ namespace
 
         const RouteParameters exactParams = wildcardMatcher.extractParameters(exactContext);
         TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(exactParams.size()));
-        TEST_ASSERT_EQUAL_STRING("report.txt", exactParams[0].c_str());
+        TEST_ASSERT_EQUAL_STRING("report.txt", exactParams.at("fileName").c_str());
 
         RequestContextHarness nestedHarness;
         prepareRequest(nestedHarness, "GET", "/users/42/photos/cover");
         HandlerMatcher nestedMatcher(nestedWildcardPattern, "GET");
         const RouteParameters nestedParams = nestedMatcher.extractParameters(nestedHarness.context());
         TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(nestedParams.size()));
-        TEST_ASSERT_EQUAL_STRING("42", nestedParams[0].c_str());
-        TEST_ASSERT_EQUAL_STRING("cover", nestedParams[1].c_str());
+        TEST_ASSERT_EQUAL_STRING("42", nestedParams.at("userId").c_str());
+        TEST_ASSERT_EQUAL_STRING("cover", nestedParams.at("photoId").c_str());
     }
 
     void test_handler_matcher_rejects_mismatched_methods_content_types_and_missing_metadata()
     {
-        const std::string filesWildcardPattern = std::string("/files/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
-        const std::string assetsWildcardPattern = std::string("/assets/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+        const std::string filesWildcardPattern = "/files/:fileName";
+        const std::string assetsWildcardPattern = "/assets/:assetName";
 
         RequestContextHarness jsonHarness;
         prepareRequest(
@@ -520,7 +520,7 @@ namespace
 
         HandlerProviderRegistry builderRegistry;
         ProviderRegistryBuilder builder(builderRegistry);
-        const std::string builderPattern = std::string("/legacy/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+        const std::string builderPattern = "/legacy/:resource";
         HandlerMatcher builderMatcher(builderPattern, "GET");
         std::size_t builderFactoryCalls = 0;
         builder.on(builderMatcher, [&builderFactoryCalls](HttpContext &) -> std::unique_ptr<IHttpHandler>
@@ -545,7 +545,7 @@ namespace
         HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
         WebServerBuilder webBuilder(server);
         WebServerConfig config(server, webBuilder);
-        const std::string configPattern = std::string("/config/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+        const std::string configPattern = "/config/:resource";
         HandlerMatcher configMatcher(configPattern, "GET");
         std::size_t configFactoryCalls = 0;
         config.on(configMatcher, [&configFactoryCalls](HttpContext &) -> std::unique_ptr<IHttpHandler>
@@ -583,7 +583,7 @@ namespace
             openCalled = true;
         };
 
-        const std::string websocketPattern = std::string("/ws/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+        const std::string websocketPattern = "/ws/:channel";
         builder.websocket(websocketPattern, callbacks);
 
         RequestContextHarness harness;
@@ -691,7 +691,7 @@ namespace
             {{"Content-Type", "text/plain"}, {"X-Custom", "yes"}});
 
         HandlerMatcher matcher("/initial", "GET", {"application/json"});
-        matcher.setUriPattern("/custom/*");
+        matcher.setUriPattern("/custom/:segment");
         matcher.setAllowedMethods("PATCH");
         matcher.setAllowedContentTypes({"text/plain"});
 
@@ -710,7 +710,7 @@ namespace
         matcher.setUriPatternChecker([&uriChecks](std::string_view uri, std::string_view pattern)
         {
             ++uriChecks;
-            TEST_ASSERT_EQUAL_STRING("/custom/*", std::string(pattern).c_str());
+            TEST_ASSERT_EQUAL_STRING("/custom/:segment", std::string(pattern).c_str());
             return uri.find("/custom/path") != std::string_view::npos;
         });
         matcher.setContentTypeChecker([&contentTypeChecks](HttpContext &request, const std::vector<std::string> &allowedContentTypes)
@@ -722,15 +722,14 @@ namespace
         matcher.setArgsExtractor([&extractCalls](HttpContext &, std::string_view pattern)
         {
             ++extractCalls;
-            TEST_ASSERT_EQUAL_STRING("/custom/*", std::string(pattern).c_str());
-            return RouteParameters{"segment", "value"};
+            TEST_ASSERT_EQUAL_STRING("/custom/:segment", std::string(pattern).c_str());
+            return RouteParameters{{"segment", "value"}};
         });
 
         TEST_ASSERT_TRUE(matcher.canHandle(harness.context()));
         const RouteParameters params = matcher.extractParameters(harness.context());
-        TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(params.size()));
-        TEST_ASSERT_EQUAL_STRING("segment", params[0].c_str());
-        TEST_ASSERT_EQUAL_STRING("value", params[1].c_str());
+        TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(params.size()));
+        TEST_ASSERT_EQUAL_STRING("value", params.at("segment").c_str());
         TEST_ASSERT_EQUAL_UINT64(1, methodChecks);
         TEST_ASSERT_EQUAL_UINT64(1, uriChecks);
         TEST_ASSERT_EQUAL_UINT64(1, contentTypeChecks);
@@ -739,7 +738,7 @@ namespace
 
     void test_default_uri_pattern_matching_uses_path_and_ignores_query_string_with_wildcards()
     {
-        const std::string pattern = std::string("/docs/") + REQUEST_MATCHER_PATH_WILDCARD_CHAR;
+        const std::string pattern = "/docs/:slug";
         TEST_ASSERT_TRUE(defaultCheckUriPattern("/docs/readme?version=1", pattern));
         TEST_ASSERT_FALSE(defaultCheckUriPattern("/doc/readme?version=1", pattern));
     }
@@ -790,7 +789,7 @@ namespace
         ProviderRegistryBuilder builder(registry);
         {
             HandlerMatcher matcher(
-                "/docs/*",
+                "/docs/:slug",
                 defaultCheckMethod,
                 [](std::string_view, std::string_view)
                 {
@@ -799,7 +798,7 @@ namespace
                 defaultCheckContentType,
                 [](HttpContext &, std::string_view)
                 {
-                    return RouteParameters{"readme"};
+                    return RouteParameters{{"slug", "readme"}};
                 },
                 "get",
                 {"Application/Json"});
@@ -807,8 +806,8 @@ namespace
             auto route = builder.on<GetRequest>(matcher, [](HttpContext &request, RouteParameters &&params) -> std::unique_ptr<IHttpResponse>
             {
                 TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(params.size()));
-                request.items()["route-param"] = params[0];
-                return createResponse(HttpStatus::Ok(), std::string("doc:") + params[0]);
+                request.items()["route-param"] = params.at("slug");
+                return createResponse(HttpStatus::Ok(), std::string("doc:") + params.at("slug"));
             });
 
             route.filterRequest([](HttpContext &request)
@@ -873,6 +872,79 @@ namespace
         auto missingHeaderHandler = registry.createContextHandler(missingHeaderHarness.context());
         const auto missingHeaderResponse = captureHandlerResponse(*missingHeaderHandler, missingHeaderHarness.context());
         TEST_ASSERT_EQUAL_STRING("builder-default", missingHeaderResponse.body.c_str());
+    }
+
+    void test_handler_registration_accepts_abstract_request_context_callbacks()
+    {
+        HandlerProviderRegistry registry;
+        registry.setDefaultHandlerFactory([](HttpContext &) -> std::unique_ptr<IHttpHandler>
+        {
+            return std::make_unique<HttpHandler>(
+                createResponse(HttpStatus::NotFound(), "base-default"),
+                [](const HttpContext &)
+                {
+                    return true;
+                });
+        });
+
+        ProviderRegistryBuilder builder(registry);
+        const std::string builderPattern = "/base/:slug";
+        {
+            auto route = builder.on<GetRequest>(builderPattern.c_str(), [](HttpRequestContext &request, RouteParameters &&params) -> std::unique_ptr<IHttpResponse>
+            {
+                request.items()["base-route-param"] = params.at("slug");
+                request.items()["base-method"] = std::string(request.methodView());
+                return request.createResponse(HttpStatus::Ok(), std::string("base:") + params.at("slug"));
+            });
+
+            route.filterRequest([](HttpRequestContext &request)
+            {
+                return request.headers().exists("X-Allow", "yes");
+            });
+        }
+
+        RequestContextHarness matchedHarness;
+        prepareRequest(matchedHarness, "GET", "/base/demo", {{"X-Allow", "yes"}});
+        HttpContext &matchedContext = matchedHarness.context();
+
+        auto matchedHandler = registry.createContextHandler(matchedContext);
+        const auto matchedResponse = captureHandlerResponse(*matchedHandler, matchedContext);
+        TEST_ASSERT_EQUAL_STRING("base:demo", matchedResponse.body.c_str());
+
+        const auto routeParam = std::any_cast<std::string>(&matchedContext.items().at("base-route-param"));
+        TEST_ASSERT_NOT_NULL(routeParam);
+        TEST_ASSERT_EQUAL_STRING("demo", routeParam->c_str());
+
+        const auto method = std::any_cast<std::string>(&matchedContext.items().at("base-method"));
+        TEST_ASSERT_NOT_NULL(method);
+        TEST_ASSERT_EQUAL_STRING("GET", method->c_str());
+
+        RequestContextHarness blockedHarness;
+        prepareRequest(blockedHarness, "GET", "/base/demo");
+        auto blockedHandler = registry.createContextHandler(blockedHarness.context());
+        const auto blockedResponse = captureHandlerResponse(*blockedHandler, blockedHarness.context());
+        TEST_ASSERT_EQUAL_UINT16(404, blockedResponse.status.code());
+
+        RequestContextHarness configHarness;
+        prepareRequest(configHarness, "GET", "/config-base/sample");
+
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        WebServerBuilder webBuilder(server);
+        WebServerConfig config(server, webBuilder);
+        const std::string configPattern = "/config-base/:slug";
+        config.on<GetRequest>(configPattern.c_str(), [](HttpRequestContext &request, RouteParameters &&params) -> std::unique_ptr<IHttpResponse>
+        {
+            request.items()["config-route-param"] = params.at("slug");
+            return request.createResponse(HttpStatus::Ok(), std::string("config:") + params.at("slug"));
+        });
+
+        auto configHandler = config.handlerProviders().createContextHandler(configHarness.context());
+        const auto configResponse = captureHandlerResponse(*configHandler, configHarness.context());
+        TEST_ASSERT_EQUAL_STRING("config:sample", configResponse.body.c_str());
+
+        const auto configRouteParam = std::any_cast<std::string>(&configHarness.context().items().at("config-route-param"));
+        TEST_ASSERT_NOT_NULL(configRouteParam);
+        TEST_ASSERT_EQUAL_STRING("sample", configRouteParam->c_str());
     }
 
     void test_basic_auth_rejects_missing_malformed_and_separatorless_credentials_with_challenge_header()
@@ -1138,6 +1210,7 @@ namespace
         RUN_TEST(test_default_uri_pattern_matching_uses_path_and_ignores_query_string_with_wildcards);
         RUN_TEST(test_handler_provider_registry_ignores_null_callbacks_in_composition_chain);
         RUN_TEST(test_handler_builder_composes_matchers_predicates_interceptors_and_filters);
+        RUN_TEST(test_handler_registration_accepts_abstract_request_context_callbacks);
         RUN_TEST(test_basic_auth_rejects_missing_malformed_and_separatorless_credentials_with_challenge_header);
         RUN_TEST(test_basic_auth_accepts_valid_credentials_for_fixed_and_validator_overloads);
         RUN_TEST(test_cors_omits_optional_headers_and_repeated_application_preserves_existing_values);

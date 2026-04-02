@@ -4,6 +4,7 @@
 #include "../core/HttpHeaderCollection.h"
 #include "../server/HttpServerBase.h"
 #include "../core/HttpContextPhase.h"
+#include "../core/HttpRequestContext.h"
 #include "../pipeline/IPipelineHandler.h"
 #include "../response/HttpResponse.h"
 #include "../util/UriView.h"
@@ -20,7 +21,7 @@ namespace httpadv::v1::core
 
     class HttpContextAccess;
 
-    class HttpContext
+    class HttpContext : public HttpRequestContext
     {
     public:
         HttpContext(httpadv::v1::server::HttpServerBase &server, IHttpContextHandlerFactory& handlerFactory)
@@ -96,26 +97,26 @@ namespace httpadv::v1::core
         inline HttpContextPhaseFlags completedPhases() const { return completedPhases_ != nullptr ? *completedPhases_ : 0; }
 
         // Legacy request accessors preserved on the final context type.
-        inline std::string_view version() const { return versionView(); }
-        inline std::string_view versionView() const { return std::string_view(version_.data(), version_.size()); }
-        inline const char *method() const { return method_.c_str(); }
-        inline std::string_view methodView() const { return std::string_view(method_.data(), method_.size()); }
-        inline std::string_view url() const { return urlView(); }
-        inline std::string_view urlView() const { return std::string_view(url_.data(), url_.size()); }
-        inline const HttpHeaderCollection &headers() const { return headers_; }
-        inline std::string_view remoteAddress() const { return std::string_view(remoteAddress_.data(), remoteAddress_.size()); }
-        inline uint16_t remotePort() const { return remotePort_; }
-        inline std::string_view localAddress() const { return std::string_view(localAddress_.data(), localAddress_.size()); }
-        inline uint16_t localPort() const { return localPort_; }
-        inline std::map<std::string, std::any> &items() const{
+        inline std::string_view version() const override { return versionView(); }
+        inline std::string_view versionView() const override { return std::string_view(version_.data(), version_.size()); }
+        inline const char *method() const override { return method_.c_str(); }
+        inline std::string_view methodView() const override { return std::string_view(method_.data(), method_.size()); }
+        inline std::string_view url() const override { return urlView(); }
+        inline std::string_view urlView() const override { return std::string_view(url_.data(), url_.size()); }
+        inline const HttpHeaderCollection &headers() const override { return headers_; }
+        inline std::string_view remoteAddress() const override { return std::string_view(remoteAddress_.data(), remoteAddress_.size()); }
+        inline uint16_t remotePort() const override { return remotePort_; }
+        inline std::string_view localAddress() const override { return std::string_view(localAddress_.data(), localAddress_.size()); }
+        inline uint16_t localPort() const override { return localPort_; }
+        inline std::map<std::string, std::any> &items() const override {
             return items_;
         }
-        inline std::unique_ptr<httpadv::v1::response::IHttpResponse> createResponse(HttpStatus status, std::string body)
+        inline std::unique_ptr<httpadv::v1::response::IHttpResponse> createResponse(HttpStatus status, std::string body) override
         {
             return handlerFactory_.createResponse(status, std::move(body));
         }
 
-        UriView &uriView() const
+        UriView &uriView() const override
         {
             if (!cachedUriView_)
             {

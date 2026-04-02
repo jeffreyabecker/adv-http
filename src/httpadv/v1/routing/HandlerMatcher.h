@@ -6,12 +6,14 @@
 #include <initializer_list>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace httpadv::v1::routing
 {
     using httpadv::v1::handlers::RouteParameters;
 
     constexpr char REQUEST_MATCHER_PATH_DELIMITER = '/';
+    constexpr char REQUEST_MATCHER_PARAMETER_PREFIX = ':';
     class HandlerMatcher
     {
     public:

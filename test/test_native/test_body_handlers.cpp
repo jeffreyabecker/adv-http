@@ -295,7 +295,7 @@ namespace
             },
             [](HttpContext &) -> RouteParameters
             {
-                return {"route-id", "42"};
+                return {{"route-id", "42"}};
             });
 
         RequestHarness harness(std::move(handler));
@@ -309,9 +309,8 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(1, capturedBodies.size());
         TEST_ASSERT_EQUAL_UINT64(3, capturedBodies[0].size());
         TEST_ASSERT_EQUAL_UINT8_ARRAY(reinterpret_cast<const uint8_t *>(payload.data()), reinterpret_cast<const uint8_t *>(capturedBodies[0].data()), payload.size());
-        TEST_ASSERT_EQUAL_UINT64(2, capturedParams[0].size());
-        TEST_ASSERT_EQUAL_STRING("route-id", capturedParams[0][0].c_str());
-        TEST_ASSERT_EQUAL_STRING("42", capturedParams[0][1].c_str());
+        TEST_ASSERT_EQUAL_UINT64(1, capturedParams[0].size());
+        TEST_ASSERT_EQUAL_STRING("42", capturedParams[0].at("route-id").c_str());
     }
 
     void test_buffered_string_body_handler_ignores_empty_payloads()
@@ -353,7 +352,7 @@ namespace
             },
             [](HttpContext &) -> RouteParameters
             {
-                return {"alpha"};
+                return {{"buffer", "alpha"}};
             });
 
         RequestHarness harness(std::move(handler));
@@ -380,7 +379,7 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(5, capturedBuffers[2].receivedLength());
         TEST_ASSERT_EQUAL_UINT64(5, capturedBuffers[2].contentLength());
         TEST_ASSERT_EQUAL_UINT64(1, capturedParams[0].size());
-        TEST_ASSERT_EQUAL_STRING("alpha", capturedParams[0][0].c_str());
+        TEST_ASSERT_EQUAL_STRING("alpha", capturedParams[0].at("buffer").c_str());
     }
 
     void test_raw_body_handler_passes_large_chunks_without_internal_truncation()
@@ -428,7 +427,7 @@ namespace
             },
             [](HttpContext &) -> RouteParameters
             {
-                return {"route", "form"};
+                return {{"resource", "route"}, {"kind", "form"}};
             });
 
         RequestHarness harness(std::move(handler));
@@ -463,8 +462,8 @@ namespace
         TEST_ASSERT_TRUE(trailing->empty());
 
         TEST_ASSERT_EQUAL_UINT64(2, capturedParams[0].size());
-        TEST_ASSERT_EQUAL_STRING("route", capturedParams[0][0].c_str());
-        TEST_ASSERT_EQUAL_STRING("form", capturedParams[0][1].c_str());
+        TEST_ASSERT_EQUAL_STRING("route", capturedParams[0].at("resource").c_str());
+        TEST_ASSERT_EQUAL_STRING("form", capturedParams[0].at("kind").c_str());
     }
 
     void test_form_body_handler_ignores_empty_payloads()
@@ -540,7 +539,7 @@ namespace
             },
             [](HttpContext &) -> RouteParameters
             {
-                return {"route-part"};
+                    return {{"part", "route-part"}};
             });
 
         RequestHarness harness(std::move(handler));
@@ -655,7 +654,7 @@ namespace
             },
             [](HttpContext &) -> RouteParameters
             {
-                return {"json", "route"};
+                return {{"format", "json"}, {"scope", "route"}};
             });
 
         RequestHarness harness(std::move(handler));
@@ -669,8 +668,8 @@ namespace
         TEST_ASSERT_EQUAL_STRING("ok", capturedMessages[0].c_str());
         TEST_ASSERT_EQUAL(2, capturedCounts[0]);
         TEST_ASSERT_EQUAL_UINT64(2, capturedParams[0].size());
-        TEST_ASSERT_EQUAL_STRING("json", capturedParams[0][0].c_str());
-        TEST_ASSERT_EQUAL_STRING("route", capturedParams[0][1].c_str());
+        TEST_ASSERT_EQUAL_STRING("json", capturedParams[0].at("format").c_str());
+        TEST_ASSERT_EQUAL_STRING("route", capturedParams[0].at("scope").c_str());
         TEST_ASSERT_EQUAL_UINT64(1, sawParseErrors.size());
         TEST_ASSERT_FALSE(sawParseErrors[0]);
     }
@@ -748,7 +747,7 @@ namespace
             [&extractorPhases](HttpContext &context) -> RouteParameters
             {
                 extractorPhases.push_back(context.completedPhases());
-                return {"raw"};
+                return {{"kind", "raw"}};
             });
 
         RequestHarness harness(std::move(handler));
@@ -785,7 +784,7 @@ namespace
             {
                 extractorPhase = context.completedPhases();
                 context.items()["route-key"] = std::string("route-value");
-                return {"route", "123"};
+                return {{"resource", "route"}, {"id", "123"}};
             });
 
         RequestHarness harness(std::move(handler));
@@ -800,8 +799,8 @@ namespace
         TEST_ASSERT_TRUE(handlerSawHeader);
         TEST_ASSERT_EQUAL_STRING("route-value", handlerItemValue.c_str());
         TEST_ASSERT_EQUAL_UINT64(2, capturedParams[0].size());
-        TEST_ASSERT_EQUAL_STRING("route", capturedParams[0][0].c_str());
-        TEST_ASSERT_EQUAL_STRING("123", capturedParams[0][1].c_str());
+        TEST_ASSERT_EQUAL_STRING("route", capturedParams[0].at("resource").c_str());
+        TEST_ASSERT_EQUAL_STRING("123", capturedParams[0].at("id").c_str());
         TEST_ASSERT_EQUAL_STRING("Jane", capturedBodyValues[0].c_str());
     }
 

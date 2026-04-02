@@ -62,6 +62,18 @@ namespace httpadv::v1::server
             return builder_.handlers().on<THandler>(request, handler);
         }
 
+        template <typename THandler = httpadv::v1::handlers::GetRequest,
+                  typename TCallable,
+                  typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
+                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::Invocation> &&
+                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::InvocationWithoutParams> &&
+                                              (std::is_constructible_v<typename THandler::Invocation, TCallable> ||
+                                               std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable>)>>
+        HandlerBuilder<THandler> on(const HandlerMatcher &request, TCallable &&handler)
+        {
+            return builder_.handlers().on<THandler>(request, std::forward<TCallable>(handler));
+        }
+
         template <typename THandler = httpadv::v1::handlers::GetRequest, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const HandlerMatcher &request, const typename THandler::InvocationWithoutParams &handler)
         {
@@ -71,6 +83,18 @@ namespace httpadv::v1::server
         HandlerBuilder<THandler> on(const char *path, const typename THandler::Invocation &handler)
         {
             return builder_.handlers().on<THandler>(path, handler);
+        }
+
+        template <typename THandler = httpadv::v1::handlers::GetRequest,
+                  typename TCallable,
+                  typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
+                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::Invocation> &&
+                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::InvocationWithoutParams> &&
+                                              (std::is_constructible_v<typename THandler::Invocation, TCallable> ||
+                                               std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable>)>>
+        HandlerBuilder<THandler> on(const char *path, TCallable &&handler)
+        {
+            return builder_.handlers().on<THandler>(path, std::forward<TCallable>(handler));
         }
 
         template <typename THandler = httpadv::v1::handlers::GetRequest, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
@@ -90,6 +114,13 @@ namespace httpadv::v1::server
         void filterRequest(IHttpHandler::Predicate predicate)
         {
             builder_.handlerProviders().filterRequest(predicate);
+        }
+        template <typename TPredicate,
+                  typename = std::enable_if_t<!std::is_same_v<std::decay_t<TPredicate>, IHttpHandler::Predicate> &&
+                                              std::is_constructible_v<IHttpHandler::Predicate, TPredicate>>>
+        void filterRequest(TPredicate &&predicate)
+        {
+            filterRequest(IHttpHandler::Predicate(std::forward<TPredicate>(predicate)));
         }
         void with(IHttpHandler::InterceptorCallback wrapper)
         {

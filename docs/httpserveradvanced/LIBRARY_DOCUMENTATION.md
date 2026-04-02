@@ -422,7 +422,7 @@ The routing module provides URL pattern matching and handler registration.
 | Class | Purpose |
 |-------|---------|
 | `HandlerMatcher` | Matches requests by URI pattern, method, content type |
-| `ParameterizedUri` | HandlerMatcher variant for wildcard path-segment patterns such as `/users/?` |
+| `ParameterizedUri` | HandlerMatcher variant for named path-segment patterns such as `/users/:id` |
 | `HandlerBuilder<T>` | Fluent builder for configuring handlers |
 | `HandlerProviderRegistry` | Central registry of handler factories |
 | `ProviderRegistryBuilder` | Builder API for registering handlers |
@@ -443,7 +443,7 @@ public:
     // Check if this matcher handles the request
     bool canHandle(HttpContext& context) const;
     
-    // Extract wildcard path segments in order (e.g., /users/? -> ["123"])
+    // Extract named path segments (e.g., /users/:id -> {"id": "123"})
     RouteParameters extractParameters(HttpContext& context) const;
     
     // Setters for custom matching logic
@@ -459,14 +459,14 @@ public:
 For dynamic URL segments:
 
 ```cpp
-// Matches /users/42 and captures {"42"}
-ParameterizedUri("/users/?");
+// Matches /users/42 and captures {"id": "42"}
+ParameterizedUri("/users/:id");
 
-// Matches /users/42/devices/7 and captures {"42", "7"}
-ParameterizedUri("/users/?/devices/?");
+// Matches /users/42/devices/7 and captures {"userId": "42", "deviceId": "7"}
+ParameterizedUri("/users/:userId/devices/:deviceId");
 ```
 
-`RouteParameters` is currently an ordered `std::vector<std::string>`. Path parameters are positional rather than named, so handlers should treat `params[0]`, `params[1]`, and so on as the captured wildcard segments.
+`RouteParameters` is a `std::map<std::string, std::string>`. Named path parameters use `:name` syntax, where the parameter name starts with `:` and continues with `[a-zA-Z0-9_.-]+`.
 
 #### HandlerBuilder
 
@@ -517,7 +517,7 @@ public:
 };
 ```
 
-`HandlerMatcher` path wildcards follow the library's configured matcher constant, `REQUEST_MATCHER_PATH_WILDCARD_CHAR`, which defaults to `?`.
+`HandlerMatcher` named path parameters match one path segment at a time and are exposed by parameter name in `RouteParameters`.
 
 #### BasicAuthentication
 
@@ -1051,9 +1051,9 @@ void loop() {
 ### Route Parameters
 
 ```cpp
-server.cfg().on<GetRequest>(ParameterizedUri("/users/?"),
+server.cfg().on<GetRequest>(ParameterizedUri("/users/:id"),
     [](HttpContext& req, RouteParameters&& params) {
-        const std::string& userId = params[0];
+        const std::string& userId = params.at("id");
         return StringResponse::text("User: " + userId);
     })
     .allowMethods("GET");
@@ -1079,14 +1079,14 @@ server.cfg().on<Json>("/api/data", [](HttpContext& req, JsonDocument&& body) {
 
 ### JSON API With Path Parameters
 
-Use `ParameterizedUri` when the JSON body and the route path both carry request state. Wildcard segments are captured into `RouteParameters` in the same order they appear in the pattern.
+Use `ParameterizedUri` when the JSON body and the route path both carry request state. Named path segments are captured into `RouteParameters` by key.
 
 ```cpp
 server.cfg().on<Json>(
-    ParameterizedUri("/api/users/?/devices/?/commands"),
+    ParameterizedUri("/api/users/:userId/devices/:deviceId/commands"),
     [](HttpContext& req, RouteParameters&& params, JsonDocument&& body) {
-        const std::string& userId = params[0];
-        const std::string& deviceId = params[1];
+        const std::string& userId = params.at("userId");
+        const std::string& deviceId = params.at("deviceId");
         const std::string action = body["action"].isNull()
             ? std::string("status")
             : body["action"].template as<std::string>();

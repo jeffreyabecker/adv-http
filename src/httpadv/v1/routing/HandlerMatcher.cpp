@@ -4,6 +4,7 @@
 #include <cctype>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "../core/HttpContext.h"
 #include "../util/UriView.h"
@@ -33,6 +34,107 @@ namespace httpadv::v1::routing
             return value.size() >= prefix.size() &&
                    std::equal(prefix.begin(), prefix.end(), value.begin(), [](char lhs, char rhs)
                               { return toLowerAscii(lhs) == toLowerAscii(rhs); });
+        }
+
+        bool isRouteParameterNameChar(char value)
+        {
+            const unsigned char ch = static_cast<unsigned char>(value);
+            return std::isalnum(ch) != 0 || value == '_' || value == '-' || value == '.';
+        }
+
+        bool isNamedRouteParameter(std::string_view segment)
+        {
+            if (segment.size() < 2 || segment.front() != REQUEST_MATCHER_PARAMETER_PREFIX)
+            {
+                return false;
+            }
+
+            for (std::size_t index = 1; index < segment.size(); ++index)
+            {
+                if (!isRouteParameterNameChar(segment[index]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        std::vector<std::string_view> splitPathSegments(std::string_view value)
+        {
+            std::vector<std::string_view> segments;
+            std::size_t start = 0;
+
+            while (start <= value.size())
+            {
+                const std::size_t end = value.find(REQUEST_MATCHER_PATH_DELIMITER, start);
+                if (end == std::string_view::npos)
+                {
+                    segments.push_back(value.substr(start));
+                    break;
+                }
+
+                segments.push_back(value.substr(start, end - start));
+                start = end + 1;
+            }
+
+            return segments;
+        }
+
+        bool matchUriPattern(std::string_view uri, std::string_view uriPattern, RouteParameters *parameters)
+        {
+            const httpadv::v1::util::UriView parsedUri(uri);
+            const std::string_view path = parsedUri.path();
+            const std::vector<std::string_view> pathSegments = splitPathSegments(path);
+            const std::vector<std::string_view> patternSegments = splitPathSegments(uriPattern);
+
+            if (pathSegments.size() != patternSegments.size())
+            {
+                return false;
+            }
+
+            if (parameters != nullptr)
+            {
+                parameters->clear();
+            }
+
+            for (std::size_t index = 0; index < patternSegments.size(); ++index)
+            {
+                const std::string_view patternSegment = patternSegments[index];
+                const std::string_view pathSegment = pathSegments[index];
+
+                if (isNamedRouteParameter(patternSegment))
+                {
+                    if (pathSegment.empty())
+                    {
+                        return false;
+                    }
+
+                    if (parameters != nullptr)
+                    {
+                        const std::string name(patternSegment.substr(1));
+                        const auto inserted = parameters->emplace(name, std::string(pathSegment));
+                        if (!inserted.second)
+                        {
+                            return false;
+                        }
+                    }
+
+                    continue;
+                }
+
+                if (!patternSegment.empty() && patternSegment.front() == REQUEST_MATCHER_PARAMETER_PREFIX)
+                {
+                    return false;
+                }
+
+                if (patternSegment != pathSegment)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 
@@ -78,127 +180,13 @@ namespace httpadv::v1::routing
 
     bool defaultCheckUriPattern(std::string_view uri, std::string_view uriPattern)
     {
-        const std::string_view path = httpadv::v1::util::UriView(uri).path();
-        std::size_t pathIndex = 0;
-        std::size_t patternIndex = 0;
-        std::size_t wildcardIndex = std::string_view::npos;
-        std::size_t matchIndex = 0;
-
-        while (pathIndex < path.size())
-        {
-            if (patternIndex < uriPattern.size() && uriPattern[patternIndex] == path[pathIndex])
-            {
-                ++pathIndex;
-                ++patternIndex;
-                continue;
-            }
-
-            if (patternIndex < uriPattern.size() && uriPattern[patternIndex] == httpadv::v1::core::REQUEST_MATCHER_PATH_WILDCARD_CHAR)
-            {
-                wildcardIndex = patternIndex;
-                matchIndex = pathIndex;
-                ++patternIndex;
-                continue;
-            }
-
-            if (wildcardIndex != std::string_view::npos)
-            {
-                patternIndex = wildcardIndex + 1;
-                pathIndex = ++matchIndex;
-                continue;
-            }
-
-            return false;
-        }
-
-        while (patternIndex < uriPattern.size() && uriPattern[patternIndex] == httpadv::v1::core::REQUEST_MATCHER_PATH_WILDCARD_CHAR)
-        {
-            ++patternIndex;
-        }
-
-        return patternIndex == uriPattern.size();
+        return matchUriPattern(uri, uriPattern, nullptr);
     }
 
     RouteParameters defaultExtractParameters(httpadv::v1::core::HttpContext &context, std::string_view uriPattern)
     {
         RouteParameters params;
-        auto v = httpadv::v1::util::UriView(context.urlView());
-        auto path = v.path();
-        if (uriPattern.find(httpadv::v1::core::REQUEST_MATCHER_PATH_WILDCARD_CHAR) == std::string_view::npos)
-        {
-            return params;
-        }
-
-        const char *t = path.data();
-        const char *tEnd = t + path.size();
-        const char *p = uriPattern.data();
-        const char *pEnd = p + uriPattern.size();
-        std::string currentParam;
-
-        while (t != tEnd && p != pEnd)
-        {
-            if (*p == httpadv::v1::core::REQUEST_MATCHER_PATH_WILDCARD_CHAR)
-            {
-                // Wildcard: capture until next REQUEST_MATCHER_PATH_DELIMITER or end of string
-                currentParam.clear();
-                ++p; // Move past the REQUEST_MATCHER_PATH_WILDCARD_CHAR
-
-                // Capture characters until we hit the next REQUEST_MATCHER_PATH_DELIMITER in pattern or end of text
-                while (t != tEnd && (*t != REQUEST_MATCHER_PATH_DELIMITER || (p != pEnd && *p != REQUEST_MATCHER_PATH_DELIMITER)))
-                {
-                    if (p != pEnd && *p == REQUEST_MATCHER_PATH_DELIMITER && *t == REQUEST_MATCHER_PATH_DELIMITER)
-                    {
-                        break;
-                    }
-                    currentParam.push_back(*t);
-                    ++t;
-                }
-
-                if (!currentParam.empty())
-                {
-                    params.push_back(currentParam);
-                }
-            }
-            else if (*p == REQUEST_MATCHER_PATH_DELIMITER && *t == REQUEST_MATCHER_PATH_DELIMITER)
-            {
-                // Both have REQUEST_MATCHER_PATH_DELIMITER, move forward
-                ++t;
-                ++p;
-            }
-            else if (*p == *t)
-            {
-                // Characters match
-                ++t;
-                ++p;
-            }
-            else
-            {
-                // Mismatch
-                break;
-            }
-        }
-
-        // Handle trailing wildcards
-        while (p != pEnd && *p == httpadv::v1::core::REQUEST_MATCHER_PATH_WILDCARD_CHAR)
-        {
-            currentParam.clear();
-            ++p;
-            while (t != tEnd && *t != REQUEST_MATCHER_PATH_DELIMITER)
-            {
-                currentParam.push_back(*t);
-                ++t;
-            }
-            if (!currentParam.empty())
-            {
-                params.push_back(currentParam);
-            }
-            if (p != pEnd && t != tEnd && *p == REQUEST_MATCHER_PATH_DELIMITER && *t == REQUEST_MATCHER_PATH_DELIMITER)
-            {
-                ++t;
-                ++p;
-            }
-        }
-
+        matchUriPattern(context.urlView(), uriPattern, &params);
         return params;
     }
 

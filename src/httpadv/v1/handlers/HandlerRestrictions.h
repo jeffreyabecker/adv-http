@@ -1,7 +1,7 @@
 #pragma once
 #include <functional>
+#include <map>
 #include <string>
-#include <vector>
 #include "../core/Defines.h"
 #include "../response/IHttpResponse.h"
 #include "IHttpHandler.h"
@@ -16,8 +16,7 @@ namespace httpadv::v1::handlers
     using httpadv::v1::response::IHttpResponse;
 
     // Forward declare for trait checking
-    using RouteParameter = std::string;
-    using RouteParameters = std::vector<RouteParameter>;
+    using RouteParameters = std::map<std::string, std::string>;
     using ExtractArgsFromRequest = std::function<RouteParameters(httpadv::v1::core::HttpContext &context)>;
 
     namespace HandlerRestrictions

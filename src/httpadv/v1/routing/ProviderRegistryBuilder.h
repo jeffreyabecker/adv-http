@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 
 namespace httpadv::v1::routing
@@ -106,6 +107,27 @@ namespace httpadv::v1::routing
             return HandlerBuilder<THandler>(std::move(addHandler), request, handler, adapterExtractor);
         }
 
+        template <typename THandler,
+                  typename TCallable,
+                  typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
+                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::Invocation> &&
+                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::InvocationWithoutParams> &&
+                                              (std::is_constructible_v<typename THandler::Invocation, TCallable> ||
+                                               std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable>)>>
+        HandlerBuilder<THandler> on(const HandlerMatcher &request, TCallable &&handler)
+        {
+            constexpr bool supportsWithParams = std::is_constructible_v<typename THandler::Invocation, TCallable>;
+            constexpr bool supportsWithoutParams = std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable>;
+            static_assert(!(supportsWithParams && supportsWithoutParams), "Callable matches both handler callback forms; cast it explicitly.");
+
+            if constexpr (supportsWithoutParams)
+            {
+                return on<THandler>(request, typename THandler::InvocationWithoutParams(std::forward<TCallable>(handler)));
+            }
+
+            return on<THandler>(request, typename THandler::Invocation(std::forward<TCallable>(handler)));
+        }
+
         template <typename THandler, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const HandlerMatcher &request, const typename THandler::InvocationWithoutParams &handler)
         {
@@ -129,6 +151,27 @@ namespace httpadv::v1::routing
                 providerRegistry_.add(std::move(predicate), std::move(factory));
             };
             return HandlerBuilder<THandler>(std::move(addHandler), request, handler, adapterExtractor);
+        }
+
+        template <typename THandler,
+                  typename TCallable,
+                  typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
+                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::Invocation> &&
+                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::InvocationWithoutParams> &&
+                                              (std::is_constructible_v<typename THandler::Invocation, TCallable> ||
+                                               std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable>)>>
+        HandlerBuilder<THandler> on(const char *path, TCallable &&handler)
+        {
+            constexpr bool supportsWithParams = std::is_constructible_v<typename THandler::Invocation, TCallable>;
+            constexpr bool supportsWithoutParams = std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable>;
+            static_assert(!(supportsWithParams && supportsWithoutParams), "Callable matches both handler callback forms; cast it explicitly.");
+
+            if constexpr (supportsWithoutParams)
+            {
+                return on<THandler>(path, typename THandler::InvocationWithoutParams(std::forward<TCallable>(handler)));
+            }
+
+            return on<THandler>(path, typename THandler::Invocation(std::forward<TCallable>(handler)));
         }
 
         template <typename THandler, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
