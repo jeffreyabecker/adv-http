@@ -19,7 +19,7 @@ JsonBodyHandler::handleBody(httpadv::v1::core::HttpContext &context, std::vector
 }
 
 Json::Invocation Json::curryWithoutParams(InvocationWithoutParams handler) {
-  return [handler](httpadv::v1::core::HttpContext &context, RouteParameters &&,
+  return [handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &&,
                    JsonDocument &&jsonData) {
     return handler(context, std::move(jsonData));
   };
@@ -39,32 +39,30 @@ IHttpHandler::Factory Json::makeFactory(Invocation handler,
 Json::Invocation
 Json::curryInterceptor(IHttpHandler::InterceptorCallback interceptor,
                        Invocation handler) {
-  return [interceptor, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params,
+  return [interceptor, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &&params,
                                 JsonDocument &&jsonData) {
-    return interceptor(context, [handler, params = std::move(params),
-                                 jsonData = std::move(jsonData)](
-                                    httpadv::v1::core::HttpContext &context) mutable {
+    return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params),
+                                 jsonData = std::move(jsonData)]() mutable {
       return handler(context, std::move(params), std::move(jsonData));
-    });
+    }));
   };
 }
 
 Json::Invocation
 Json::applyFilter(IHttpHandler::InterceptorCallback interceptor,
                   Invocation handler) {
-  return [interceptor, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params,
+  return [interceptor, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &&params,
                                 JsonDocument &&jsonData) {
-    return interceptor(context, [handler, params = std::move(params),
-                                 jsonData = std::move(jsonData)](
-                                    httpadv::v1::core::HttpContext &context) mutable {
+    return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params),
+                                 jsonData = std::move(jsonData)]() mutable {
       return handler(context, std::move(params), std::move(jsonData));
-    });
+    }));
   };
 }
 
 Json::Invocation Json::applyResponseFilter(IHttpResponse::ResponseFilter filter,
                                            Invocation handler) {
-  return [filter, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params,
+  return [filter, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &&params,
                            JsonDocument &&jsonData) {
     auto response = handler(context, std::move(params), std::move(jsonData));
     if (!response.isResponse()) {

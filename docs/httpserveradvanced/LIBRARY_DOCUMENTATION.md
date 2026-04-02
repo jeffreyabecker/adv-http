@@ -468,6 +468,8 @@ ParameterizedUri("/users/:userId/devices/:deviceId");
 
 `RouteParameters` is a `std::map<std::string, std::string>`. Named path parameters use `:name` syntax, where the parameter name starts with `:` and continues with `[a-zA-Z0-9_.-]+`.
 
+Glob-style URI patterns are also supported. Use `*` to match a single path segment with glob semantics such as `*.html`, and use `**` to match zero or more full path segments. Glob captures are exposed through `RouteParameters` using their ordinal position converted to a string. For example, `HandlerMatcher("**/*.html")` matches `/pages/docs/index.html` and extracts `{"0": "pages/docs", "1": "index.html"}`.
+
 #### HandlerBuilder
 
 Fluent builder returned by `on()` methods:
@@ -517,7 +519,7 @@ public:
 };
 ```
 
-`HandlerMatcher` named path parameters match one path segment at a time and are exposed by parameter name in `RouteParameters`.
+`HandlerMatcher` named path parameters match one path segment at a time and are exposed by parameter name in `RouteParameters`. Glob matchers are exposed in the same map using ordinal keys such as `"0"`, `"1"`, and so on.
 
 #### BasicAuthentication
 

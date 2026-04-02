@@ -10,6 +10,7 @@
 
 namespace httpadv::v1::handlers
 {
+    using httpadv::v1::core::HttpRequestContext;
     class RawBodyBuffer
     {
     private:
@@ -40,7 +41,7 @@ namespace httpadv::v1::handlers
     class RawBodyHandler : public IHttpHandler
     {
     private:
-        std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, RawBodyBuffer)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &, RawBodyBuffer)> handler_;
         ExtractArgsFromRequest extractor_;
         HandlerResult response_;
         RouteParameters params_;
@@ -48,11 +49,19 @@ namespace httpadv::v1::handlers
         size_t contentLength_{0};
 
     public:
-        RawBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        RawBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](httpadv::v1::core::HttpContext &context, RouteParameters &, RawBodyBuffer buffer)
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
+                       { return handler(static_cast<httpadv::v1::core::HttpContext &>(context), params, buffer); }),
+              extractor_(extractor) {}
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](HttpRequestContext &context, RouteParameters &, RawBodyBuffer buffer)
                        { return handler(context, buffer); }),
+              extractor_(extractor) {}
+        RawBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RawBodyBuffer)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](HttpRequestContext &context, RouteParameters &, RawBodyBuffer buffer)
+                       { return handler(static_cast<httpadv::v1::core::HttpContext &>(context), buffer); }),
               extractor_(extractor) {}
 
         virtual HandlerResult handleStep(httpadv::v1::core::HttpContext &context);
@@ -61,8 +70,26 @@ namespace httpadv::v1::handlers
     class RawBody
     {
     public:
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RawBodyBuffer)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, RawBodyBuffer)>;
+        using LegacyInvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RawBodyBuffer)>;
+        using LegacyInvocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, RawBodyBuffer)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RawBodyBuffer)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &, RawBodyBuffer)>;
+
+        static InvocationWithoutParams adaptLegacyInvocationWithoutParams(LegacyInvocationWithoutParams handler)
+        {
+            return [handler](HttpRequestContext &context, RawBodyBuffer buffer)
+            {
+                return handler(static_cast<httpadv::v1::core::HttpContext &>(context), buffer);
+            };
+        }
+
+        static Invocation adaptLegacyInvocation(LegacyInvocation handler)
+        {
+            return [handler](HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
+            {
+                return handler(static_cast<httpadv::v1::core::HttpContext &>(context), params, buffer);
+            };
+        }
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 

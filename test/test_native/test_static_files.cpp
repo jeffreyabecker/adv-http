@@ -777,9 +777,9 @@ namespace
         std::vector<StaticFileHandlerFactory::InterceptorRule> interceptorRules;
         interceptorRules.push_back({
             HandlerMatcher("/index.html"),
-            [](HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+            [](HttpRequestContext &context, IHttpHandler::InvocationNext next) -> IHttpHandler::HandlerResult
             {
-                IHttpHandler::HandlerResult result = next(context);
+                IHttpHandler::HandlerResult result = next();
                 if (result.isResponse() && result.response)
                 {
                     result.response->headers().set("X-Intercepted", "true", true);
@@ -814,7 +814,7 @@ namespace
         std::vector<StaticFileHandlerFactory::RequestPredicateRule> predicateRules;
         predicateRules.push_back({
             HandlerMatcher("/secure/:fileName"),
-            [](HttpContext &context)
+            [](HttpRequestContext &context)
             {
                 return context.headers().exists("X-Allow", "1");
             }});
@@ -852,14 +852,14 @@ namespace
 
         builder.with(
             "/index.html",
-            [](HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+            [](HttpRequestContext &context, IHttpHandler::InvocationNext next) -> IHttpHandler::HandlerResult
             {
-                return next(context);
+                return next();
             });
 
         builder.filterRequest(
             "/index.html",
-            [](HttpContext &)
+            [](HttpRequestContext &)
             {
                 return true;
             });

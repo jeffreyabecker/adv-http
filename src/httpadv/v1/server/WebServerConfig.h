@@ -67,8 +67,12 @@ namespace httpadv::v1::server
                   typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::Invocation> &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::InvocationWithoutParams> &&
+                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::LegacyInvocation> &&
+                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::LegacyInvocationWithoutParams> &&
                                               (std::is_constructible_v<typename THandler::Invocation, TCallable> ||
-                                               std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable>)>>
+                                               std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable> ||
+                                               std::is_constructible_v<typename THandler::LegacyInvocation, TCallable> ||
+                                               std::is_constructible_v<typename THandler::LegacyInvocationWithoutParams, TCallable>)>>
         HandlerBuilder<THandler> on(const HandlerMatcher &request, TCallable &&handler)
         {
             return builder_.handlers().on<THandler>(request, std::forward<TCallable>(handler));
@@ -90,8 +94,12 @@ namespace httpadv::v1::server
                   typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::Invocation> &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::InvocationWithoutParams> &&
+                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::LegacyInvocation> &&
+                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::LegacyInvocationWithoutParams> &&
                                               (std::is_constructible_v<typename THandler::Invocation, TCallable> ||
-                                               std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable>)>>
+                                               std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable> ||
+                                               std::is_constructible_v<typename THandler::LegacyInvocation, TCallable> ||
+                                               std::is_constructible_v<typename THandler::LegacyInvocationWithoutParams, TCallable>)>>
         HandlerBuilder<THandler> on(const char *path, TCallable &&handler)
         {
             return builder_.handlers().on<THandler>(path, std::forward<TCallable>(handler));

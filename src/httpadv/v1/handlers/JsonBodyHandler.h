@@ -13,6 +13,7 @@
 namespace httpadv::v1::handlers
 {
     using httpadv::v1::handlers::ExtractArgsFromRequest;
+    using httpadv::v1::core::HttpRequestContext;
     using httpadv::v1::core::MAX_BUFFERED_JSON_BODY_LENGTH;
     using httpadv::v1::response::IHttpResponse;
     using httpadv::v1::routing::HandlerMatcher;
@@ -21,15 +22,23 @@ namespace httpadv::v1::handlers
     class JsonBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_JSON_BODY_LENGTH>
     {
     private:
-        std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, JsonDocument &&)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, JsonDocument &&)> handler_;
         ExtractArgsFromRequest extractor_;
 
     public:
-        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
+        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](httpadv::v1::core::HttpContext &context, RouteParameters &&, JsonDocument &&postData)
+        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](HttpRequestContext &context, RouteParameters &&params, JsonDocument &&postData)
+                       { return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(params), std::move(postData)); }),
+              extractor_(extractor) {}
+        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](HttpRequestContext &context, RouteParameters &&, JsonDocument &&postData)
                        { return handler(context, std::move(postData)); }),
+              extractor_(extractor) {}
+        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](HttpRequestContext &context, RouteParameters &&, JsonDocument &&postData)
+                       { return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(postData)); }),
               extractor_(extractor) {}
 
         virtual IHttpHandler::HandlerResult handleBody(httpadv::v1::core::HttpContext &context, std::vector<uint8_t> &&body) override;
@@ -37,10 +46,28 @@ namespace httpadv::v1::handlers
     class Json
     {
     public:
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, JsonDocument &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, JsonDocument &&)>;
+        using LegacyInvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, JsonDocument &&)>;
+        using LegacyInvocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, JsonDocument &&)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, JsonDocument &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, JsonDocument &&)>;
 
         static constexpr const char *DeserializationErrorItemKey = "Json::DeserializationError";
+
+        static InvocationWithoutParams adaptLegacyInvocationWithoutParams(LegacyInvocationWithoutParams handler)
+        {
+            return [handler](HttpRequestContext &context, JsonDocument &&body)
+            {
+                return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(body));
+            };
+        }
+
+        static Invocation adaptLegacyInvocation(LegacyInvocation handler)
+        {
+            return [handler](HttpRequestContext &context, RouteParameters &&params, JsonDocument &&body)
+            {
+                return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(params), std::move(body));
+            };
+        }
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 
@@ -52,7 +79,7 @@ namespace httpadv::v1::handlers
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler);
 
-        static const DeserializationError *deserializationError(const httpadv::v1::core::HttpContext &context)
+        static const DeserializationError *deserializationError(const HttpRequestContext &context)
         {
             const auto &items = context.items();
             auto iterator = items.find(DeserializationErrorItemKey);

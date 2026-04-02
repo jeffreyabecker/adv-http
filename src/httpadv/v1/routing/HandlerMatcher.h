@@ -10,17 +10,19 @@
 
 namespace httpadv::v1::routing
 {
+    using httpadv::v1::core::HttpRequestContext;
     using httpadv::v1::handlers::RouteParameters;
 
     constexpr char REQUEST_MATCHER_PATH_DELIMITER = '/';
     constexpr char REQUEST_MATCHER_PARAMETER_PREFIX = ':';
+    constexpr char REQUEST_MATCHER_GLOB_WILDCARD_CHAR = '*';
     class HandlerMatcher
     {
     public:
         using MethodChecker = std::function<bool(std::string_view allowedMethods, std::string_view method)>;
         using UriPatternChecker = std::function<bool(std::string_view uri, std::string_view uriPattern)>;
-        using ContentTypeChecker = std::function<bool(httpadv::v1::core::HttpContext &context, const std::vector<std::string> &allowedContentTypes)>;
-        using ArgsExtractor = std::function<RouteParameters(httpadv::v1::core::HttpContext &context, std::string_view uriPattern)>;
+        using ContentTypeChecker = std::function<bool(HttpRequestContext &context, const std::vector<std::string> &allowedContentTypes)>;
+        using ArgsExtractor = std::function<RouteParameters(HttpRequestContext &context, std::string_view uriPattern)>;
 
     protected:
         std::string uriPattern_;
@@ -86,11 +88,11 @@ namespace httpadv::v1::routing
     // Default implementations
     bool defaultCheckMethod(std::string_view allowedMethods, std::string_view method);
 
-    bool defaultCheckContentType(httpadv::v1::core::HttpContext &context, const std::vector<std::string> &allowedContentTypes);
+    bool defaultCheckContentType(HttpRequestContext &context, const std::vector<std::string> &allowedContentTypes);
 
     bool defaultCheckUriPattern(std::string_view uri, std::string_view uriPattern);
 
-    RouteParameters defaultExtractParameters(httpadv::v1::core::HttpContext &context, std::string_view uriPattern);
+    RouteParameters defaultExtractParameters(HttpRequestContext &context, std::string_view uriPattern);
 
 } // namespace httpadv::v1::routing
 

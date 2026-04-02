@@ -49,7 +49,7 @@ namespace httpadv::v1::handlers
 
     RawBody::Invocation RawBody::curryWithoutParams(InvocationWithoutParams handler)
     {
-        return [handler](httpadv::v1::core::HttpContext &context, RouteParameters &, RawBodyBuffer buffer)
+        return [handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &, RawBodyBuffer buffer)
         {
             return handler(context, buffer);
         };
@@ -61,8 +61,8 @@ namespace httpadv::v1::handlers
         {
             auto params = extractor(context);
             // Create a handler that adapts RawBodyBuffer to raw parameters
-            std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, RawBodyBuffer)> bufferHandler =
-                [handler](httpadv::v1::core::HttpContext &ctx, RouteParameters &params, RawBodyBuffer buffer)
+            std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpRequestContext &, RouteParameters &, RawBodyBuffer)> bufferHandler =
+                [handler](httpadv::v1::core::HttpRequestContext &ctx, RouteParameters &params, RawBodyBuffer buffer)
             {
                 return handler(ctx, params, buffer);
             };
@@ -73,25 +73,25 @@ namespace httpadv::v1::handlers
 
     RawBody::Invocation RawBody::curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](httpadv::v1::core::HttpContext &context, RouteParameters &params, RawBodyBuffer buffer)
+        return [interceptor, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
         {
-            return interceptor(context, [handler, &params, buffer](httpadv::v1::core::HttpContext &context)
-                               { return handler(context, params, buffer); });
+            return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, &params, buffer]() mutable
+                               { return handler(context, params, buffer); }));
         };
     }
 
     RawBody::Invocation RawBody::applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](httpadv::v1::core::HttpContext &context, RouteParameters &params, RawBodyBuffer buffer)
+        return [interceptor, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
         {
-            return interceptor(context, [handler, &params, &buffer](httpadv::v1::core::HttpContext &context)
-                               { return handler(context, params, buffer); });
+            return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, &params, &buffer]() mutable
+                               { return handler(context, params, buffer); }));
         };
     }
 
     RawBody::Invocation RawBody::applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
     {
-        return [filter, handler](httpadv::v1::core::HttpContext &context, RouteParameters &params, RawBodyBuffer buffer)
+        return [filter, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
         {
             auto response = handler(context, params, buffer);
             if (!response.isResponse())

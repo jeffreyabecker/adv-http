@@ -9,6 +9,7 @@
 namespace httpadv::v1::core
 {
     class HttpContext;
+    class HttpRequestContext;
 }
 
 namespace httpadv::v1::handlers
@@ -17,9 +18,40 @@ namespace httpadv::v1::handlers
     {
     public:
         using HandlerResult = httpadv::v1::handlers::HandlerResult;
-        using InvocationCallback = std::function<HandlerResult(httpadv::v1::core::HttpContext &context)>;
-        using InterceptorCallback = std::function<HandlerResult(httpadv::v1::core::HttpContext &context, InvocationCallback next)>;
-        using Predicate = std::function<bool(httpadv::v1::core::HttpContext &)>;
+        class InvocationNext
+        {
+        public:
+            using Callback = std::function<HandlerResult()>;
+
+        private:
+            httpadv::v1::core::HttpRequestContext *context_ = nullptr;
+            Callback callback_;
+
+        public:
+            InvocationNext() = default;
+
+            InvocationNext(httpadv::v1::core::HttpRequestContext &context, Callback callback)
+                : context_(&context), callback_(std::move(callback)) {}
+
+            HandlerResult operator()() const
+            {
+                return callback_ ? callback_() : HandlerResult();
+            }
+
+            explicit operator bool() const
+            {
+                return static_cast<bool>(callback_);
+            }
+
+            httpadv::v1::core::HttpRequestContext &context() const
+            {
+                return *context_;
+            }
+        };
+
+        using InvocationCallback = std::function<HandlerResult(httpadv::v1::core::HttpRequestContext &context)>;
+        using InterceptorCallback = std::function<HandlerResult(httpadv::v1::core::HttpRequestContext &context, InvocationNext next)>;
+        using Predicate = std::function<bool(httpadv::v1::core::HttpRequestContext &)>;
         using Factory = std::function<std::unique_ptr<IHttpHandler>(httpadv::v1::core::HttpContext &)>;        
         virtual ~IHttpHandler() = default;
         /**

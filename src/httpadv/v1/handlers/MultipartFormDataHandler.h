@@ -17,6 +17,7 @@
 #include "../core/HttpContentTypes.h"
 namespace httpadv::v1::handlers
 {
+    using httpadv::v1::core::HttpRequestContext;
     using httpadv::v1::core::HttpContentTypes;
     using httpadv::v1::core::HttpHeader;
     using httpadv::v1::core::HttpHeaderNames;
@@ -73,7 +74,7 @@ namespace httpadv::v1::handlers
     {
 
     private:
-        std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, MultipartFormDataBuffer)> handler_;
+        std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &, MultipartFormDataBuffer)> handler_;
         ExtractArgsFromRequest extractor_;
         HandlerResult response_;
         RouteParameters params_;
@@ -98,8 +99,12 @@ namespace httpadv::v1::handlers
         const uint8_t *findBoundary(const uint8_t *start, size_t len);
 
     public:
-        MultipartFormDataHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, MultipartFormDataBuffer)> handler, ExtractArgsFromRequest extractor)
+        MultipartFormDataHandler(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &, MultipartFormDataBuffer)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
+        MultipartFormDataHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &, MultipartFormDataBuffer)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler](HttpRequestContext &context, RouteParameters &params, MultipartFormDataBuffer buffer)
+                       { return handler(static_cast<httpadv::v1::core::HttpContext &>(context), params, std::move(buffer)); }),
+              extractor_(extractor) {}
         virtual HandlerResult handleStep(httpadv::v1::core::HttpContext &context)
         {
             if (!response_ && context.completedPhases() >= httpadv::v1::core::HttpContextPhase::CompletedReadingMessage)
@@ -258,12 +263,30 @@ namespace httpadv::v1::handlers
     {
     public:
         using PostBodyData = WebUtility::QueryParameters;
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, PostBodyData &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, PostBodyData &&)>;
+        using LegacyInvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, PostBodyData &&)>;
+        using LegacyInvocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, PostBodyData &&)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, PostBodyData &&)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, PostBodyData &&)>;
+
+        static InvocationWithoutParams adaptLegacyInvocationWithoutParams(LegacyInvocationWithoutParams handler)
+        {
+            return [handler](HttpRequestContext &context, PostBodyData &&postData)
+            {
+                return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(postData));
+            };
+        }
+
+        static Invocation adaptLegacyInvocation(LegacyInvocation handler)
+        {
+            return [handler](HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
+            {
+                return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(params), std::move(postData));
+            };
+        }
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler)
         {
-            return [handler](httpadv::v1::core::HttpContext &context, RouteParameters &&, PostBodyData &&postData)
+            return [handler](HttpRequestContext &context, RouteParameters &&, PostBodyData &&postData)
             {
                 return handler(context, std::move(postData));
             };
@@ -276,39 +299,39 @@ namespace httpadv::v1::handlers
                 auto params = extractor(context);
                 // MultipartFormDataHandler expects handler of signature (httpadv::v1::core::HttpContext&, RouteParameters&, MultipartFormDataBuffer)
                 // We'll create a simpler handler that just accepts the multipart buffer
-                auto wrappedHandler = [handler](httpadv::v1::core::HttpContext &ctx, RouteParameters &params, MultipartFormDataBuffer buffer)
+                auto wrappedHandler = [handler](HttpRequestContext &ctx, RouteParameters &params, MultipartFormDataBuffer buffer)
                 {
                     // Handler expects PostBodyData (KeyValuePairView), not MultipartFormDataBuffer
                     // For now, just invoke with empty PostBodyData - this API mismatch needs design review
                     WebUtility::QueryParameters postData;
                     return handler(ctx, std::move(params), std::move(postData));
                 };
-                return std::make_unique<MultipartFormDataHandler>(wrappedHandler, ExtractArgsFromRequest([params](httpadv::v1::core::HttpContext &c)
+                return std::make_unique<MultipartFormDataHandler>(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &, MultipartFormDataBuffer)>(wrappedHandler), ExtractArgsFromRequest([params](httpadv::v1::core::HttpContext &c)
                                                                                                          { return params; }));
             };
         }
 
         static Invocation curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
+            return [interceptor, handler](HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
             {
-                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](httpadv::v1::core::HttpContext &context) mutable
-                                   { return handler(context, std::move(params), std::move(postData)); });
+                return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params), postData = std::move(postData)]() mutable
+                                   { return handler(context, std::move(params), std::move(postData)); }));
             };
         }
 
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
+            return [interceptor, handler](HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
             {
-                return interceptor(context, [handler, params = std::move(params), postData = std::move(postData)](httpadv::v1::core::HttpContext &context) mutable
-                                   { return handler(context, std::move(params), std::move(postData)); });
+                return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params), postData = std::move(postData)]() mutable
+                                   { return handler(context, std::move(params), std::move(postData)); }));
             };
         }
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
         {
-            return [filter, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params, PostBodyData &&postData)
+            return [filter, handler](HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
             {
                 auto response = handler(context, std::move(params), std::move(postData));
                 if (!response.isResponse())

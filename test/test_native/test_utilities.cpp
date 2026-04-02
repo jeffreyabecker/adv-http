@@ -494,12 +494,15 @@ namespace
     void test_handler_matcher_default_helpers_use_standard_text_inputs()
     {
         const std::string wildcardPattern = "/files/:fileName";
+        const std::string htmlGlobPattern = "**/*.html";
 
         TEST_ASSERT_TRUE(httpadv::v1::routing::defaultCheckMethod(std::string_view("GET,POST"), std::string_view("GET")));
         TEST_ASSERT_FALSE(httpadv::v1::routing::defaultCheckMethod(std::string_view("GET,POST"), std::string_view("PUT")));
 
         TEST_ASSERT_TRUE(httpadv::v1::routing::defaultCheckUriPattern(std::string_view("/files/report.txt"), wildcardPattern));
         TEST_ASSERT_FALSE(httpadv::v1::routing::defaultCheckUriPattern(std::string_view("/files/report.txt"), std::string_view("/assets/:assetName")));
+        TEST_ASSERT_TRUE(httpadv::v1::routing::defaultCheckUriPattern(std::string_view("/docs/site/index.html"), htmlGlobPattern));
+        TEST_ASSERT_FALSE(httpadv::v1::routing::defaultCheckUriPattern(std::string_view("/docs/site/index.css"), htmlGlobPattern));
     }
 
     int runUnitySuite()

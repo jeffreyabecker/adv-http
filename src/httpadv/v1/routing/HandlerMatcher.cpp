@@ -60,6 +60,26 @@ namespace httpadv::v1::routing
             return true;
         }
 
+        bool isGlobSegment(std::string_view segment)
+        {
+            return segment.find(REQUEST_MATCHER_GLOB_WILDCARD_CHAR) != std::string_view::npos;
+        }
+
+        bool isGlobStarSegment(std::string_view segment)
+        {
+            return segment == "**";
+        }
+
+        std::string_view trimLeadingDelimiter(std::string_view value)
+        {
+            if (!value.empty() && value.front() == REQUEST_MATCHER_PATH_DELIMITER)
+            {
+                return value.substr(1);
+            }
+
+            return value;
+        }
+
         std::vector<std::string_view> splitPathSegments(std::string_view value)
         {
             std::vector<std::string_view> segments;
@@ -81,60 +101,196 @@ namespace httpadv::v1::routing
             return segments;
         }
 
-        bool matchUriPattern(std::string_view uri, std::string_view uriPattern, RouteParameters *parameters)
+        std::string joinPathSegments(const std::vector<std::string_view> &segments, std::size_t beginIndex, std::size_t endIndex)
         {
-            const httpadv::v1::util::UriView parsedUri(uri);
-            const std::string_view path = parsedUri.path();
-            const std::vector<std::string_view> pathSegments = splitPathSegments(path);
-            const std::vector<std::string_view> patternSegments = splitPathSegments(uriPattern);
+            std::string joined;
+            for (std::size_t index = beginIndex; index < endIndex; ++index)
+            {
+                if (!joined.empty())
+                {
+                    joined.push_back(REQUEST_MATCHER_PATH_DELIMITER);
+                }
+                joined.append(segments[index].data(), segments[index].size());
+            }
 
-            if (pathSegments.size() != patternSegments.size())
+            return joined;
+        }
+
+        bool segmentMatchesGlob(std::string_view segment, std::string_view pattern)
+        {
+            std::size_t segmentIndex = 0;
+            std::size_t patternIndex = 0;
+            std::size_t starPatternIndex = std::string_view::npos;
+            std::size_t starSegmentIndex = 0;
+
+            while (segmentIndex < segment.size())
+            {
+                if (patternIndex < pattern.size() && pattern[patternIndex] == REQUEST_MATCHER_GLOB_WILDCARD_CHAR)
+                {
+                    starPatternIndex = patternIndex++;
+                    starSegmentIndex = segmentIndex;
+                    continue;
+                }
+
+                if (patternIndex < pattern.size() && pattern[patternIndex] == segment[segmentIndex])
+                {
+                    ++patternIndex;
+                    ++segmentIndex;
+                    continue;
+                }
+
+                if (starPatternIndex != std::string_view::npos)
+                {
+                    patternIndex = starPatternIndex + 1;
+                    segmentIndex = ++starSegmentIndex;
+                    continue;
+                }
+
+                return false;
+            }
+
+            while (patternIndex < pattern.size() && pattern[patternIndex] == REQUEST_MATCHER_GLOB_WILDCARD_CHAR)
+            {
+                ++patternIndex;
+            }
+
+            return patternIndex == pattern.size();
+        }
+
+        bool insertParameter(RouteParameters *parameters, std::string key, std::string value)
+        {
+            if (parameters == nullptr)
+            {
+                return true;
+            }
+
+            const auto inserted = parameters->emplace(std::move(key), std::move(value));
+            return inserted.second;
+        }
+
+        void eraseParameter(RouteParameters *parameters, const std::string &key)
+        {
+            if (parameters != nullptr)
+            {
+                parameters->erase(key);
+            }
+        }
+
+        bool matchPathSegments(
+            const std::vector<std::string_view> &pathSegments,
+            const std::vector<std::string_view> &patternSegments,
+            std::size_t pathIndex,
+            std::size_t patternIndex,
+            RouteParameters *parameters,
+            std::size_t globOrdinal)
+        {
+            if (patternIndex == patternSegments.size())
+            {
+                return pathIndex == pathSegments.size();
+            }
+
+            const std::string_view patternSegment = patternSegments[patternIndex];
+
+            if (isGlobStarSegment(patternSegment))
+            {
+                const std::string captureKey = std::to_string(globOrdinal);
+                for (std::size_t consumed = pathIndex; consumed <= pathSegments.size(); ++consumed)
+                {
+                    const std::string captureValue = joinPathSegments(pathSegments, pathIndex, consumed);
+                    if (!insertParameter(parameters, captureKey, captureValue))
+                    {
+                        return false;
+                    }
+
+                    if (matchPathSegments(pathSegments, patternSegments, consumed, patternIndex + 1, parameters, globOrdinal + 1))
+                    {
+                        return true;
+                    }
+
+                    eraseParameter(parameters, captureKey);
+                }
+
+                return false;
+            }
+
+            if (pathIndex >= pathSegments.size())
             {
                 return false;
             }
+
+            const std::string_view pathSegment = pathSegments[pathIndex];
+
+            if (isNamedRouteParameter(patternSegment))
+            {
+                if (pathSegment.empty())
+                {
+                    return false;
+                }
+
+                const std::string name(patternSegment.substr(1));
+                if (!insertParameter(parameters, name, std::string(pathSegment)))
+                {
+                    return false;
+                }
+
+                if (matchPathSegments(pathSegments, patternSegments, pathIndex + 1, patternIndex + 1, parameters, globOrdinal))
+                {
+                    return true;
+                }
+
+                eraseParameter(parameters, name);
+                return false;
+            }
+
+            if (!patternSegment.empty() && patternSegment.front() == REQUEST_MATCHER_PARAMETER_PREFIX)
+            {
+                return false;
+            }
+
+            if (isGlobSegment(patternSegment))
+            {
+                if (!segmentMatchesGlob(pathSegment, patternSegment))
+                {
+                    return false;
+                }
+
+                const std::string captureKey = std::to_string(globOrdinal);
+                if (!insertParameter(parameters, captureKey, std::string(pathSegment)))
+                {
+                    return false;
+                }
+
+                if (matchPathSegments(pathSegments, patternSegments, pathIndex + 1, patternIndex + 1, parameters, globOrdinal + 1))
+                {
+                    return true;
+                }
+
+                eraseParameter(parameters, captureKey);
+                return false;
+            }
+
+            if (patternSegment != pathSegment)
+            {
+                return false;
+            }
+
+            return matchPathSegments(pathSegments, patternSegments, pathIndex + 1, patternIndex + 1, parameters, globOrdinal);
+        }
+
+        bool matchUriPattern(std::string_view uri, std::string_view uriPattern, RouteParameters *parameters)
+        {
+            const httpadv::v1::util::UriView parsedUri(uri);
+            const std::string_view path = trimLeadingDelimiter(parsedUri.path());
+            const std::string_view normalizedPattern = trimLeadingDelimiter(uriPattern);
+            const std::vector<std::string_view> pathSegments = splitPathSegments(path);
+            const std::vector<std::string_view> patternSegments = splitPathSegments(normalizedPattern);
 
             if (parameters != nullptr)
             {
                 parameters->clear();
             }
 
-            for (std::size_t index = 0; index < patternSegments.size(); ++index)
-            {
-                const std::string_view patternSegment = patternSegments[index];
-                const std::string_view pathSegment = pathSegments[index];
-
-                if (isNamedRouteParameter(patternSegment))
-                {
-                    if (pathSegment.empty())
-                    {
-                        return false;
-                    }
-
-                    if (parameters != nullptr)
-                    {
-                        const std::string name(patternSegment.substr(1));
-                        const auto inserted = parameters->emplace(name, std::string(pathSegment));
-                        if (!inserted.second)
-                        {
-                            return false;
-                        }
-                    }
-
-                    continue;
-                }
-
-                if (!patternSegment.empty() && patternSegment.front() == REQUEST_MATCHER_PARAMETER_PREFIX)
-                {
-                    return false;
-                }
-
-                if (patternSegment != pathSegment)
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return matchPathSegments(pathSegments, patternSegments, 0, 0, parameters, 0);
         }
     }
 
@@ -154,7 +310,7 @@ namespace httpadv::v1::routing
         return allowedMethods.find(method) != std::string_view::npos;
     }
 
-    bool defaultCheckContentType(httpadv::v1::core::HttpContext &context, const std::vector<std::string> &allowedContentTypes)
+    bool defaultCheckContentType(HttpRequestContext &context, const std::vector<std::string> &allowedContentTypes)
     {
         std::optional<httpadv::v1::core::HttpHeader> contentType = context.headers().find("Content-Type");
         if (!contentType.has_value())
@@ -183,7 +339,7 @@ namespace httpadv::v1::routing
         return matchUriPattern(uri, uriPattern, nullptr);
     }
 
-    RouteParameters defaultExtractParameters(httpadv::v1::core::HttpContext &context, std::string_view uriPattern)
+    RouteParameters defaultExtractParameters(HttpRequestContext &context, std::string_view uriPattern)
     {
         RouteParameters params;
         matchUriPattern(context.urlView(), uriPattern, &params);

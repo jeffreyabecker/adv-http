@@ -68,7 +68,7 @@ namespace httpadv::v1::routing
             if (addHandler_)
             {
 
-                IHttpHandler::Predicate predicate = [matcher = std::move(matcher_), predicate = std::move(predicate_)](httpadv::v1::core::HttpContext &context)
+                IHttpHandler::Predicate predicate = [matcher = std::move(matcher_), predicate = std::move(predicate_)](httpadv::v1::core::HttpRequestContext &context)
                 {
                     if (predicate)
                     {
@@ -77,7 +77,7 @@ namespace httpadv::v1::routing
                             return false;
                         }
                     }
-                    return matcher.canHandle(context);
+                    return matcher.canHandle(static_cast<httpadv::v1::core::HttpContext &>(context));
                 };
 
                 addHandler_(predicate, getFactory());
@@ -139,7 +139,7 @@ namespace httpadv::v1::routing
         HandlerBuilder &filterRequest(IHttpHandler::Predicate predicate)
         {
             auto originalPredicate = predicate_;
-            predicate_ = [originalPredicate, predicate](httpadv::v1::core::HttpContext &context)
+            predicate_ = [originalPredicate, predicate](httpadv::v1::core::HttpRequestContext &context)
             {
                 if (originalPredicate && !originalPredicate(context))
                 {
@@ -148,6 +148,14 @@ namespace httpadv::v1::routing
                 return predicate(context);
             };
             return *this;
+        }
+
+        HandlerBuilder &filterRequest(std::function<bool(httpadv::v1::core::HttpContext &)> predicate)
+        {
+            return filterRequest(IHttpHandler::Predicate([predicate = std::move(predicate)](httpadv::v1::core::HttpRequestContext &context)
+            {
+                return predicate(static_cast<httpadv::v1::core::HttpContext &>(context));
+            }));
         }
 
         template <typename TPredicate,

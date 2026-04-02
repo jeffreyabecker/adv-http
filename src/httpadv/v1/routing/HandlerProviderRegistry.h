@@ -52,8 +52,8 @@ namespace httpadv::v1::routing
                 : filter_(filter), interceptor_(interceptor), innerHandler_(std::move(innerHandler)) {}
             virtual httpadv::v1::handlers::IHttpHandler::HandlerResult handleStep(httpadv::v1::core::HttpContext &context) override
             {
-                httpadv::v1::handlers::IHttpHandler::HandlerResult response = interceptor_ ? interceptor_(context, [this](httpadv::v1::core::HttpContext &context)
-                                                                                   { return innerHandler_->handleStep(context); })
+                httpadv::v1::handlers::IHttpHandler::HandlerResult response = interceptor_ ? interceptor_(context, httpadv::v1::handlers::IHttpHandler::InvocationNext(context, [this, &context]()
+                                                                                   { return innerHandler_->handleStep(context); }))
                                                                     : innerHandler_->handleStep(context);
                 if (response.isResponse() && filter_)
                 {
@@ -91,6 +91,7 @@ namespace httpadv::v1::routing
         }
 
         void add(httpadv::v1::handlers::IHttpHandler::Predicate predicate, httpadv::v1::handlers::IHttpHandler::Factory handler, AddPosition position = AddAt::End);
+        void add(std::function<bool(httpadv::v1::core::HttpContext &)> predicate, httpadv::v1::handlers::IHttpHandler::Factory handler, AddPosition position = AddAt::End);
         void add(httpadv::v1::handlers::IHttpHandler::Predicate predicate, httpadv::v1::handlers::IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End);
         void with(httpadv::v1::handlers::IHttpHandler::InterceptorCallback interceptor);
         void filterRequest(httpadv::v1::handlers::IHttpHandler::Predicate predicate);

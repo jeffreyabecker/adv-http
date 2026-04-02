@@ -25,9 +25,9 @@ public:
 
   HandlerResult handleStep(httpadv::v1::core::HttpContext &context) override {
     HandlerResult result = interceptor_
-                               ? interceptor_(context, [this](httpadv::v1::core::HttpContext &innerContext) {
-                                   return innerHandler_->handleStep(innerContext);
-                                 })
+                               ? interceptor_(context, httpadv::v1::handlers::IHttpHandler::InvocationNext(context, [this, &context]() {
+                                   return innerHandler_->handleStep(context);
+                                 }))
                                : innerHandler_->handleStep(context);
 
     if (result.isResponse() && responseFilter_) {
@@ -168,15 +168,15 @@ std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::decorateHandler(
     auto previousInterceptor = interceptor;
     auto nextInterceptor = rule.wrapper;
     interceptor =
-        [previousInterceptor, nextInterceptor](HttpContext &innerContext,
-                                               IHttpHandler::InvocationCallback next)
+        [previousInterceptor, nextInterceptor](httpadv::v1::core::HttpRequestContext &innerContext,
+                                               IHttpHandler::InvocationNext next)
         -> IHttpHandler::HandlerResult {
       return nextInterceptor(
           innerContext,
-          [previousInterceptor, next](HttpContext &chainContext)
+          IHttpHandler::InvocationNext(innerContext, [previousInterceptor, &innerContext, next]() mutable
               -> IHttpHandler::HandlerResult {
-            return previousInterceptor(chainContext, next);
-          });
+            return previousInterceptor(innerContext, next);
+          }));
     };
   }
 

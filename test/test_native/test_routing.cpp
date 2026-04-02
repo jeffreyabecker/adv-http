@@ -108,7 +108,7 @@ namespace
     class StaticResponseProvider : public IHandlerProvider
     {
     public:
-        explicit StaticResponseProvider(std::string responseBody, IHttpHandler::Predicate predicate = nullptr)
+        explicit StaticResponseProvider(std::string responseBody, std::function<bool(HttpContext &)> predicate = nullptr)
             : responseBody_(std::move(responseBody)),
               predicate_(std::move(predicate))
         {
@@ -143,7 +143,7 @@ namespace
 
     private:
         std::string responseBody_;
-        IHttpHandler::Predicate predicate_;
+        std::function<bool(HttpContext &)> predicate_;
         std::size_t canHandleCount_ = 0;
         std::size_t createCount_ = 0;
     };
@@ -237,11 +237,11 @@ namespace
     AuthInvocationResult invokeAuth(IHttpHandler::InterceptorCallback interceptor, HttpContext &context)
     {
         AuthInvocationResult result;
-        HandlerResult response = interceptor(context, [&result](HttpContext &) -> HandlerResult
+        HandlerResult response = interceptor(context, IHttpHandler::InvocationNext(context, [&result]() -> HandlerResult
         {
             result.nextCalled = true;
             return HandlerResult::responseResult(createResponse(HttpStatus::Ok(), "authorized"));
-        });
+        }));
 
         if (response.isResponse())
         {
@@ -255,6 +255,8 @@ namespace
     {
         const std::string filesWildcardPattern = "/files/:fileName";
         const std::string nestedWildcardPattern = "/users/:userId/photos/:photoId";
+        const std::string globPattern = "**/*.html";
+        const std::string mixedPattern = "/blogs/:blogId/**/*.html";
 
         RequestContextHarness exactHarness;
         prepareRequest(
@@ -283,12 +285,34 @@ namespace
         TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(nestedParams.size()));
         TEST_ASSERT_EQUAL_STRING("42", nestedParams.at("userId").c_str());
         TEST_ASSERT_EQUAL_STRING("cover", nestedParams.at("photoId").c_str());
+
+        RequestContextHarness globHarness;
+        prepareRequest(globHarness, "GET", "/pages/docs/index.html");
+        HandlerMatcher globMatcher(globPattern, "GET");
+        TEST_ASSERT_TRUE(globMatcher.canHandle(globHarness.context()));
+
+        const RouteParameters globParams = globMatcher.extractParameters(globHarness.context());
+        TEST_ASSERT_EQUAL_UINT32(2, static_cast<uint32_t>(globParams.size()));
+        TEST_ASSERT_EQUAL_STRING("pages/docs", globParams.at("0").c_str());
+        TEST_ASSERT_EQUAL_STRING("index.html", globParams.at("1").c_str());
+
+        RequestContextHarness mixedHarness;
+        prepareRequest(mixedHarness, "GET", "/blogs/alpha/posts/2026/launch.html");
+        HandlerMatcher mixedMatcher(mixedPattern, "GET");
+        TEST_ASSERT_TRUE(mixedMatcher.canHandle(mixedHarness.context()));
+
+        const RouteParameters mixedParams = mixedMatcher.extractParameters(mixedHarness.context());
+        TEST_ASSERT_EQUAL_UINT32(3, static_cast<uint32_t>(mixedParams.size()));
+        TEST_ASSERT_EQUAL_STRING("alpha", mixedParams.at("blogId").c_str());
+        TEST_ASSERT_EQUAL_STRING("posts/2026", mixedParams.at("0").c_str());
+        TEST_ASSERT_EQUAL_STRING("launch.html", mixedParams.at("1").c_str());
     }
 
     void test_handler_matcher_rejects_mismatched_methods_content_types_and_missing_metadata()
     {
         const std::string filesWildcardPattern = "/files/:fileName";
         const std::string assetsWildcardPattern = "/assets/:assetName";
+        const std::string htmlGlobPattern = "**/*.html";
 
         RequestContextHarness jsonHarness;
         prepareRequest(
@@ -313,6 +337,7 @@ namespace
         TEST_ASSERT_FALSE(methodMatcher.canHandle(missingMethodHarness.context()));
 
         TEST_ASSERT_FALSE(defaultCheckUriPattern("/files/report.txt", assetsWildcardPattern));
+        TEST_ASSERT_FALSE(defaultCheckUriPattern("/files/report.txt", htmlGlobPattern));
     }
 
     void test_handler_provider_registry_honors_beginning_and_end_order_and_custom_default_handler()
@@ -388,26 +413,26 @@ namespace
         std::vector<std::string> trace;
         RecordingHandler *innerHandler = nullptr;
 
-        registry.filterRequest([](HttpContext &request)
+        registry.filterRequest([](HttpRequestContext &request)
         {
             return request.methodView() == "POST";
         });
-        registry.filterRequest([](HttpContext &request)
+        registry.filterRequest([](HttpRequestContext &request)
         {
             return request.headers().exists("X-Allow", "yes");
         });
 
-        registry.with([&trace](HttpContext &request, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+        registry.with([&trace](HttpRequestContext &request, IHttpHandler::InvocationNext next) -> IHttpHandler::HandlerResult
         {
             trace.push_back("interceptor-1-before");
-            auto response = next(request);
+            auto response = next();
             trace.push_back("interceptor-1-after");
             return response;
         });
-        registry.with([&trace](HttpContext &request, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+        registry.with([&trace](HttpRequestContext &request, IHttpHandler::InvocationNext next) -> IHttpHandler::HandlerResult
         {
             trace.push_back("interceptor-2-before");
-            auto response = next(request);
+            auto response = next();
             trace.push_back("interceptor-2-after");
             return response;
         });
@@ -713,13 +738,13 @@ namespace
             TEST_ASSERT_EQUAL_STRING("/custom/:segment", std::string(pattern).c_str());
             return uri.find("/custom/path") != std::string_view::npos;
         });
-        matcher.setContentTypeChecker([&contentTypeChecks](HttpContext &request, const std::vector<std::string> &allowedContentTypes)
+        matcher.setContentTypeChecker([&contentTypeChecks](HttpRequestContext &request, const std::vector<std::string> &allowedContentTypes)
         {
             ++contentTypeChecks;
             TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(allowedContentTypes.size()));
             return request.headers().exists("X-Custom", "yes");
         });
-        matcher.setArgsExtractor([&extractCalls](HttpContext &, std::string_view pattern)
+        matcher.setArgsExtractor([&extractCalls](HttpRequestContext &, std::string_view pattern)
         {
             ++extractCalls;
             TEST_ASSERT_EQUAL_STRING("/custom/:segment", std::string(pattern).c_str());
@@ -741,6 +766,10 @@ namespace
         const std::string pattern = "/docs/:slug";
         TEST_ASSERT_TRUE(defaultCheckUriPattern("/docs/readme?version=1", pattern));
         TEST_ASSERT_FALSE(defaultCheckUriPattern("/doc/readme?version=1", pattern));
+
+        const std::string htmlGlobPattern = "**/*.html";
+        TEST_ASSERT_TRUE(defaultCheckUriPattern("/guides/http/intro.html?version=1", htmlGlobPattern));
+        TEST_ASSERT_FALSE(defaultCheckUriPattern("/guides/http/intro.json?version=1", htmlGlobPattern));
     }
 
     void test_handler_provider_registry_ignores_null_callbacks_in_composition_chain()
@@ -796,34 +825,34 @@ namespace
                     return true;
                 },
                 defaultCheckContentType,
-                [](HttpContext &, std::string_view)
+                [](HttpRequestContext &, std::string_view)
                 {
                     return RouteParameters{{"slug", "readme"}};
                 },
                 "get",
                 {"Application/Json"});
 
-            auto route = builder.on<GetRequest>(matcher, [](HttpContext &request, RouteParameters &&params) -> std::unique_ptr<IHttpResponse>
+            auto route = builder.on<GetRequest>(matcher, [](HttpRequestContext &request, RouteParameters &&params) -> std::unique_ptr<IHttpResponse>
             {
                 TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(params.size()));
                 request.items()["route-param"] = params.at("slug");
                 return createResponse(HttpStatus::Ok(), std::string("doc:") + params.at("slug"));
             });
 
-            route.filterRequest([](HttpContext &request)
+            route.filterRequest([](HttpRequestContext &request)
                 {
                     return request.headers().exists("X-Route", "yes");
                 })
-                .filterRequest([](HttpContext &request)
+                .filterRequest([](HttpRequestContext &request)
                 {
                     return !request.headers().exists("X-Block", "true");
                 })
                 .allowMethods("get")
                 .allowContentTypes({"Application/Json"})
-                .with([](HttpContext &request, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+                .with([](HttpRequestContext &request, IHttpHandler::InvocationNext next) -> IHttpHandler::HandlerResult
                 {
                     request.items()["builder-interceptor"] = true;
-                    return next(request);
+                    return next();
                 })
                 .apply([](std::unique_ptr<IHttpResponse> response) -> std::unique_ptr<IHttpResponse>
                 {

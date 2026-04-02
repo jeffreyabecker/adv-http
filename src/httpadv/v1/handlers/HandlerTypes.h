@@ -15,17 +15,36 @@
 #include "BufferedStringBodyHandler.h"
 namespace httpadv::v1::handlers
 {
+    using httpadv::v1::core::HttpRequestContext;
 
     // Type definitions
     class GetRequest
     {
     public:
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&)>;
+        using LegacyInvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &)>;
+        using LegacyInvocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&)>;
+        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequestContext &)>;
+        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&)>;
+
+        static InvocationWithoutParams adaptLegacyInvocationWithoutParams(LegacyInvocationWithoutParams handler)
+        {
+            return [handler](HttpRequestContext &context)
+            {
+                return handler(static_cast<httpadv::v1::core::HttpContext &>(context));
+            };
+        }
+
+        static Invocation adaptLegacyInvocation(LegacyInvocation handler)
+        {
+            return [handler](HttpRequestContext &context, RouteParameters &&params)
+            {
+                return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(params));
+            };
+        }
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler)
         {
-            return [handler](httpadv::v1::core::HttpContext &context, RouteParameters &&)
+            return [handler](HttpRequestContext &context, RouteParameters &&)
             {
                 return handler(context);
             };
@@ -36,34 +55,34 @@ namespace httpadv::v1::handlers
             return [handler, extractor](httpadv::v1::core::HttpContext &context) -> std::unique_ptr<IHttpHandler>
             {
                 auto params = extractor(context);
-                return std::make_unique<HttpHandler>([handler, params = std::move(params)](httpadv::v1::core::HttpContext &context) mutable -> IHttpHandler::HandlerResult
+                return std::make_unique<HttpHandler>(IHttpHandler::InvocationCallback([handler, params = std::move(params)](HttpRequestContext &context) mutable -> IHttpHandler::HandlerResult
                 {
                     return handler(context, std::move(params));
-                });
+                }));
             };
         }
 
         static Invocation curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params)
+            return [interceptor, handler](HttpRequestContext &context, RouteParameters &&params)
             {
-                return interceptor(context, [handler, params = std::move(params)](httpadv::v1::core::HttpContext &context) mutable
-                                   { return handler(context, std::move(params)); });
+                return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params)]() mutable
+                                   { return handler(context, std::move(params)); }));
             };
         }
 
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params)
+            return [interceptor, handler](HttpRequestContext &context, RouteParameters &&params)
             {
-                return interceptor(context, [handler, params = std::move(params)](httpadv::v1::core::HttpContext &context) mutable
-                                   { return handler(context, std::move(params)); });
+                return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params)]() mutable
+                                   { return handler(context, std::move(params)); }));
             };
         }
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
         {
-            return [filter, handler](httpadv::v1::core::HttpContext &context, RouteParameters &&params)
+            return [filter, handler](HttpRequestContext &context, RouteParameters &&params)
             {
                 auto response = handler(context, std::move(params));
                 if (!response.isResponse())

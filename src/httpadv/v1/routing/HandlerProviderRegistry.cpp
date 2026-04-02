@@ -93,6 +93,14 @@ namespace httpadv::v1::routing
         add(ref, position);
     }
 
+    void HandlerProviderRegistry::add(std::function<bool(httpadv::v1::core::HttpContext &)> predicate, IHttpHandler::Factory handler, AddPosition position)
+    {
+        add(IHttpHandler::Predicate([predicate = std::move(predicate)](httpadv::v1::core::HttpRequestContext &context)
+        {
+            return predicate(static_cast<httpadv::v1::core::HttpContext &>(context));
+        }), std::move(handler), position);
+    }
+
     void HandlerProviderRegistry::add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position)
     {
         add(predicate, [invocation](httpadv::v1::core::HttpContext &context)
@@ -110,7 +118,7 @@ namespace httpadv::v1::routing
         if( globalRequestFilter_)
         {
             auto previousFilter = globalRequestFilter_;
-            globalRequestFilter_ = [previousFilter, predicate](httpadv::v1::core::HttpContext &context) -> bool
+            globalRequestFilter_ = [previousFilter, predicate](httpadv::v1::core::HttpRequestContext &context) -> bool
             {
                 return previousFilter(context) && predicate(context);
             };
@@ -149,10 +157,10 @@ namespace httpadv::v1::routing
         if (globalRequestInterceptor_)
         {
             auto previousInterceptor = globalRequestInterceptor_;
-            globalRequestInterceptor_ = [previousInterceptor, interceptor](httpadv::v1::core::HttpContext &context, IHttpHandler::InvocationCallback next) -> IHttpHandler::HandlerResult
+            globalRequestInterceptor_ = [previousInterceptor, interceptor](httpadv::v1::core::HttpRequestContext &context, IHttpHandler::InvocationNext next) -> IHttpHandler::HandlerResult
             {
-                return interceptor(context, [previousInterceptor, next](httpadv::v1::core::HttpContext &ctx) -> IHttpHandler::HandlerResult
-                                   { return previousInterceptor(ctx, next); });
+                return interceptor(context, IHttpHandler::InvocationNext(context, [previousInterceptor, &context, next]() mutable -> IHttpHandler::HandlerResult
+                                   { return previousInterceptor(context, next); }));
             };
         }
         else
