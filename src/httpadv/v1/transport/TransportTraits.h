@@ -2,6 +2,7 @@
 
 #include "TransportInterfaces.h"
 
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -17,6 +18,9 @@ namespace httpadv::v1::transport
 
         template <typename TFactory>
         using CreatePeerResult = decltype(TFactory::createPeer());
+
+        template <typename TFactory>
+        using GetHostByNameResult = decltype(TFactory::getHostByName(std::declval<std::string_view>()));
     }
 
     template <typename TFactory, typename = void>
@@ -52,10 +56,21 @@ namespace httpadv::v1::transport
     {
     };
 
+    template <typename TFactory, typename = void>
+    struct HasStaticGetHostByName : std::false_type
+    {
+    };
+
+    template <typename TFactory>
+    struct HasStaticGetHostByName<TFactory, std::void_t<detail::GetHostByNameResult<TFactory>>>
+        : std::bool_constant<std::is_convertible_v<detail::GetHostByNameResult<TFactory>, std::string>>
+    {
+    };
+
     template <typename TFactory>
     struct IsStaticTransportFactory
         : std::bool_constant<HasStaticCreateServer<TFactory>::value && HasStaticCreateClient<TFactory>::value &&
-                             HasStaticCreatePeer<TFactory>::value>
+                             HasStaticCreatePeer<TFactory>::value && HasStaticGetHostByName<TFactory>::value>
     {
     };
 
@@ -70,5 +85,6 @@ namespace httpadv::v1::transport
         virtual std::unique_ptr<IServer> createServer(std::uint16_t port) = 0;
         virtual std::unique_ptr<IClient> createClient(std::string_view address, std::uint16_t port) = 0;
         virtual std::unique_ptr<IPeer> createPeer() = 0;
+        virtual std::string getHostByName(std::string_view hostName) = 0;
     };
 }

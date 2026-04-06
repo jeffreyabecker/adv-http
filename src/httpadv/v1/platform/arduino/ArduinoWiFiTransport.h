@@ -272,6 +272,20 @@ public:
 	static std::unique_ptr<IPeer> createPeer() {
 		return std::make_unique<ArduinoWiFiPeerAdapter>();
 	}
+
+	static std::string getHostByName(std::string_view hostName) {
+		if (hostName.empty()) {
+			return {};
+		}
+
+		const std::string host(hostName);
+		IPAddress address;
+		if (!WiFi.hostByName(host.c_str(), address)) {
+			return {};
+		}
+
+		return detail::ipAddressToStdString(address);
+	}
 #else
 	static std::unique_ptr<transport::IServer> createServer(std::uint16_t) {
 		return nullptr;
@@ -284,6 +298,10 @@ public:
 
 	static std::unique_ptr<transport::IPeer> createPeer() {
 		return nullptr;
+	}
+
+	static std::string getHostByName(std::string_view) {
+		return {};
 	}
 #endif
 };

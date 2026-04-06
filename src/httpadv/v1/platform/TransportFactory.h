@@ -45,6 +45,11 @@ namespace httpadv::v1::platform
         {
             return TTransportFactory::createPeer();
         }
+
+        std::string getHostByName(std::string_view hostName) override
+        {
+            return TTransportFactory::getHostByName(hostName);
+        }
     };
     using TransportFactory = TransportFactoryWrapper<>;
 

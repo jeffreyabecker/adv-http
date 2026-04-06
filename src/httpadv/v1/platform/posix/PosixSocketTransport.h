@@ -708,6 +708,21 @@ public:
   static std::unique_ptr<IPeer> createPeer() {
     return std::make_unique<PosixSocketPeer>();
   }
+
+  static std::string getHostByName(std::string_view hostName) {
+    if (hostName.empty()) {
+      return {};
+    }
+
+    sockaddr_storage resolvedAddress{};
+    socklen_t resolvedAddressLength = 0;
+    if (!resolveSocketAddress(hostName, 0, SOCK_STREAM, resolvedAddress,
+                              resolvedAddressLength, false)) {
+      return {};
+    }
+
+    return socketAddressToString(resolvedAddress);
+  }
 };
 
 } // namespace httpadv::v1::platform::posix
