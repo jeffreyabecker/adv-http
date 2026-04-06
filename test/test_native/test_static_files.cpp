@@ -1001,6 +1001,28 @@ namespace
         TEST_ASSERT_EQUAL_STRING("fallback", response.body.c_str());
     }
 
+    void test_static_files_builder_defaults_missing_requests_to_404_html()
+    {
+        FakeFileSystem fs;
+        fs.add({"/www/404.html", false, "missing-page", 12, 1711152000});
+
+        auto serverTransport = std::make_unique<httpadv::v1::TestSupport::FakeServer>();
+        HttpServerBase server(std::move(serverTransport));
+        WebServerBuilder builder(server);
+
+        StaticFiles(fs)(builder);
+
+        RequestContextHarness harness;
+        harness.prepare("GET", "/missing/route");
+        harness.completeHeaders();
+
+        std::unique_ptr<IHttpHandler> handler = builder.handlerProviders().createContextHandler(harness.context());
+        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+
+        TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
+        TEST_ASSERT_EQUAL_STRING("missing-page", response.body.c_str());
+    }
+
     void test_static_files_builder_declines_when_not_found_resolver_returns_null()
     {
         FakeFileSystem fs;
@@ -1057,6 +1079,7 @@ namespace
         RUN_TEST(test_static_files_builder_applies_deferred_default_locator_configuration);
         RUN_TEST(test_static_files_builder_uses_explicit_file_locator_instead_of_default_configuration);
         RUN_TEST(test_static_files_builder_supports_static_not_found_request_path);
+        RUN_TEST(test_static_files_builder_defaults_missing_requests_to_404_html);
         RUN_TEST(test_static_files_builder_declines_when_not_found_resolver_returns_null);
         return UNITY_END();
     }

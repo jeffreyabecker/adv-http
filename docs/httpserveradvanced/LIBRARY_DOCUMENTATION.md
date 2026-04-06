@@ -862,7 +862,7 @@ server.use(StaticFiles(contentFs, [](StaticFilesBuilder& files) {
 
 The builder now records default-locator configuration and constructs `DefaultFileLocator` only during initialization. If `setFileLocator(...)` is used, that explicit locator is installed instead and the deferred default-locator settings are ignored.
 
-Missing static assets can be remapped to another request path inside the static-files provider. Use `onNotFound("/index.html")` for a fixed fallback, or `onNotFound(resolver)` to compute a fallback per request. If the resolver returns `std::nullopt`, the static-files provider declines the request and later handlers can still run.
+Missing static assets default to trying `/404.html` inside the static-files provider. Use `onNotFound("/index.html")` for a different fixed fallback, or `onNotFound(resolver)` to compute a fallback per request. If the resolver returns `std::nullopt`, the static-files provider declines the request and later handlers can still run.
 ```
 
 ---

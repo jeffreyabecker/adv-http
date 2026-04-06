@@ -3,7 +3,9 @@
 namespace httpadv::v1::staticfiles {
 StaticFilesBuilder::StaticFilesBuilder(
     IFileSystem &fs, std::function<void(StaticFilesBuilder &)> setupFunc)
-  : setupFunc_(setupFunc), filesystem_(&fs) {}
+  : setupFunc_(setupFunc), filesystem_(&fs) {
+  onNotFound("/404.html");
+}
 
 StaticFilesBuilder::~StaticFilesBuilder() {}
 
