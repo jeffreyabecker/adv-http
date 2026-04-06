@@ -5,9 +5,9 @@
 
 namespace
 {
-    httpadv::v1::transport::FileHandle OpenFile(httpadv::v1::transport::IFileSystem &filesystem, std::string_view path)
+    httpadv::v1::transport::FileHandle OpenFile(httpadv::v1::transport::IFileSystem *filesystem, std::string_view path)
     {
-        return filesystem.open(path, httpadv::v1::transport::FileOpenMode::Read);
+        return filesystem->open(path, httpadv::v1::transport::FileOpenMode::Read);
     }
 
     bool StartsWith(std::string_view value, std::string_view prefix)
@@ -92,14 +92,14 @@ DefaultFileLocator::RequestPathMapper DefaultFileLocator::createPathMapper(std::
     };
 }
 
-std::string DefaultFileLocator::getLocalPath(const HttpContext &context) {
-    return NormalizeRequestPath(context.urlView());
+std::string DefaultFileLocator::getLocalPath(const HttpRequestContext &, std::string_view requestPath) {
+    return NormalizeRequestPath(requestPath);
 }
 
-DefaultFileLocator::DefaultFileLocator(IFileSystem &fs)
+DefaultFileLocator::DefaultFileLocator(IFileSystem *fs)
     : pathPredicate_(createPathPredicate(DefaultIncludePrefix, DefaultExcludePrefix)), pathMapper_(createPathMapper(DefaultFSRoot)), filesystem_(fs) {}
 
-DefaultFileLocator::DefaultFileLocator(IFileSystem &fs, RequestPathPredicate predicate, RequestPathMapper mapper)
+DefaultFileLocator::DefaultFileLocator(IFileSystem *fs, RequestPathPredicate predicate, RequestPathMapper mapper)
     : pathPredicate_(predicate), pathMapper_(mapper), filesystem_(fs) {}
 
 void DefaultFileLocator::setPathPredicate(RequestPathPredicate predicate) { pathPredicate_ = predicate; }
@@ -112,8 +112,8 @@ void DefaultFileLocator::setRequestPathPrefixes(std::string_view includePrefix, 
 
 void DefaultFileLocator::setFilesystemContentRoot(std::string_view root) { setPathMapper(createPathMapper(root)); }
 
-FileHandle DefaultFileLocator::getFile(HttpContext &context) {
-    std::string path = this->getLocalPath(context);
+FileHandle DefaultFileLocator::getFile(HttpRequestContext &context, std::string_view requestPath) {
+    std::string path = this->getLocalPath(context, requestPath);
     if (pathMapper_) {
         path = pathMapper_(path);
     }

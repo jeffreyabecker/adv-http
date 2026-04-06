@@ -9,6 +9,7 @@
 #include "../core/HttpHeaderCollection.h"
 #include "../core/HttpContext.h"
 #include "../core/HttpStatus.h"
+#include "../response/StringResponse.h"
 #include "../util/HttpUtility.h"
 
 #include <algorithm>
@@ -397,6 +398,7 @@ namespace httpadv::v1::websocket
             break;
         }
 
-        return HandlerResult::responseResult(request.createResponse(status, message));
+        return HandlerResult::responseResult(
+            httpadv::v1::response::StringResponse::create(status, message, {}));
     }
 }

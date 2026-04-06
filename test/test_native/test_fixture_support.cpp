@@ -43,7 +43,7 @@ namespace
         TEST_ASSERT_EQUAL_STRING("created", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
-    void test_recording_request_handler_factory_supports_inherited_response_overloads()
+    void test_recording_request_handler_factory_supports_local_response_overloads()
     {
         httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory;
 
@@ -213,7 +213,7 @@ namespace
     {
         UNITY_BEGIN();
         RUN_TEST(test_recording_request_handler_factory_records_response_status_and_body);
-        RUN_TEST(test_recording_request_handler_factory_supports_inherited_response_overloads);
+        RUN_TEST(test_recording_request_handler_factory_supports_local_response_overloads);
         RUN_TEST(test_capture_response_collects_status_headers_and_body);
         RUN_TEST(test_pipeline_event_recorder_tracks_events_addresses_and_response_callback);
         RUN_TEST(test_fake_client_supports_scripted_reads_partial_writes_and_disconnect_tracking);

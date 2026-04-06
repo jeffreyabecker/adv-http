@@ -523,11 +523,12 @@ namespace
         {
         }
 
-        FileHandle getFile(HttpContext &context) override
+        FileHandle getFile(HttpRequestContext &context, std::string_view requestPath) override
         {
             ++getFileCount_;
             lastUrl_ = std::string(context.urlView());
-            if (!fileSpec_.has_value())
+            lastPath_ = std::string(requestPath);
+            if (!fileSpec_.has_value() || requestPath.rfind(prefix_, 0) != 0)
             {
                 return nullptr;
             }
@@ -580,11 +581,11 @@ namespace
         fs.add({"/www/docs", true, {}, std::nullopt, 1711152000});
         fs.add({"/www/docs/index.html", false, "<h1>docs</h1>", 13, 1711152000});
 
-        DefaultFileLocator locator(fs);
+        DefaultFileLocator locator(&fs);
         RequestContextHarness harness;
         harness.prepare("GET", "/docs/?v=1");
 
-        FileHandle file = locator.getFile(harness.context());
+        FileHandle file = locator.getFile(harness.context(), harness.context().urlView());
         TEST_ASSERT_NOT_NULL(file.get());
         TEST_ASSERT_FALSE(file->isDirectory());
         TEST_ASSERT_EQUAL_STRING("/www/docs/index.html", std::string(file->path()).c_str());
@@ -599,7 +600,7 @@ namespace
         FakeFileSystem fs;
         fs.add({"/assets/static/app.js.gz", false, "gzip-js", 7, 1711152000});
 
-        DefaultFileLocator locator(fs);
+        DefaultFileLocator locator(&fs);
         locator.setFilesystemContentRoot("/assets");
         locator.setRequestPathPrefixes("/static", "/static/api");
 
@@ -608,50 +609,101 @@ namespace
 
         RequestContextHarness harness;
         harness.prepare("GET", "/static/app.js");
-        FileHandle file = locator.getFile(harness.context());
+        FileHandle file = locator.getFile(harness.context(), harness.context().urlView());
         TEST_ASSERT_NOT_NULL(file.get());
         TEST_ASSERT_EQUAL_STRING("/assets/static/app.js.gz", std::string(file->path()).c_str());
     }
 
     void test_aggregate_file_locator_uses_first_matching_file_and_skips_null_results()
     {
-        RecordingLocator apiNullLocator("/api", std::nullopt);
-        RecordingLocator apiFileLocator("/api", FakeFileSpec{"/virtual/api.json", false, "api", 3, 1711152000});
-        RecordingLocator staticLocator("/static", FakeFileSpec{"/virtual/app.js", false, "js", 2, 1711152000});
+        auto apiNullLocator = std::make_unique<RecordingLocator>("/api", std::nullopt);
+        auto apiFileLocator = std::make_unique<RecordingLocator>("/api", FakeFileSpec{"/virtual/api.json", false, "api", 3, 1711152000});
+        auto staticLocator = std::make_unique<RecordingLocator>("/static", FakeFileSpec{"/virtual/app.js", false, "js", 2, 1711152000});
+
+        RecordingLocator *apiNullLocatorPtr = apiNullLocator.get();
+        RecordingLocator *apiFileLocatorPtr = apiFileLocator.get();
+        RecordingLocator *staticLocatorPtr = staticLocator.get();
 
         AggregateFileLocator locator;
-        locator.add(apiNullLocator);
-        locator.add(apiFileLocator);
-        locator.add(staticLocator);
+        locator.add(std::move(apiNullLocator));
+        locator.add(std::move(apiFileLocator));
+        locator.add(std::move(staticLocator));
 
         RequestContextHarness harness;
         harness.prepare("GET", "/api/items");
-        FileHandle file = locator.getFile(harness.context());
+        FileHandle file = locator.getFile(harness.context(), harness.context().urlView());
         TEST_ASSERT_NOT_NULL(file.get());
         TEST_ASSERT_EQUAL_STRING("/virtual/api.json", std::string(file->path()).c_str());
 
-        TEST_ASSERT_EQUAL_UINT64(1, apiNullLocator.canHandleCount());
-        TEST_ASSERT_EQUAL_UINT64(1, apiNullLocator.getFileCount());
-        TEST_ASSERT_EQUAL_UINT64(1, apiFileLocator.canHandleCount());
-        TEST_ASSERT_EQUAL_UINT64(1, apiFileLocator.getFileCount());
-        TEST_ASSERT_EQUAL_UINT64(0, staticLocator.canHandleCount());
+        TEST_ASSERT_EQUAL_UINT64(1, apiNullLocatorPtr->canHandleCount());
+        TEST_ASSERT_EQUAL_UINT64(1, apiNullLocatorPtr->getFileCount());
+        TEST_ASSERT_EQUAL_UINT64(1, apiFileLocatorPtr->canHandleCount());
+        TEST_ASSERT_EQUAL_UINT64(1, apiFileLocatorPtr->getFileCount());
+        TEST_ASSERT_EQUAL_UINT64(0, staticLocatorPtr->canHandleCount());
     }
 
     void test_static_file_handler_factory_rejects_non_matching_paths_and_missing_files()
     {
         FakeFileSystem fs;
-        DefaultFileLocator locator(fs);
+        auto locator = std::make_unique<DefaultFileLocator>(&fs);
         HttpContentTypes contentTypes;
-        StaticFileHandlerFactory factory(locator, contentTypes);
+        StaticFileHandlerFactory factory(std::move(locator), contentTypes);
 
         RequestContextHarness missingHarness;
         missingHarness.prepare("GET", "/missing.txt");
         TEST_ASSERT_FALSE(factory.canHandle(missingHarness.context()));
+    }
 
-        locator.setRequestPathPrefixes("/static");
-        RequestContextHarness filteredHarness;
-        filteredHarness.prepare("GET", "/api/data");
-        TEST_ASSERT_FALSE(factory.canHandle(filteredHarness.context()));
+    void test_static_file_handler_factory_serves_not_found_fallback_request_path()
+    {
+        FakeFileSystem fs;
+        fs.add({"/www/index.html", false, "<h1>spa</h1>", 12, 1711152000});
+
+        HttpContentTypes contentTypes;
+        StaticFileHandlerFactory factory(
+            std::make_unique<DefaultFileLocator>(&fs),
+            contentTypes,
+            {},
+            {},
+            {},
+            [](HttpRequestContext &) -> std::optional<std::string>
+            {
+                return std::string("/index.html");
+            });
+
+        RequestContextHarness harness;
+        harness.prepare("GET", "/missing/route");
+
+        TEST_ASSERT_TRUE(factory.canHandle(harness.context()));
+        std::unique_ptr<IHttpHandler> handler = factory.create(harness.context());
+        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+
+        TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
+        TEST_ASSERT_EQUAL_STRING("<h1>spa</h1>", response.body.c_str());
+        TEST_ASSERT_TRUE(fs.openLog().size() >= 2);
+        TEST_ASSERT_EQUAL_STRING("/www/index.html", fs.openLog().back().c_str());
+    }
+
+    void test_static_file_handler_factory_declines_missing_request_when_not_found_resolver_returns_null()
+    {
+        FakeFileSystem fs;
+        HttpContentTypes contentTypes;
+        StaticFileHandlerFactory factory(
+            std::make_unique<DefaultFileLocator>(&fs),
+            contentTypes,
+            {},
+            {},
+            {},
+            [](HttpRequestContext &) -> std::optional<std::string>
+            {
+                return std::nullopt;
+            });
+
+        RequestContextHarness harness;
+        harness.prepare("GET", "/missing/route");
+
+        TEST_ASSERT_FALSE(factory.canHandle(harness.context()));
+        TEST_ASSERT_NULL(factory.create(harness.context()).get());
     }
 
     void test_static_file_handler_factory_serves_files_with_content_type_and_metadata_headers()
@@ -659,9 +711,9 @@ namespace
         FakeFileSystem fs;
         fs.add({"/www/app.js", false, "console.log('ok');", 18, 1711152000});
 
-        DefaultFileLocator locator(fs);
+        auto locator = std::make_unique<DefaultFileLocator>(&fs);
         HttpContentTypes contentTypes;
-        StaticFileHandlerFactory factory(locator, contentTypes);
+        StaticFileHandlerFactory factory(std::move(locator), contentTypes);
 
         RequestContextHarness harness;
         harness.prepare("GET", "/app.js");
@@ -685,9 +737,9 @@ namespace
         fs.add({"/www/site", true, {}, std::nullopt, 1711152000});
         fs.add({"/www/site/index.html.gz", false, "gzipped-index", 12, 1711152000});
 
-        DefaultFileLocator locator(fs);
+        auto locator = std::make_unique<DefaultFileLocator>(&fs);
         HttpContentTypes contentTypes;
-        StaticFileHandlerFactory factory(locator, contentTypes);
+        StaticFileHandlerFactory factory(std::move(locator), contentTypes);
 
         RequestContextHarness getHarness;
         getHarness.prepare("GET", "/site");
@@ -718,9 +770,9 @@ namespace
         FakeFileSystem fs;
         fs.add({"/www/raw.bin", false, "abc", std::nullopt, std::nullopt});
 
-        DefaultFileLocator locator(fs);
+        auto locator = std::make_unique<DefaultFileLocator>(&fs);
         HttpContentTypes contentTypes;
-        StaticFileHandlerFactory factory(locator, contentTypes);
+        StaticFileHandlerFactory factory(std::move(locator), contentTypes);
 
         RequestContextHarness harness;
         harness.prepare("GET", "/raw.bin");
@@ -750,7 +802,7 @@ namespace
                 return response;
             }});
 
-        StaticFileHandlerFactory factory(std::make_shared<DefaultFileLocator>(fs), contentTypes, std::move(responseRules));
+        StaticFileHandlerFactory factory(std::make_unique<DefaultFileLocator>(&fs), contentTypes, std::move(responseRules));
 
         RequestContextHarness htmlHarness;
         htmlHarness.prepare("GET", "/index.html");
@@ -787,7 +839,7 @@ namespace
                 return result;
             }});
 
-        StaticFileHandlerFactory factory(std::make_shared<DefaultFileLocator>(fs), contentTypes, {}, std::move(interceptorRules));
+        StaticFileHandlerFactory factory(std::make_unique<DefaultFileLocator>(&fs), contentTypes, {}, std::move(interceptorRules));
 
         RequestContextHarness htmlHarness;
         htmlHarness.prepare("GET", "/index.html");
@@ -819,7 +871,7 @@ namespace
                 return context.headers().exists("X-Allow", "1");
             }});
 
-        StaticFileHandlerFactory factory(std::make_shared<DefaultFileLocator>(fs), contentTypes, {}, {}, std::move(predicateRules));
+        StaticFileHandlerFactory factory(std::make_unique<DefaultFileLocator>(&fs), contentTypes, {}, {}, std::move(predicateRules));
 
         RequestContextHarness secureDeniedHarness;
         secureDeniedHarness.prepare("GET", "/secure/index.html");
@@ -867,6 +919,125 @@ namespace
         TEST_ASSERT_TRUE(true);
     }
 
+    void test_static_files_builder_applies_deferred_default_locator_configuration()
+    {
+        FakeFileSystem fs;
+        fs.add({"/assets/static/app.js", false, "console.log('ok');", 18, 1711152000});
+
+        auto serverTransport = std::make_unique<httpadv::v1::TestSupport::FakeServer>();
+        HttpServerBase server(std::move(serverTransport));
+        WebServerBuilder builder(server);
+
+        StaticFiles(fs, [](StaticFilesBuilder &files)
+        {
+            files.setFilesystemContentRoot("/assets")
+                 .setRequestPathPrefixes("/static", "/static/api");
+        })(builder);
+
+        RequestContextHarness harness;
+        harness.prepare("GET", "/static/app.js");
+        harness.completeHeaders();
+
+        std::unique_ptr<IHttpHandler> handler = builder.handlerProviders().createContextHandler(harness.context());
+        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+
+        TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
+        TEST_ASSERT_EQUAL_STRING("console.log('ok');", response.body.c_str());
+        TEST_ASSERT_TRUE(fs.openLog().size() >= 1);
+        TEST_ASSERT_EQUAL_STRING("/assets/static/app.js", fs.openLog().back().c_str());
+    }
+
+    void test_static_files_builder_uses_explicit_file_locator_instead_of_default_configuration()
+    {
+        FakeFileSystem fs;
+
+        auto serverTransport = std::make_unique<httpadv::v1::TestSupport::FakeServer>();
+        HttpServerBase server(std::move(serverTransport));
+        WebServerBuilder builder(server);
+
+        StaticFiles(fs, [](StaticFilesBuilder &files)
+        {
+            files.setFilesystemContentRoot("/ignored")
+                 .setRequestPathPrefixes("/ignored")
+                 .setFileLocator(std::make_unique<RecordingLocator>(
+                     "/virtual",
+                     FakeFileSpec{"/virtual/asset.txt", false, "asset", 5, 1711152000}));
+        })(builder);
+
+        RequestContextHarness harness;
+        harness.prepare("GET", "/virtual/page.txt");
+        harness.completeHeaders();
+
+        std::unique_ptr<IHttpHandler> handler = builder.handlerProviders().createContextHandler(harness.context());
+        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+
+        TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
+        TEST_ASSERT_EQUAL_STRING("asset", response.body.c_str());
+        TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(fs.openLog().size()));
+    }
+
+    void test_static_files_builder_supports_static_not_found_request_path()
+    {
+        FakeFileSystem fs;
+        fs.add({"/www/index.html", false, "fallback", 8, 1711152000});
+
+        auto serverTransport = std::make_unique<httpadv::v1::TestSupport::FakeServer>();
+        HttpServerBase server(std::move(serverTransport));
+        WebServerBuilder builder(server);
+
+        StaticFiles(fs, [](StaticFilesBuilder &files)
+        {
+            files.onNotFound("/index.html");
+        })(builder);
+
+        RequestContextHarness harness;
+        harness.prepare("GET", "/client/route");
+        harness.completeHeaders();
+
+        std::unique_ptr<IHttpHandler> handler = builder.handlerProviders().createContextHandler(harness.context());
+        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+
+        TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
+        TEST_ASSERT_EQUAL_STRING("fallback", response.body.c_str());
+    }
+
+    void test_static_files_builder_declines_when_not_found_resolver_returns_null()
+    {
+        FakeFileSystem fs;
+
+        auto serverTransport = std::make_unique<httpadv::v1::TestSupport::FakeServer>();
+        HttpServerBase server(std::move(serverTransport));
+        WebServerBuilder builder(server);
+
+        StaticFiles(fs, [](StaticFilesBuilder &files)
+        {
+            files.onNotFound([](HttpRequestContext &) -> std::optional<std::string>
+            {
+                return std::nullopt;
+            });
+        })(builder);
+
+        builder.handlerProviders().add(
+            [](HttpContext &)
+            {
+                return true;
+            },
+            [](HttpContext &)
+            {
+                return HttpHandler::create(createResponse(HttpStatus::Ok(), "next-handler"));
+            });
+
+        RequestContextHarness harness;
+        harness.prepare("GET", "/client/route");
+        harness.completeHeaders();
+
+        std::unique_ptr<IHttpHandler> handler = builder.handlerProviders().createContextHandler(harness.context());
+        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+
+        TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
+        TEST_ASSERT_EQUAL_STRING("next-handler", response.body.c_str());
+    }
+
     int runUnitySuite()
     {
         UNITY_BEGIN();
@@ -874,6 +1045,8 @@ namespace
         RUN_TEST(test_default_file_locator_prefers_gzip_variants_and_respects_prefix_filters);
         RUN_TEST(test_aggregate_file_locator_uses_first_matching_file_and_skips_null_results);
         RUN_TEST(test_static_file_handler_factory_rejects_non_matching_paths_and_missing_files);
+        RUN_TEST(test_static_file_handler_factory_serves_not_found_fallback_request_path);
+        RUN_TEST(test_static_file_handler_factory_declines_missing_request_when_not_found_resolver_returns_null);
         RUN_TEST(test_static_file_handler_factory_serves_files_with_content_type_and_metadata_headers);
         RUN_TEST(test_static_file_handler_factory_handles_directory_gzip_and_method_restrictions);
         RUN_TEST(test_static_file_handler_factory_omits_metadata_headers_when_file_data_is_absent);
@@ -881,6 +1054,10 @@ namespace
         RUN_TEST(test_static_file_handler_factory_matcher_scoped_interceptor_only_applies_when_matcher_matches);
         RUN_TEST(test_static_file_handler_factory_matcher_scoped_request_predicate_limits_handling);
         RUN_TEST(test_static_files_builder_supports_string_pattern_convenience_overloads);
+        RUN_TEST(test_static_files_builder_applies_deferred_default_locator_configuration);
+        RUN_TEST(test_static_files_builder_uses_explicit_file_locator_instead_of_default_configuration);
+        RUN_TEST(test_static_files_builder_supports_static_not_found_request_path);
+        RUN_TEST(test_static_files_builder_declines_when_not_found_resolver_returns_null);
         return UNITY_END();
     }
 }

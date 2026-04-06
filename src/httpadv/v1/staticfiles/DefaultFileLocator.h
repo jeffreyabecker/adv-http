@@ -1,7 +1,7 @@
 #pragma once
 #include "../transport/IFileSystem.h"
 
-#include "../core/HttpContext.h"
+#include "../core/HttpRequestContext.h"
 #include "FileLocator.h"
 
 #include <functional>
@@ -10,7 +10,7 @@
 
 namespace httpadv::v1::staticfiles
 {
-    using httpadv::v1::core::HttpContext;
+    using httpadv::v1::core::HttpRequestContext;
     using httpadv::v1::transport::FileHandle;
     using httpadv::v1::transport::IFileSystem;
 
@@ -26,17 +26,18 @@ namespace httpadv::v1::staticfiles
     private:
         RequestPathPredicate pathPredicate_;
         RequestPathMapper pathMapper_;
-        IFileSystem &filesystem_;
+        IFileSystem *filesystem_;
 
         static RequestPathPredicate createPathPredicate(std::string_view includePrefix, std::string_view excludePrefix);
 
         static RequestPathMapper createPathMapper(std::string_view root);
 
-        virtual std::string getLocalPath(const HttpContext &context);
+        virtual std::string getLocalPath(const HttpRequestContext &context,
+                                         std::string_view requestPath);
 
     public:
-        DefaultFileLocator(IFileSystem &fs);
-        DefaultFileLocator(IFileSystem &fs, RequestPathPredicate predicate, RequestPathMapper mapper);
+        DefaultFileLocator(IFileSystem *fs);
+        DefaultFileLocator(IFileSystem *fs, RequestPathPredicate predicate, RequestPathMapper mapper);
 
         virtual void setPathPredicate(RequestPathPredicate predicate);
 
@@ -46,7 +47,8 @@ namespace httpadv::v1::staticfiles
 
         virtual void setFilesystemContentRoot(std::string_view root);
 
-        virtual FileHandle getFile(HttpContext &context) override;
+        virtual FileHandle getFile(HttpRequestContext &context,
+                       std::string_view requestPath) override;
 
         virtual bool canHandle(std::string_view path) override;
     };

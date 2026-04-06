@@ -6,7 +6,6 @@
 #include "../core/HttpContextPhase.h"
 #include "../core/HttpRequestContext.h"
 #include "../pipeline/IPipelineHandler.h"
-#include "../response/HttpResponse.h"
 #include "../util/UriView.h"
 #include "IHttpContextHandlerFactory.h"
 
@@ -111,11 +110,6 @@ namespace httpadv::v1::core
         inline std::map<std::string, std::any> &items() const override {
             return items_;
         }
-        inline std::unique_ptr<httpadv::v1::response::IHttpResponse> createResponse(HttpStatus status, std::string body) override
-        {
-            return handlerFactory_.createResponse(status, std::move(body));
-        }
-
         UriView &uriView() const override
         {
             if (!cachedUriView_)

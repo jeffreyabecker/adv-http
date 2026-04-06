@@ -204,11 +204,10 @@ public:
     virtual uint16_t localPort() const = 0;
     virtual std::map<std::string, std::any>& items() const = 0;
     virtual UriView& uriView() const = 0;
-    virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string body) = 0;
 };
 ```
 
-Use `HttpRequestContext` in consumer-facing handlers, predicates, and interceptors when you only need request metadata, shared items, or response creation. It is implemented by `HttpContext`, which remains the concrete runtime object owned by the parser and pipeline.
+Use `HttpRequestContext` in consumer-facing handlers, predicates, and interceptors when you only need request metadata, URI parsing, and shared items. Construct responses directly from response types such as `StringResponse::create(...)`. `HttpRequestContext` is implemented by `HttpContext`, which remains the concrete runtime object owned by the parser and pipeline.
 
 #### HttpContext
 
@@ -842,6 +841,9 @@ public:
     StaticFilesBuilder& setPathMapper(std::function<String(const String&)> mapper);
     StaticFilesBuilder& setRequestPathPrefixes(const String& prefix, const String& exclude);
     StaticFilesBuilder& setFilesystemContentRoot(const String& root);
+    StaticFilesBuilder& setFileLocator(std::unique_ptr<FileLocator> locator);
+    StaticFilesBuilder& onNotFound(std::string_view requestPath);
+    StaticFilesBuilder& onNotFound(std::function<std::optional<std::string>(HttpRequestContext&)> resolver);
 };
 
 // Factory function for use() pattern
@@ -857,6 +859,10 @@ server.use(StaticFiles(contentFs, [](StaticFilesBuilder& files) {
     files.setFilesystemContentRoot("/www")
          .setRequestPathPrefixes("/", "/api");
 }));
+
+The builder now records default-locator configuration and constructs `DefaultFileLocator` only during initialization. If `setFileLocator(...)` is used, that explicit locator is installed instead and the deferred default-locator settings are ignored.
+
+Missing static assets can be remapped to another request path inside the static-files provider. Use `onNotFound("/index.html")` for a fixed fallback, or `onNotFound(resolver)` to compute a fallback per request. If the resolver returns `std::nullopt`, the static-files provider declines the request and later handlers can still run.
 ```
 
 ---

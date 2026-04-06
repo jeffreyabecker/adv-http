@@ -1,14 +1,11 @@
 #pragma once
 #include "IHttpContextHandlerFactory.h"
 #include "../routing/HandlerProviderRegistry.h"
-#include "../response/StringResponse.h"
 
 namespace httpadv::v1::core
 {
     using httpadv::v1::handlers::HandlerResult;
     using httpadv::v1::handlers::IHttpHandler;
-    using httpadv::v1::response::IHttpResponse;
-    using httpadv::v1::response::StringResponse;
     using httpadv::v1::routing::HandlerProviderRegistry;
 
     class HttpContext;
@@ -71,11 +68,6 @@ namespace httpadv::v1::core
         {
             static_cast<void>(context);
             return std::make_unique<DeferredRegistryHandler>(providerRegistry_);
-        }
-
-        virtual std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string body) override
-        {
-            return StringResponse::create(status, std::move(body), {});
         }
     };
 } // namespace httpadv::v1::core

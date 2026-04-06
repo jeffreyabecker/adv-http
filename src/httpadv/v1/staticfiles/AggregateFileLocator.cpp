@@ -1,41 +1,27 @@
 #include "AggregateFileLocator.h"
-#include "../core/HttpContext.h"
 
 namespace httpadv::v1::staticfiles
 {
-    void AggregateFileLocator::add(FileLocator *locator, bool takeOwnership)
-    {
-        if (takeOwnership)
-        {
-            locators_.push_back(std::shared_ptr<FileLocator>(locator));
-        }
-        else
-        {
-            locators_.push_back(std::shared_ptr<FileLocator>(locator, [](FileLocator *) {}));
-        }
-    }
 
-    void AggregateFileLocator::add(FileLocator &locator)
-    {
-        locators_.push_back(std::shared_ptr<FileLocator>(&locator, [](FileLocator *) {}));
-    }
 
-    void AggregateFileLocator::add(std::shared_ptr<FileLocator> locator)
+    void AggregateFileLocator::add(std::unique_ptr<FileLocator> locator)
     {
         locators_.push_back(std::move(locator));
     }
 
-    FileHandle AggregateFileLocator::getFile(HttpContext &context)
+    FileHandle AggregateFileLocator::getFile(HttpRequestContext &context, std::string_view requestPath)
     {
         for (auto &locator : locators_)
         {
-            if (locator->canHandle(context.urlView()))
+            if (!locator->canHandle(requestPath))
             {
-                FileHandle file = locator->getFile(context);
-                if (file)
-                {
-                    return file;
-                }
+                continue;
+            }
+
+            FileHandle file = locator->getFile(context, requestPath);
+            if (file)
+            {
+                return file;
             }
         }
         return nullptr;
@@ -53,6 +39,6 @@ namespace httpadv::v1::staticfiles
         return false;
     }
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::staticfiles
 
 

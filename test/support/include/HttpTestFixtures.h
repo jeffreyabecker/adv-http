@@ -88,7 +88,6 @@ namespace httpadv
     class RecordingRequestHandlerFactory : public IHttpContextHandlerFactory
     {
     public:
-        using IHttpContextHandlerFactory::createResponse;
         using HandlerFactoryCallback = std::function<std::unique_ptr<IHttpHandler>(HttpContext &)>;
         using ResponseFactoryCallback = std::function<std::unique_ptr<IHttpResponse>(HttpStatus, std::string)>;
 
@@ -112,7 +111,7 @@ namespace httpadv
             return nullptr;
         }
 
-        std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string body) override
+        std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string body)
         {
             ++responseCreateCount_;
             responseStatuses_.push_back(status);
@@ -123,6 +122,16 @@ namespace httpadv
             }
 
             return StringResponse::create(status, std::move(body), {});
+        }
+
+        std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, std::string_view body)
+        {
+            return createResponse(status, std::string(body));
+        }
+
+        std::unique_ptr<IHttpResponse> createResponse(HttpStatus status, const char *body)
+        {
+            return createResponse(status, std::string(body != nullptr ? body : ""));
         }
 
         std::size_t createCount() const

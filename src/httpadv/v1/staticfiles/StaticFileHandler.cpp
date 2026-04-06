@@ -1,6 +1,9 @@
 #include "StaticFileHandler.h"
 #include "../handlers/HttpHandler.h"
 #include "../response/StringResponse.h"
+
+#include <any>
+#include <cstdint>
 #include <ctime>
 
 #include <string>
@@ -50,6 +53,12 @@ private:
 } // namespace
 
 namespace httpadv::v1::staticfiles {
+struct StaticFileHandlerFactory::ResolvedRequest {
+  bool canHandle = false;
+  std::string requestPath;
+  FileHandle file;
+};
+
 std::optional<std::string>
 StaticFileHandlerFactory::getEtag(const IFile &file) {
   const std::optional<std::size_t> size = file.size();
@@ -66,6 +75,12 @@ StaticFileHandlerFactory::getEtag(const IFile &file) {
   char hex[17];
   snprintf(hex, sizeof(hex), "%016llx", etagValue);
   return std::string(hex);
+}
+
+std::string StaticFileHandlerFactory::createResolvedRequestItemKey(
+    const void *instance) {
+  return "StaticFileHandlerFactory::ResolvedRequest::" +
+         std::to_string(reinterpret_cast<std::uintptr_t>(instance));
 }
 
 std::optional<std::string>
@@ -86,27 +101,68 @@ StaticFileHandlerFactory::getLastWriteValue(const IFile &file) {
   return std::string(buffer);
 }
 
+std::unique_ptr<IHttpResponse> StaticFileHandlerFactory::createFileResponse(
+    FileHandle file, httpadv::v1::core::HttpContentTypes &contentTypes) {
+  if (!file) {
+    return nullptr;
+  }
+
+  const std::string_view filePath = file->path();
+  const bool isGzipped = EndsWith(filePath, ".gz");
+  const bool isBrotli = EndsWith(filePath, ".br");
+
+  const char *contentType = nullptr;
+  if (isGzipped || isBrotli) {
+    contentType = contentTypes.getContentTypeFromPath(
+        filePath.substr(0, filePath.size() - 3));
+  } else {
+    contentType = contentTypes.getContentTypeFromPath(filePath);
+  }
+
+  httpadv::v1::core::HttpHeaderCollection headers;
+  headers.push_back(httpadv::v1::core::HttpHeader::ContentType(contentType));
+  if (const std::optional<std::size_t> fileSize = file->size();
+      fileSize.has_value()) {
+    const std::string contentLength = std::to_string(*fileSize);
+    headers.push_back(
+        httpadv::v1::core::HttpHeader::ContentLength(contentLength.c_str()));
+  }
+
+  if (const std::optional<std::string> etag = getEtag(*file);
+      etag.has_value()) {
+    headers.push_back(httpadv::v1::core::HttpHeader::ETag(std::move(*etag)));
+  }
+
+  if (const std::optional<std::string> lastModified = getLastWriteValue(*file);
+      lastModified.has_value()) {
+    headers.push_back(
+        httpadv::v1::core::HttpHeader::LastModified(std::move(*lastModified)));
+  }
+
+  if (isGzipped) {
+    headers.push_back(httpadv::v1::core::HttpHeader::ContentEncoding("gzip"));
+  }
+  if (isBrotli) {
+    headers.push_back(httpadv::v1::core::HttpHeader::ContentEncoding("br"));
+  }
+
+  std::unique_ptr<httpadv::v1::transport::IByteSource> body = std::move(file);
+  return std::make_unique<httpadv::v1::response::HttpResponse>(
+      httpadv::v1::core::HttpStatus::Ok(), std::move(body),
+      std::move(headers));
+}
+
 // Public methods
 StaticFileHandlerFactory::StaticFileHandlerFactory(
-    FileLocator &fileLocator,
+    std::unique_ptr<FileLocator> fileLocator,
     httpadv::v1::core::HttpContentTypes &contentTypes,
     std::vector<ResponseFilterRule> responseFilterRules,
     std::vector<InterceptorRule> interceptorRules,
-    std::vector<RequestPredicateRule> requestPredicateRules)
-    : contentTypes_(contentTypes),
-      fileLocator_(&fileLocator),
-      responseFilterRules_(std::move(responseFilterRules)),
-      interceptorRules_(std::move(interceptorRules)),
-      requestPredicateRules_(std::move(requestPredicateRules)) {}
-
-StaticFileHandlerFactory::StaticFileHandlerFactory(
-    std::shared_ptr<FileLocator> fileLocator,
-    httpadv::v1::core::HttpContentTypes &contentTypes,
-    std::vector<ResponseFilterRule> responseFilterRules,
-    std::vector<InterceptorRule> interceptorRules,
-    std::vector<RequestPredicateRule> requestPredicateRules)
-    : contentTypes_(contentTypes), ownedFileLocator_(std::move(fileLocator)),
-      fileLocator_(ownedFileLocator_.get()),
+  std::vector<RequestPredicateRule> requestPredicateRules,
+  MissingRequestPathResolver notFoundRequestPathResolver)
+    : contentTypes_(contentTypes), fileLocator_(std::move(fileLocator)),
+      notFoundRequestPathResolver_(std::move(notFoundRequestPathResolver)),
+      resolvedRequestItemKey_(createResolvedRequestItemKey(this)),
       responseFilterRules_(std::move(responseFilterRules)),
       interceptorRules_(std::move(interceptorRules)),
       requestPredicateRules_(std::move(requestPredicateRules)) {}
@@ -125,6 +181,50 @@ bool StaticFileHandlerFactory::passesRequestPredicates(HttpContext &context) con
   }
 
   return true;
+}
+
+FileHandle StaticFileHandlerFactory::locateFile(
+    HttpRequestContext &context, std::string_view requestPath) const {
+  if (!fileLocator_) {
+    return nullptr;
+  }
+
+  return fileLocator_->getFile(context, requestPath);
+}
+
+StaticFileHandlerFactory::ResolvedRequest &
+StaticFileHandlerFactory::resolveRequest(HttpContext &context) {
+  auto &items = context.items();
+  auto existing = items.find(resolvedRequestItemKey_);
+  if (existing != items.end()) {
+    return *std::any_cast<std::shared_ptr<ResolvedRequest> &>(existing->second);
+  }
+
+  ResolvedRequest resolvedRequest;
+  if (fileLocator_ && fileLocator_->canHandle(context.urlView()) &&
+      passesRequestPredicates(context)) {
+    resolvedRequest.requestPath = std::string(context.urlView());
+    resolvedRequest.file = locateFile(context, resolvedRequest.requestPath);
+
+    if (!resolvedRequest.file && notFoundRequestPathResolver_) {
+      std::optional<std::string> fallbackPath =
+          notFoundRequestPathResolver_(context);
+      if (fallbackPath.has_value()) {
+        resolvedRequest.requestPath = std::move(*fallbackPath);
+        resolvedRequest.file = locateFile(context, resolvedRequest.requestPath);
+      }
+    }
+
+    resolvedRequest.canHandle = static_cast<bool>(resolvedRequest.file);
+    if (!resolvedRequest.canHandle) {
+      resolvedRequest.requestPath.clear();
+    }
+  }
+
+  auto [inserted, _] = items.emplace(
+      resolvedRequestItemKey_,
+      std::make_shared<ResolvedRequest>(std::move(resolvedRequest)));
+  return *std::any_cast<std::shared_ptr<ResolvedRequest> &>(inserted->second);
 }
 
 std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::decorateHandler(
@@ -190,24 +290,16 @@ std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::decorateHandler(
 }
 
 bool StaticFileHandlerFactory::canHandle(HttpContext &context) {
-  if (fileLocator_ == nullptr || !fileLocator_->canHandle(context.urlView())) {
-    return false;
-  }
-
-  if (!passesRequestPredicates(context)) {
-    return false;
-  }
-
-  FileHandle file = fileLocator_->getFile(context);
-  if (!file) {
-    return false;
-  }
-  file->close();
-  return true;
+  return resolveRequest(context).canHandle;
 }
 
 std::unique_ptr<IHttpHandler>
 StaticFileHandlerFactory::create(HttpContext &context) {
+  ResolvedRequest &resolvedRequest = resolveRequest(context);
+  if (!resolvedRequest.canHandle) {
+    return nullptr;
+  }
+
   const std::string_view method = context.methodView();
   bool isGet = (method == httpadv::v1::core::HttpMethod::Get);
   bool isHead = (method == httpadv::v1::core::HttpMethod::Head);
@@ -218,63 +310,27 @@ StaticFileHandlerFactory::create(HttpContext &context) {
       {std::move(httpadv::v1::core::HttpHeader::Allow("GET, HEAD"))})));
   }
 
-  if (fileLocator_ == nullptr) {
+  FileHandle file = std::move(resolvedRequest.file);
+  if (!file && !resolvedRequest.requestPath.empty()) {
+    file = locateFile(context, resolvedRequest.requestPath);
+  }
+  if (!file) {
     return nullptr;
   }
 
-  FileHandle file = fileLocator_->getFile(context);
-  if (!file) {
-    return decorateHandler(context, httpadv::v1::handlers::HttpHandler::create(
-      httpadv::v1::response::StringResponse::create(httpadv::v1::core::HttpStatus::NotFound(), "Not Found", {})));
-  }
-
-  const std::string_view filePath = file->path();
-  const bool isGzipped = EndsWith(filePath, ".gz");
-  const bool isBrotli = EndsWith(filePath, ".br");
-
-  const char *contentType = nullptr;
-  if (isGzipped) {
-    contentType = contentTypes_.getContentTypeFromPath(
-        filePath.substr(0, filePath.size() - 3));
-  } else if (isBrotli) {
-    contentType = contentTypes_.getContentTypeFromPath(
-        filePath.substr(0, filePath.size() - 3));
-  } else {
-    contentType = contentTypes_.getContentTypeFromPath(filePath);
-  }
-
-  httpadv::v1::core::HttpHeaderCollection headers;
-  headers.push_back(httpadv::v1::core::HttpHeader::ContentType(contentType));
-  if (const std::optional<std::size_t> fileSize = file->size();
-      fileSize.has_value()) {
-    const std::string contentLength = std::to_string(*fileSize);
-    headers.push_back(httpadv::v1::core::HttpHeader::ContentLength(contentLength.c_str()));
-  }
-
-  if (const std::optional<std::string> etag = getEtag(*file);
-      etag.has_value()) {
-    headers.push_back(httpadv::v1::core::HttpHeader::ETag(std::move(*etag)));
-  }
-
-  if (const std::optional<std::string> lastModified = getLastWriteValue(*file);
-      lastModified.has_value()) {
-    headers.push_back(httpadv::v1::core::HttpHeader::LastModified(std::move(*lastModified)));
-  }
-
-  if (isGzipped) {
-    headers.push_back(httpadv::v1::core::HttpHeader::ContentEncoding("gzip"));
-  }
-  if (isBrotli) {
-    headers.push_back(httpadv::v1::core::HttpHeader::ContentEncoding("br"));
-  }
-
-    std::unique_ptr<httpadv::v1::transport::IByteSource> body = std::move(file);
-    return decorateHandler(context, httpadv::v1::handlers::HttpHandler::create(std::make_unique<httpadv::v1::response::HttpResponse>(
-      httpadv::v1::core::HttpStatus::Ok(), std::move(body), std::move(headers))));
+  return decorateHandler(
+      context, httpadv::v1::handlers::HttpHandler::create(
+                   createFileResponse(std::move(file), contentTypes_)));
 }
 
-void StaticFileHandlerFactory::setFileLocator(FileLocator &fileLocator) {
-  fileLocator_ = &fileLocator;
+void StaticFileHandlerFactory::setFileLocator(
+    std::unique_ptr<FileLocator> fileLocator) {
+  fileLocator_ = std::move(fileLocator);
+}
+
+void StaticFileHandlerFactory::setNotFoundRequestPathResolver(
+    MissingRequestPathResolver resolver) {
+  notFoundRequestPathResolver_ = std::move(resolver);
 }
 
 } // namespace HttpServerAdvanced

@@ -3,7 +3,7 @@
 namespace httpadv::v1::staticfiles {
 StaticFilesBuilder::StaticFilesBuilder(
     IFileSystem &fs, std::function<void(StaticFilesBuilder &)> setupFunc)
-    : setupFunc_(setupFunc), fileLocator_(fs) {}
+  : setupFunc_(setupFunc), filesystem_(&fs) {}
 
 StaticFilesBuilder::~StaticFilesBuilder() {}
 
@@ -12,35 +12,90 @@ void StaticFilesBuilder::init(
   if (setupFunc_) {
     setupFunc_(*this);
   }
+
+  if (!fileLocator_) {
+    auto defaultFileLocator = std::make_unique<DefaultFileLocator>(filesystem_);
+    for (auto &action : defaultFileLocatorActions_) {
+      action(*defaultFileLocator);
+    }
+    fileLocator_ = std::move(defaultFileLocator);
+  }
+
   auto &handlerFactory = coreBuilder.handlerProviders();
   handlerFactory.addAt<StaticFileHandlerFactory>(
-      0, std::make_shared<DefaultFileLocator>(fileLocator_),
+      0, std::move(fileLocator_),
       coreBuilder.contentTypes(), std::move(responseFilterRules_),
-      std::move(interceptorRules_), std::move(requestPredicateRules_));
+      std::move(interceptorRules_), std::move(requestPredicateRules_),
+      std::move(notFoundRequestPathResolver_));
 }
 
 StaticFilesBuilder &StaticFilesBuilder::setPathPredicate(
     std::function<bool(std::string_view)> predicate) {
-  fileLocator_.setPathPredicate(predicate);
+  if (!predicate) {
+    return *this;
+  }
+
+  defaultFileLocatorActions_.push_back(
+      [predicate = std::move(predicate)](DefaultFileLocator &locator) mutable {
+        locator.setPathPredicate(std::move(predicate));
+      });
   return *this;
 }
 
 StaticFilesBuilder &StaticFilesBuilder::setPathMapper(
     std::function<std::string(std::string_view)> mapper) {
-  fileLocator_.setPathMapper(mapper);
+  if (!mapper) {
+    return *this;
+  }
+
+  defaultFileLocatorActions_.push_back(
+      [mapper = std::move(mapper)](DefaultFileLocator &locator) mutable {
+        locator.setPathMapper(std::move(mapper));
+      });
   return *this;
 }
 
 StaticFilesBuilder &
 StaticFilesBuilder::setRequestPathPrefixes(std::string_view prefix,
                                            std::string_view excludePrefix) {
-  fileLocator_.setRequestPathPrefixes(prefix, excludePrefix);
+  defaultFileLocatorActions_.push_back(
+      [prefix = std::string(prefix),
+       excludePrefix = std::string(excludePrefix)](
+          DefaultFileLocator &locator) {
+        locator.setRequestPathPrefixes(prefix, excludePrefix);
+      });
   return *this;
 }
 
 StaticFilesBuilder &
 StaticFilesBuilder::setFilesystemContentRoot(std::string_view root) {
-  fileLocator_.setFilesystemContentRoot(root);
+  defaultFileLocatorActions_.push_back(
+      [root = std::string(root)](DefaultFileLocator &locator) {
+        locator.setFilesystemContentRoot(root);
+      });
+  return *this;
+}
+
+StaticFilesBuilder &
+StaticFilesBuilder::setFileLocator(std::unique_ptr<FileLocator> locator) {
+  fileLocator_ = std::move(locator);
+  return *this;
+}
+
+StaticFilesBuilder &
+StaticFilesBuilder::onNotFound(std::string_view requestPath) {
+  const std::string fallbackPath(requestPath);
+  notFoundRequestPathResolver_ =
+      [fallbackPath](httpadv::v1::core::HttpRequestContext &)
+      -> std::optional<std::string> {
+    return fallbackPath;
+  };
+  return *this;
+}
+
+StaticFilesBuilder &StaticFilesBuilder::onNotFound(
+    StaticFileHandlerFactory::MissingRequestPathResolver resolver) {
+  notFoundRequestPathResolver_ = std::move(resolver);
   return *this;
 }
 

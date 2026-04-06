@@ -5,18 +5,12 @@
 #include <any>
 #include <cstdint>
 #include <map>
-#include <memory>
 #include <string>
 #include <string_view>
 
 namespace httpadv::v1::core
 {
     class HttpHeaderCollection;
-}
-
-namespace httpadv::v1::response
-{
-    class IHttpResponse;
 }
 
 namespace httpadv::v1::util
@@ -44,16 +38,5 @@ namespace httpadv::v1::core
         virtual uint16_t localPort() const = 0;
         virtual std::map<std::string, std::any> &items() const = 0;
         virtual httpadv::v1::util::UriView &uriView() const = 0;
-        virtual std::unique_ptr<httpadv::v1::response::IHttpResponse> createResponse(HttpStatus status, std::string body) = 0;
-
-        std::unique_ptr<httpadv::v1::response::IHttpResponse> createResponse(HttpStatus status, std::string_view body)
-        {
-            return createResponse(status, std::string(body));
-        }
-
-        std::unique_ptr<httpadv::v1::response::IHttpResponse> createResponse(HttpStatus status, const char *body)
-        {
-            return createResponse(status, std::string(body != nullptr ? body : ""));
-        }
     };
 }

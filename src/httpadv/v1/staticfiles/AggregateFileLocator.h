@@ -12,14 +12,12 @@ namespace httpadv::v1::staticfiles
     class AggregateFileLocator : public FileLocator
     {
     private:
-        std::vector<std::shared_ptr<FileLocator>> locators_;
-
+        std::vector<std::unique_ptr<FileLocator>> locators_;
     public:
-        void add(FileLocator *locator, bool takeOwnership = true);
-        void add(FileLocator &locator);
-        void add(std::shared_ptr<FileLocator> locator);
-        FileHandle getFile(HttpContext &context) override;
+
+        void add(std::unique_ptr<FileLocator> locator);
+        FileHandle getFile(HttpRequestContext &context, std::string_view requestPath) override;
         bool canHandle(std::string_view path) override;
     };
 
-} // namespace HttpServerAdvanced
+} // namespace httpadv::v1::staticfiles

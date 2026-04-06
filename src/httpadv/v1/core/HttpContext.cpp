@@ -2,6 +2,7 @@
 #include "HttpContextPipelineAdapter.h"
 #include "HttpContextRunner.h"
 #include "../handlers/IHttpHandler.h"
+#include "../response/StringResponse.h"
 #include "IHttpContextHandlerFactory.h"
 
 namespace httpadv::v1::core
@@ -148,7 +149,9 @@ namespace httpadv::v1::core
                     break;
                 }
 
-                std::unique_ptr<httpadv::v1::response::IHttpResponse> response = context_.createResponse(status, message + std::string(error.message()));
+                std::unique_ptr<httpadv::v1::response::IHttpResponse> response =
+                    httpadv::v1::response::StringResponse::create(
+                        status, message + std::string(error.message()), {});
                 setPendingResult(httpadv::v1::pipeline::RequestHandlingResult::response(httpadv::v1::response::CreateResponseStream(std::move(response))));
                 markResponseStarted();
             }

@@ -25,10 +25,6 @@ using NativeFSImpl = httpadv::v1::platform::posix::PosixFS;
 #include <vector>
 
 using namespace httpadv::v1::core;
-using namespace httpadv::v1::handlers;
-using namespace httpadv::v1::pipeline;
-using namespace httpadv::v1::response;
-using namespace httpadv::v1::server;
 using namespace httpadv::v1::staticfiles;
 using namespace httpadv::v1::transport;
 using namespace httpadv::v1::util;
@@ -137,7 +133,7 @@ namespace
     {
         std::unique_ptr<IFileSystem> fs = std::make_unique<NativeFSImpl>();
         TEST_ASSERT_NOT_NULL(fs.get());
-        DefaultFileLocator locator(*fs);
+        DefaultFileLocator locator(fs.get());
 
         locator.setRequestPathPrefixes(std::string_view("/static"), std::string_view("/static/api"));
 

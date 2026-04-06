@@ -923,7 +923,7 @@ namespace
             {
                 request.items()["base-route-param"] = params.at("slug");
                 request.items()["base-method"] = std::string(request.methodView());
-                return request.createResponse(HttpStatus::Ok(), std::string("base:") + params.at("slug"));
+                return StringResponse::create(HttpStatus::Ok(), std::string("base:") + params.at("slug"), {});
             });
 
             route.filterRequest([](HttpRequestContext &request)
@@ -964,7 +964,7 @@ namespace
         config.on<GetRequest>(configPattern.c_str(), [](HttpRequestContext &request, RouteParameters &&params) -> std::unique_ptr<IHttpResponse>
         {
             request.items()["config-route-param"] = params.at("slug");
-            return request.createResponse(HttpStatus::Ok(), std::string("config:") + params.at("slug"));
+            return StringResponse::create(HttpStatus::Ok(), std::string("config:") + params.at("slug"), {});
         });
 
         auto configHandler = config.handlerProviders().createContextHandler(configHarness.context());
