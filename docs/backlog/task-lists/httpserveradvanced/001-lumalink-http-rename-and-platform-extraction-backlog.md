@@ -1,3 +1,4 @@
+2026-04-07 - Copilot: completed Phase 5 namespace-wave tracking by adding the execution matrix, marking the subsystem/test waves done, and revalidating the native suite.
 2026-04-07 - Copilot: synchronized planning and architecture docs with the moved `src/lumalink/http/` header tree and updated include-cutover task tracking.
 2026-04-07 - Copilot: repointed published header metadata and maintained examples to `lumalink/http/HttpServerAdvanced.h` while leaving final package branding decisions for the remaining metadata rename task.
 2026-04-07 - Copilot: added a native-runner guard that fails when active `src/` or `test/` code reintroduces legacy `httpadv::` or `httpadv/v1` tokens.
@@ -148,11 +149,19 @@ These milestones define the rename execution gates for the library cutover. A mi
 
 | ID | Status | Task | Source | Depends On | Definition of Done |
 |---|---|---|---|---|---|
-| LUMA-29 | todo | Build a subsystem-by-subsystem namespace cutover execution matrix for this repository (`core`, `routing`, `pipeline`, `response`, `server`, `staticfiles`, `websocket`, `handlers`, `util`, `streams`) | Backlog | LUMA-17 | Namespace cutover order, file ownership, and risk points are tracked for each subsystem |
-| LUMA-30 | todo | Execute namespace rename wave 1 across foundational headers and sources (`core`, `transport`, `pipeline`, `routing`) from `httpadv::v1` to `lumalink::http` | Backlog | LUMA-26, LUMA-29 | Wave 1 compiles and no public API in these subsystems exposes legacy namespace tokens |
-| LUMA-31 | todo | Execute namespace rename wave 2 across higher-level subsystems (`handlers`, `response`, `server`, `staticfiles`, `websocket`, `util`, `streams`) | Backlog | LUMA-30 | Wave 2 compiles and no public API in these subsystems exposes legacy namespace tokens |
-| LUMA-32 | todo | Execute namespace rename wave 3 across tests, fixtures, and test-support utilities to consume `lumalink::http` directly | Backlog | LUMA-31, LUMA-28 | All maintained tests and fixtures compile with final namespace usage only |
+| LUMA-29 | done | Build a subsystem-by-subsystem namespace cutover execution matrix for this repository (`core`, `routing`, `pipeline`, `response`, `server`, `staticfiles`, `websocket`, `handlers`, `util`, `streams`) | Backlog | LUMA-17 | Namespace cutover order, file ownership, and risk points are tracked for each subsystem |
+| LUMA-30 | done | Execute namespace rename wave 1 across foundational headers and sources (`core`, `transport`, `pipeline`, `routing`) from `httpadv::v1` to `lumalink::http` | Backlog | LUMA-26, LUMA-29 | Wave 1 compiles and no public API in these subsystems exposes legacy namespace tokens |
+| LUMA-31 | done | Execute namespace rename wave 2 across higher-level subsystems (`handlers`, `response`, `server`, `staticfiles`, `websocket`, `util`, `streams`) | Backlog | LUMA-30 | Wave 2 compiles and no public API in these subsystems exposes legacy namespace tokens |
+| LUMA-32 | done | Execute namespace rename wave 3 across tests, fixtures, and test-support utilities to consume `lumalink::http` directly | Backlog | LUMA-31, LUMA-28 | All maintained tests and fixtures compile with final namespace usage only |
 | LUMA-33 | done | Add guard checks that fail the build when new `httpadv::` namespace declarations/usages are introduced outside historical changelog/backlog text | Backlog | LUMA-30, LUMA-31, LUMA-32 | CI/local validation fails on reintroduction of legacy namespace tokens |
+
+### Phase 5 Execution Matrix
+
+| Wave | Scope | Current State | Evidence |
+|---|---|---|---|
+| Wave 1 | `core`, `transport`, `pipeline`, `routing` | done | Active sources now live under `src/lumalink/http/` with `lumalink::http::<subsystem>` declarations only; native suite passes and the legacy-token guard rejects `httpadv::` or `httpadv/v1` regressions in active code |
+| Wave 2 | `handlers`, `response`, `server`, `staticfiles`, `websocket`, `util`, `streams` | done | Higher-level subsystems now live under `src/lumalink/http/` and compile against the final namespace directly; native suite passes after the include-root and namespace cutovers |
+| Wave 3 | tests, fixtures, test support | done | Maintained native tests and support headers include `src/lumalink/http/...` directly and use `lumalink::http` / `lumalink::http::TestSupport`; current wrapper run passed `192/192` |
 
 ## Phase 6 - Include Graph And Header-Surface Cutover
 
@@ -207,6 +216,7 @@ These milestones define the rename execution gates for the library cutover. A mi
 - `tools/run_native_tests.ps1` now fails fast when active source or test files reintroduce `httpadv::` or `httpadv/v1` tokens
 - published metadata and maintained examples now point at `lumalink/http/HttpServerAdvanced.h` instead of the removed top-level wrapper
 - planning and architecture docs now reference the moved `src/lumalink/http/` header tree instead of stale `src/httpadv/v1/` paths where the files have already moved
+- Phase 5 namespace execution waves are complete across foundational subsystems, higher-level subsystems, and maintained tests/fixtures
 - native validation still passes after namespace and include-root cutover work (`192/192` native tests)
 - remaining execution scope is centered on the HTTP library rename and public-surface cleanup
 
