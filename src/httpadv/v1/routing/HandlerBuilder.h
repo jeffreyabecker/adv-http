@@ -36,8 +36,9 @@ namespace httpadv::v1::routing
             }
             return THandler::makeFactory(invocation, extractor_);
         }
-        static RouteParameters EmptyParameters(httpadv::v1::core::HttpContext &context)
+        static RouteParameters EmptyParameters(httpadv::v1::core::HttpRequestContext &context)
         {
+            (void)context;
             return {};
         }
 
@@ -77,7 +78,7 @@ namespace httpadv::v1::routing
                             return false;
                         }
                     }
-                    return matcher.canHandle(static_cast<httpadv::v1::core::HttpContext &>(context));
+                    return matcher.canHandle(context);
                 };
 
                 addHandler_(predicate, getFactory());
@@ -148,14 +149,6 @@ namespace httpadv::v1::routing
                 return predicate(context);
             };
             return *this;
-        }
-
-        HandlerBuilder &filterRequest(std::function<bool(httpadv::v1::core::HttpContext &)> predicate)
-        {
-            return filterRequest(IHttpHandler::Predicate([predicate = std::move(predicate)](httpadv::v1::core::HttpRequestContext &context)
-            {
-                return predicate(static_cast<httpadv::v1::core::HttpContext &>(context));
-            }));
         }
 
         template <typename TPredicate,

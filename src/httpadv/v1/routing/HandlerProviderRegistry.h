@@ -31,7 +31,7 @@ namespace httpadv::v1::routing
             static const AddPosition End = -1;
         };
 
-        static std::unique_ptr<httpadv::v1::handlers::IHttpHandler> createDefaultHandler(httpadv::v1::core::HttpContext &context);
+        static std::unique_ptr<httpadv::v1::handlers::IHttpHandler> createDefaultHandler(httpadv::v1::core::HttpRequestContext &context);
         std::unique_ptr<httpadv::v1::handlers::IHttpHandler> wrapHandler(std::unique_ptr<httpadv::v1::handlers::IHttpHandler> innerHandler) const;
         std::vector<std::reference_wrapper<httpadv::v1::handlers::IHandlerProvider>> factories_;
         std::vector<std::unique_ptr<httpadv::v1::handlers::IHandlerProvider>> ownedFactoryItems_;
@@ -50,7 +50,7 @@ namespace httpadv::v1::routing
         public:
             ResponseFilterApplicator(std::unique_ptr<httpadv::v1::handlers::IHttpHandler> innerHandler, IHttpResponse::ResponseFilter filter, httpadv::v1::handlers::IHttpHandler::InterceptorCallback interceptor = nullptr)
                 : filter_(filter), interceptor_(interceptor), innerHandler_(std::move(innerHandler)) {}
-            virtual httpadv::v1::handlers::IHttpHandler::HandlerResult handleStep(httpadv::v1::core::HttpContext &context) override
+            virtual httpadv::v1::handlers::IHttpHandler::HandlerResult handleStep(httpadv::v1::core::HttpRequestContext &context) override
             {
                 httpadv::v1::handlers::IHttpHandler::HandlerResult response = interceptor_ ? interceptor_(context, httpadv::v1::handlers::IHttpHandler::InvocationNext(context, [this, &context]()
                                                                                    { return innerHandler_->handleStep(context); }))
@@ -61,7 +61,7 @@ namespace httpadv::v1::routing
                 }
                 return response;
             }
-            virtual void handleBodyChunk(httpadv::v1::core::HttpContext &context, const uint8_t *at, std::size_t length) override
+            virtual void handleBodyChunk(httpadv::v1::core::HttpRequestContext &context, const uint8_t *at, std::size_t length) override
             {
                 innerHandler_->handleBodyChunk(context, at, length);
             }
@@ -69,7 +69,7 @@ namespace httpadv::v1::routing
 
     public:
         HandlerProviderRegistry() {}
-        std::unique_ptr<httpadv::v1::handlers::IHttpHandler> createContextHandler(httpadv::v1::core::HttpContext &context);
+        std::unique_ptr<httpadv::v1::handlers::IHttpHandler> createContextHandler(httpadv::v1::core::HttpRequestContext &context);
         void setDefaultHandlerFactory(httpadv::v1::handlers::IHttpHandler::Factory creator);
 
         void add(httpadv::v1::handlers::IHandlerProvider &handlerFactory, AddPosition position = AddAt::End);
@@ -91,7 +91,6 @@ namespace httpadv::v1::routing
         }
 
         void add(httpadv::v1::handlers::IHttpHandler::Predicate predicate, httpadv::v1::handlers::IHttpHandler::Factory handler, AddPosition position = AddAt::End);
-        void add(std::function<bool(httpadv::v1::core::HttpContext &)> predicate, httpadv::v1::handlers::IHttpHandler::Factory handler, AddPosition position = AddAt::End);
         void add(httpadv::v1::handlers::IHttpHandler::Predicate predicate, httpadv::v1::handlers::IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End);
         void with(httpadv::v1::handlers::IHttpHandler::InterceptorCallback interceptor);
         void filterRequest(httpadv::v1::handlers::IHttpHandler::Predicate predicate);

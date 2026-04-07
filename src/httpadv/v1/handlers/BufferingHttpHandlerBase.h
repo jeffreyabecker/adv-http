@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <optional>
 #include <string_view>
-#include "../core/HttpContext.h"
+#include "../core/HttpRequestContext.h"
 
 namespace httpadv::v1::handlers
 {
@@ -38,9 +38,9 @@ namespace httpadv::v1::handlers
     public:
         virtual ~BufferingHttpHandlerBase() = default;
 
-        virtual HandlerResult handleBody(httpadv::v1::core::HttpContext &context, std::vector<uint8_t> &&body) = 0;
+        virtual HandlerResult handleBody(httpadv::v1::core::HttpRequestContext &context, std::vector<uint8_t> &&body) = 0;
 
-        HandlerResult handleStep(httpadv::v1::core::HttpContext &context) override
+        HandlerResult handleStep(httpadv::v1::core::HttpRequestContext &context) override
         {
             if (context.completedPhases() < httpadv::v1::core::HttpContextPhase::CompletedReadingMessage)
             {
@@ -55,7 +55,7 @@ namespace httpadv::v1::handlers
             return handleBody(context, std::move(bodyBuffer_));
         }
 
-        void handleBodyChunk(httpadv::v1::core::HttpContext &context, const uint8_t *at, std::size_t length) override
+        void handleBodyChunk(httpadv::v1::core::HttpRequestContext &context, const uint8_t *at, std::size_t length) override
         {
             const std::ptrdiff_t cfg = configuredMax;
             if (cfg == 0)

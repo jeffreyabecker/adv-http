@@ -1,6 +1,7 @@
 #pragma once
 
 #include "HttpContextPhase.h"
+#include "HttpRequestContext.h"
 #include "../pipeline/PipelineError.h"
 #include "../pipeline/RequestHandlingResult.h"
 
@@ -10,14 +11,12 @@
 
 namespace httpadv::v1::core
 {
-    class HttpContext;
-
     class HttpContextRunner
     {
     public:
         virtual ~HttpContextRunner() = default;
 
-        virtual HttpContext &context() = 0;
+        virtual HttpRequestContext &context() = 0;
 
         virtual int onMessageBegin(const char *method,
                                    std::uint16_t versionMajor,

@@ -1,5 +1,4 @@
 #include "HandlerProviderRegistry.h"
-#include "../core/HttpContext.h"
 #include "../handlers/HttpHandler.h"
 #include "../response/HttpResponse.h"
 #include "../response/StringResponse.h"
@@ -16,12 +15,12 @@ namespace httpadv::v1::routing
     using httpadv::v1::response::IHttpResponse;
     using httpadv::v1::response::StringResponse;
 
-    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createDefaultHandler(httpadv::v1::core::HttpContext &context)
+    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createDefaultHandler(httpadv::v1::core::HttpRequestContext &context)
     {
         return std::make_unique<HttpHandler>(
             StringResponse::create(HttpStatus::NotFound(), "404 Not Found",
                                  {HttpHeader(HttpHeaderNames::ContentType, "text/plain")}),
-            [](const httpadv::v1::core::HttpContext &)
+            [](const httpadv::v1::core::HttpRequestContext &)
             { return true; });
     }
 
@@ -40,22 +39,22 @@ namespace httpadv::v1::routing
         return std::make_unique<ResponseFilterApplicator>(std::move(innerHandler), globalResponseFilter_, globalRequestInterceptor_);
     }
 
-    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createContextHandler(httpadv::v1::core::HttpContext &context)
+    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createContextHandler(httpadv::v1::core::HttpRequestContext &context)
     {
         if (!globalRequestFilter_ || globalRequestFilter_(context))
         {
             for (auto &creator : factories_)
             {
                 httpadv::v1::handlers::IHandlerProvider &factory = creator.get();
-                if (factory.canHandle(const_cast<httpadv::v1::core::HttpContext &>(context)))
+                if (factory.canHandle(context))
                 {
-                    return wrapHandler(factory.create(const_cast<httpadv::v1::core::HttpContext &>(context)));
+                    return wrapHandler(factory.create(context));
                 }
             }
         }
         auto inner = defaultFactory_
-                         ? defaultFactory_(const_cast<httpadv::v1::core::HttpContext &>(context))
-                         : createDefaultHandler(const_cast<httpadv::v1::core::HttpContext &>(context));
+                         ? defaultFactory_(context)
+                         : createDefaultHandler(context);
         return wrapHandler(std::move(inner));
     }
 
@@ -93,18 +92,10 @@ namespace httpadv::v1::routing
         add(ref, position);
     }
 
-    void HandlerProviderRegistry::add(std::function<bool(httpadv::v1::core::HttpContext &)> predicate, IHttpHandler::Factory handler, AddPosition position)
-    {
-        add(IHttpHandler::Predicate([predicate = std::move(predicate)](httpadv::v1::core::HttpRequestContext &context)
-        {
-            return predicate(static_cast<httpadv::v1::core::HttpContext &>(context));
-        }), std::move(handler), position);
-    }
-
     void HandlerProviderRegistry::add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position)
     {
-        add(predicate, [invocation](httpadv::v1::core::HttpContext &context)
-            { return std::make_unique<HttpHandler>(invocation, [](const httpadv::v1::core::HttpContext &)
+        add(predicate, [invocation](httpadv::v1::core::HttpRequestContext &context)
+            { return std::make_unique<HttpHandler>(invocation, [](const httpadv::v1::core::HttpRequestContext &)
                                                    { return true; }); }, position);
     }
 

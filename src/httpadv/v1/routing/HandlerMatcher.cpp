@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-#include "../core/HttpContext.h"
+#include "../core/HttpRequestContext.h"
 #include "../util/UriView.h"
 
 namespace httpadv::v1::routing
@@ -477,7 +477,7 @@ namespace httpadv::v1::routing
     }
 
     // Public methods
-    bool HandlerMatcher::canHandle(httpadv::v1::core::HttpContext &context) const
+    bool HandlerMatcher::canHandle(HttpRequestContext &context) const
     {
         if (!allowedMethods_.empty() && !methodChecker_(allowedMethods_, context.methodView()))
         {
@@ -499,7 +499,7 @@ namespace httpadv::v1::routing
         return true;
     }
 
-    RouteParameters HandlerMatcher::extractParameters(httpadv::v1::core::HttpContext &context) const
+    RouteParameters HandlerMatcher::extractParameters(HttpRequestContext &context) const
     {
         return argsExtractor_(context, uriPattern_);
     }

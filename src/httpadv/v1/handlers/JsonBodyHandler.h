@@ -28,46 +28,20 @@ namespace httpadv::v1::handlers
     public:
         JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequestContext &context, RouteParameters &&params, JsonDocument &&postData)
-                       { return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(params), std::move(postData)); }),
-              extractor_(extractor) {}
         JsonBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
             : handler_([handler](HttpRequestContext &context, RouteParameters &&, JsonDocument &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
-        JsonBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, JsonDocument &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequestContext &context, RouteParameters &&, JsonDocument &&postData)
-                       { return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(postData)); }),
-              extractor_(extractor) {}
 
-        virtual IHttpHandler::HandlerResult handleBody(httpadv::v1::core::HttpContext &context, std::vector<uint8_t> &&body) override;
+        virtual IHttpHandler::HandlerResult handleBody(httpadv::v1::core::HttpRequestContext &context, std::vector<uint8_t> &&body) override;
     };
     class Json
     {
     public:
-        using LegacyInvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, JsonDocument &&)>;
-        using LegacyInvocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, JsonDocument &&)>;
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, JsonDocument &&)>;
         using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, JsonDocument &&)>;
 
         static constexpr const char *DeserializationErrorItemKey = "Json::DeserializationError";
-
-        static InvocationWithoutParams adaptLegacyInvocationWithoutParams(LegacyInvocationWithoutParams handler)
-        {
-            return [handler](HttpRequestContext &context, JsonDocument &&body)
-            {
-                return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(body));
-            };
-        }
-
-        static Invocation adaptLegacyInvocation(LegacyInvocation handler)
-        {
-            return [handler](HttpRequestContext &context, RouteParameters &&params, JsonDocument &&body)
-            {
-                return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(params), std::move(body));
-            };
-        }
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 

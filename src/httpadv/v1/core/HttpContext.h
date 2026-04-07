@@ -9,8 +9,6 @@
 #include "../util/UriView.h"
 #include "IHttpContextHandlerFactory.h"
 
-#include <any>
-#include <map>
 #include <string>
 #include <string_view>
 
@@ -35,8 +33,6 @@ namespace httpadv::v1::core
     private:
         httpadv::v1::server::HttpServerBase &server_;
         const HttpContextPhaseFlags *completedPhases_ = nullptr;
-        mutable std::map<std::string, std::any> items_;
-
         // Retains the legacy HTTP activation data carried through the pipeline.
         std::string method_;
         std::string version_;
@@ -81,7 +77,7 @@ namespace httpadv::v1::core
 
         std::unique_ptr<httpadv::v1::handlers::IHttpHandler> createHandler()
         {
-            return handlerFactory_.create(*this);
+            return handlerFactory_.create(static_cast<HttpRequestContext &>(*this));
         }
 
         mutable std::unique_ptr<UriView> cachedUriView_;
@@ -93,7 +89,7 @@ namespace httpadv::v1::core
         ~HttpContext() = default;
 
         inline httpadv::v1::server::HttpServerBase &server() { return server_; }
-        inline HttpContextPhaseFlags completedPhases() const { return completedPhases_ != nullptr ? *completedPhases_ : 0; }
+        inline HttpContextPhaseFlags completedPhases() const override { return completedPhases_ != nullptr ? *completedPhases_ : 0; }
 
         // Legacy request accessors preserved on the final context type.
         inline std::string_view version() const override { return versionView(); }
@@ -107,9 +103,6 @@ namespace httpadv::v1::core
         inline uint16_t remotePort() const override { return remotePort_; }
         inline std::string_view localAddress() const override { return std::string_view(localAddress_.data(), localAddress_.size()); }
         inline uint16_t localPort() const override { return localPort_; }
-        inline std::map<std::string, std::any> &items() const override {
-            return items_;
-        }
         UriView &uriView() const override
         {
             if (!cachedUriView_)

@@ -21,26 +21,8 @@ namespace httpadv::v1::handlers
     class GetRequest
     {
     public:
-        using LegacyInvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &)>;
-        using LegacyInvocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&)>;
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequestContext &)>;
         using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&)>;
-
-        static InvocationWithoutParams adaptLegacyInvocationWithoutParams(LegacyInvocationWithoutParams handler)
-        {
-            return [handler](HttpRequestContext &context)
-            {
-                return handler(static_cast<httpadv::v1::core::HttpContext &>(context));
-            };
-        }
-
-        static Invocation adaptLegacyInvocation(LegacyInvocation handler)
-        {
-            return [handler](HttpRequestContext &context, RouteParameters &&params)
-            {
-                return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(params));
-            };
-        }
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler)
         {
@@ -52,7 +34,7 @@ namespace httpadv::v1::handlers
 
         static IHttpHandler::Factory makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
         {
-            return [handler, extractor](httpadv::v1::core::HttpContext &context) -> std::unique_ptr<IHttpHandler>
+            return [handler, extractor](httpadv::v1::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
             {
                 auto params = extractor(context);
                 return std::make_unique<HttpHandler>(IHttpHandler::InvocationCallback([handler, params = std::move(params)](HttpRequestContext &context) mutable -> IHttpHandler::HandlerResult

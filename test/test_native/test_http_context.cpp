@@ -37,14 +37,14 @@ namespace
     class CapturingHandler : public IHttpHandler
     {
     public:
-        HandlerResult handleStep(HttpContext &context) override
+        HandlerResult handleStep(HttpRequestContext &context) override
         {
             seenMethods_.push_back(std::string(context.methodView()));
             seenPhases_.push_back(context.completedPhases());
             return nullptr;
         }
 
-        void handleBodyChunk(HttpContext &context, const uint8_t *, std::size_t) override
+        void handleBodyChunk(HttpRequestContext &context, const uint8_t *, std::size_t) override
         {
             bodyChunkMethods_.push_back(std::string(context.methodView()));
             bodyChunkPhases_.push_back(context.completedPhases());
@@ -89,10 +89,10 @@ namespace
         std::string_view path,
         WebSocketCallbacks callbacks = {})
     {
-        return [registeredPath = std::string(path), callbacks = std::move(callbacks)](HttpContext &)
+        return [registeredPath = std::string(path), callbacks = std::move(callbacks)](HttpRequestContext &)
         {
             return std::make_unique<HttpHandler>(
-                [registeredPath, callbacks](HttpContext &context) mutable -> IHttpHandler::HandlerResult
+                [registeredPath, callbacks](HttpRequestContext &context) mutable -> IHttpHandler::HandlerResult
                 {
                     if (!WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(context) || !defaultCheckUriPattern(context.uriView().path(), registeredPath))
                     {
@@ -114,7 +114,7 @@ namespace
         std::vector<HttpContextPhaseFlags> factoryPhases;
 
         httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(
-            [&factoryMethods, &factoryPhases, &capturingHandler](HttpContext &context) -> std::unique_ptr<IHttpHandler>
+            [&factoryMethods, &factoryPhases, &capturingHandler](HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
             {
                 factoryMethods.push_back(std::string(context.methodView()));
                 factoryPhases.push_back(context.completedPhases());

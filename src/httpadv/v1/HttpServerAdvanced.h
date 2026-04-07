@@ -7,7 +7,6 @@
 #include "httpadv/v1/core/Defines.h"
 #include "httpadv/v1/core/HttpContentTypes.h"
 #include "httpadv/v1/core/HttpRequestContext.h"
-#include "httpadv/v1/core/HttpContext.h"
 #include "httpadv/v1/core/HttpContextPhase.h"
 #include "httpadv/v1/core/HttpHeader.h"
 #include "httpadv/v1/core/HttpHeaderCollection.h"

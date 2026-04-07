@@ -1,11 +1,12 @@
 #pragma once
 
 #include "../core/Defines.h"
-#include "../core/HttpContext.h"
+#include "../core/HttpHeader.h"
+#include "../core/HttpRequestContext.h"
 #include "../response/HttpResponse.h"
 #include "../core/HttpStatus.h"
 #include "../util/HttpUtility.h"
-#include "../handlers/HttpHandler.h"
+#include "../handlers/IHttpHandler.h"
 #include "../response/StringResponse.h"
 #include <memory>
 #include <string>
@@ -13,7 +14,6 @@
 
 namespace httpadv::v1::routing
 {
-    using httpadv::v1::core::HttpContext;
     using httpadv::v1::core::HttpHeader;
     using httpadv::v1::core::HttpHeaderNames;
     using httpadv::v1::core::HttpRequestContext;

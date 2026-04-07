@@ -8,8 +8,6 @@ namespace httpadv::v1::core
     using httpadv::v1::handlers::IHttpHandler;
     using httpadv::v1::routing::HandlerProviderRegistry;
 
-    class HttpContext;
-
     class DeferredRegistryHandler : public IHttpHandler
     {
     public:
@@ -18,7 +16,7 @@ namespace httpadv::v1::core
         {
         }
 
-        HandlerResult handleStep(HttpContext &context) override
+        HandlerResult handleStep(HttpRequestContext &context) override
         {
             ensureInnerHandler(context);
             if (!innerHandler_)
@@ -29,7 +27,7 @@ namespace httpadv::v1::core
             return innerHandler_->handleStep(context);
         }
 
-        void handleBodyChunk(HttpContext &context, const uint8_t *at, std::size_t length) override
+        void handleBodyChunk(HttpRequestContext &context, const uint8_t *at, std::size_t length) override
         {
             ensureInnerHandler(context);
             if (innerHandler_)
@@ -39,7 +37,7 @@ namespace httpadv::v1::core
         }
 
     private:
-        void ensureInnerHandler(HttpContext &context)
+        void ensureInnerHandler(HttpRequestContext &context)
         {
             if (innerHandler_ || (context.completedPhases() & HttpContextPhase::CompletedReadingHeaders) == 0)
             {
@@ -64,7 +62,7 @@ namespace httpadv::v1::core
         
         
 
-        virtual std::unique_ptr<IHttpHandler> create(HttpContext &context) override
+        virtual std::unique_ptr<IHttpHandler> create(HttpRequestContext &context) override
         {
             static_cast<void>(context);
             return std::make_unique<DeferredRegistryHandler>(providerRegistry_);
