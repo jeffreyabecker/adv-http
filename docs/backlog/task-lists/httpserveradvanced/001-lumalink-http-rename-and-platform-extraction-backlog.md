@@ -1,3 +1,4 @@
+2026-04-07 - Copilot: repointed published header metadata and maintained examples to `lumalink/http/HttpServerAdvanced.h` while leaving final package branding decisions for the remaining metadata rename task.
 2026-04-07 - Copilot: added a native-runner guard that fails when active `src/` or `test/` code reintroduces legacy `httpadv::` or `httpadv/v1` tokens.
 2026-04-07 - Copilot: moved the public HTTP header tree under `src/lumalink/http`, removed the legacy top-level wrapper header, updated in-repo include paths, and revalidated the native suite.
 2026-04-07 - Copilot: cleaned remaining legacy namespace-closing markers in active source files and revalidated the native suite.
@@ -203,6 +204,7 @@ These milestones define the rename execution gates for the library cutover. A mi
 - public HTTP headers have been moved under `src/lumalink/http/` and the legacy top-level `src/HttpServerAdvanced.h` wrapper has been removed
 - maintained test and fixture include paths now target `src/lumalink/http/` directly
 - `tools/run_native_tests.ps1` now fails fast when active source or test files reintroduce `httpadv::` or `httpadv/v1` tokens
+- published metadata and maintained examples now point at `lumalink/http/HttpServerAdvanced.h` instead of the removed top-level wrapper
 - native validation still passes after namespace and include-root cutover work (`192/192` native tests)
 - remaining execution scope is centered on the HTTP library rename and public-surface cleanup
 

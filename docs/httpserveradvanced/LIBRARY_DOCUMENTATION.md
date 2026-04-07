@@ -1078,10 +1078,10 @@ StaticFilesBuilder
 ### Basic Server Setup
 
 ```cpp
-#include <HttpServerAdvanced.h>
+#include <lumalink/http/HttpServerAdvanced.h>
 #include <WiFi.h>
 
-using namespace HttpServerAdvanced;
+using namespace lumalink::http;
 
 FriendlyWebServer<> server(80);
 

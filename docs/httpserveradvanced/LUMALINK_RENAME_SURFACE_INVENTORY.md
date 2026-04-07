@@ -17,8 +17,8 @@ This note records the rename surface inventory after completion of the `lumalink
 
 ### Package And Repository Metadata
 
-- `library.properties` still publishes the library name as `HttpServerAdvanced`, exposes `HttpServerAdvanced.h` as the public include, and points to the current repository URL.
-- `library.json` still publishes the package name as `HttpServerAdvanced`, lists `HttpServerAdvanced.h` as the public header, and points to the current repository URL.
+- `library.properties` still publishes the library name as `HttpServerAdvanced`, exposes `lumalink/http/HttpServerAdvanced.h` as the public include, and points to the current repository URL.
+- `library.json` still publishes the package name as `HttpServerAdvanced`, lists `lumalink/http/HttpServerAdvanced.h` as the public header, and points to the current repository URL.
 - `keywords.txt` still exposes legacy Arduino-facing symbols and does not reflect any future `lumalink` naming.
 
 ### Public Headers And Include Roots

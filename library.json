@@ -6,7 +6,7 @@
   "frameworks": "*",
   "platforms": "*",
   "headers": [
-    "HttpServerAdvanced.h"
+    "lumalink/http/HttpServerAdvanced.h"
   ],
   "dependencies": [
     {
