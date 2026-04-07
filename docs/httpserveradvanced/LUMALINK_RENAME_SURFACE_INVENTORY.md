@@ -2,7 +2,7 @@
 
 ## Summary
 
-This note closes Phase 2 of the LumaLink rename backlog by inventorying the current public rename surfaces, documenting the namespace and include-path migration targets, and identifying where platform-specific code still leaks through the HTTP library surface. It describes the current `HttpServerAdvanced` / `httpadv` state; it does not rename code yet.
+This note records the rename surface inventory after completion of the `lumalink::platform` extraction. It documents what is already integrated from the new platform library, what legacy HTTP naming remains, and what cleanup is still required for the `HttpServerAdvanced` / `httpadv` to `lumalink` migration.
 
 ## Locked Decisions
 
@@ -11,6 +11,7 @@ This note closes Phase 2 of the LumaLink rename backlog by inventorying the curr
 - `lumalink::platform` ships from a separate repository rooted at `c:\ode\lumalink-platform`.
 - `lumalink::http` depends on `lumalink::platform`.
 - `lumalink::platform` exposes only buffers, transport, and filesystem concerns.
+- The migration is a direct cutover: no compatibility aliases, shim headers, wrapper APIs, or fallback include paths are introduced.
 
 ## Current Public Rename Surfaces
 
@@ -53,21 +54,21 @@ This note closes Phase 2 of the LumaLink rename backlog by inventorying the curr
 
 ## Contract And Implementation Split
 
-The split between `lumalink::http` and `lumalink::platform` is a documentation decision at this stage only. No source files are moved by this note, but the target platform project location is `c:\ode\lumalink-platform`.
+The split between `lumalink::http` and `lumalink::platform` is implemented. The platform project is hosted at `c:\ode\lumalink-platform`, and this repository now consumes platform types through `lumalink/platform/...` includes.
 
 ### HTTP-Owned Contract Surface
 
-`lumalink::http` should retain only the platform-facing contracts it actually consumes:
+`lumalink::http` retains only the platform-facing contracts it actually consumes:
 
 - buffer-oriented abstractions required by the HTTP pipeline and stream helpers
 - transport-facing interfaces and traits consumed by HTTP runtime code
 - filesystem-facing interfaces required by static-file and file-locator behavior
 
-The HTTP package should depend on those contracts as imported types, not own concrete platform adapter implementations.
+The HTTP package depends on those contracts as imported types and does not define canonical concrete adapter implementations.
 
 ### Platform-Owned Implementation Surface
 
-`lumalink::platform` should own the concrete implementations and compile-time selection machinery, including:
+`lumalink::platform` owns concrete implementations and compile-time selection machinery, including:
 
 - concrete transport factories and transport implementations
 - concrete filesystem adapters
@@ -77,32 +78,25 @@ The HTTP package should depend on those contracts as imported types, not own con
 
 ### Practical Separation Rule
 
-When a type exists only to define a platform contract consumed by HTTP, it belongs in the shared contract surface that `lumalink::http` depends on. When a type performs platform-specific behavior, selects a platform implementation, or exists to support a concrete adapter, it belongs in `lumalink::platform`.
+When a type exists only to define a platform contract consumed by HTTP, it belongs in the shared contract surface that `lumalink::http` depends on. When a type performs platform-specific behavior, selects a platform implementation, or exists to support a concrete adapter, it belongs in `lumalink::platform`. This rule is enforced as a hard boundary, not a compatibility bridge.
 
 ## Platform Exposure Through The HTTP Library
 
-### Current Leaks
+### Current Integration Surface (Post-Extraction)
 
-- `src/httpadv/v1/HttpServerAdvanced.h` publicly includes `src/httpadv/v1/platform/TransportFactory.h`, which exposes a platform-owned runtime wrapper from the HTTP umbrella surface.
-- `src/httpadv/v1/server/WebServer.h` directly includes Arduino, Windows, and POSIX transport headers and performs compile-time native transport selection inside the HTTP package.
-- Concrete platform adapters currently live under `src/httpadv/v1/platform/`:
-  - `arduino/ArduinoWiFiTransport.h`
-  - `arduino/ArduinoFileAdapter.h`
-  - `posix/PosixSocketTransport.h`
-  - `posix/PosixFileAdapter.h`
-  - `windows/WindowsSocketTransport.h`
-  - `windows/WindowsFileAdapter.h`
-  - `memory/MemoryFileAdapter.h`
-- Native and in-memory adapter validation currently lives in the HTTP repository test tree instead of alongside the future platform package.
-- Path-mapping helpers are still owned from the same platform area and are referenced by the filesystem adapters.
+- `src/httpadv/v1/HttpServerAdvanced.h` includes `lumalink/platform/transport/TransportTraits.h` and `lumalink/platform/TransportFactory.h` from the extracted platform package.
+- `src/httpadv/v1/server/WebServer.h` includes platform transport headers from `lumalink/platform/...` and binds native transport factories to `lumalink::platform` types.
+- Core transport and stream contracts in the HTTP package already consume `lumalink::platform::buffers` and related platform namespaces.
+- A legacy in-repo platform tree still exists under `src/httpadv/v1/platform/`; it is no longer the target ownership model and should be removed as cleanup, not kept as a compatibility path.
 
-### Required Boundary After The Split
+### Required Boundary In Steady State
 
 - `lumalink::http` may depend on buffer, transport, and filesystem contracts only.
 - `lumalink::http` must not publicly re-export concrete Arduino, POSIX, Windows, or in-memory adapter headers.
-- Compile-time platform selection may remain, but it must move out of the HTTP umbrella header and out of `WebServer.h` into `lumalink::platform` ownership.
-- `TransportFactory`, concrete file adapters, and path-mapping helpers move into `lumalink::platform` ownership after the split.
-- Adapter-specific tests, including native and in-memory validation, move with those platform implementations into `lumalink::platform`.
+- Compile-time platform selection may remain only where it resolves `lumalink::platform` contracts and implementations; HTTP must not own duplicate platform-selection codepaths.
+- `TransportFactory`, concrete file adapters, and path-mapping helpers are platform-owned and must not be reintroduced under HTTP-owned include roots.
+- Adapter-specific tests remain with platform implementations in `lumalink::platform`.
+- No compatibility aliases, no shim headers, and no fallback include wiring are allowed when removing residual `src/httpadv/v1/platform/` content.
 
 ## Target Include Structure
 
@@ -138,12 +132,13 @@ The platform package should publish its own include root under `lumalink/platfor
 - `lumalink/platform/transport/`
 - `lumalink/platform/filesystem/`
 
-HTTP should consume those contracts rather than owning parallel platform abstractions.
+HTTP consumes those contracts rather than owning parallel platform abstractions.
 
-The new platform library project is expected to be created in `c:\ode\lumalink-platform`.
+The platform library project is located at `c:\ode\lumalink-platform`.
 
-## Phase 2 Completion Notes
+## Current Completion Notes
 
-- Public rename surfaces are now inventoried across package metadata, include roots, namespaces, macros, docs, and test-facing entrypoints.
-- The target HTTP include tree is defined as `lumalink/http/...` with no public version segment.
-- The current platform leak points are documented so Phase 3 can separate contracts from implementations cleanly.
+- Public rename surfaces are inventoried across package metadata, include roots, namespaces, macros, docs, and test-facing entrypoints.
+- Platform extraction is complete and integrated through `lumalink/platform/...` include usage in HTTP-facing code.
+- Remaining work in this repository is namespace and include-surface rename cleanup, plus removal of residual legacy platform tree content.
+- Cleanup must be a direct cutover to final names and boundaries with no compatibility layers or alias bridges.
