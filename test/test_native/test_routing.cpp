@@ -1106,6 +1106,174 @@ namespace
         TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::AccessControlAllowHeaders, "X-Test"));
     }
 
+    void test_cors_handling_component_can_be_applied_through_web_server_config_use()
+    {
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        WebServerBuilder webBuilder(server);
+        WebServerConfig config(server, webBuilder);
+
+        config.use(CorsHandling("https://api.example", "GET, OPTIONS", "X-Test"));
+
+        HandlerMatcher corsMatcher("/cors", "GET");
+        config.add(
+            [corsMatcher](HttpRequestContext &context) mutable
+            {
+                return corsMatcher.canHandle(context);
+            },
+            [](HttpRequestContext &) -> HandlerResult
+            {
+                return HandlerResult::responseResult(createResponse(HttpStatus::Ok(), "cors-ok"));
+            });
+
+        RequestContextHarness harness;
+        prepareRequest(harness, "GET", "/cors");
+
+        auto handler = config.handlerProviders().createContextHandler(harness.context());
+        const auto capturedResponse = captureHandlerResponse(*handler, harness.context());
+
+        TEST_ASSERT_EQUAL_UINT16(200, capturedResponse.status.code());
+        TEST_ASSERT_EQUAL_STRING("cors-ok", capturedResponse.body.c_str());
+        const auto allowOrigin = httpadv::v1::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowOrigin);
+        const auto allowMethods = httpadv::v1::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowMethods);
+        const auto allowHeaders = httpadv::v1::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowHeaders);
+
+        TEST_ASSERT_TRUE(allowOrigin.has_value());
+        TEST_ASSERT_TRUE(allowMethods.has_value());
+        TEST_ASSERT_TRUE(allowHeaders.has_value());
+        TEST_ASSERT_EQUAL_STRING("https://api.example", allowOrigin->c_str());
+        TEST_ASSERT_EQUAL_STRING("GET, OPTIONS", allowMethods->c_str());
+        TEST_ASSERT_EQUAL_STRING("X-Test", allowHeaders->c_str());
+    }
+
+    void test_cors_handling_component_auto_handles_preflight_options_without_manual_route()
+    {
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        WebServerBuilder webBuilder(server);
+        WebServerConfig config(server, webBuilder);
+
+        config.use(CorsHandling("https://api.example", "GET, OPTIONS", "X-Test"));
+
+        RequestContextHarness harness;
+        prepareRequest(
+            harness,
+            "OPTIONS",
+            "/api/auto-preflight",
+            {
+                {HttpHeaderNames::AccessControlRequestMethod, "GET"}
+            });
+
+        auto handler = config.handlerProviders().createContextHandler(harness.context());
+        const auto capturedResponse = captureHandlerResponse(*handler, harness.context());
+
+        TEST_ASSERT_EQUAL_UINT16(204, capturedResponse.status.code());
+
+        const auto allowOrigin = httpadv::v1::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowOrigin);
+        const auto allowMethods = httpadv::v1::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowMethods);
+        const auto allowHeaders = httpadv::v1::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowHeaders);
+
+        TEST_ASSERT_TRUE(allowOrigin.has_value());
+        TEST_ASSERT_TRUE(allowMethods.has_value());
+        TEST_ASSERT_TRUE(allowHeaders.has_value());
+        TEST_ASSERT_EQUAL_STRING("https://api.example", allowOrigin->c_str());
+        TEST_ASSERT_EQUAL_STRING("GET, OPTIONS", allowMethods->c_str());
+        TEST_ASSERT_EQUAL_STRING("X-Test", allowHeaders->c_str());
+    }
+
+    void test_cors_handling_component_uri_pattern_filter_only_applies_to_matching_requests()
+    {
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        WebServerBuilder webBuilder(server);
+        WebServerConfig config(server, webBuilder);
+
+        CorsHandlingOptions options;
+        options.allowedOrigins = "https://api.example";
+        options.allowedMethods = "GET, OPTIONS";
+        options.allowedHeaders = "X-Test";
+        config.use(CorsHandling("/api/**", options));
+
+        HandlerMatcher apiMatcher("/api/ok", "GET");
+        HandlerMatcher publicMatcher("/public/ok", "GET");
+
+        config.add([apiMatcher](HttpRequestContext &context) mutable
+        {
+            return apiMatcher.canHandle(context);
+        },
+        [](HttpRequestContext &) -> HandlerResult
+        {
+            return HandlerResult::responseResult(createResponse(HttpStatus::Ok(), "api-ok"));
+        });
+
+        config.add([publicMatcher](HttpRequestContext &context) mutable
+        {
+            return publicMatcher.canHandle(context);
+        },
+        [](HttpRequestContext &) -> HandlerResult
+        {
+            return HandlerResult::responseResult(createResponse(HttpStatus::Ok(), "public-ok"));
+        });
+
+        RequestContextHarness apiHarness;
+        prepareRequest(apiHarness, "GET", "/api/ok");
+        auto apiHandler = config.handlerProviders().createContextHandler(apiHarness.context());
+        const auto apiResponse = captureHandlerResponse(*apiHandler, apiHarness.context());
+
+        const auto apiAllowOrigin = httpadv::v1::TestSupport::FindCapturedHeader(apiResponse, HttpHeaderNames::AccessControlAllowOrigin);
+        TEST_ASSERT_TRUE(apiAllowOrigin.has_value());
+        TEST_ASSERT_EQUAL_STRING("https://api.example", apiAllowOrigin->c_str());
+
+        RequestContextHarness publicHarness;
+        prepareRequest(publicHarness, "GET", "/public/ok");
+        auto publicHandler = config.handlerProviders().createContextHandler(publicHarness.context());
+        const auto publicResponse = captureHandlerResponse(*publicHandler, publicHarness.context());
+
+        const auto publicAllowOrigin = httpadv::v1::TestSupport::FindCapturedHeader(publicResponse, HttpHeaderNames::AccessControlAllowOrigin);
+        TEST_ASSERT_FALSE(publicAllowOrigin.has_value());
+    }
+
+    void test_cors_handling_component_predicate_filter_only_applies_when_predicate_matches()
+    {
+        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        WebServerBuilder webBuilder(server);
+        WebServerConfig config(server, webBuilder);
+
+        CorsHandlingOptions options;
+        options.allowedOrigins = "https://predicate.example";
+        options.allowedMethods = "GET";
+        options.allowedHeaders = "X-Test";
+
+        config.use(CorsHandling(CorsRequestFilter([](HttpRequestContext &context)
+        {
+            return context.headers().exists("X-Enable-Cors", "true");
+        }), options));
+
+        HandlerMatcher matcher("/predicate", "GET");
+        config.add([matcher](HttpRequestContext &context) mutable
+        {
+            return matcher.canHandle(context);
+        },
+        [](HttpRequestContext &) -> HandlerResult
+        {
+            return HandlerResult::responseResult(createResponse(HttpStatus::Ok(), "predicate-ok"));
+        });
+
+        RequestContextHarness enabledHarness;
+        prepareRequest(enabledHarness, "GET", "/predicate", {{"X-Enable-Cors", "true"}});
+        auto enabledHandler = config.handlerProviders().createContextHandler(enabledHarness.context());
+        const auto enabledResponse = captureHandlerResponse(*enabledHandler, enabledHarness.context());
+
+        const auto enabledAllowOrigin = httpadv::v1::TestSupport::FindCapturedHeader(enabledResponse, HttpHeaderNames::AccessControlAllowOrigin);
+        TEST_ASSERT_TRUE(enabledAllowOrigin.has_value());
+        TEST_ASSERT_EQUAL_STRING("https://predicate.example", enabledAllowOrigin->c_str());
+
+        RequestContextHarness disabledHarness;
+        prepareRequest(disabledHarness, "GET", "/predicate");
+        auto disabledHandler = config.handlerProviders().createContextHandler(disabledHarness.context());
+        const auto disabledResponse = captureHandlerResponse(*disabledHandler, disabledHarness.context());
+
+        const auto disabledAllowOrigin = httpadv::v1::TestSupport::FindCapturedHeader(disabledResponse, HttpHeaderNames::AccessControlAllowOrigin);
+        TEST_ASSERT_FALSE(disabledAllowOrigin.has_value());
+    }
+
     void test_replace_variables_streaming_replaces_tokens_across_source_chunks_and_normalizes_headers()
     {
         HttpHeaderCollection headers;
@@ -1244,6 +1412,10 @@ namespace
         RUN_TEST(test_basic_auth_accepts_valid_credentials_for_fixed_and_validator_overloads);
         RUN_TEST(test_cors_omits_optional_headers_and_repeated_application_preserves_existing_values);
         RUN_TEST(test_cors_does_not_overwrite_existing_headers);
+        RUN_TEST(test_cors_handling_component_can_be_applied_through_web_server_config_use);
+        RUN_TEST(test_cors_handling_component_auto_handles_preflight_options_without_manual_route);
+        RUN_TEST(test_cors_handling_component_uri_pattern_filter_only_applies_to_matching_requests);
+        RUN_TEST(test_cors_handling_component_predicate_filter_only_applies_when_predicate_matches);
         RUN_TEST(test_replace_variables_streaming_replaces_tokens_across_source_chunks_and_normalizes_headers);
         RUN_TEST(test_replace_variables_keeps_unresolved_tokens_by_default);
         RUN_TEST(test_replace_variables_respects_missing_value_policy_replace_with_empty);
