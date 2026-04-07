@@ -5,7 +5,7 @@
 
 namespace httpadv::v1::handlers {
 IHttpHandler::HandlerResult
-JsonBodyHandler::handleBody(httpadv::v1::core::HttpContext &context, std::vector<uint8_t> &&body) {
+JsonBodyHandler::handleBody(httpadv::v1::core::HttpRequestContext &context, std::vector<uint8_t> &&body) {
   context.items().erase(Json::DeserializationErrorItemKey);
 
   auto params = extractor_(context);
@@ -28,7 +28,7 @@ Json::Invocation Json::curryWithoutParams(InvocationWithoutParams handler) {
 IHttpHandler::Factory Json::makeFactory(Invocation handler,
                                         ExtractArgsFromRequest extractor) {
   return [handler,
-          extractor](httpadv::v1::core::HttpContext &context) -> std::unique_ptr<IHttpHandler> {
+          extractor](httpadv::v1::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler> {
     auto params = extractor(context);
     return std::make_unique<JsonBodyHandler>(
         handler,

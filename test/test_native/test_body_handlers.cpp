@@ -43,7 +43,7 @@ namespace
     class BufferingProbeHandler : public BufferingHttpHandlerBase<MaxBuffered>
     {
     public:
-        typename IHttpHandler::HandlerResult handleBody(HttpContext &context, std::vector<uint8_t> &&body) override
+        typename IHttpHandler::HandlerResult handleBody(HttpRequestContext &context, std::vector<uint8_t> &&body) override
         {
             phases.push_back(context.completedPhases());
             payloads.emplace_back(body.begin(), body.end());
@@ -61,7 +61,7 @@ namespace
             : server_(std::make_unique<httpadv::v1::TestSupport::FakeServer>()),
               pendingHandler_(std::move(handler)),
               handlerPtr_(pendingHandler_.get()),
-              factory_([this](HttpContext &) -> std::unique_ptr<IHttpHandler>
+              factory_([this](HttpRequestContext &) -> std::unique_ptr<IHttpHandler>
               {
                   return std::move(pendingHandler_);
               }),
@@ -287,7 +287,7 @@ namespace
         std::vector<RouteParameters> capturedParams;
 
         auto handler = std::make_unique<BufferedStringBodyHandler>(
-            [&capturedBodies, &capturedParams](HttpContext &, RouteParameters &&params, std::string &&body) -> IHttpHandler::HandlerResult
+            [&capturedBodies, &capturedParams](HttpRequestContext &, RouteParameters &&params, std::string &&body) -> IHttpHandler::HandlerResult
             {
                 capturedParams.push_back(std::move(params));
                 capturedBodies.push_back(std::move(body));
@@ -318,7 +318,7 @@ namespace
         std::size_t invocationCount = 0;
 
         auto handler = std::make_unique<BufferedStringBodyHandler>(
-            [&invocationCount](HttpContext &, RouteParameters &&, std::string &&) -> IHttpHandler::HandlerResult
+            [&invocationCount](HttpRequestContext &, RouteParameters &&, std::string &&) -> IHttpHandler::HandlerResult
             {
                 ++invocationCount;
                 return nullptr;
@@ -344,7 +344,7 @@ namespace
         std::vector<RouteParameters> capturedParams;
 
         auto handler = std::make_unique<RawBodyHandler>(
-            [&capturedBuffers, &capturedParams](HttpContext &, RouteParameters &params, RawBodyBuffer buffer) -> IHttpHandler::HandlerResult
+            [&capturedBuffers, &capturedParams](HttpRequestContext &, RouteParameters &params, RawBodyBuffer buffer) -> IHttpHandler::HandlerResult
             {
                 capturedParams.push_back(params);
                 capturedBuffers.push_back(std::move(buffer));
@@ -386,7 +386,7 @@ namespace
     {
         std::vector<RawBodyBuffer> capturedBuffers;
         auto handler = std::make_unique<RawBodyHandler>(
-            [&capturedBuffers](HttpContext &, RouteParameters &, RawBodyBuffer buffer) -> IHttpHandler::HandlerResult
+            [&capturedBuffers](HttpRequestContext &, RouteParameters &, RawBodyBuffer buffer) -> IHttpHandler::HandlerResult
             {
                 capturedBuffers.push_back(std::move(buffer));
                 return nullptr;
@@ -419,7 +419,7 @@ namespace
         std::vector<RouteParameters> capturedParams;
 
         auto handler = std::make_unique<FormBodyHandler>(
-            [&capturedBodies, &capturedParams](HttpContext &, RouteParameters &&params, WebUtility::QueryParameters &&body) -> IHttpHandler::HandlerResult
+            [&capturedBodies, &capturedParams](HttpRequestContext &, RouteParameters &&params, WebUtility::QueryParameters &&body) -> IHttpHandler::HandlerResult
             {
                 capturedParams.push_back(std::move(params));
                 capturedBodies.push_back(std::move(body));
@@ -471,7 +471,7 @@ namespace
         std::size_t invocationCount = 0;
 
         auto handler = std::make_unique<FormBodyHandler>(
-            [&invocationCount](HttpContext &, RouteParameters &&, WebUtility::QueryParameters &&) -> IHttpHandler::HandlerResult
+            [&invocationCount](HttpRequestContext &, RouteParameters &&, WebUtility::QueryParameters &&) -> IHttpHandler::HandlerResult
             {
                 ++invocationCount;
                 return nullptr;
@@ -493,7 +493,7 @@ namespace
     void test_multipart_handler_requires_boundary_header()
     {
         auto handler = std::make_unique<MultipartFormDataHandler>(
-            [](HttpContext &, RouteParameters &, MultipartFormDataBuffer) -> IHttpHandler::HandlerResult
+            [](HttpRequestContext &, RouteParameters &, MultipartFormDataBuffer) -> IHttpHandler::HandlerResult
             {
                 return nullptr;
             },
@@ -527,7 +527,7 @@ namespace
 
         std::vector<MultipartEvent> capturedParts;
         auto handler = std::make_unique<MultipartFormDataHandler>(
-            [&capturedParts](HttpContext &, RouteParameters &, MultipartFormDataBuffer buffer) -> IHttpHandler::HandlerResult
+            [&capturedParts](HttpRequestContext &, RouteParameters &, MultipartFormDataBuffer buffer) -> IHttpHandler::HandlerResult
             {
                 capturedParts.push_back({
                     buffer.status(),
@@ -577,7 +577,7 @@ namespace
 
         std::vector<MultipartEvent> capturedParts;
         auto handler = std::make_unique<MultipartFormDataHandler>(
-            [&capturedParts](HttpContext &, RouteParameters &, MultipartFormDataBuffer buffer) -> IHttpHandler::HandlerResult
+            [&capturedParts](HttpRequestContext &, RouteParameters &, MultipartFormDataBuffer buffer) -> IHttpHandler::HandlerResult
             {
                 capturedParts.push_back({buffer.status(), std::string(buffer.name()), buffer.size()});
                 return nullptr;
@@ -609,7 +609,7 @@ namespace
     {
         std::vector<MultipartFormDataBuffer> capturedParts;
         auto handler = std::make_unique<MultipartFormDataHandler>(
-            [&capturedParts](HttpContext &, RouteParameters &, MultipartFormDataBuffer buffer) -> IHttpHandler::HandlerResult
+            [&capturedParts](HttpRequestContext &, RouteParameters &, MultipartFormDataBuffer buffer) -> IHttpHandler::HandlerResult
             {
                 capturedParts.push_back(std::move(buffer));
                 return nullptr;
@@ -644,7 +644,7 @@ namespace
         std::vector<bool> sawParseErrors;
 
         auto handler = std::make_unique<JsonBodyHandler>(
-            [&capturedParams, &capturedMessages, &capturedCounts, &sawParseErrors](HttpContext &context, RouteParameters &&params, JsonDocument &&body) -> IHttpHandler::HandlerResult
+            [&capturedParams, &capturedMessages, &capturedCounts, &sawParseErrors](HttpRequestContext &context, RouteParameters &&params, JsonDocument &&body) -> IHttpHandler::HandlerResult
             {
                 capturedParams.push_back(std::move(params));
                 capturedMessages.emplace_back(body["message"].template as<std::string>());
@@ -680,7 +680,7 @@ namespace
         std::vector<bool> sawParseErrors;
 
         auto handler = std::make_unique<JsonBodyHandler>(
-            [&messagePresent, &sawParseErrors](HttpContext &context, RouteParameters &&, JsonDocument &&body) -> IHttpHandler::HandlerResult
+            [&messagePresent, &sawParseErrors](HttpRequestContext &context, RouteParameters &&, JsonDocument &&body) -> IHttpHandler::HandlerResult
             {
                 messagePresent.push_back(!body["message"].isNull());
                 sawParseErrors.push_back(Json::deserializationError(context) != nullptr);
@@ -709,7 +709,7 @@ namespace
         std::size_t invocationCount = 0;
 
         auto handler = std::make_unique<JsonBodyHandler>(
-            [&invocationCount](HttpContext &, RouteParameters &&, JsonDocument &&) -> IHttpHandler::HandlerResult
+            [&invocationCount](HttpRequestContext &, RouteParameters &&, JsonDocument &&) -> IHttpHandler::HandlerResult
             {
                 ++invocationCount;
                 return nullptr;
@@ -740,13 +740,13 @@ namespace
         std::vector<HttpContextPhaseFlags> extractorPhases;
 
         auto handler = std::make_unique<RawBodyHandler>(
-            [](HttpContext &, RouteParameters &, RawBodyBuffer) -> IHttpHandler::HandlerResult
+            [](HttpRequestContext &, RouteParameters &, RawBodyBuffer) -> IHttpHandler::HandlerResult
             {
                 return nullptr;
             },
             [&extractorPhases](HttpRequestContext &context) -> RouteParameters
             {
-                extractorPhases.push_back(static_cast<HttpContext &>(context).completedPhases());
+                extractorPhases.push_back(context.completedPhases());
                 return {{"kind", "raw"}};
             });
 
@@ -771,7 +771,7 @@ namespace
         std::vector<std::string> capturedBodyValues;
 
         auto handler = std::make_unique<FormBodyHandler>(
-            [&handlerSawHeader, &handlerItemValue, &capturedParams, &capturedBodyValues](HttpContext &context, RouteParameters &&params, WebUtility::QueryParameters &&body) -> IHttpHandler::HandlerResult
+            [&handlerSawHeader, &handlerItemValue, &capturedParams, &capturedBodyValues](HttpRequestContext &context, RouteParameters &&params, WebUtility::QueryParameters &&body) -> IHttpHandler::HandlerResult
             {
                 handlerSawHeader = context.headers().exists("X-Test", "present");
                 handlerItemValue = std::any_cast<std::string>(context.items().at("route-key"));
@@ -782,7 +782,7 @@ namespace
             },
             [&extractorPhase](HttpRequestContext &context) -> RouteParameters
             {
-                extractorPhase = static_cast<HttpContext &>(context).completedPhases();
+                extractorPhase = context.completedPhases();
                 context.items()["route-key"] = std::string("route-value");
                 return {{"resource", "route"}, {"id", "123"}};
             });

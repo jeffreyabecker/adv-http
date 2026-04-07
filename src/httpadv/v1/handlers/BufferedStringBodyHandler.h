@@ -24,46 +24,20 @@ namespace httpadv::v1::handlers
     public:
         BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, std::string &&)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, std::string &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequestContext &context, RouteParameters &&params, std::string &&postData)
-                       { return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(params), std::move(postData)); }),
-              extractor_(extractor) {}
         BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, std::string &&)> handler, ExtractArgsFromRequest extractor)
             : handler_([handler](HttpRequestContext &context, RouteParameters &&, std::string &&postData)
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
-        BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, std::string &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequestContext &context, RouteParameters &&, std::string &&postData)
-                       { return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(postData)); }),
-              extractor_(extractor) {}
 
-        virtual IHttpHandler::HandlerResult handleBody(httpadv::v1::core::HttpContext &context, std::vector<uint8_t> &&body) override;
+        virtual IHttpHandler::HandlerResult handleBody(httpadv::v1::core::HttpRequestContext &context, std::vector<uint8_t> &&body) override;
     };
 
     class Buffered
     {
     public:
         using BodyData = std::string;
-        using LegacyInvocationWithoutParams = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, BodyData &&)>;
-        using LegacyInvocation = std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpContext &, RouteParameters &&, BodyData &&)>;
         using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, BodyData &&)>;
         using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, BodyData &&)>;
-
-        static InvocationWithoutParams adaptLegacyInvocationWithoutParams(LegacyInvocationWithoutParams handler)
-        {
-            return [handler](HttpRequestContext &context, BodyData &&postData)
-            {
-                return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(postData));
-            };
-        }
-
-        static Invocation adaptLegacyInvocation(LegacyInvocation handler)
-        {
-            return [handler](HttpRequestContext &context, RouteParameters &&params, BodyData &&postData)
-            {
-                return handler(static_cast<httpadv::v1::core::HttpContext &>(context), std::move(params), std::move(postData));
-            };
-        }
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 

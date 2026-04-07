@@ -8,7 +8,6 @@
 
 namespace httpadv::v1::core
 {
-    class HttpContext;
     class HttpRequestContext;
 }
 
@@ -52,7 +51,7 @@ namespace httpadv::v1::handlers
         using InvocationCallback = std::function<HandlerResult(httpadv::v1::core::HttpRequestContext &context)>;
         using InterceptorCallback = std::function<HandlerResult(httpadv::v1::core::HttpRequestContext &context, InvocationNext next)>;
         using Predicate = std::function<bool(httpadv::v1::core::HttpRequestContext &)>;
-        using Factory = std::function<std::unique_ptr<IHttpHandler>(httpadv::v1::core::HttpContext &)>;        
+        using Factory = std::function<std::unique_ptr<IHttpHandler>(httpadv::v1::core::HttpRequestContext &)>;
         virtual ~IHttpHandler() = default;
         /**
          * @brief Handles the given httpadv::v1::core::HttpContext.
@@ -65,7 +64,7 @@ namespace httpadv::v1::handlers
          * - After headers have been read
          * - After body has been read
          */
-        virtual HandlerResult handleStep(httpadv::v1::core::HttpContext &context) = 0;
+        virtual HandlerResult handleStep(httpadv::v1::core::HttpRequestContext &context) = 0;
 
         /**
          * @brief Appends body contents to the request.
@@ -73,7 +72,7 @@ namespace httpadv::v1::handlers
          * @param at Pointer to the body data.
          * @param length Length of the body data.
          */
-        virtual void handleBodyChunk(httpadv::v1::core::HttpContext &context, const uint8_t *at, std::size_t length) = 0;
+        virtual void handleBodyChunk(httpadv::v1::core::HttpRequestContext &context, const uint8_t *at, std::size_t length) = 0;
     };
 
 }

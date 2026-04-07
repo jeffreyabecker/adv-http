@@ -492,7 +492,7 @@ namespace
         httpadv::v1::TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback handlerFactory = nullptr)
     {
         return httpadv::v1::TestSupport::RecordingRequestHandlerFactory(
-            [registeredPath = std::string(path), callbacks = std::move(callbacks), handlerFactory = std::move(handlerFactory)](HttpContext &context) mutable -> std::unique_ptr<IHttpHandler>
+            [registeredPath = std::string(path), callbacks = std::move(callbacks), handlerFactory = std::move(handlerFactory)](HttpRequestContext &context) mutable -> std::unique_ptr<IHttpHandler>
             {
                 if (handlerFactory)
                 {
@@ -503,7 +503,7 @@ namespace
                 }
 
                 return std::make_unique<HttpHandler>(
-                    [registeredPath, callbacks](HttpContext &innerContext) mutable -> IHttpHandler::HandlerResult
+                    [registeredPath, callbacks](HttpRequestContext &innerContext) mutable -> IHttpHandler::HandlerResult
                     {
                         if (!WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(innerContext) || !defaultCheckUriPattern(innerContext.uriView().path(), registeredPath))
                         {
@@ -951,7 +951,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
-            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
+            [](HttpRequestContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -1001,7 +1001,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
-            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
+            [](HttpRequestContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -1048,7 +1048,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
-            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
+            [](HttpRequestContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -1102,7 +1102,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
-            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
+            [](HttpRequestContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -1155,7 +1155,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
-            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
+            [](HttpRequestContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -1207,7 +1207,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
-            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
+            [](HttpRequestContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -1293,7 +1293,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             callbacks,
-            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
+            [](HttpRequestContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return nullptr;
             });
@@ -1380,7 +1380,7 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             callbacks,
-            [](HttpContext &request) -> std::unique_ptr<IHttpHandler>
+            [](HttpRequestContext &request) -> std::unique_ptr<IHttpHandler>
             {
                 request.items()["upgrade-item"] = std::string("upgrade-value");
                 return nullptr;
@@ -1441,14 +1441,14 @@ namespace
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/other",
             {},
-            [](HttpContext &) -> std::unique_ptr<IHttpHandler>
+            [](HttpRequestContext &) -> std::unique_ptr<IHttpHandler>
             {
                 return std::make_unique<HttpHandler>(
-                    [](HttpContext &)
+                    [](HttpRequestContext &)
                     {
                         return StringResponse::create(HttpStatus::Ok(), "http-fallback", {});
                     },
-                    [](const HttpContext &)
+                    [](const HttpRequestContext &)
                     {
                         return true;
                     });
@@ -1513,3 +1513,5 @@ int run_test_pipeline()
         localSetUp,
         localTearDown);
 }
+
+

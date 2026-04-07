@@ -53,12 +53,12 @@ namespace
     class NoOpHandler : public IHttpHandler
     {
     public:
-        HandlerResult handleStep(HttpContext &) override
+        HandlerResult handleStep(HttpRequestContext &) override
         {
             return nullptr;
         }
 
-        void handleBodyChunk(HttpContext &, const uint8_t *, std::size_t) override
+        void handleBodyChunk(HttpRequestContext &, const uint8_t *, std::size_t) override
         {
         }
     };
@@ -69,9 +69,9 @@ namespace
         RequestContextHarness()
             : server_(std::make_unique<HttpServerBase>(std::make_unique<httpadv::v1::TestSupport::FakeServer>())),
               handler_(std::make_unique<NoOpHandler>()),
-              factory_([this](HttpContext &context) -> std::unique_ptr<IHttpHandler>
+              factory_([this](HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
               {
-                  context_ = &context;
+                  context_ = static_cast<HttpContext *>(&context);
                   return std::move(handler_);
               }),
               pipeline_(HttpContext::createPipelineHandler(*server_, factory_))
@@ -1040,11 +1040,11 @@ namespace
         })(builder);
 
         builder.handlerProviders().add(
-            [](HttpContext &)
+            [](HttpRequestContext &)
             {
                 return true;
             },
-            [](HttpContext &)
+            [](HttpRequestContext &)
             {
                 return HttpHandler::create(createResponse(HttpStatus::Ok(), "next-handler"));
             });

@@ -1,3 +1,4 @@
+2026-04-06 - Copilot: completed Phase 3 — lifecycle contracts (IHttpHandler::Factory, IHandlerProvider, IHttpContextHandlerFactory, HandlerProviderRegistry paths) now use HttpRequestContext&, legacy HttpContext callback overloads removed from handler APIs, and body-handler extractor/factory call paths narrowed; native suite remains green (211/211).
 2026-04-06 - Copilot: completed Phase 2 Task 3 — narrowed StaticFileHandlerFactory private methods (passesRequestPredicates, resolveRequest, decorateHandler) to HttpRequestContext&; public canHandle/create remain HttpContext& as interface-bound.
 2026-04-06 - Copilot: completed Phase 2 Tasks 1 and 2 — predicate/matcher/builder surfaces and extraction contracts narrowed to HttpRequestContext; legacy HttpContext& shim overload removed from HandlerBuilder; test extractor lambdas updated.
 2026-04-06 - Copilot: completed the first request-only helper cleanup slice in routing and websocket registration.
@@ -38,9 +39,9 @@ This item is intentionally scoped to non-pipeline surfaces first. Code that depe
 
 ### Phase 3: Handler API Refactoring
 
-1. [ ] Evaluate `IHttpHandler` and related factory/provider contracts and split request-only callback surfaces from concrete lifecycle surfaces where that improves the design without obscuring phase-aware handlers.
-2. [ ] Remove legacy callback overloads in body-handler and handler-helper types that exist only to preserve `HttpContext`-typed consumer call signatures when request-only signatures are sufficient.
-3. [ ] Narrow body-handler extractor and factory call paths to use `HttpRequestContext` consistently where they do not require concrete-only behavior.
+1. [x] Evaluate `IHttpHandler` and related factory/provider contracts and split request-only callback surfaces from concrete lifecycle surfaces where that improves the design without obscuring phase-aware handlers.
+2. [x] Remove legacy callback overloads in body-handler and handler-helper types that exist only to preserve `HttpContext`-typed consumer call signatures when request-only signatures are sufficient.
+3. [x] Narrow body-handler extractor and factory call paths to use `HttpRequestContext` consistently where they do not require concrete-only behavior.
 
 ### Phase 4: Validation And Residual Concrete Usage
 

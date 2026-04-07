@@ -3,7 +3,7 @@
 #include "../transport/ByteStream.h"
 
 #include "../core/HttpContentTypes.h"
-#include "../core/HttpContext.h"
+#include "../core/HttpRequestContext.h"
 #include "../handlers/IHandlerProvider.h"
 #include "../routing/HandlerMatcher.h"
 #include "../response/HttpResponse.h"
@@ -17,7 +17,6 @@
 
 namespace httpadv::v1::staticfiles
 {
-  using httpadv::v1::core::HttpContext;
   using httpadv::v1::core::HttpRequestContext;
   using httpadv::v1::handlers::IHandlerProvider;
   using httpadv::v1::handlers::IHttpHandler;
@@ -79,8 +78,8 @@ namespace httpadv::v1::staticfiles
                              std::vector<InterceptorRule> interceptorRules = {},
                              std::vector<RequestPredicateRule> requestPredicateRules = {},
                              MissingRequestPathResolver notFoundRequestPathResolver = nullptr);
-    bool canHandle(HttpContext &context) override;
-    std::unique_ptr<IHttpHandler> create(HttpContext &context) override;
+    bool canHandle(HttpRequestContext &context) override;
+    std::unique_ptr<IHttpHandler> create(HttpRequestContext &context) override;
     void setFileLocator(std::unique_ptr<FileLocator> fileLocator);
     void setNotFoundRequestPathResolver(MissingRequestPathResolver resolver);
     static std::unique_ptr<IHttpResponse>

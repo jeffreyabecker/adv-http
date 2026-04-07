@@ -3,7 +3,7 @@
 
 namespace httpadv::v1::handlers
 {
-    IHttpHandler::HandlerResult BufferedStringBodyHandler::handleBody(httpadv::v1::core::HttpContext &context, std::vector<uint8_t> &&body)
+    IHttpHandler::HandlerResult BufferedStringBodyHandler::handleBody(httpadv::v1::core::HttpRequestContext &context, std::vector<uint8_t> &&body)
     {
         auto params = extractor_(context);
         std::string postData(reinterpret_cast<const char *>(body.data()), body.size());
@@ -20,7 +20,7 @@ namespace httpadv::v1::handlers
 
     IHttpHandler::Factory Buffered::makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
     {
-        return [handler, extractor](httpadv::v1::core::HttpContext &context) -> std::unique_ptr<IHttpHandler>
+        return [handler, extractor](httpadv::v1::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
         {
             auto params = extractor(context);
             return std::make_unique<BufferedStringBodyHandler>(handler,

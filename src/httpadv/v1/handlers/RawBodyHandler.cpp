@@ -18,7 +18,7 @@ namespace httpadv::v1::handlers
         }
     }
 
-    IHttpHandler::HandlerResult RawBodyHandler::handleStep(httpadv::v1::core::HttpContext &context)
+    IHttpHandler::HandlerResult RawBodyHandler::handleStep(httpadv::v1::core::HttpRequestContext &context)
     {
         if (!response_ && context.completedPhases() >= httpadv::v1::core::HttpContextPhase::CompletedReadingMessage)
         {
@@ -31,7 +31,7 @@ namespace httpadv::v1::handlers
         return nullptr;
     }
 
-    void RawBodyHandler::handleBodyChunk(httpadv::v1::core::HttpContext &context, const uint8_t *at, std::size_t length)
+    void RawBodyHandler::handleBodyChunk(httpadv::v1::core::HttpRequestContext &context, const uint8_t *at, std::size_t length)
     {
         if (response_)
         {
@@ -57,7 +57,7 @@ namespace httpadv::v1::handlers
 
     IHttpHandler::Factory RawBody::makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
     {
-        return [handler, extractor](httpadv::v1::core::HttpContext &context) -> std::unique_ptr<IHttpHandler>
+        return [handler, extractor](httpadv::v1::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
         {
             auto params = extractor(context);
             // Create a handler that adapts RawBodyBuffer to raw parameters

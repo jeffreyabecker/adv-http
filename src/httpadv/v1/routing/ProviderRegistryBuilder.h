@@ -9,6 +9,7 @@
 #include "HandlerBuilder.h"
 #include "../websocket/WebSocketCallbacks.h"
 #include "../websocket/WebSocketUpgradeHandler.h"
+#include "../util/UriView.h"
 
 #include <cstddef>
 #include <string>
@@ -78,7 +79,7 @@ namespace httpadv::v1::routing
                     return WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(requestContext) &&
                            defaultCheckUriPattern(requestContext.uriView().path(), registeredPath);
                 }),
-                IHttpHandler::Factory([callbacks = std::move(callbacks)](httpadv::v1::core::HttpContext &) mutable -> std::unique_ptr<IHttpHandler>
+                IHttpHandler::Factory([callbacks = std::move(callbacks)](httpadv::v1::core::HttpRequestContext &) mutable -> std::unique_ptr<IHttpHandler>
                 {
                     return std::make_unique<HttpHandler>(
                         IHttpHandler::InvocationCallback(
@@ -114,34 +115,18 @@ namespace httpadv::v1::routing
                   typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::Invocation> &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::InvocationWithoutParams> &&
-                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::LegacyInvocation> &&
-                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::LegacyInvocationWithoutParams> &&
                                               (std::is_constructible_v<typename THandler::Invocation, TCallable> ||
-                                               std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable> ||
-                                               std::is_constructible_v<typename THandler::LegacyInvocation, TCallable> ||
-                                               std::is_constructible_v<typename THandler::LegacyInvocationWithoutParams, TCallable>)>>
+                                               std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable>)>>
         HandlerBuilder<THandler> on(const HandlerMatcher &request, TCallable &&handler)
         {
             constexpr bool supportsWithParams = std::is_constructible_v<typename THandler::Invocation, TCallable>;
             constexpr bool supportsWithoutParams = std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable>;
-            constexpr bool supportsLegacyWithParams = !supportsWithParams && std::is_constructible_v<typename THandler::LegacyInvocation, TCallable>;
-            constexpr bool supportsLegacyWithoutParams = !supportsWithoutParams && std::is_constructible_v<typename THandler::LegacyInvocationWithoutParams, TCallable>;
-            static_assert((supportsWithParams ? 1 : 0) + (supportsWithoutParams ? 1 : 0) + (supportsLegacyWithParams ? 1 : 0) + (supportsLegacyWithoutParams ? 1 : 0) <= 1,
+            static_assert((supportsWithParams ? 1 : 0) + (supportsWithoutParams ? 1 : 0) <= 1,
                           "Callable matches multiple handler callback forms; cast it explicitly.");
 
             if constexpr (supportsWithoutParams)
             {
                 return on<THandler>(request, typename THandler::InvocationWithoutParams(std::forward<TCallable>(handler)));
-            }
-
-            if constexpr (supportsLegacyWithoutParams)
-            {
-                return on<THandler>(request, THandler::adaptLegacyInvocationWithoutParams(typename THandler::LegacyInvocationWithoutParams(std::forward<TCallable>(handler))));
-            }
-
-            if constexpr (supportsLegacyWithParams)
-            {
-                return on<THandler>(request, THandler::adaptLegacyInvocation(typename THandler::LegacyInvocation(std::forward<TCallable>(handler))));
             }
 
             return on<THandler>(request, typename THandler::Invocation(std::forward<TCallable>(handler)));
@@ -177,34 +162,18 @@ namespace httpadv::v1::routing
                   typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::Invocation> &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::InvocationWithoutParams> &&
-                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::LegacyInvocation> &&
-                                              !std::is_same_v<std::decay_t<TCallable>, typename THandler::LegacyInvocationWithoutParams> &&
                                               (std::is_constructible_v<typename THandler::Invocation, TCallable> ||
-                                               std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable> ||
-                                               std::is_constructible_v<typename THandler::LegacyInvocation, TCallable> ||
-                                               std::is_constructible_v<typename THandler::LegacyInvocationWithoutParams, TCallable>)>>
+                                               std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable>)>>
         HandlerBuilder<THandler> on(const char *path, TCallable &&handler)
         {
             constexpr bool supportsWithParams = std::is_constructible_v<typename THandler::Invocation, TCallable>;
             constexpr bool supportsWithoutParams = std::is_constructible_v<typename THandler::InvocationWithoutParams, TCallable>;
-            constexpr bool supportsLegacyWithParams = !supportsWithParams && std::is_constructible_v<typename THandler::LegacyInvocation, TCallable>;
-            constexpr bool supportsLegacyWithoutParams = !supportsWithoutParams && std::is_constructible_v<typename THandler::LegacyInvocationWithoutParams, TCallable>;
-            static_assert((supportsWithParams ? 1 : 0) + (supportsWithoutParams ? 1 : 0) + (supportsLegacyWithParams ? 1 : 0) + (supportsLegacyWithoutParams ? 1 : 0) <= 1,
+            static_assert((supportsWithParams ? 1 : 0) + (supportsWithoutParams ? 1 : 0) <= 1,
                           "Callable matches multiple handler callback forms; cast it explicitly.");
 
             if constexpr (supportsWithoutParams)
             {
                 return on<THandler>(path, typename THandler::InvocationWithoutParams(std::forward<TCallable>(handler)));
-            }
-
-            if constexpr (supportsLegacyWithoutParams)
-            {
-                return on<THandler>(path, THandler::adaptLegacyInvocationWithoutParams(typename THandler::LegacyInvocationWithoutParams(std::forward<TCallable>(handler))));
-            }
-
-            if constexpr (supportsLegacyWithParams)
-            {
-                return on<THandler>(path, THandler::adaptLegacyInvocation(typename THandler::LegacyInvocation(std::forward<TCallable>(handler))));
             }
 
             return on<THandler>(path, typename THandler::Invocation(std::forward<TCallable>(handler)));
@@ -224,8 +193,8 @@ namespace httpadv::v1::routing
 
         void onNotFound(IHttpHandler::InvocationCallback invocation)
         {
-            providerRegistry_.setDefaultHandlerFactory([invocation](httpadv::v1::core::HttpContext &context)
-                                              { return std::make_unique<HttpHandler>(invocation, [](const httpadv::v1::core::HttpContext &)
+            providerRegistry_.setDefaultHandlerFactory([invocation](httpadv::v1::core::HttpRequestContext &context)
+                                              { return std::make_unique<HttpHandler>(invocation, [](const httpadv::v1::core::HttpRequestContext &)
                                                                                      { return true; }); });
         }
     };

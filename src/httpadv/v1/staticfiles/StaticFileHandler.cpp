@@ -26,7 +26,7 @@ public:
         responseFilter_(std::move(responseFilter)),
         interceptor_(std::move(interceptor)) {}
 
-  HandlerResult handleStep(httpadv::v1::core::HttpContext &context) override {
+  HandlerResult handleStep(httpadv::v1::core::HttpRequestContext &context) override {
     HandlerResult result = interceptor_
                                ? interceptor_(context, httpadv::v1::handlers::IHttpHandler::InvocationNext(context, [this, &context]() {
                                    return innerHandler_->handleStep(context);
@@ -40,7 +40,7 @@ public:
     return result;
   }
 
-  void handleBodyChunk(httpadv::v1::core::HttpContext &context,
+  void handleBodyChunk(httpadv::v1::core::HttpRequestContext &context,
                        const uint8_t *at, std::size_t length) override {
     innerHandler_->handleBodyChunk(context, at, length);
   }
@@ -289,12 +289,12 @@ std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::decorateHandler(
       std::move(interceptor));
 }
 
-bool StaticFileHandlerFactory::canHandle(HttpContext &context) {
+bool StaticFileHandlerFactory::canHandle(HttpRequestContext &context) {
   return resolveRequest(context).canHandle;
 }
 
 std::unique_ptr<IHttpHandler>
-StaticFileHandlerFactory::create(HttpContext &context) {
+StaticFileHandlerFactory::create(HttpRequestContext &context) {
   ResolvedRequest &resolvedRequest = resolveRequest(context);
   if (!resolvedRequest.canHandle) {
     return nullptr;

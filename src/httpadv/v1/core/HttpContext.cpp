@@ -55,7 +55,7 @@ namespace httpadv::v1::core
                 HttpContextAccess::bindCompletedPhases(context_, &completedPhases_);
             }
 
-            HttpContext &context() override
+            httpadv::v1::core::HttpRequestContext &context() override
             {
                 return context_;
             }

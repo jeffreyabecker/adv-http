@@ -3,6 +3,7 @@
 #include "ByteStreamFixtures.h"
 
 #include "../../../src/httpadv/v1/core/IHttpContextHandlerFactory.h"
+#include "../../../src/httpadv/v1/core/HttpContext.h"
 #include "../../../src/httpadv/v1/pipeline/IPipelineHandler.h"
 #include "../../../src/httpadv/v1/transport/TransportInterfaces.h"
 #include "../../../src/httpadv/v1/response/StringResponse.h"
@@ -88,7 +89,7 @@ namespace httpadv
     class RecordingRequestHandlerFactory : public IHttpContextHandlerFactory
     {
     public:
-        using HandlerFactoryCallback = std::function<std::unique_ptr<IHttpHandler>(HttpContext &)>;
+        using HandlerFactoryCallback = std::function<std::unique_ptr<IHttpHandler>(HttpRequestContext &)>;
         using ResponseFactoryCallback = std::function<std::unique_ptr<IHttpResponse>(HttpStatus, std::string)>;
 
         explicit RecordingRequestHandlerFactory(
@@ -99,10 +100,10 @@ namespace httpadv
         {
         }
 
-        std::unique_ptr<IHttpHandler> create(HttpContext &context) override
+        std::unique_ptr<IHttpHandler> create(HttpRequestContext &context) override
         {
             ++createCount_;
-            lastCreateContext_ = &context;
+            lastCreateContext_ = static_cast<HttpContext *>(&context);
             if (handlerFactory_)
             {
                 return handlerFactory_(context);
