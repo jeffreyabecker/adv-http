@@ -8,7 +8,7 @@ This note closes Phase 2 of the LumaLink rename backlog by inventorying the curr
 
 - Public C++ namespaces move to `lumalink::http` and `lumalink::platform`.
 - Public namespace versioning is removed; versioning lives in package and release metadata only.
-- `lumalink::platform` ships from a separate repository.
+- `lumalink::platform` ships from a separate repository rooted at `c:\ode\lumalink-platform`.
 - `lumalink::http` depends on `lumalink::platform`.
 - `lumalink::platform` exposes only buffers, transport, and filesystem concerns.
 
@@ -53,7 +53,7 @@ This note closes Phase 2 of the LumaLink rename backlog by inventorying the curr
 
 ## Contract And Implementation Split
 
-The split between `lumalink::http` and `lumalink::platform` is a documentation decision at this stage only. No source files are moved by this note.
+The split between `lumalink::http` and `lumalink::platform` is a documentation decision at this stage only. No source files are moved by this note, but the target platform project location is `c:\ode\lumalink-platform`.
 
 ### HTTP-Owned Contract Surface
 
@@ -139,6 +139,8 @@ The platform package should publish its own include root under `lumalink/platfor
 - `lumalink/platform/filesystem/`
 
 HTTP should consume those contracts rather than owning parallel platform abstractions.
+
+The new platform library project is expected to be created in `c:\ode\lumalink-platform`.
 
 ## Phase 2 Completion Notes
 
