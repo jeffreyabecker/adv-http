@@ -1,12 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/schema/library.json",
-  "name": "HttpServerAdvanced",
+  "name": "lumalink-http",
   "version": "0.1.0",
-  "description": "A cross-platform HTTP server library for embedded and desktop applications with a framework-independent core",
+  "description": "A portable HTTP server library for embedded and native applications with a platform-separated core",
   "frameworks": "*",
   "platforms": "*",
   "headers": [
-    "lumalink/http/HttpServerAdvanced.h"
+    "lumalink/http/LumaLinkHttp.h"
   ],
   "dependencies": [
     {

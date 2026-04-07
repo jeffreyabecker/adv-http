@@ -1,8 +1,8 @@
-# HttpServerAdvanced Library Documentation
+# LumaLink HTTP Library Documentation
 
 A comprehensive, pipeline-based HTTP server library for cross-platform application code that targets both embedded and desktop environments. The HTTP core, routing, handlers, and response pipeline are designed to remain portable while transport, filesystem, clock, and framework-owned integration points stay at the platform boundary. Optional JSON support can be enabled through the library build configuration when the JSON dependency is available. HTTPS/TLS server support is not part of the maintained library surface.
 
-Rename and extraction planning for the move to `lumalink::http` and `lumalink::platform` is tracked in `docs/httpserveradvanced/LUMALINK_RENAME_SURFACE_INVENTORY.md`. This document still describes the current `HttpServerAdvanced` surface.
+Rename and extraction planning for the move to `lumalink::http` and `lumalink::platform` is tracked in `docs/httpserveradvanced/LUMALINK_RENAME_SURFACE_INVENTORY.md`. This document describes the maintained `lumalink::http` surface and its boundary with `lumalink::platform`.
 
 ---
 
@@ -29,7 +29,7 @@ Rename and extraction planning for the move to `lumalink::http` and `lumalink::p
 
 ## Architecture Overview
 
-HttpServerAdvanced uses a **pipeline-based architecture** inspired by modern web frameworks (ASP.NET, Express.js). The library separates concerns into a portable application core plus adapter-oriented platform edges:
+LumaLink HTTP uses a **pipeline-based architecture** inspired by modern web frameworks (ASP.NET, Express.js). The library separates concerns into a portable application core plus adapter-oriented platform edges:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -748,7 +748,7 @@ public:
 High-level user-friendly API:
 
 ```cpp
-template <typename THttpServer = StandardHttpServer<>>
+template <typename THttpServer>
 class FriendlyWebServer : public THttpServer {
 public:
     // Component-based configuration
@@ -759,7 +759,7 @@ public:
 };
 
 // Type alias
-using WebServer = FriendlyWebServer<>;
+using WebServer = FriendlyWebServer<HttpServerBase>;
 ```
 
 #### WebServerConfig
@@ -1016,10 +1016,10 @@ IHandlerProvider
 └── StaticFileHandlerFactory
 
 HttpServerBase
-└── StandardHttpServer<TServer, PORT>
+└── FriendlyWebServer<THttpServer>
 
 FriendlyWebServer<THttpServer>
-└── (wraps any StandardHttpServer)
+└── (wraps any HttpServerBase-compatible server type)
 
 FileLocator
 ├── DefaultFileLocator
@@ -1078,19 +1078,23 @@ StaticFilesBuilder
 ### Basic Server Setup
 
 ```cpp
-#include <lumalink/http/HttpServerAdvanced.h>
+#include <lumalink/http/LumaLinkHttp.h>
+#include <lumalink/platform/arduino/ArduinoWiFiTransport.h>
 #include <WiFi.h>
 
-using namespace lumalink::http;
+using namespace lumalink::http::core;
+using namespace lumalink::http::handlers;
+using namespace lumalink::http::response;
+using namespace lumalink::http::server;
 
-FriendlyWebServer<> server(80);
+WebServer server(lumalink::platform::arduino::ArduinoWiFiTransportFactory::createServer(80));
 
 void setup() {
     WiFi.begin("SSID", "password");
     while (WiFi.status() != WL_CONNECTED) delay(500);
     
     server.cfg().on<GetRequest>("/", [](HttpRequestContext& req) {
-        return StringResponse::text("Hello World!");
+        return StringResponse::create(HttpStatus::OK, "Hello World!");
     });
     
     server.begin();
@@ -1235,7 +1239,7 @@ server.cfg().filterRequest([](HttpRequestContext& req) {
 
 // Modify all responses
 server.cfg().apply([](std::unique_ptr<IHttpResponse> resp) {
-    resp->headers().set("X-Powered-By", "HttpServerAdvanced");
+    resp->headers().set("X-Powered-By", "LumaLink HTTP");
     return resp;
 });
 ```

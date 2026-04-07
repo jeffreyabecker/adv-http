@@ -1,3 +1,4 @@
+2026-04-07 - Copilot: completed Phase 6 and Phase 7 cutover work by renaming the canonical umbrella to `LumaLinkHttp.h`, removing HTTP-side platform re-exports, broadening legacy-token enforcement, and adding release-cut migration notes.
 2026-04-07 - Copilot: completed Phase 5 namespace-wave tracking by adding the execution matrix, marking the subsystem/test waves done, and revalidating the native suite.
 2026-04-07 - Copilot: synchronized planning and architecture docs with the moved `src/lumalink/http/` header tree and updated include-cutover task tracking.
 2026-04-07 - Copilot: repointed published header metadata and maintained examples to `lumalink/http/HttpServerAdvanced.h` while leaving final package branding decisions for the remaining metadata rename task.
@@ -36,7 +37,7 @@ Status legend:
 
 ## Implementation Status
 
-Current status: platform extraction is complete; library rename execution is underway, with active source/test namespace cutover and in-repo include-root cutover completed while final umbrella/package metadata cleanup remains pending.
+Current status: platform extraction is complete; library rename execution has completed through the Phase 7 public-surface, tooling, and release-readiness work, with remaining scope concentrated in Phase 8 validation, embedded compile coverage, and residual cleanup.
 
 Completed so far:
 
@@ -46,7 +47,7 @@ Completed so far:
 - platform contract-vs-implementation split and compile-time platform-selection ownership are documented
 - platform integration through `lumalink/platform/...` usage is documented
 
-What remains open is implementation and enforcement of the library rename: package metadata, public headers, include roots, namespaces, macros/constants, docs/examples, and validation surfaces still need to converge on the final `lumalink` naming.
+What remains open is final validation and cleanup work: embedded compile coverage, extra renamed-surface regression coverage, and removal of remaining historical artifacts that are intentionally still documented.
 All remaining implementation work must use direct replacement to new names and ownership with no compatibility bridges.
 
 ## Design Intent
@@ -136,14 +137,14 @@ These milestones define the rename execution gates for the library cutover. A mi
 
 | ID | Status | Task | Source | Depends On | Definition of Done |
 |---|---|---|---|---|---|
-| LUMA-16 | todo | Rename package metadata and repository-facing identity from `HttpServerAdvanced` to final `lumalink` naming across `library.properties`, `library.json`, and related package fields | Backlog | LUMA-06, LUMA-09 | Package metadata publishes only final names with no legacy-name compatibility fields |
-| LUMA-17 | doing | Rename public C++ namespace usage in this repository from `httpadv::v1` and unversioned `httpadv` aliases to the final `lumalink::http` surface | Backlog | LUMA-07, LUMA-16 | Public namespace and aliases in this library are replaced directly with no compatibility namespace bridges |
+| LUMA-16 | done | Rename package metadata and repository-facing identity from `HttpServerAdvanced` to final `lumalink` naming across `library.properties`, `library.json`, and related package fields | Backlog | LUMA-06, LUMA-09 | Package metadata publishes only final names with no legacy-name compatibility fields |
+| LUMA-17 | done | Rename public C++ namespace usage in this repository from `httpadv::v1` and unversioned `httpadv` aliases to the final `lumalink::http` surface | Backlog | LUMA-07, LUMA-16 | Public namespace and aliases in this library are replaced directly with no compatibility namespace bridges |
 | LUMA-26 | done | Rename namespace declarations and namespace-closing markers in this repository across `src/`, `test/`, and public headers from `httpadv::v1`/`httpadv` to `lumalink::http` | Backlog | LUMA-17 | All in-repo namespace declarations and comments reflect final namespace with no retained legacy namespace blocks |
-| LUMA-27 | doing | Remove legacy namespace wrapper/alias surfaces in this repository, including unversioned alias exports and `src/httpadv/namespace.h` compatibility role | Backlog | LUMA-17, LUMA-26 | This library no longer exports legacy namespace aliases or wrapper namespace headers |
-| LUMA-28 | doing | Update all in-repo call sites, tests, docs, and examples to use `lumalink::http` names directly and prohibit `httpadv` token reuse | Backlog | LUMA-26, LUMA-27 | No remaining in-repo usage of old namespace tokens in maintained code/docs except historical changelog references |
-| LUMA-18 | doing | Execute include-root and umbrella-header rename to final `lumalink/http/...` structure, including removal or replacement of `HttpServerAdvanced.h` | Backlog | LUMA-08, LUMA-16, LUMA-17 | Public include story is final and contains no legacy include fallback headers |
+| LUMA-27 | done | Remove legacy namespace wrapper/alias surfaces in this repository, including unversioned alias exports and `src/httpadv/namespace.h` compatibility role | Backlog | LUMA-17, LUMA-26 | This library no longer exports legacy namespace aliases or wrapper namespace headers |
+| LUMA-28 | done | Update all in-repo call sites, tests, docs, and examples to use `lumalink::http` names directly and prohibit `httpadv` token reuse | Backlog | LUMA-26, LUMA-27 | No remaining in-repo usage of old namespace tokens in maintained code/docs except historical changelog references |
+| LUMA-18 | done | Execute include-root and umbrella-header rename to final `lumalink/http/...` structure, including removal or replacement of `HttpServerAdvanced.h` | Backlog | LUMA-08, LUMA-16, LUMA-17 | Public include story is final and contains no legacy include fallback headers |
 | LUMA-19 | todo | Update downstream Arduino, PlatformIO, and native consumer guidance/examples for the renamed package, include, and namespace surfaces | Backlog | LUMA-16, LUMA-17, LUMA-18 | Consumer migration guidance is complete and requires direct updates without compatibility patches |
-| LUMA-20 | todo | Capture release/versioning/changelog expectations for the breaking library rename across package name, include paths, and namespaces | Backlog | LUMA-17, LUMA-18, LUMA-19, LUMA-28 | Release notes define a clean rename cut with no backwards-compatibility fixes |
+| LUMA-20 | done | Capture release/versioning/changelog expectations for the breaking library rename across package name, include paths, and namespaces | Backlog | LUMA-17, LUMA-18, LUMA-19, LUMA-28 | Release notes define a clean rename cut with no backwards-compatibility fixes |
 
 ## Phase 5 - Namespace Migration Execution Waves
 
@@ -167,19 +168,19 @@ These milestones define the rename execution gates for the library cutover. A mi
 
 | ID | Status | Task | Source | Depends On | Definition of Done |
 |---|---|---|---|---|---|
-| LUMA-34 | doing | Implement final public header graph under `lumalink/http/...` and move/rename public entrypoints to that structure | Backlog | LUMA-18, LUMA-30 | New public header layout is canonical and self-consistent without legacy include bridges |
+| LUMA-34 | done | Implement final public header graph under `lumalink/http/...` and move/rename public entrypoints to that structure | Backlog | LUMA-18, LUMA-30 | New public header layout is canonical and self-consistent without legacy include bridges |
 | LUMA-35 | done | Rewrite internal include directives across `src/` and `test/` to the final header graph and namespace-aligned include paths | Backlog | LUMA-34, LUMA-31 | Internal includes no longer depend on legacy `httpadv/v1/...` include paths |
-| LUMA-36 | todo | Remove legacy public umbrella and namespace wrapper entrypoints (`HttpServerAdvanced.h`, legacy `httpadv` wrapper roles) once replacements are active | Backlog | LUMA-34, LUMA-35, LUMA-27 | Legacy public entrypoints are removed rather than retained as compatibility shims |
-| LUMA-37 | todo | Verify HTTP headers consume platform contracts without re-exporting or mirroring platform implementation headers under HTTP include roots | Backlog | LUMA-34, LUMA-35 | HTTP include surface remains cleanly separated from platform implementation ownership |
+| LUMA-36 | done | Remove legacy public umbrella and namespace wrapper entrypoints (`HttpServerAdvanced.h`, legacy `httpadv` wrapper roles) once replacements are active | Backlog | LUMA-34, LUMA-35, LUMA-27 | Legacy public entrypoints are removed rather than retained as compatibility shims |
+| LUMA-37 | done | Verify HTTP headers consume platform contracts without re-exporting or mirroring platform implementation headers under HTTP include roots | Backlog | LUMA-34, LUMA-35 | HTTP include surface remains cleanly separated from platform implementation ownership |
 
 ## Phase 7 - Tooling, Documentation, And Release-Cut Readiness
 
 | ID | Status | Task | Source | Depends On | Definition of Done |
 |---|---|---|---|---|---|
-| LUMA-38 | todo | Rewrite repository docs and examples for final package, include, and namespace naming (`lumalink::http`) | Backlog | LUMA-31, LUMA-35 | Primary docs/examples contain final naming and no legacy guidance |
-| LUMA-39 | todo | Update build/test/tooling configuration that references legacy names (tasks, scripts, native test harness assumptions, metadata checks) | Backlog | LUMA-35 | Tooling executes against final naming without compatibility glue |
-| LUMA-40 | todo | Add repository-wide static checks for legacy identifiers (`HttpServerAdvanced`, `httpadv::`, `httpadv/v1/`) excluding approved historical docs/changelog paths | Backlog | LUMA-33, LUMA-36, LUMA-39 | Automated checks prevent legacy token regressions in active code and docs |
-| LUMA-41 | todo | Prepare release-cut package notes and migration callouts for a strict breaking rename with no backward-compatibility fallback | Backlog | LUMA-20, LUMA-38, LUMA-39 | Release-readiness artifacts describe direct migration only and forbid compatibility pathways |
+| LUMA-38 | done | Rewrite repository docs and examples for final package, include, and namespace naming (`lumalink::http`) | Backlog | LUMA-31, LUMA-35 | Primary docs/examples contain final naming and no legacy guidance |
+| LUMA-39 | done | Update build/test/tooling configuration that references legacy names (tasks, scripts, native test harness assumptions, metadata checks) | Backlog | LUMA-35 | Tooling executes against final naming without compatibility glue |
+| LUMA-40 | done | Add repository-wide static checks for legacy identifiers (`HttpServerAdvanced`, `httpadv::`, `httpadv/v1/`) excluding approved historical docs/changelog paths | Backlog | LUMA-33, LUMA-36, LUMA-39 | Automated checks prevent legacy token regressions in active code and docs |
+| LUMA-41 | done | Prepare release-cut package notes and migration callouts for a strict breaking rename with no backward-compatibility fallback | Backlog | LUMA-20, LUMA-38, LUMA-39 | Release-readiness artifacts describe direct migration only and forbid compatibility pathways |
 
 ## Phase 8 - Validation, Enforcement, And Cleanup
 
@@ -214,9 +215,13 @@ These milestones define the rename execution gates for the library cutover. A mi
 - public HTTP headers have been moved under `src/lumalink/http/` and the legacy top-level `src/HttpServerAdvanced.h` wrapper has been removed
 - maintained test and fixture include paths now target `src/lumalink/http/` directly
 - `tools/run_native_tests.ps1` now fails fast when active source or test files reintroduce `httpadv::` or `httpadv/v1` tokens
-- published metadata and maintained examples now point at `lumalink/http/HttpServerAdvanced.h` instead of the removed top-level wrapper
+- published metadata and maintained examples now point at `lumalink/http/LumaLinkHttp.h` instead of the removed top-level wrapper
 - planning and architecture docs now reference the moved `src/lumalink/http/` header tree instead of stale `src/httpadv/v1/` paths where the files have already moved
 - Phase 5 namespace execution waves are complete across foundational subsystems, higher-level subsystems, and maintained tests/fixtures
+- the canonical HTTP umbrella header is now `src/lumalink/http/LumaLinkHttp.h`
+- HTTP-owned headers no longer re-export concrete platform transport headers or factories
+- repo-wide legacy-token checks now cover active docs, metadata, tooling, and code outside approved historical planning/inventory paths
+- release-cut migration notes are captured in `docs/httpserveradvanced/LUMALINK_HTTP_RENAME_RELEASE_NOTES.md`
 - native validation still passes after namespace and include-root cutover work (`192/192` native tests)
 - remaining execution scope is centered on the HTTP library rename and public-surface cleanup
 
@@ -226,7 +231,7 @@ These milestones define the rename execution gates for the library cutover. A mi
 - `library.json`
 - `keywords.txt`
 - `src/httpadv/namespace.h`
-- `src/lumalink/http/HttpServerAdvanced.h`
+- `src/lumalink/http/LumaLinkHttp.h`
 - `src/lumalink/http/transport/TransportTraits.h`
 - `src/lumalink/http/transport/TransportInterfaces.h`
 - `src/httpadv/v1/platform/TransportFactory.h`
@@ -240,3 +245,4 @@ These milestones define the rename execution gates for the library cutover. A mi
 - `test/test_native/test_transport_native.cpp`
 - `test/test_native/test_filesystem_posix.cpp`
 - `docs/httpserveradvanced/LUMALINK_RENAME_SURFACE_INVENTORY.md`
+- `docs/httpserveradvanced/LUMALINK_HTTP_RENAME_RELEASE_NOTES.md`

@@ -60,8 +60,6 @@
 #include "lumalink/http/pipeline/PipelineError.h"
 #include "lumalink/http/pipeline/PipelineHandleClientResult.h"
 #include "lumalink/http/pipeline/RequestParser.h"
-#include "lumalink/platform/transport/TransportTraits.h"
-#include "lumalink/platform/TransportFactory.h"
 #include "llhttp/include/llhttp.h"
 
 

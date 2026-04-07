@@ -1,6 +1,6 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
-#include "../../src/lumalink/http/HttpServerAdvanced.h"
+#include "../../src/lumalink/http/LumaLinkHttp.h"
 
 #include <unity.h>
 

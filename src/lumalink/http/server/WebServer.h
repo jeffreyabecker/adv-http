@@ -3,14 +3,7 @@
 #include "WebServerConfig.h"
 #include <type_traits>
 #include <utility>
-#include "lumalink/platform/transport/TransportTraits.h"
-#ifdef ARDUINO
-#include "lumalink/platform/arduino/ArduinoWiFiTransport.h"
-#elif defined(_WIN32)
-#include "lumalink/platform/windows/WindowsSocketTransport.h"
-#else
-#include "lumalink/platform/posix/PosixSocketTransport.h"
-#endif
+
 namespace lumalink::http::server
 {
   template <typename THttpServer>
@@ -40,25 +33,6 @@ namespace lumalink::http::server
     }
     WebServerConfig &cfg() { return config_; }
   };
-  namespace detail
-  {
-#ifdef ARDUINO
-    using NativeTransportFactory = lumalink::platform::arduino::ArduinoWiFiTransportFactory;
-#elif defined(_WIN32)
-    using NativeTransportFactory = lumalink::platform::windows::WindowsSocketTransportFactory;
-#else
-    using NativeTransportFactory = lumalink::platform::posix::PosixSocketTransportFactory;
-#endif
-
-  }
-  template <typename TransportFactory = detail::NativeTransportFactory,
-        typename = std::enable_if_t<lumalink::platform::transport::IsStaticTransportFactoryV<TransportFactory>>>
-  class PlatformWebServer : public FriendlyWebServer<HttpServerBase>
-  {
-  public:
-    PlatformWebServer(uint16_t port = 80) : FriendlyWebServer<HttpServerBase>(TransportFactory::createServer(port)) {}
-  };
-
   using WebServer = FriendlyWebServer<HttpServerBase>;
 
 } // namespace lumalink::http::server

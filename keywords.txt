@@ -6,6 +6,7 @@
 # Datatypes (KEYWORD1)
 #######################################
 
+LumaLinkHttp	KEYWORD1
 WebServer	KEYWORD1
 HTTPServer	KEYWORD1
 HTTPMethod	KEYWORD1

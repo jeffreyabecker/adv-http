@@ -1,7 +1,7 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/ByteStreamFixtures.h"
 
-#include "../../src/lumalink/http/HttpServerAdvanced.h"
+#include "../../src/lumalink/http/LumaLinkHttp.h"
 
 #include <unity.h>
 

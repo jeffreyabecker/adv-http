@@ -78,4 +78,4 @@ Board-specific or integration behavior belongs in dedicated hardware test sketch
 
 - Primary native test command: `./tools/run_native_tests.ps1`
 - Direct PlatformIO equivalent: `pio test -e native`
-- The native runner also fails fast if active `src/` or `test/` code reintroduces legacy `httpadv::` or `httpadv/v1` tokens.
+- The native runner also fails fast if active repo files outside approved historical notes reintroduce `HttpServerAdvanced`, `httpadv::`, or `httpadv/v1/` tokens.

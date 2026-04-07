@@ -2,7 +2,7 @@
 
 ## Summary
 
-This note records the rename surface inventory after completion of the `lumalink::platform` extraction. It documents what is already integrated from the new platform library, what legacy HTTP naming remains, and what cleanup is still required for the `HttpServerAdvanced` / `httpadv` to `lumalink` migration.
+This note records the rename surface inventory after completion of the `lumalink::platform` extraction. It documents what is already integrated from the new platform library, what legacy HTTP naming remains, and what cleanup is still required for the historical `HttpServerAdvanced` / `httpadv` to `lumalink` migration.
 
 ## Locked Decisions
 
@@ -17,13 +17,13 @@ This note records the rename surface inventory after completion of the `lumalink
 
 ### Package And Repository Metadata
 
-- `library.properties` still publishes the library name as `HttpServerAdvanced`, exposes `lumalink/http/HttpServerAdvanced.h` as the public include, and points to the current repository URL.
-- `library.json` still publishes the package name as `HttpServerAdvanced`, lists `lumalink/http/HttpServerAdvanced.h` as the public header, and points to the current repository URL.
+- `library.properties` now publishes the library as `LumaLink HTTP` and exposes `lumalink/http/LumaLinkHttp.h` as the public umbrella include.
+- `library.json` now publishes the package as `lumalink-http` and lists `lumalink/http/LumaLinkHttp.h` as the public header.
 - `keywords.txt` still exposes legacy Arduino-facing symbols and does not reflect any future `lumalink` naming.
 
 ### Public Headers And Include Roots
 
-- `src/lumalink/http/HttpServerAdvanced.h` is the current umbrella header for nearly the full HTTP surface.
+- `src/lumalink/http/LumaLinkHttp.h` is the current umbrella header for nearly the full HTTP surface.
 - Public subsystem headers now live under `src/lumalink/http/` with these major areas:
   - `core/`
   - `handlers/`
@@ -40,16 +40,16 @@ This note records the rename surface inventory after completion of the `lumalink
 ### Namespace Surfaces
 
 - Active source and test code now declares and consumes `lumalink::http::<subsystem>` directly.
-- The remaining public legacy surface is the umbrella basename and residual docs/examples, not the active include-root layout or C++ namespace declarations.
+- The remaining public legacy surface is limited to configuration macro prefixes, selected Arduino keywords, and historical planning documents, not the active include-root layout or C++ namespace declarations.
 - The deleted `src/httpadv/namespace.h` shim is no longer part of the public surface.
-- Legacy namespace-closing markers in active source have been cleaned; remaining rename work is centered on package metadata, final umbrella naming cleanup, macros, and maintained docs/examples.
+- Legacy namespace-closing markers in active source have been cleaned; remaining rename work is centered on macro-prefix cleanup, keyword metadata, and historical planning records.
 
 ### Macros, Configuration Constants, And User-Facing Symbols
 
 - Compile-time override hooks are still published with the `HTTPSERVER_ADVANCED_` prefix in `src/lumalink/http/core/Defines.h`.
 - `src/lumalink/http/routing/ReplaceVariables.h` still publishes `HTTPSERVER_ADVANCED_REPLACE_VARIABLES_MAX_TOKEN_BYTES`.
 - JSON feature selection still uses `HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON` across the umbrella header and JSON-specific handlers/response types.
-- User-facing strings and doc examples still use `HttpServerAdvanced`, including the main library documentation title, example include statements, and example string literals such as `X-Powered-By`.
+- The maintained library documentation and examples now use `lumalink::http`, `lumalink/http/LumaLinkHttp.h`, and explicit `lumalink::platform` transport factory ownership.
 
 ## Contract And Implementation Split
 
@@ -83,8 +83,8 @@ When a type exists only to define a platform contract consumed by HTTP, it belon
 
 ### Current Integration Surface (Post-Extraction)
 
-- `src/lumalink/http/HttpServerAdvanced.h` includes `lumalink/platform/transport/TransportTraits.h` and `lumalink/platform/TransportFactory.h` from the extracted platform package.
-- `src/lumalink/http/server/WebServer.h` includes platform transport headers from `lumalink/platform/...` and binds native transport factories to `lumalink::platform` types.
+- `src/lumalink/http/LumaLinkHttp.h` no longer re-exports platform transport headers or factories from `lumalink/platform/...`.
+- `src/lumalink/http/server/WebServer.h` now stays within HTTP-owned types and requires callers to include concrete platform factories directly from `lumalink/platform/...`.
 - Core transport and stream contracts in the HTTP package already consume `lumalink::platform::buffers` and related platform namespaces.
 - A legacy in-repo platform tree still exists under `src/httpadv/v1/platform/`; it is no longer the target ownership model and should be removed as cleanup, not kept as a compatibility path.
 
@@ -121,7 +121,7 @@ Rules:
 - No public `v1` path segment remains in the include tree.
 - No `httpadv/` include root remains in the public HTTP package.
 - No platform implementation headers are re-exported from `lumalink/http/`.
-- The exact canonical umbrella-header filename is intentionally deferred to Phase 4, but it must live under the `lumalink/http/` include root.
+- The canonical umbrella header is `lumalink/http/LumaLinkHttp.h`.
 
 ### Platform Package
 
@@ -140,6 +140,7 @@ The platform library project is located at `c:\ode\lumalink-platform`.
 - Public rename surfaces are inventoried across package metadata, include roots, namespaces, macros, docs, and test-facing entrypoints.
 - Platform extraction is complete and integrated through `lumalink/platform/...` include usage in HTTP-facing code.
 - Active source/test namespace migration to `lumalink::http` is complete, including cleanup of stale namespace-closing markers.
-- Public HTTP headers now live under `src/lumalink/http/`, and the legacy top-level `src/HttpServerAdvanced.h` wrapper has been removed.
-- Remaining work in this repository is package metadata rename, final umbrella naming cleanup, docs/example updates, and removal of residual legacy platform tree content.
+- Public HTTP headers now live under `src/lumalink/http/`, with `LumaLinkHttp.h` as the canonical umbrella, and the legacy top-level `src/HttpServerAdvanced.h` wrapper is gone.
+- Package metadata and maintained docs/examples now publish the final include and namespace surface directly.
+- Remaining work in this repository is macro-prefix cleanup, keyword metadata cleanup, and removal of residual legacy platform tree content.
 - Cleanup must be a direct cutover to final names and boundaries with no compatibility layers or alias bridges.
