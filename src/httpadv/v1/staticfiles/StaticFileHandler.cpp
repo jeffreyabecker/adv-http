@@ -167,7 +167,7 @@ StaticFileHandlerFactory::StaticFileHandlerFactory(
       interceptorRules_(std::move(interceptorRules)),
       requestPredicateRules_(std::move(requestPredicateRules)) {}
 
-bool StaticFileHandlerFactory::passesRequestPredicates(HttpContext &context) const {
+bool StaticFileHandlerFactory::passesRequestPredicates(HttpRequestContext &context) const {
   for (const RequestPredicateRule &rule : requestPredicateRules_) {
     if (!rule.predicate) {
       continue;
@@ -193,7 +193,7 @@ FileHandle StaticFileHandlerFactory::locateFile(
 }
 
 StaticFileHandlerFactory::ResolvedRequest &
-StaticFileHandlerFactory::resolveRequest(HttpContext &context) {
+StaticFileHandlerFactory::resolveRequest(HttpRequestContext &context) {
   auto &items = context.items();
   auto existing = items.find(resolvedRequestItemKey_);
   if (existing != items.end()) {
@@ -228,7 +228,7 @@ StaticFileHandlerFactory::resolveRequest(HttpContext &context) {
 }
 
 std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::decorateHandler(
-    HttpContext &context,
+    HttpRequestContext &context,
     std::unique_ptr<IHttpHandler> innerHandler) const {
   if (!innerHandler) {
     return nullptr;

@@ -67,10 +67,10 @@ namespace httpadv::v1::staticfiles
     static std::optional<std::string> getLastWriteValue(const IFile &file);
     static std::string createResolvedRequestItemKey(const void *instance);
 
-    bool passesRequestPredicates(HttpContext &context) const;
+    bool passesRequestPredicates(HttpRequestContext &context) const;
     FileHandle locateFile(HttpRequestContext &context, std::string_view requestPath) const;
-    ResolvedRequest &resolveRequest(HttpContext &context);
-    std::unique_ptr<IHttpHandler> decorateHandler(HttpContext &context, std::unique_ptr<IHttpHandler> innerHandler) const;
+    ResolvedRequest &resolveRequest(HttpRequestContext &context);
+    std::unique_ptr<IHttpHandler> decorateHandler(HttpRequestContext &context, std::unique_ptr<IHttpHandler> innerHandler) const;
 
   public:
     StaticFileHandlerFactory(std::unique_ptr<FileLocator> fileLocator,
