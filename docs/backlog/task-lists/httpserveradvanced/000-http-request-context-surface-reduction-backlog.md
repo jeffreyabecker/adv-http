@@ -1,3 +1,4 @@
+2026-04-06 - Copilot: completed the first request-only helper cleanup slice in routing and websocket registration.
 2026-04-06 - Copilot: created backlog for reducing non-pipeline HttpContext usage in favor of HttpRequestContext.
 
 # Http Request Context Surface Reduction Backlog
@@ -21,16 +22,28 @@ This item is intentionally scoped to non-pipeline surfaces first. Code that depe
 
 ## Tasks
 
-- [ ] Inventory every remaining direct `HttpContext` dependency outside `src/httpadv/v1/pipeline` and classify each as request-only, phase-aware, handler-lifecycle, or legacy-overload-driven.
-- [ ] Narrow obvious request-only helpers and utilities to `HttpRequestContext`, including cleanup of stale `HttpContext` includes and aliases in routing helpers.
-- [ ] Rework request predicate, matcher, and builder surfaces so request-only predicates and callbacks operate on `HttpRequestContext` unless they require concrete-only behavior.
-- [ ] Rework route parameter extraction contracts to stop requiring `HttpContext` where extraction only depends on request URL, headers, and request-owned items.
-- [ ] Evaluate `IHttpHandler` and related factory/provider contracts and split request-only callback surfaces from concrete lifecycle surfaces where that improves the design without obscuring phase-aware handlers.
-- [ ] Remove legacy callback overloads in body-handler and handler-helper types that exist only to preserve `HttpContext`-typed consumer call signatures when request-only signatures are sufficient.
-- [ ] Narrow websocket, auth, and other request-inspection features to `HttpRequestContext` wherever response generation and upgrade logic do not require concrete context behavior.
-- [ ] Review static-file request resolution and decoration paths and narrow any request-only portions to `HttpRequestContext` while preserving concrete handling where provider or lifecycle integration still needs `HttpContext`.
-- [ ] Add or update native tests that specifically freeze the intended `HttpRequestContext`-based callback surfaces for routing and request helpers.
-- [ ] Document the remaining justified `HttpContext` dependencies after the migration so future work does not accidentally widen request-only contracts again.
+### Phase 1: Inventory And Immediate Request-Only Cleanup
+
+1. [ ] Inventory every remaining direct `HttpContext` dependency outside `src/httpadv/v1/pipeline` and classify each as request-only, phase-aware, handler-lifecycle, or legacy-overload-driven.
+2. [x] Narrow obvious request-only helpers and utilities to `HttpRequestContext`, including cleanup of stale `HttpContext` includes and aliases in routing helpers.
+3. [x] Narrow websocket, auth, and other request-inspection features to `HttpRequestContext` wherever response generation and upgrade logic do not require concrete context behavior.
+
+### Phase 2: Routing And Extraction Contract Narrowing
+
+1. [ ] Rework request predicate, matcher, and builder surfaces so request-only predicates and callbacks operate on `HttpRequestContext` unless they require concrete-only behavior.
+2. [ ] Rework route parameter extraction contracts to stop requiring `HttpContext` where extraction only depends on request URL, headers, and request-owned items.
+3. [ ] Review static-file request resolution and decoration paths and narrow any request-only portions to `HttpRequestContext` while preserving concrete handling where provider or lifecycle integration still needs `HttpContext`.
+
+### Phase 3: Handler API Refactoring
+
+1. [ ] Evaluate `IHttpHandler` and related factory/provider contracts and split request-only callback surfaces from concrete lifecycle surfaces where that improves the design without obscuring phase-aware handlers.
+2. [ ] Remove legacy callback overloads in body-handler and handler-helper types that exist only to preserve `HttpContext`-typed consumer call signatures when request-only signatures are sufficient.
+3. [ ] Narrow body-handler extractor and factory call paths to use `HttpRequestContext` consistently where they do not require concrete-only behavior.
+
+### Phase 4: Validation And Residual Concrete Usage
+
+1. [ ] Add or update native tests that specifically freeze the intended `HttpRequestContext`-based callback surfaces for routing and request helpers.
+2. [ ] Document the remaining justified `HttpContext` dependencies after the migration so future work does not accidentally widen request-only contracts again.
 
 ## Owner
 

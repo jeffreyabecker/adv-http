@@ -76,8 +76,8 @@ namespace httpadv::v1::routing
             providerRegistry_.add(
                 IHttpHandler::Predicate([registeredPath](httpadv::v1::core::HttpRequestContext &requestContext)
                 {
-                    auto &context = static_cast<httpadv::v1::core::HttpContext &>(requestContext);
-                    return WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(context) && defaultCheckUriPattern(context.uriView().path(), registeredPath);
+                    return WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(requestContext) &&
+                           defaultCheckUriPattern(requestContext.uriView().path(), registeredPath);
                 }),
                 IHttpHandler::Factory([callbacks = std::move(callbacks)](httpadv::v1::core::HttpContext &) mutable -> std::unique_ptr<IHttpHandler>
                 {
@@ -85,9 +85,8 @@ namespace httpadv::v1::routing
                         IHttpHandler::InvocationCallback(
                         [callbacks = std::move(callbacks)](httpadv::v1::core::HttpRequestContext &requestContext) mutable -> IHttpHandler::HandlerResult
                         {
-                            auto &context = static_cast<httpadv::v1::core::HttpContext &>(requestContext);
                             WebSocketUpgradeHandler upgradeHandler;
-                            return upgradeHandler.handle(context, callbacks);
+                            return upgradeHandler.handle(requestContext, callbacks);
                         }));
                 }),
                 static_cast<AddPosition>(websocketHandlerCount_));
@@ -103,7 +102,7 @@ namespace httpadv::v1::routing
             HandlerMatcher req = request;
             THandler::restrict(req);
             // Adapt HandlerMatcher's ArgsExtractor (takes 2 params) to ExtractArgsFromRequest (takes 1 param)
-            ExtractArgsFromRequest adapterExtractor = [req](httpadv::v1::core::HttpContext &context) { return req.extractParameters(context); };
+            ExtractArgsFromRequest adapterExtractor = [req](httpadv::v1::core::HttpRequestContext &context) { return req.extractParameters(context); };
             auto addHandler = [this](IHttpHandler::Predicate predicate, IHttpHandler::Factory factory)
             {
                 providerRegistry_.add(std::move(predicate), std::move(factory));
@@ -166,7 +165,7 @@ namespace httpadv::v1::routing
             HandlerMatcher request(path);
             THandler::restrict(request);
             // Adapt HandlerMatcher's ArgsExtractor (takes 2 params) to ExtractArgsFromRequest (takes 1 param)
-            ExtractArgsFromRequest adapterExtractor = [request](httpadv::v1::core::HttpContext &context) { return request.extractParameters(context); };
+            ExtractArgsFromRequest adapterExtractor = [request](httpadv::v1::core::HttpRequestContext &context) { return request.extractParameters(context); };
             auto addHandler = [this](IHttpHandler::Predicate predicate, IHttpHandler::Factory factory)
             {
                 providerRegistry_.add(std::move(predicate), std::move(factory));

@@ -3,6 +3,7 @@
 #include <utility>
 #include <vector>
 #include "IHttpHandler.h"
+#include "../core/HttpContext.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
 #include "HandlerRestrictions.h"

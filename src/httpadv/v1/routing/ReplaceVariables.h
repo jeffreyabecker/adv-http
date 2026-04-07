@@ -19,7 +19,6 @@
 
 namespace httpadv::v1::routing
 {
-    using httpadv::v1::core::HttpContext;
     using httpadv::v1::core::HttpHeader;
     using httpadv::v1::core::HttpHeaderCollection;
     using httpadv::v1::core::HttpHeaderNames;

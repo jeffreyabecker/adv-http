@@ -7,6 +7,7 @@
 #include <string_view>
 #include <utility>
 #include "IHttpHandler.h"
+#include "../core/HttpContext.h"
 #include "../response/HttpResponse.h"
 #include "../response/StringResponse.h"
 #include "../core/HttpHeader.h"
@@ -306,8 +307,12 @@ namespace httpadv::v1::handlers
                     WebUtility::QueryParameters postData;
                     return handler(ctx, std::move(params), std::move(postData));
                 };
-                return std::make_unique<MultipartFormDataHandler>(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &, MultipartFormDataBuffer)>(wrappedHandler), ExtractArgsFromRequest([params](httpadv::v1::core::HttpContext &c)
-                                                                                                         { return params; }));
+                return std::make_unique<MultipartFormDataHandler>(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &, MultipartFormDataBuffer)>(wrappedHandler),
+                                                                  ExtractArgsFromRequest([params](httpadv::v1::core::HttpRequestContext &c)
+                                                                                         {
+                                                                                             (void)c;
+                                                                                             return params;
+                                                                                         }));
             };
         }
 

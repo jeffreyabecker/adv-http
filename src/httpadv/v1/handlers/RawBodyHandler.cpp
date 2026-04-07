@@ -66,8 +66,12 @@ namespace httpadv::v1::handlers
             {
                 return handler(ctx, params, buffer);
             };
-            return std::make_unique<RawBodyHandler>(bufferHandler, ExtractArgsFromRequest([params](httpadv::v1::core::HttpContext &c)
-                                                                                          { return params; }));
+            return std::make_unique<RawBodyHandler>(bufferHandler,
+                                                    ExtractArgsFromRequest([params](httpadv::v1::core::HttpRequestContext &c)
+                                                                           {
+                                                                               (void)c;
+                                                                               return params;
+                                                                           }));
         };
     }
 

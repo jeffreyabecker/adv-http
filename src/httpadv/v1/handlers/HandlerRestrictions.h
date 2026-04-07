@@ -17,7 +17,7 @@ namespace httpadv::v1::handlers
 
     // Forward declare for trait checking
     using RouteParameters = std::map<std::string, std::string>;
-    using ExtractArgsFromRequest = std::function<RouteParameters(httpadv::v1::core::HttpContext &context)>;
+    using ExtractArgsFromRequest = std::function<RouteParameters(httpadv::v1::core::HttpRequestContext &context)>;
 
     namespace HandlerRestrictions
     {

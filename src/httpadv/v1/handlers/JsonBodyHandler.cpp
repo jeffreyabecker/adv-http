@@ -32,7 +32,11 @@ IHttpHandler::Factory Json::makeFactory(Invocation handler,
     auto params = extractor(context);
     return std::make_unique<JsonBodyHandler>(
         handler,
-        ExtractArgsFromRequest([params](httpadv::v1::core::HttpContext &c) { return params; }));
+        ExtractArgsFromRequest([params](httpadv::v1::core::HttpRequestContext &c)
+        {
+          (void)c;
+          return params;
+        }));
   };
 }
 

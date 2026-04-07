@@ -69,13 +69,13 @@ namespace httpadv::v1::routing
 
         ~HandlerMatcher() = default;
 
-        bool operator()(httpadv::v1::core::HttpContext &context) const
+        bool operator()(HttpRequestContext &context) const
         {
             return canHandle(context);
         }
 
-        bool canHandle(httpadv::v1::core::HttpContext &context) const;
-        RouteParameters extractParameters(httpadv::v1::core::HttpContext &context) const;
+        bool canHandle(HttpRequestContext &context) const;
+        RouteParameters extractParameters(HttpRequestContext &context) const;
     };
     class ParameterizedUri : public HandlerMatcher
     {
@@ -95,9 +95,6 @@ namespace httpadv::v1::routing
     RouteParameters defaultExtractParameters(HttpRequestContext &context, std::string_view uriPattern);
 
 } // namespace httpadv::v1::routing
-
-// Include HttpContext after class definition to resolve forward declaration
-#include "../core/HttpContext.h"
 
 
 

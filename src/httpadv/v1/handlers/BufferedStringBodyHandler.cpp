@@ -23,8 +23,12 @@ namespace httpadv::v1::handlers
         return [handler, extractor](httpadv::v1::core::HttpContext &context) -> std::unique_ptr<IHttpHandler>
         {
             auto params = extractor(context);
-            return std::make_unique<BufferedStringBodyHandler>(handler, [params](httpadv::v1::core::HttpContext &c)
-                                                       { return params; });
+            return std::make_unique<BufferedStringBodyHandler>(handler,
+                                                               [params](httpadv::v1::core::HttpRequestContext &c)
+                                                               {
+                                                                   (void)c;
+                                                                   return params;
+                                                               });
         };
     }
 
