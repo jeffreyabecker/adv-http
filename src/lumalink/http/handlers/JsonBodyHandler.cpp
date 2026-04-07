@@ -1,7 +1,7 @@
 #include "JsonBodyHandler.h"
 #include "../routing/HandlerMatcher.h"
 
-#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
 
 namespace lumalink::http::handlers {
 IHttpHandler::HandlerResult

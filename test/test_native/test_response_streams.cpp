@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
 #include <ArduinoJson.h>
 #include "../../src/lumalink/http/response/JsonResponse.h"
 #endif
@@ -239,7 +239,7 @@ namespace
         TEST_ASSERT_EQUAL_STRING("alpha=1&beta=2", lumalink::http::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
-#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
     void test_json_response_sets_default_headers_and_preserves_explicit_headers()
     {
         JsonDocument document;
@@ -588,7 +588,7 @@ namespace
         RUN_TEST(test_string_response_content_type_overload_keeps_exact_body_bytes);
         RUN_TEST(test_form_response_sets_defaults_and_preserves_explicit_headers);
         RUN_TEST(test_form_response_map_overload_preserves_key_order_from_map);
-    #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+    #if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
         RUN_TEST(test_json_response_sets_default_headers_and_preserves_explicit_headers);
     #endif
         RUN_TEST(test_create_response_stream_serializes_direct_response_exactly);

@@ -25,7 +25,7 @@
 #include "lumalink/http/handlers/HttpHandler.h"
 #include "lumalink/http/handlers/IHandlerProvider.h"
 #include "lumalink/http/handlers/IHttpHandler.h"
-#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
 #include "lumalink/http/handlers/JsonBodyHandler.h"
 #endif
 #include "lumalink/http/handlers/MultipartFormDataHandler.h"
@@ -37,7 +37,7 @@
 #include "lumalink/http/response/HttpResponse.h"
 #include "lumalink/http/response/HttpResponseIterators.h"
 #include "lumalink/http/response/IHttpResponse.h"
-#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
 #include "lumalink/http/response/JsonResponse.h"
 #endif
 #include "lumalink/http/response/StringResponse.h"

@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
 #include <ArduinoJson.h>
 #include "../../src/lumalink/http/handlers/JsonBodyHandler.h"
 #endif
@@ -637,7 +637,7 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(0, capturedParts[0].size());
     }
 
-#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
     void test_json_body_handler_parses_valid_json_and_preserves_route_parameters()
     {
         std::vector<RouteParameters> capturedParams;
@@ -733,7 +733,7 @@ namespace
 #else
     void test_json_body_handler_is_unavailable_in_json_disabled_build()
     {
-        TEST_ASSERT_EQUAL(0, HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON);
+        TEST_ASSERT_EQUAL(0, LUMALINK_HTTP_ENABLE_ARDUINO_JSON);
     }
 #endif
 
@@ -826,7 +826,7 @@ namespace
         RUN_TEST(test_multipart_handler_parses_named_part_and_emits_completed_event);
         RUN_TEST(test_multipart_handler_skips_empty_parts_and_only_emits_completed_event);
         RUN_TEST(test_multipart_handler_drops_small_truncated_part_payload_before_completed_event);
-    #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+    #if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
         RUN_TEST(test_json_body_handler_parses_valid_json_and_preserves_route_parameters);
         RUN_TEST(test_json_body_handler_passes_empty_documents_for_malformed_payloads);
         RUN_TEST(test_json_body_handler_ignores_empty_payloads);

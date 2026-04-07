@@ -1,5 +1,5 @@
 #include "../core/Defines.h"   
-#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
 #include "JsonResponse.h"
 #include "../core/HttpHeaderCollection.h"
 #include "HttpResponse.h"

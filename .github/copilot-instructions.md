@@ -21,14 +21,14 @@
 - Define every overrideable compiler constant using this pattern:
 
 ```cpp
-#ifndef HTTPSERVER_ADVANCED_[COMPILER_CONSTANT]
-#define HTTPSERVER_ADVANCED_[COMPILER_CONSTANT] (default value)
+#ifndef LUMALINK_HTTP_[COMPILER_CONSTANT]
+#define LUMALINK_HTTP_[COMPILER_CONSTANT] (default value)
 #endif
-static constexpr <type> [CompilerConstant] = HTTPSERVER_ADVANCED_[COMPILER_CONSTANT];
+static constexpr <type> [CompilerConstant] = LUMALINK_HTTP_[COMPILER_CONSTANT];
 ```
 
-- Code should read/use the `static constexpr` variable (`[CompilerConstant]`) rather than the raw `HTTPSERVER_ADVANCED_*` macro, except where preprocessor logic is explicitly required (`#if`, `#ifdef`).
-- Keep macro names `UPPER_SNAKE_CASE` with `HTTPSERVER_ADVANCED_` prefix; keep constexpr names `PascalCase` or existing project style for constants.
+- Code should read/use the `static constexpr` variable (`[CompilerConstant]`) rather than the raw `LUMALINK_HTTP_*` macro, except where preprocessor logic is explicitly required (`#if`, `#ifdef`).
+- Keep macro names `UPPER_SNAKE_CASE` with `LUMALINK_HTTP_` prefix; keep constexpr names `PascalCase` or existing project style for constants.
 
 ## Backlog / Task-List (concise)
 

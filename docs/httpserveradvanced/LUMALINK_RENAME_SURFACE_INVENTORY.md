@@ -46,9 +46,9 @@ This note records the rename surface inventory after completion of the `lumalink
 
 ### Macros, Configuration Constants, And User-Facing Symbols
 
-- Compile-time override hooks are still published with the `HTTPSERVER_ADVANCED_` prefix in `src/lumalink/http/core/Defines.h`.
-- `src/lumalink/http/routing/ReplaceVariables.h` still publishes `HTTPSERVER_ADVANCED_REPLACE_VARIABLES_MAX_TOKEN_BYTES`.
-- JSON feature selection still uses `HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON` across the umbrella header and JSON-specific handlers/response types.
+- Compile-time override hooks now use the `LUMALINK_HTTP_` prefix in `src/lumalink/http/core/Defines.h`.
+- `src/lumalink/http/routing/ReplaceVariables.h` now publishes `LUMALINK_HTTP_REPLACE_VARIABLES_MAX_TOKEN_BYTES`.
+- JSON feature selection now uses `LUMALINK_HTTP_ENABLE_ARDUINO_JSON` across the umbrella header and JSON-specific handlers/response types.
 - The maintained library documentation and examples now use `lumalink::http`, `lumalink/http/LumaLinkHttp.h`, and explicit `lumalink::platform` transport factory ownership.
 
 ## Contract And Implementation Split

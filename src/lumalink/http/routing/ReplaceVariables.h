@@ -32,10 +32,10 @@ namespace lumalink::http::routing
     using lumalink::platform::buffers::IByteSink;
     using lumalink::platform::buffers::IByteSource;
 
-#ifndef HTTPSERVER_ADVANCED_REPLACE_VARIABLES_MAX_TOKEN_BYTES
-#define HTTPSERVER_ADVANCED_REPLACE_VARIABLES_MAX_TOKEN_BYTES 128
+#ifndef LUMALINK_HTTP_REPLACE_VARIABLES_MAX_TOKEN_BYTES
+#define LUMALINK_HTTP_REPLACE_VARIABLES_MAX_TOKEN_BYTES 128
 #endif
-    static constexpr std::size_t ReplaceVariablesMaxTokenBytes = HTTPSERVER_ADVANCED_REPLACE_VARIABLES_MAX_TOKEN_BYTES;
+    static constexpr std::size_t ReplaceVariablesMaxTokenBytes = LUMALINK_HTTP_REPLACE_VARIABLES_MAX_TOKEN_BYTES;
 
     enum class ReplaceVariablesMissingValuePolicy
     {

@@ -1,6 +1,6 @@
 #pragma once
 #include "../core/Defines.h"
-#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
 #include "BufferingHttpHandlerBase.h"
 #include "HandlerRestrictions.h"
 #include "../routing/HandlerMatcher.h"

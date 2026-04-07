@@ -42,6 +42,10 @@ $legacyPatterns = @(
     @{
         Name = 'legacy source-tree include root'
         Pattern = '\bsrc/httpadv/v1/'
+    },
+    @{
+        Name = 'legacy macro prefix'
+        Pattern = '\bHTTPSERVER_ADVANCED_'
     }
 )
 

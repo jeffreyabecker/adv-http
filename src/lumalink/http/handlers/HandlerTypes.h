@@ -9,7 +9,7 @@
 #include "RawBodyHandler.h"
 #include "FormBodyHandler.h"
 #include "../core/Defines.h"
-#if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
+#if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
 #include "JsonBodyHandler.h"
 #endif
 #include "BufferedStringBodyHandler.h"
