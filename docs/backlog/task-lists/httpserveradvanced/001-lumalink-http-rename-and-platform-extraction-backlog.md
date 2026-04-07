@@ -1,3 +1,4 @@
+2026-04-07 - Copilot: aligned milestone and summary status text with the completed Phase 6 and 7 cutover so the backlog now points cleanly at the remaining Phase 8 work.
 2026-04-07 - Copilot: completed Phase 6 and Phase 7 cutover work by renaming the canonical umbrella to `LumaLinkHttp.h`, removing HTTP-side platform re-exports, broadening legacy-token enforcement, and adding release-cut migration notes.
 2026-04-07 - Copilot: completed Phase 5 namespace-wave tracking by adding the execution matrix, marking the subsystem/test waves done, and revalidating the native suite.
 2026-04-07 - Copilot: synchronized planning and architecture docs with the moved `src/lumalink/http/` header tree and updated include-cutover task tracking.
@@ -37,7 +38,7 @@ Status legend:
 
 ## Implementation Status
 
-Current status: platform extraction is complete; library rename execution has completed through the Phase 7 public-surface, tooling, and release-readiness work, with remaining scope concentrated in Phase 8 validation, embedded compile coverage, and residual cleanup.
+Current status: platform extraction is complete; namespace, include-surface, tooling, and release-cut rename work are complete; remaining scope is concentrated in Phase 8 validation, consumer-facing migration follow-through, embedded compile coverage, and residual cleanup.
 
 Completed so far:
 
@@ -47,7 +48,7 @@ Completed so far:
 - platform contract-vs-implementation split and compile-time platform-selection ownership are documented
 - platform integration through `lumalink/platform/...` usage is documented
 
-What remains open is final validation and cleanup work: embedded compile coverage, extra renamed-surface regression coverage, and removal of remaining historical artifacts that are intentionally still documented.
+What remains open is final validation and cleanup work: downstream consumer guidance, embedded compile coverage, extra renamed-surface regression coverage, and removal of remaining historical artifacts that are intentionally still documented.
 All remaining implementation work must use direct replacement to new names and ownership with no compatibility bridges.
 
 ## Design Intent
@@ -96,8 +97,8 @@ These milestones define the rename execution gates for the library cutover. A mi
 | Milestone | Status | Goal | Mapped Tasks | Exit Criteria |
 |---|---|---|---|---|
 | M1 - Identity Lock | todo | Finalize package identity, naming, and release-cut posture for the rename | LUMA-01, LUMA-16, LUMA-20 | Package naming and breaking-change policy are final with explicit no-compatibility commitment |
-| M2 - Namespace Cutover | doing | Replace legacy public namespace usage inside this repository with final `lumalink::http` namespace surface | LUMA-17, LUMA-26, LUMA-27, LUMA-28 | Public namespace and alias surfaces in this library are fully renamed with no compatibility aliases |
-| M3 - Include Surface Cutover | doing | Replace legacy include-root and umbrella-header usage with final `lumalink/http/...` include structure | LUMA-18, LUMA-21 | Legacy include roots and umbrella references fail validation; final include structure is canonical |
+| M2 - Namespace Cutover | done | Replace legacy public namespace usage inside this repository with final `lumalink::http` namespace surface | LUMA-17, LUMA-26, LUMA-27, LUMA-28 | Public namespace and alias surfaces in this library are fully renamed with no compatibility aliases |
+| M3 - Include Surface Cutover | done | Replace legacy include-root and umbrella-header usage with final `lumalink/http/...` include structure | LUMA-18, LUMA-21 | Legacy include roots and umbrella references fail validation; final include structure is canonical |
 | M4 - Consumer Cutover | todo | Publish downstream migration updates for Arduino, PlatformIO, and native consumers | LUMA-19 | Consumer docs/examples and dependency guidance are updated for direct rename adoption |
 | M5 - Validation And Cleanup | todo | Prove renamed surfaces across native/embedded validation and remove residual legacy artifacts | LUMA-22, LUMA-23, LUMA-24, LUMA-25, LUMA-40 | Tests and compile validation pass on renamed surfaces; legacy names and residual paths are removed |
 
@@ -223,7 +224,7 @@ These milestones define the rename execution gates for the library cutover. A mi
 - repo-wide legacy-token checks now cover active docs, metadata, tooling, and code outside approved historical planning/inventory paths
 - release-cut migration notes are captured in `docs/httpserveradvanced/LUMALINK_HTTP_RENAME_RELEASE_NOTES.md`
 - native validation still passes after namespace and include-root cutover work (`192/192` native tests)
-- remaining execution scope is centered on the HTTP library rename and public-surface cleanup
+- remaining execution scope is centered on Phase 8 validation, consumer migration completion, and residual cleanup
 
 ## Source References
 
