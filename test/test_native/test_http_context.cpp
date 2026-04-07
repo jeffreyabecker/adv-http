@@ -5,7 +5,7 @@
 
 #include <unity.h>
 
-#include "../../src/lumalink/http/util/Clock.h"
+#include <lumalink/platform/time/ManualClock.h>
 #include "../../src/lumalink/http/core/HttpContext.h"
 #include "../../src/lumalink/http/core/HttpContextPhase.h"
 #include "../../src/lumalink/http/handlers/HttpHandler.h"
@@ -233,7 +233,8 @@ namespace
         TEST_ASSERT_NULL(result.responseStream.get());
 
         lumalink::http::TestSupport::FakeClient client;
-        ManualClock clock(1000);
+        lumalink::platform::time::ManualClock clock;
+        clock.setMonotonicMillis(1000);
         const ConnectionSessionResult firstStep = result.upgradedSession->handle(client, clock);
 
         TEST_ASSERT_EQUAL_INT(static_cast<int>(ConnectionSessionResult::Continue), static_cast<int>(firstStep));

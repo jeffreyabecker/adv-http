@@ -5,7 +5,7 @@
 
 #include <unity.h>
 
-#include "../../src/lumalink/http/util/Clock.h"
+#include <lumalink/platform/time/ManualClock.h>
 #include "../../src/lumalink/http/core/HttpContext.h"
 #include "../../src/lumalink/http/core/HttpTimeouts.h"
 #include "../../src/lumalink/http/handlers/HttpHandler.h"
@@ -42,6 +42,7 @@ using namespace lumalink::platform::transport;
 using namespace lumalink::platform::buffers;
 using namespace lumalink::http::util;
 using namespace lumalink::http::websocket;
+using namespace lumalink::platform::time;
 
 namespace
 {
@@ -262,7 +263,7 @@ namespace
         {
         }
 
-        ConnectionSessionResult handle(IClient &, const Clock &) override
+        ConnectionSessionResult handle(IClient &, const IMonotonicClock &) override
         {
             if (handleCount_ != nullptr)
             {
@@ -290,7 +291,7 @@ namespace
         {
         }
 
-        ConnectionSessionResult handle(IClient &, const Clock &) override
+        ConnectionSessionResult handle(IClient &, const IMonotonicClock &) override
         {
             ++handleCount_;
             if (scriptedIndex_ >= scriptedResults_.size())
@@ -402,12 +403,13 @@ namespace
             uint16_t remotePort = 4567,
             std::string localAddress = "10.0.0.1",
             uint16_t localPort = 8080)
-            : clock_(1000),
+            : clock_(),
               server_(std::make_unique<lumalink::http::TestSupport::FakeServer>())
         {
-            timeouts_.setReadTimeout(25);
-            timeouts_.setActivityTimeout(40);
-            timeouts_.setTotalRequestLengthMs(200);
+            clock_.setMonotonicMillis(1000);
+            timeouts_.setReadTimeout({25});
+            timeouts_.setActivityTimeout({40});
+            timeouts_.setTotalRequestLengthMs({200});
 
             auto client = std::make_unique<lumalink::http::TestSupport::FakeClient>(
                 readSteps,
@@ -460,7 +462,7 @@ namespace
             return handlerHistory_.size();
         }
 
-        ManualClock &clock()
+        lumalink::platform::time::ManualClock &clock()
         {
             return clock_;
         }
@@ -471,7 +473,7 @@ namespace
         }
 
     private:
-        ManualClock clock_;
+        lumalink::platform::time::ManualClock clock_;
         HttpTimeouts timeouts_;
         HttpServerBase server_;
         std::unique_ptr<HttpPipeline> pipeline_;
@@ -555,8 +557,8 @@ namespace
         const PipelineHandleClientResult result = harness.pipeline().handleClient();
 
         TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
-        TEST_ASSERT_EQUAL_UINT32(1000, harness.pipeline().startedAt());
-        TEST_ASSERT_EQUAL_UINT32(harness.timeouts().getReadTimeout(), harness.client().getTimeout());
+        TEST_ASSERT_EQUAL_UINT64(1000, harness.pipeline().startedAt().value);
+        TEST_ASSERT_EQUAL_UINT32(static_cast<uint32_t>(harness.timeouts().getReadTimeout().value), harness.client().getTimeout());
         TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(harness.client().timeoutHistory().size()));
         TEST_ASSERT_TRUE(harness.client().connectedCheckCount() > 0);
         TEST_ASSERT_EQUAL_STRING("GET", harness.handlerAt(0).method().c_str());
@@ -802,7 +804,7 @@ namespace
         PipelineHandleClientResult result = harness.pipeline().handleClient();
         TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
 
-        harness.clock().advanceMillis(harness.timeouts().getReadTimeout() + 1);
+        harness.clock().advanceMillis(harness.timeouts().getReadTimeout().value + 1);
         result = harness.pipeline().handleClient();
         TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::TimedOutUnrecoverably), static_cast<int>(result));
         TEST_ASSERT_FALSE(harness.handler().errors().empty());
@@ -827,7 +829,7 @@ namespace
         TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::Processing), static_cast<int>(result));
         TEST_ASSERT_EQUAL_UINT32(1, static_cast<uint32_t>(harness.handler().messageCompleteCount()));
 
-        harness.clock().advanceMillis(harness.timeouts().getActivityTimeout() + 1);
+        harness.clock().advanceMillis(harness.timeouts().getActivityTimeout().value + 1);
         result = harness.pipeline().handleClient();
         TEST_ASSERT_EQUAL_INT(static_cast<int>(PipelineHandleClientResult::TimedOutUnrecoverably), static_cast<int>(result));
         TEST_ASSERT_TRUE(harness.client().stopped());
@@ -943,11 +945,12 @@ namespace
             "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
             "\r\n";
 
-        ManualClock clock(1000);
+        lumalink::platform::time::ManualClock clock;
+        clock.setMonotonicMillis(1000);
         HttpTimeouts timeouts;
-        timeouts.setReadTimeout(25);
-        timeouts.setActivityTimeout(40);
-        timeouts.setTotalRequestLengthMs(200);
+        timeouts.setReadTimeout({25});
+        timeouts.setActivityTimeout({40});
+        timeouts.setTotalRequestLengthMs({200});
 
         HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
@@ -993,11 +996,12 @@ namespace
             "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
             "\r\n";
 
-        ManualClock clock(1000);
+        lumalink::platform::time::ManualClock clock;
+        clock.setMonotonicMillis(1000);
         HttpTimeouts timeouts;
-        timeouts.setReadTimeout(25);
-        timeouts.setActivityTimeout(40);
-        timeouts.setTotalRequestLengthMs(200);
+        timeouts.setReadTimeout({25});
+        timeouts.setActivityTimeout({40});
+        timeouts.setTotalRequestLengthMs({200});
 
         HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
@@ -1040,11 +1044,12 @@ namespace
 
         static constexpr const char *PingFrame = "\x89\x82\x01\x02\x03\x04\x69\x6B";
 
-        ManualClock clock(1000);
+        lumalink::platform::time::ManualClock clock;
+        clock.setMonotonicMillis(1000);
         HttpTimeouts timeouts;
-        timeouts.setReadTimeout(25);
-        timeouts.setActivityTimeout(40);
-        timeouts.setTotalRequestLengthMs(200);
+        timeouts.setReadTimeout({25});
+        timeouts.setActivityTimeout({40});
+        timeouts.setTotalRequestLengthMs({200});
 
         HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
@@ -1094,11 +1099,12 @@ namespace
 
         static constexpr const char *CloseFrame = "\x88\x82\x01\x02\x03\x04\x02\xEA";
 
-        ManualClock clock(1000);
+        lumalink::platform::time::ManualClock clock;
+        clock.setMonotonicMillis(1000);
         HttpTimeouts timeouts;
-        timeouts.setReadTimeout(25);
-        timeouts.setActivityTimeout(40);
-        timeouts.setTotalRequestLengthMs(200);
+        timeouts.setReadTimeout({25});
+        timeouts.setActivityTimeout({40});
+        timeouts.setTotalRequestLengthMs({200});
 
         HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
@@ -1147,11 +1153,12 @@ namespace
             "\r\n";
         static constexpr const char *InvalidUnmaskedFrame = "\x81\x02ok";
 
-        ManualClock clock(1000);
+        lumalink::platform::time::ManualClock clock;
+        clock.setMonotonicMillis(1000);
         HttpTimeouts timeouts;
-        timeouts.setReadTimeout(25);
-        timeouts.setActivityTimeout(40);
-        timeouts.setTotalRequestLengthMs(200);
+        timeouts.setReadTimeout({25});
+        timeouts.setActivityTimeout({40});
+        timeouts.setTotalRequestLengthMs({200});
 
         HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
@@ -1199,11 +1206,12 @@ namespace
             "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
             "\r\n";
 
-        ManualClock clock(1000);
+        lumalink::platform::time::ManualClock clock;
+        clock.setMonotonicMillis(1000);
         HttpTimeouts timeouts;
-        timeouts.setReadTimeout(25);
-        timeouts.setActivityTimeout(40);
-        timeouts.setTotalRequestLengthMs(200);
+        timeouts.setReadTimeout({25});
+        timeouts.setActivityTimeout({40});
+        timeouts.setTotalRequestLengthMs({200});
 
         HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
@@ -1261,11 +1269,12 @@ namespace
 
         std::vector<std::string> callbackEvents;
 
-        ManualClock clock(1000);
+        lumalink::platform::time::ManualClock clock;
+        clock.setMonotonicMillis(1000);
         HttpTimeouts timeouts;
-        timeouts.setReadTimeout(25);
-        timeouts.setActivityTimeout(40);
-        timeouts.setTotalRequestLengthMs(200);
+        timeouts.setReadTimeout({25});
+        timeouts.setActivityTimeout({40});
+        timeouts.setTotalRequestLengthMs({200});
 
         WebSocketCallbacks callbacks;
         callbacks.onOpen = [&callbackEvents](WebSocketContext &context)
@@ -1352,11 +1361,12 @@ namespace
         std::uint16_t capturedRemotePort = 0;
         std::uint16_t capturedLocalPort = 0;
 
-        ManualClock clock(1000);
+        lumalink::platform::time::ManualClock clock;
+        clock.setMonotonicMillis(1000);
         HttpTimeouts timeouts;
-        timeouts.setReadTimeout(25);
-        timeouts.setActivityTimeout(40);
-        timeouts.setTotalRequestLengthMs(200);
+        timeouts.setReadTimeout({25});
+        timeouts.setActivityTimeout({40});
+        timeouts.setTotalRequestLengthMs({200});
 
         WebSocketCallbacks callbacks;
         callbacks.onOpen = [&](WebSocketContext &context)
@@ -1433,11 +1443,12 @@ namespace
             "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
             "\r\n";
 
-        ManualClock clock(1000);
+        lumalink::platform::time::ManualClock clock;
+        clock.setMonotonicMillis(1000);
         HttpTimeouts timeouts;
-        timeouts.setReadTimeout(25);
-        timeouts.setActivityTimeout(40);
-        timeouts.setTotalRequestLengthMs(200);
+        timeouts.setReadTimeout({25});
+        timeouts.setActivityTimeout({40});
+        timeouts.setTotalRequestLengthMs({200});
 
         HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(

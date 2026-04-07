@@ -13,7 +13,7 @@ namespace lumalink::http::pipeline
         }
     }
 
-    ConnectionSessionResult HttpProtocolExecution::handle(IClient &client, const Clock &)
+    ConnectionSessionResult HttpProtocolExecution::handle(IClient &client, const IMonotonicClock &)
     {
         consumedInput_ = false;
 

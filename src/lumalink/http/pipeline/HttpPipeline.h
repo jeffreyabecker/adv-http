@@ -2,7 +2,8 @@
 #include <memory>
 #include <functional>
 
-#include "../util/Clock.h"
+#include <lumalink/platform/time/Clock.h>
+#include <lumalink/platform/time/ClockTypes.h>
 #include "../core/HttpTimeouts.h"
 #include "LumaLinkPlatform.h"
 #include "ConnectionSession.h"
@@ -26,8 +27,8 @@ namespace lumalink::http::pipeline
 {
     using lumalink::http::core::HttpTimeouts;
     using lumalink::http::server::HttpServerBase;
-    using lumalink::http::util::Clock;
-    using lumalink::http::util::ClockMillis;
+    using lumalink::platform::time::IMonotonicClock;
+    using lumalink::platform::time::MonotonicMillis;
 
     class HttpPipeline
     {
@@ -46,7 +47,7 @@ namespace lumalink::http::pipeline
     private:
         std::unique_ptr<lumalink::platform::transport::IClient> client_;
         HttpServerBase &server_;
-        const Clock &clock_;
+        const IMonotonicClock &clock_;
         std::function<PipelineHandlerPtr()> handlerFactory_;
         std::unique_ptr<IByteSource> responseStream_;
         std::unique_ptr<IConnectionSession> activeSession_;
@@ -56,8 +57,8 @@ namespace lumalink::http::pipeline
         bool disconnectNotified_ = false;
         bool timedOutUnrecoverably_ = false;
 
-        ClockMillis lastActivityMillis_;
-        ClockMillis startMillis_;
+        MonotonicMillis lastActivityMillis_;
+        MonotonicMillis startMillis_;
         std::uint32_t loopCount_;
         HttpTimeouts timeouts_;
 
@@ -76,13 +77,13 @@ namespace lumalink::http::pipeline
         bool checkIdleTimeout();
         void setErroredUnrecoverably();
         void setConnectionState(ConnectionState state);
-        ClockMillis currentMillis() const;
+        MonotonicMillis currentMillis() const;
         IProtocolExecution *currentProtocolExecution();
         const IProtocolExecution *currentProtocolExecution() const;
     public:
         HttpPipeline(std::unique_ptr<lumalink::platform::transport::IClient> client, HttpServerBase &server,
                      const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,
-                     const Clock &clock);
+                     const IMonotonicClock &clock);
 
         ~HttpPipeline() = default;
 
@@ -92,7 +93,7 @@ namespace lumalink::http::pipeline
         void abort();
         void abortReadingRequest();
         void abortWritingResponse();
-        ClockMillis startedAt() const;
+        MonotonicMillis startedAt() const;
         lumalink::platform::transport::IClient &client();
         ConnectionState connectionState() const;
     };

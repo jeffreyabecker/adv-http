@@ -4,7 +4,7 @@
 
 #include <unity.h>
 
-#include "../../src/lumalink/http/util/Clock.h"
+#include <lumalink/platform/time/ManualClock.h>
 
 using namespace lumalink::http::core;
 using namespace lumalink::http::handlers;
@@ -18,6 +18,7 @@ using namespace lumalink::platform::transport;
 using namespace lumalink::platform::buffers;
 using namespace lumalink::http::util;
 using namespace lumalink::http::websocket;
+using namespace lumalink::platform::time;
 
 namespace
 {
@@ -31,20 +32,21 @@ namespace
 
     void test_manual_clock_starts_at_zero_by_default()
     {
-        ManualClock clock;
+        lumalink::platform::time::ManualClock clock;
 
-        TEST_ASSERT_EQUAL_UINT32(0, clock.nowMillis());
+        TEST_ASSERT_EQUAL_UINT64(0, clock.monotonicNow().value);
     }
 
     void test_manual_clock_can_advance_and_set_time()
     {
-        ManualClock clock(10);
+        lumalink::platform::time::ManualClock clock;
+        clock.setMonotonicMillis(10);
 
         clock.advanceMillis(15);
-        TEST_ASSERT_EQUAL_UINT32(25, clock.nowMillis());
+        TEST_ASSERT_EQUAL_UINT64(25, clock.monotonicNow().value);
 
-        clock.setNowMillis(7);
-        TEST_ASSERT_EQUAL_UINT32(7, clock.nowMillis());
+        clock.setMonotonicMillis(7);
+        TEST_ASSERT_EQUAL_UINT64(7, clock.monotonicNow().value);
     }
 
     int runUnitySuite()

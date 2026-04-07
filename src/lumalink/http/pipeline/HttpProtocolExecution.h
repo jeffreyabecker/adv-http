@@ -11,7 +11,7 @@ namespace lumalink::http::pipeline
     public:
         explicit HttpProtocolExecution(PipelineHandlerPtr handler);
 
-        ConnectionSessionResult handle(IClient &client, const Clock &clock) override;
+        ConnectionSessionResult handle(IClient &client, const IMonotonicClock &clock) override;
         void onError(PipelineError error) override;
         void onDisconnect() override;
         bool hasPendingResult() const override;

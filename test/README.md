@@ -42,7 +42,7 @@ The native lane exists to protect the library's cross-platform design: the same 
 
 ## Timeout Guidance
 
-- Timeout-oriented native tests should use `ManualClock` from `src/compat/Clock.h`.
+- Timeout-oriented native tests should use `lumalink::platform::time::ManualClock` from `<lumalink/platform/time/ManualClock.h>`.
 - Advance time explicitly in the test body; do not use sleeps or wall-clock delays.
 - When a server-facing test needs deterministic time, inject the manual clock through `HttpServerBase::setClock(...)` before exercising the code under test.
 

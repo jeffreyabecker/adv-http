@@ -47,7 +47,7 @@ namespace lumalink::http::websocket
         context_.bindControl(this);
     }
 
-    lumalink::http::server::ConnectionSessionResult WebSocketProtocolExecution::handle(lumalink::platform::transport::IClient &client, const lumalink::http::util::Clock &)
+    lumalink::http::server::ConnectionSessionResult WebSocketProtocolExecution::handle(lumalink::platform::transport::IClient &client, const lumalink::platform::time::IMonotonicClock &)
     {
         if (!client.connected())
         {

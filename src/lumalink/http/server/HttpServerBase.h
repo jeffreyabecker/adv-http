@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../util/Clock.h"
+#include <lumalink/platform/time/Clock.h>
 #include "../pipeline/HttpPipeline.h"
 #include "../pipeline/IPipelineHandler.h"
 #include "../pipeline/PipelineHandleClientResult.h"
@@ -22,7 +22,7 @@ namespace lumalink::http::server
     using lumalink::http::pipeline::HttpPipeline;
     using lumalink::http::pipeline::PipelineHandlerPtr;
     using lumalink::platform::transport::IServer;
-    using lumalink::http::util::Clock;
+    using lumalink::platform::time::IMonotonicClock;
 
     class HttpServerBase
     {
@@ -37,8 +37,8 @@ namespace lumalink::http::server
 
         HttpTimeouts &timeouts();
         void setTimeouts(const HttpTimeouts &timeouts);
-        void setClock(const Clock &clock);
-        const Clock &clock() const;
+        void setClock(const IMonotonicClock &clock);
+        const IMonotonicClock &clock() const;
 
 
         void setPipelineHandlerFactory(std::function<PipelineHandlerPtr(HttpServerBase &)> factory);
@@ -56,7 +56,7 @@ namespace lumalink::http::server
         // Multiple concurrent pipelines (one per accepted client)
         std::vector<std::unique_ptr<HttpPipeline>> pipelines_;
         HttpTimeouts timeouts_;
-        const Clock *clock_;
+        const IMonotonicClock *clock_;
         mutable std::map<std::string, std::any> items_;
     };
 

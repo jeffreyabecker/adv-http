@@ -19,7 +19,7 @@ namespace lumalink::http::websocket
     public:
         WebSocketProtocolExecution(std::string handshakeResponse, WebSocketContext context);
 
-        lumalink::http::server::ConnectionSessionResult handle(lumalink::platform::transport::IClient &client, const lumalink::http::util::Clock &clock) override;
+        lumalink::http::server::ConnectionSessionResult handle(lumalink::platform::transport::IClient &client, const lumalink::platform::time::IMonotonicClock &clock) override;
         lumalink::http::pipeline::IProtocolExecution *protocolExecution() override
         {
             return this;

@@ -9,14 +9,14 @@ namespace lumalink::http::pipeline
 {
     using lumalink::http::server::ConnectionSessionResult;
     using lumalink::platform::transport::IClient;
-    using lumalink::http::util::Clock;
+    using lumalink::platform::time::IMonotonicClock;
 
     class IProtocolExecution
     {
     public:
         virtual ~IProtocolExecution() = default;
 
-        virtual ConnectionSessionResult handle(IClient &client, const Clock &clock) = 0;
+        virtual ConnectionSessionResult handle(IClient &client, const IMonotonicClock &clock) = 0;
         virtual void onError(PipelineError error) = 0;
         virtual void onDisconnect() = 0;
 

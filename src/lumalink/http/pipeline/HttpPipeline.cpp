@@ -7,7 +7,7 @@ namespace lumalink::http::pipeline
 {
     HttpPipeline::HttpPipeline(std::unique_ptr<lumalink::platform::transport::IClient> client, HttpServerBase &server,
                                                              const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,
-                                                             const Clock &clock)
+                                                             const IMonotonicClock &clock)
                 : client_(std::move(client)),
                     server_(server),
                     clock_(clock),
@@ -19,8 +19,8 @@ namespace lumalink::http::pipeline
                     responseStartedNotified_(false),
                     disconnectNotified_(false),
                     timedOutUnrecoverably_(false),
-                    lastActivityMillis_(0),
-                    startMillis_(0),
+                    lastActivityMillis_{},
+                    startMillis_{},
                     loopCount_(0),
                     timeouts_(timeouts)
     {
@@ -228,12 +228,12 @@ namespace lumalink::http::pipeline
     {
         startMillis_ = currentMillis();
         lastActivityMillis_ = startMillis_;
-        client_->setTimeout(timeouts_.getReadTimeout());
+        client_->setTimeout(static_cast<std::uint32_t>(timeouts_.getReadTimeout().value));
     }
 
     PipelineHandleClientResult HttpPipeline::checkStateInHandleClient()
     {
-        const ClockMillis currentMillis = this->currentMillis();
+        const MonotonicMillis currentMillis = this->currentMillis();
         if (currentMillis - startMillis_ > timeouts_.getTotalRequestLengthMs())
         {
             timedOutUnrecoverably_ = true;
@@ -317,7 +317,7 @@ namespace lumalink::http::pipeline
 
     bool HttpPipeline::checkActivityTimeout()
     {
-        const ClockMillis currentMillis = this->currentMillis();
+        const MonotonicMillis currentMillis = this->currentMillis();
         if (currentMillis - lastActivityMillis_ > timeouts_.getActivityTimeout())
         {
             if (IProtocolExecution *execution = currentProtocolExecution())
@@ -342,8 +342,8 @@ namespace lumalink::http::pipeline
             return true;
         }
 
-        const ClockMillis currentMillis = this->currentMillis();
-        ClockMillis timeout = timeouts_.getReadTimeout();
+        const MonotonicMillis currentMillis = this->currentMillis();
+        MonotonicMillis timeout = timeouts_.getReadTimeout();
         if (connectionState_ == ConnectionState::WritingHttpResponse || connectionState_ == ConnectionState::UpgradedSessionActive)
         {
             timeout = timeouts_.getActivityTimeout();
@@ -381,9 +381,9 @@ namespace lumalink::http::pipeline
         connectionState_ = state;
     }
 
-    ClockMillis HttpPipeline::currentMillis() const
+    MonotonicMillis HttpPipeline::currentMillis() const
     {
-        return clock_.nowMillis();
+        return clock_.monotonicNow();
     }
 
     bool HttpPipeline::isFinished() const
@@ -473,7 +473,7 @@ namespace lumalink::http::pipeline
         }
     }
 
-    ClockMillis HttpPipeline::startedAt() const
+    MonotonicMillis HttpPipeline::startedAt() const
     {
         return startMillis_;
     }

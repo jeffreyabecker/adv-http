@@ -3,7 +3,7 @@
 #include <exception>
 #include "LumaLinkPlatform.h"
 
-#include "../util/Clock.h"
+#include <lumalink/platform/time/Clock.h>
 
 namespace lumalink::http::pipeline
 {
@@ -13,7 +13,7 @@ namespace lumalink::http::pipeline
 namespace lumalink::http::server
 {
     using lumalink::platform::transport::IClient;
-    using lumalink::http::util::Clock;
+    using lumalink::platform::time::IMonotonicClock;
     using lumalink::http::pipeline::IProtocolExecution;
 
     enum class ConnectionSessionResult
@@ -28,7 +28,7 @@ namespace lumalink::http::server
     {
     public:
         virtual ~IConnectionSession() = default;
-        virtual ConnectionSessionResult handle(IClient &client, const Clock &clock) = 0;
+        virtual ConnectionSessionResult handle(IClient &client, const IMonotonicClock &clock) = 0;
         virtual IProtocolExecution *protocolExecution()
         {
             return nullptr;

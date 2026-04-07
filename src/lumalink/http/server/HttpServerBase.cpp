@@ -1,11 +1,15 @@
 #include "HttpServerBase.h"
 
 #include <cassert>
+#include <lumalink/platform/ClockFactory.h>
 
 namespace lumalink::http::server {
 
 HttpServerBase::HttpServerBase(std::unique_ptr<IServer> server)
-    : pipelineHandlerFactory_(nullptr), server_(std::move(server)), clock_(&lumalink::http::util::DefaultClock()) {
+    : pipelineHandlerFactory_(nullptr), server_(std::move(server)), clock_([]() -> const IMonotonicClock * {
+        static const lumalink::platform::Clock defaultClock;
+        return &defaultClock;
+    }()) {
     assert(server_ && "HttpServerBase requires a valid transport server");
 }
 
@@ -76,11 +80,11 @@ void HttpServerBase::setTimeouts(const HttpTimeouts &timeouts) {
     timeouts_ = timeouts;
 }
 
-void HttpServerBase::setClock(const Clock &clock) {
+void HttpServerBase::setClock(const IMonotonicClock &clock) {
     clock_ = &clock;
 }
 
-const Clock &HttpServerBase::clock() const {
+const IMonotonicClock &HttpServerBase::clock() const {
     return *clock_;
 }
 

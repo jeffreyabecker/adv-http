@@ -1,10 +1,10 @@
 #pragma once
-#include "../util/Clock.h"
 #include "Defines.h"
+#include <lumalink/platform/time/ClockTypes.h>
 
 namespace lumalink::http::core
 {
-    using lumalink::http::util::ClockMillis;
+    using lumalink::platform::time::MonotonicMillis;
 
 
     /// @brief Timeouts related to HTTP Server operations
@@ -26,43 +26,43 @@ namespace lumalink::http::core
     private:
         /// @brief Maximum total time (ms) allowed for complete request processing
         /// @details Default: PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS
-        ClockMillis _totalRequestLengthMs = PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS;
+        MonotonicMillis _totalRequestLengthMs = {PIPELINE_MAX_TOTAL_REQUEST_LENGTH_MS};
 
         /// @brief Maximum time (ms) between processing actions
         /// @details Default: PIPELINE_ACTIVITY_TIMEOUT
-        ClockMillis _activityTimeout = PIPELINE_ACTIVITY_TIMEOUT;
+        MonotonicMillis _activityTimeout = {PIPELINE_ACTIVITY_TIMEOUT};
 
         /// @brief Maximum time (ms) to wait for incoming data
         /// @details Default: PIPELINE_READ_TIMEOUT
-        ClockMillis _readTimeout = PIPELINE_READ_TIMEOUT;
+        MonotonicMillis _readTimeout = {PIPELINE_READ_TIMEOUT};
 
     public:
         // Getters
 
         /// @brief Get the maximum total request processing time
         /// @return Timeout value in milliseconds
-        ClockMillis getTotalRequestLengthMs() const { return _totalRequestLengthMs; }
+        MonotonicMillis getTotalRequestLengthMs() const { return _totalRequestLengthMs; }
 
         /// @brief Get the action timeout (time between processing steps)
         /// @return Timeout value in milliseconds
-        ClockMillis getActivityTimeout() const { return _activityTimeout; }
+        MonotonicMillis getActivityTimeout() const { return _activityTimeout; }
 
         /// @brief Get the read timeout (waiting for client data)
         /// @return Timeout value in milliseconds
-        ClockMillis getReadTimeout() const { return _readTimeout; }
+        MonotonicMillis getReadTimeout() const { return _readTimeout; }
 
         // Setters
 
         /// @brief Set the maximum total request processing time
         /// @param timeout Timeout value in milliseconds
-        void setTotalRequestLengthMs(ClockMillis timeout) { _totalRequestLengthMs = timeout; }
+        void setTotalRequestLengthMs(MonotonicMillis timeout) { _totalRequestLengthMs = timeout; }
 
         /// @brief Set the action timeout (time between processing steps)
         /// @param timeout Timeout value in milliseconds
-        void setActivityTimeout(ClockMillis timeout) { _activityTimeout = timeout; }
+        void setActivityTimeout(MonotonicMillis timeout) { _activityTimeout = timeout; }
 
         /// @brief Set the read timeout (waiting for client data)
         /// @param timeout Timeout value in milliseconds
-        void setReadTimeout(ClockMillis timeout) { _readTimeout = timeout; }
+        void setReadTimeout(MonotonicMillis timeout) { _readTimeout = timeout; }
     };
 }
