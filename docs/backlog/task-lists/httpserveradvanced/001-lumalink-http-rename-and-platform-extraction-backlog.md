@@ -1,3 +1,4 @@
+2026-04-07 - Copilot: synchronized planning and architecture docs with the moved `src/lumalink/http/` header tree and updated include-cutover task tracking.
 2026-04-07 - Copilot: repointed published header metadata and maintained examples to `lumalink/http/HttpServerAdvanced.h` while leaving final package branding decisions for the remaining metadata rename task.
 2026-04-07 - Copilot: added a native-runner guard that fails when active `src/` or `test/` code reintroduces legacy `httpadv::` or `httpadv/v1` tokens.
 2026-04-07 - Copilot: moved the public HTTP header tree under `src/lumalink/http`, removed the legacy top-level wrapper header, updated in-repo include paths, and revalidated the native suite.
@@ -34,7 +35,7 @@ Status legend:
 
 ## Implementation Status
 
-Current status: platform extraction is complete; library rename execution is underway, with active source/test namespace cutover completed and include-root cutover started while package metadata rename remains pending.
+Current status: platform extraction is complete; library rename execution is underway, with active source/test namespace cutover and in-repo include-root cutover completed while final umbrella/package metadata cleanup remains pending.
 
 Completed so far:
 
@@ -157,8 +158,8 @@ These milestones define the rename execution gates for the library cutover. A mi
 
 | ID | Status | Task | Source | Depends On | Definition of Done |
 |---|---|---|---|---|---|
-| LUMA-34 | todo | Implement final public header graph under `lumalink/http/...` and move/rename public entrypoints to that structure | Backlog | LUMA-18, LUMA-30 | New public header layout is canonical and self-consistent without legacy include bridges |
-| LUMA-35 | todo | Rewrite internal include directives across `src/` and `test/` to the final header graph and namespace-aligned include paths | Backlog | LUMA-34, LUMA-31 | Internal includes no longer depend on legacy `httpadv/v1/...` include paths |
+| LUMA-34 | doing | Implement final public header graph under `lumalink/http/...` and move/rename public entrypoints to that structure | Backlog | LUMA-18, LUMA-30 | New public header layout is canonical and self-consistent without legacy include bridges |
+| LUMA-35 | done | Rewrite internal include directives across `src/` and `test/` to the final header graph and namespace-aligned include paths | Backlog | LUMA-34, LUMA-31 | Internal includes no longer depend on legacy `httpadv/v1/...` include paths |
 | LUMA-36 | todo | Remove legacy public umbrella and namespace wrapper entrypoints (`HttpServerAdvanced.h`, legacy `httpadv` wrapper roles) once replacements are active | Backlog | LUMA-34, LUMA-35, LUMA-27 | Legacy public entrypoints are removed rather than retained as compatibility shims |
 | LUMA-37 | todo | Verify HTTP headers consume platform contracts without re-exporting or mirroring platform implementation headers under HTTP include roots | Backlog | LUMA-34, LUMA-35 | HTTP include surface remains cleanly separated from platform implementation ownership |
 
@@ -205,6 +206,7 @@ These milestones define the rename execution gates for the library cutover. A mi
 - maintained test and fixture include paths now target `src/lumalink/http/` directly
 - `tools/run_native_tests.ps1` now fails fast when active source or test files reintroduce `httpadv::` or `httpadv/v1` tokens
 - published metadata and maintained examples now point at `lumalink/http/HttpServerAdvanced.h` instead of the removed top-level wrapper
+- planning and architecture docs now reference the moved `src/lumalink/http/` header tree instead of stale `src/httpadv/v1/` paths where the files have already moved
 - native validation still passes after namespace and include-root cutover work (`192/192` native tests)
 - remaining execution scope is centered on the HTTP library rename and public-surface cleanup
 
@@ -215,8 +217,8 @@ These milestones define the rename execution gates for the library cutover. A mi
 - `keywords.txt`
 - `src/httpadv/namespace.h`
 - `src/lumalink/http/HttpServerAdvanced.h`
-- `src/httpadv/v1/transport/TransportTraits.h`
-- `src/httpadv/v1/transport/TransportInterfaces.h`
+- `src/lumalink/http/transport/TransportTraits.h`
+- `src/lumalink/http/transport/TransportInterfaces.h`
 - `src/httpadv/v1/platform/TransportFactory.h`
 - `src/httpadv/v1/platform/arduino/ArduinoWiFiTransport.h`
 - `src/httpadv/v1/platform/arduino/ArduinoFileAdapter.h`

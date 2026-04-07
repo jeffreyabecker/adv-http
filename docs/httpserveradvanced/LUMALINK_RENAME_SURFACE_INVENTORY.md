@@ -42,12 +42,12 @@ This note records the rename surface inventory after completion of the `lumalink
 - Active source and test code now declares and consumes `lumalink::http::<subsystem>` directly.
 - The remaining public legacy surface is the umbrella basename and residual docs/examples, not the active include-root layout or C++ namespace declarations.
 - The deleted `src/httpadv/namespace.h` shim is no longer part of the public surface.
-- Legacy namespace-closing markers in active source have been cleaned; remaining rename work is centered on include paths, package metadata, macros, and maintained docs/examples.
+- Legacy namespace-closing markers in active source have been cleaned; remaining rename work is centered on package metadata, final umbrella naming cleanup, macros, and maintained docs/examples.
 
 ### Macros, Configuration Constants, And User-Facing Symbols
 
-- Compile-time override hooks are still published with the `HTTPSERVER_ADVANCED_` prefix in `src/httpadv/v1/core/Defines.h`.
-- `src/httpadv/v1/routing/ReplaceVariables.h` still publishes `HTTPSERVER_ADVANCED_REPLACE_VARIABLES_MAX_TOKEN_BYTES`.
+- Compile-time override hooks are still published with the `HTTPSERVER_ADVANCED_` prefix in `src/lumalink/http/core/Defines.h`.
+- `src/lumalink/http/routing/ReplaceVariables.h` still publishes `HTTPSERVER_ADVANCED_REPLACE_VARIABLES_MAX_TOKEN_BYTES`.
 - JSON feature selection still uses `HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON` across the umbrella header and JSON-specific handlers/response types.
 - User-facing strings and doc examples still use `HttpServerAdvanced`, including the main library documentation title, example include statements, and example string literals such as `X-Powered-By`.
 
@@ -84,7 +84,7 @@ When a type exists only to define a platform contract consumed by HTTP, it belon
 ### Current Integration Surface (Post-Extraction)
 
 - `src/lumalink/http/HttpServerAdvanced.h` includes `lumalink/platform/transport/TransportTraits.h` and `lumalink/platform/TransportFactory.h` from the extracted platform package.
-- `src/httpadv/v1/server/WebServer.h` includes platform transport headers from `lumalink/platform/...` and binds native transport factories to `lumalink::platform` types.
+- `src/lumalink/http/server/WebServer.h` includes platform transport headers from `lumalink/platform/...` and binds native transport factories to `lumalink::platform` types.
 - Core transport and stream contracts in the HTTP package already consume `lumalink::platform::buffers` and related platform namespaces.
 - A legacy in-repo platform tree still exists under `src/httpadv/v1/platform/`; it is no longer the target ownership model and should be removed as cleanup, not kept as a compatibility path.
 
