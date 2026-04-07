@@ -146,7 +146,7 @@ std::unique_ptr<IHttpResponse> StaticFileHandlerFactory::createFileResponse(
     headers.push_back(httpadv::v1::core::HttpHeader::ContentEncoding("br"));
   }
 
-  std::unique_ptr<httpadv::v1::transport::IByteSource> body = std::move(file);
+  std::unique_ptr<lumalink::platform::buffers::IByteSource> body = std::move(file);
   return std::make_unique<httpadv::v1::response::HttpResponse>(
       httpadv::v1::core::HttpStatus::Ok(), std::move(body),
       std::move(headers));

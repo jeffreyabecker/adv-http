@@ -13,7 +13,7 @@
 namespace httpadv::v1::transport {
 enum class FileOpenMode { Read, Write, ReadWrite };
 
-class IFile : public IByteChannel {
+class IFile : public lumalink::platform::buffers::IByteChannel {
 public:
   ~IFile() override = default;
 

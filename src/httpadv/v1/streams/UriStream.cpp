@@ -68,12 +68,12 @@ namespace httpadv::v1::streams
 
     // UriDecodingStream
     UriDecodingStream::UriDecodingStream(const char *uri)
-        : UriDecodingStream(std::make_unique<httpadv::v1::transport::SpanByteSource>(reinterpret_cast<const uint8_t *>(uri), strlen(uri)))
+        : UriDecodingStream(std::make_unique<lumalink::platform::buffers::SpanByteSource>(reinterpret_cast<const uint8_t *>(uri), strlen(uri)))
     {
     }
 
     UriDecodingStream::UriDecodingStream(const uint8_t *uri, size_t length)
-        : UriDecodingStream(std::make_unique<httpadv::v1::transport::SpanByteSource>(uri, length))
+        : UriDecodingStream(std::make_unique<lumalink::platform::buffers::SpanByteSource>(uri, length))
     {
     }
 
@@ -86,19 +86,19 @@ namespace httpadv::v1::streams
     {
         if (!innerStream_)
         {
-            return httpadv::v1::transport::ExhaustedResult();
+            return lumalink::platform::buffers::ExhaustedResult();
         }
 
         const AvailableResult innerAvailable = innerStream_->available();
         if (state_ != State::Normal && innerAvailable.hasBytes())
         {
-            return httpadv::v1::transport::AvailableBytes(1);
+            return lumalink::platform::buffers::AvailableBytes(1);
         }
 
         return innerAvailable;
     }
 
-    size_t UriDecodingStream::read(httpadv::v1::util::span<uint8_t> buffer)
+    size_t UriDecodingStream::read(lumalink::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -115,7 +115,7 @@ namespace httpadv::v1::streams
         return totalRead;
     }
 
-    size_t UriDecodingStream::peek(httpadv::v1::util::span<uint8_t> buffer)
+    size_t UriDecodingStream::peek(lumalink::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {
@@ -196,12 +196,12 @@ namespace httpadv::v1::streams
 
     // UriEncodingStream
     UriEncodingStream::UriEncodingStream(const char *uri)
-        : UriEncodingStream(std::make_unique<httpadv::v1::transport::SpanByteSource>(reinterpret_cast<const uint8_t *>(uri), strlen(uri)))
+        : UriEncodingStream(std::make_unique<lumalink::platform::buffers::SpanByteSource>(reinterpret_cast<const uint8_t *>(uri), strlen(uri)))
     {
     }
 
     UriEncodingStream::UriEncodingStream(const uint8_t *uri, size_t length)
-        : UriEncodingStream(std::make_unique<httpadv::v1::transport::SpanByteSource>(uri, length))
+        : UriEncodingStream(std::make_unique<lumalink::platform::buffers::SpanByteSource>(uri, length))
     {
     }
 
@@ -214,13 +214,13 @@ namespace httpadv::v1::streams
     {
         if (state_ != State::Normal)
         {
-            return httpadv::v1::transport::AvailableBytes(1);
+            return lumalink::platform::buffers::AvailableBytes(1);
         }
 
-        return innerStream_ ? innerStream_->available() : httpadv::v1::transport::ExhaustedResult();
+        return innerStream_ ? innerStream_->available() : lumalink::platform::buffers::ExhaustedResult();
     }
 
-    size_t UriEncodingStream::read(httpadv::v1::util::span<uint8_t> buffer)
+    size_t UriEncodingStream::read(lumalink::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -237,7 +237,7 @@ namespace httpadv::v1::streams
         return totalRead;
     }
 
-    size_t UriEncodingStream::peek(httpadv::v1::util::span<uint8_t> buffer)
+    size_t UriEncodingStream::peek(lumalink::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {

@@ -2,8 +2,8 @@
 #include "../transport/ByteStream.h"
 namespace httpadv::v1::streams
 {
-    using httpadv::v1::transport::AvailableResult;
-    using httpadv::v1::transport::IByteSource;
+    using lumalink::platform::buffers::AvailableResult;
+    using lumalink::platform::buffers::IByteSource;
 
     constexpr const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     constexpr const char base64_url_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -40,8 +40,8 @@ namespace httpadv::v1::streams
         static Base64DecoderStream create(const uint8_t *data, size_t length, bool isUrlSafe = false);
 
         AvailableResult available() override;
-        size_t read(httpadv::v1::util::span<uint8_t> buffer) override;
-        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override;
+        size_t read(lumalink::span<uint8_t> buffer) override;
+        size_t peek(lumalink::span<uint8_t> buffer) override;
 
     private:
         int peekSingleByte();
@@ -77,8 +77,8 @@ namespace httpadv::v1::streams
         static Base64EncoderStream create(const char *data, bool isUrlSafe = false, bool emitPadding = true);
 
         AvailableResult available() override;
-        size_t read(httpadv::v1::util::span<uint8_t> buffer) override;
-        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override;
+        size_t read(lumalink::span<uint8_t> buffer) override;
+        size_t peek(lumalink::span<uint8_t> buffer) override;
 
     private:
         int peekSingleByte();

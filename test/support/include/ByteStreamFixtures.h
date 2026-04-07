@@ -18,7 +18,7 @@ namespace httpadv
     {
         namespace TestSupport
         {
-            using namespace httpadv::v1::transport;
+            using namespace lumalink::platform::buffers;
 
             inline std::string ReadByteSourceAsStdString(IByteSource &source)
             {
@@ -27,7 +27,7 @@ namespace httpadv
 
                 while (true)
                 {
-                    const std::size_t bytesRead = source.read(httpadv::v1::util::span<std::uint8_t>(buffer, sizeof(buffer)));
+                    const std::size_t bytesRead = source.read(lumalink::span<std::uint8_t>(buffer, sizeof(buffer)));
                     if (bytesRead == 0)
                     {
                         break;
@@ -50,7 +50,7 @@ namespace httpadv
                     const AvailableResult available = source.available();
                     if (available.hasBytes())
                     {
-                        const std::size_t bytesRead = source.read(httpadv::v1::util::span<std::uint8_t>(buffer, (std::min)(available.count, sizeof(buffer))));
+                        const std::size_t bytesRead = source.read(lumalink::span<std::uint8_t>(buffer, (std::min)(available.count, sizeof(buffer))));
                         if (bytesRead == 0)
                         {
                             break;
@@ -137,12 +137,12 @@ namespace httpadv
                     return AvailableBytes(step.text.size() - positionInStep_);
                 }
 
-                std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override
+                std::size_t read(lumalink::span<std::uint8_t> buffer) override
                 {
                     return copyInto(buffer, true);
                 }
 
-                std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override
+                std::size_t peek(lumalink::span<std::uint8_t> buffer) override
                 {
                     return copyInto(buffer, false);
                 }
@@ -180,7 +180,7 @@ namespace httpadv
                     }
                 }
 
-                std::size_t copyInto(httpadv::v1::util::span<std::uint8_t> buffer, bool consume)
+                std::size_t copyInto(lumalink::span<std::uint8_t> buffer, bool consume)
                 {
                     advancePastConsumedSteps();
                     if (buffer.empty() || stepIndex_ >= steps_.size() || steps_[stepIndex_].temporarilyUnavailable)
@@ -224,17 +224,17 @@ namespace httpadv
                     return readable_.available();
                 }
 
-                std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override
+                std::size_t read(lumalink::span<std::uint8_t> buffer) override
                 {
                     return readable_.read(buffer);
                 }
 
-                std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override
+                std::size_t peek(lumalink::span<std::uint8_t> buffer) override
                 {
                     return readable_.peek(buffer);
                 }
 
-                std::size_t write(httpadv::v1::util::span<const std::uint8_t> buffer) override
+                std::size_t write(lumalink::span<const std::uint8_t> buffer) override
                 {
                     written_.insert(written_.end(), buffer.begin(), buffer.end());
                     writeSizes_.push_back(buffer.size());

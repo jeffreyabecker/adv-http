@@ -26,11 +26,11 @@ namespace httpadv::v1::routing
     using httpadv::v1::handlers::IHttpHandler;
     using httpadv::v1::response::IHttpResponse;
     using httpadv::v1::response::HttpResponse;
-    using httpadv::v1::transport::AvailableBytes;
-    using httpadv::v1::transport::AvailableResult;
-    using httpadv::v1::transport::ExhaustedResult;
-    using httpadv::v1::transport::IByteSink;
-    using httpadv::v1::transport::IByteSource;
+    using lumalink::platform::buffers::AvailableBytes;
+    using lumalink::platform::buffers::AvailableResult;
+    using lumalink::platform::buffers::ExhaustedResult;
+    using lumalink::platform::buffers::IByteSink;
+    using lumalink::platform::buffers::IByteSource;
 
 #ifndef HTTPSERVER_ADVANCED_REPLACE_VARIABLES_MAX_TOKEN_BYTES
 #define HTTPSERVER_ADVANCED_REPLACE_VARIABLES_MAX_TOKEN_BYTES 128
@@ -172,7 +172,7 @@ namespace httpadv::v1::routing
             {
             }
 
-            std::size_t write(httpadv::v1::util::span<const std::uint8_t> buffer) override
+            std::size_t write(lumalink::span<const std::uint8_t> buffer) override
             {
                 storage_.append(reinterpret_cast<const char *>(buffer.data()), buffer.size());
                 return buffer.size();
@@ -413,7 +413,7 @@ namespace httpadv::v1::routing
                 while (outputSize() < targetBytes && !streamExhausted_)
                 {
                     std::uint8_t readBuffer[64] = {};
-                    const std::size_t readCount = inner_->read(httpadv::v1::util::span<std::uint8_t>(readBuffer, sizeof(readBuffer)));
+                    const std::size_t readCount = inner_->read(lumalink::span<std::uint8_t>(readBuffer, sizeof(readBuffer)));
                     if (readCount == 0)
                     {
                         const AvailableResult available = inner_->available();
@@ -463,7 +463,7 @@ namespace httpadv::v1::routing
                 return inner_ ? inner_->available() : ExhaustedResult();
             }
 
-            std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override
+            std::size_t read(lumalink::span<std::uint8_t> buffer) override
             {
                 if (buffer.empty())
                 {
@@ -483,7 +483,7 @@ namespace httpadv::v1::routing
                 return copied;
             }
 
-            std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override
+            std::size_t peek(lumalink::span<std::uint8_t> buffer) override
             {
                 if (buffer.empty())
                 {

@@ -16,7 +16,7 @@ namespace httpadv::v1::transport
      * Extends @ref IByteChannel with connection lifecycle, endpoint metadata,
      * and timeout configuration used by stream-oriented transports such as TCP.
      */
-    class IClient : public IByteChannel
+    class IClient : public lumalink::platform::buffers::IByteChannel
     {
     public:
         ~IClient() override = default;
@@ -163,33 +163,33 @@ namespace httpadv::v1::transport
          * @param buffer Source bytes to append.
          * @return Number of bytes written.
          */
-        virtual std::size_t write(httpadv::v1::util::span<const std::uint8_t> buffer) = 0;
+        virtual std::size_t write(lumalink::span<const std::uint8_t> buffer) = 0;
 
         /**
          * @brief Parse the next received packet and prepare it for reading.
          * @return Availability information for the parsed packet payload.
          */
-        virtual AvailableResult parsePacket() = 0;
+        virtual lumalink::platform::buffers::AvailableResult parsePacket() = 0;
 
         /**
          * @brief Query the number of readable bytes remaining in the current packet.
          * @return Availability information for the current packet payload.
          */
-        virtual AvailableResult available() = 0;
+        virtual lumalink::platform::buffers::AvailableResult available() = 0;
 
         /**
          * @brief Read bytes from the current packet into the provided buffer.
          * @param buffer Destination buffer to fill.
          * @return Number of bytes read.
          */
-        virtual std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) = 0;
+        virtual std::size_t read(lumalink::span<std::uint8_t> buffer) = 0;
 
         /**
          * @brief Copy bytes from the current packet without consuming them.
          * @param buffer Destination buffer to receive the peeked bytes.
          * @return Number of bytes copied.
          */
-        virtual std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) = 0;
+        virtual std::size_t peek(lumalink::span<std::uint8_t> buffer) = 0;
 
         /**
          * @brief Flush any buffered transport state as defined by the implementation.

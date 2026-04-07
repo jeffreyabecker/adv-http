@@ -14,6 +14,7 @@ using namespace httpadv::v1::routing;
 using namespace httpadv::v1::server;
 using namespace httpadv::v1::staticfiles;
 using namespace httpadv::v1::transport;
+using namespace lumalink::platform::buffers;
 using namespace httpadv::v1::util;
 using namespace httpadv::v1::websocket;
 

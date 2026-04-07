@@ -30,6 +30,7 @@ namespace httpadv
             using namespace httpadv::v1::pipeline;
             using namespace httpadv::v1::response;
             using namespace httpadv::v1::transport;
+using namespace lumalink::platform::buffers;
             using namespace httpadv::v1::util;
             struct CapturedResponse
             {
@@ -424,17 +425,17 @@ namespace httpadv
             return readable_.available();
         }
 
-        std::size_t read(httpadv::v1::util::span<std::uint8_t> buffer) override
+        std::size_t read(lumalink::span<std::uint8_t> buffer) override
         {
             return readable_.read(buffer);
         }
 
-        std::size_t peek(httpadv::v1::util::span<std::uint8_t> buffer) override
+        std::size_t peek(lumalink::span<std::uint8_t> buffer) override
         {
             return readable_.peek(buffer);
         }
 
-        std::size_t write(httpadv::v1::util::span<const std::uint8_t> buffer) override
+        std::size_t write(lumalink::span<const std::uint8_t> buffer) override
         {
             if (!connected())
             {
@@ -473,7 +474,7 @@ namespace httpadv
             }
 
             std::uint8_t byte = 0;
-            return readable_.peek(httpadv::v1::util::span<std::uint8_t>(&byte, 1)) > 0;
+            return readable_.peek(lumalink::span<std::uint8_t>(&byte, 1)) > 0;
         }
 
         std::string_view remoteAddress() const override

@@ -92,14 +92,14 @@ namespace httpadv::v1::pipeline
         }
 
         uint8_t buffer[httpadv::v1::core::PIPELINE_STACK_BUFFER_SIZE];
-        httpadv::v1::transport::AvailableResult available = httpadv::v1::transport::TemporarilyUnavailableResult();
+        lumalink::platform::buffers::AvailableResult available = lumalink::platform::buffers::TemporarilyUnavailableResult();
         while ((available = responseStream_->available()).hasBytes())
         {
             const size_t bytesToRead = std::min<std::size_t>(sizeof(buffer), available.count);
-            const size_t bytesRead = responseStream_->read(httpadv::v1::util::span<uint8_t>(buffer, bytesToRead));
+            const size_t bytesRead = responseStream_->read(lumalink::span<uint8_t>(buffer, bytesToRead));
             if (bytesRead > 0)
             {
-                auto written = client_->write(httpadv::v1::util::span<const uint8_t>(buffer, bytesRead));
+                auto written = client_->write(lumalink::span<const uint8_t>(buffer, bytesRead));
                 startActivity();
                 if (written < bytesRead)
                 {

@@ -13,11 +13,11 @@
 
 namespace httpadv::v1::platform::memory
 {
-    using httpadv::v1::transport::AvailableBytes;
-    using httpadv::v1::transport::AvailableResult;
+    using lumalink::platform::buffers::AvailableBytes;
+    using lumalink::platform::buffers::AvailableResult;
     using httpadv::v1::transport::DirectoryEntry;
     using httpadv::v1::transport::DirectoryEntryCallback;
-    using httpadv::v1::transport::ExhaustedResult;
+    using lumalink::platform::buffers::ExhaustedResult;
     using httpadv::v1::transport::FileHandle;
     using httpadv::v1::transport::IFile;
     using httpadv::v1::transport::FileOpenMode;
@@ -377,7 +377,7 @@ namespace httpadv::v1::platform::memory
             return AvailableBytes(node_->data.size() - position_);
         }
 
-        size_t read(httpadv::v1::util::span<uint8_t> buffer) override
+        size_t read(lumalink::span<uint8_t> buffer) override
         {
 
             if (position_ >= node_->data.size())
@@ -391,7 +391,7 @@ namespace httpadv::v1::platform::memory
             return toCopy;
         }
 
-        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
+        size_t peek(lumalink::span<uint8_t> buffer) override
         {
 
             if (position_ >= node_->data.size())
@@ -404,7 +404,7 @@ namespace httpadv::v1::platform::memory
             return toCopy;
         }
 
-        std::size_t write(httpadv::v1::util::span<const uint8_t> buffer) override
+        std::size_t write(lumalink::span<const uint8_t> buffer) override
         {
 
             if (mode_ == FileOpenMode::Read)

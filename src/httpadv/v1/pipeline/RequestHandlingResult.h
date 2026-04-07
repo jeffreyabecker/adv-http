@@ -10,7 +10,7 @@
 namespace httpadv::v1::pipeline
 {
     using httpadv::v1::server::IConnectionSession;
-    using httpadv::v1::transport::IByteSource;
+    using lumalink::platform::buffers::IByteSource;
 
     struct RequestHandlingResult
     {

@@ -5,8 +5,8 @@
 
 namespace httpadv::v1::response
 {
-  using httpadv::v1::transport::AvailableResult;
-  using httpadv::v1::transport::IByteSource;
+  using lumalink::platform::buffers::AvailableResult;
+  using lumalink::platform::buffers::IByteSource;
 
 
   /**
@@ -53,8 +53,8 @@ namespace httpadv::v1::response
     explicit ChunkedHttpResponseBodyStream(std::unique_ptr<IByteSource> innerSource);
     static std::unique_ptr<IByteSource> create(std::unique_ptr<IByteSource> innerSource);
     AvailableResult available() override;
-    size_t read(httpadv::v1::util::span<uint8_t> buffer) override;
-    size_t peek(httpadv::v1::util::span<uint8_t> buffer) override;
+    size_t read(lumalink::span<uint8_t> buffer) override;
+    size_t peek(lumalink::span<uint8_t> buffer) override;
   };
 
 } // namespace httpadv::v1::response

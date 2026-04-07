@@ -52,22 +52,22 @@ namespace httpadv::v1::response
             }
             if (state_ == State::Final)
             {
-                return httpadv::v1::transport::AvailableBytes(sizeof(finalChunk_) - 1 - finalPos_);
+                return lumalink::platform::buffers::AvailableBytes(sizeof(finalChunk_) - 1 - finalPos_);
             }
             if (headerLen_ == 0)
             {
-                return httpadv::v1::transport::TemporarilyUnavailableResult();
+                return lumalink::platform::buffers::TemporarilyUnavailableResult();
             }
-            return httpadv::v1::transport::AvailableBytes((headerLen_ - headerPos_) + chunkRemaining_ + (sizeof(trailer_) - 1) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
+            return lumalink::platform::buffers::AvailableBytes((headerLen_ - headerPos_) + chunkRemaining_ + (sizeof(trailer_) - 1) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Body:
-            return httpadv::v1::transport::AvailableBytes(chunkRemaining_ + (sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
+            return lumalink::platform::buffers::AvailableBytes(chunkRemaining_ + (sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Trailer:
-            return httpadv::v1::transport::AvailableBytes((sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
+            return lumalink::platform::buffers::AvailableBytes((sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Final:
-            return httpadv::v1::transport::AvailableBytes(sizeof(finalChunk_) - 1 - finalPos_);
+            return lumalink::platform::buffers::AvailableBytes(sizeof(finalChunk_) - 1 - finalPos_);
         case State::Done:
         default:
-            return httpadv::v1::transport::ExhaustedResult();
+            return lumalink::platform::buffers::ExhaustedResult();
         }
     }
 
@@ -167,7 +167,7 @@ namespace httpadv::v1::response
         }
     }
 
-    size_t ChunkedHttpResponseBodyStream::read(httpadv::v1::util::span<uint8_t> buffer)
+    size_t ChunkedHttpResponseBodyStream::read(lumalink::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -184,7 +184,7 @@ namespace httpadv::v1::response
         return totalRead;
     }
 
-    size_t ChunkedHttpResponseBodyStream::peek(httpadv::v1::util::span<uint8_t> buffer)
+    size_t ChunkedHttpResponseBodyStream::peek(lumalink::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {

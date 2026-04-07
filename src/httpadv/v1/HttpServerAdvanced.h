@@ -16,7 +16,6 @@
 #include "httpadv/v1/core/IHttpContextHandlerFactory.h"
 #include "httpadv/v1/transport/ByteStream.h"
 #include "httpadv/v1/transport/TransportTraits.h"
-#include "httpadv/v1/util/Compat.h"
 
 
 // HTTP Handlers
@@ -63,7 +62,8 @@
 #include "httpadv/v1/pipeline/PipelineError.h"
 #include "httpadv/v1/pipeline/PipelineHandleClientResult.h"
 #include "httpadv/v1/pipeline/RequestParser.h"
-#include "httpadv/v1/platform/TransportFactory.h"
+#include "lumalink/platform/transport/TransportTraits.h"
+#include "lumalink/platform/TransportFactory.h"
 #include "llhttp/include/llhttp.h"
 
 
@@ -94,32 +94,3 @@
 
 // Request handler factory
 #include "httpadv/v1/core/HttpContextHandlerFactory.h"
-
-// Convenience aliases in the httpadv (unversioned) namespace so consumers
-// can reference common types without fully qualifying `httpadv::v1::...`.
-namespace httpadv {
-// Server / builder
-using WebServer = v1::server::WebServer;
-using WebServerBuilder = v1::server::WebServerBuilder;
-using WebServerConfig = v1::server::WebServerConfig;
-using HttpServerBase = v1::server::HttpServerBase;
-
-// Pipeline / transport
-namespace transport = v1::transport;
-using IClient = v1::transport::IClient;
-using IFileSystem = v1::transport::IFileSystem;
-
-// Utilities
-using Clock = v1::util::Clock;
-using UriView = v1::util::UriView;
-using HttpRequestContext = v1::core::HttpRequestContext;
-
-// Common handler/response types
-using IHttpHandler = v1::handlers::IHttpHandler;
-using HttpResponse = v1::response::HttpResponse;
-using StringResponse = v1::response::StringResponse;
-
-// Routing helpers
-template <typename THandler>
-using HandlerBuilder = v1::routing::HandlerBuilder<THandler>;
-} // namespace httpadv

@@ -3,13 +3,13 @@
 #include "WebServerConfig.h"
 #include <type_traits>
 #include <utility>
-#include "../transport/TransportTraits.h"
+#include "lumalink/platform/transport/TransportTraits.h"
 #ifdef ARDUINO
-#include "../platform/arduino/ArduinoWiFiTransport.h"
+#include "lumalink/platform/arduino/ArduinoWiFiTransport.h"
 #elif defined(_WIN32)
-#include "../platform/windows/WindowsSocketTransport.h"
+#include "lumalink/platform/windows/WindowsSocketTransport.h"
 #else
-#include "../platform/posix/PosixSocketTransport.h"
+#include "lumalink/platform/posix/PosixSocketTransport.h"
 #endif
 namespace httpadv::v1::server
 {
@@ -43,16 +43,16 @@ namespace httpadv::v1::server
   namespace detail
   {
 #ifdef ARDUINO
-    using NativeTransportFactory = platform::arduino::ArduinoWiFiTransportFactory;
+    using NativeTransportFactory = lumalink::platform::arduino::ArduinoWiFiTransportFactory;
 #elif defined(_WIN32)
-    using NativeTransportFactory = httpadv::v1::platform::windows::WindowsSocketTransportFactory;
+    using NativeTransportFactory = lumalink::platform::windows::WindowsSocketTransportFactory;
 #else
-    using NativeTransportFactory = platform::posix::PosixSocketTransportFactory;
+    using NativeTransportFactory = lumalink::platform::posix::PosixSocketTransportFactory;
 #endif
 
   }
   template <typename TransportFactory = detail::NativeTransportFactory,
-            typename = std::enable_if_t<httpadv::v1::transport::IsStaticTransportFactoryV<TransportFactory>>>
+        typename = std::enable_if_t<lumalink::platform::transport::IsStaticTransportFactoryV<TransportFactory>>>
   class PlatformWebServer : public FriendlyWebServer<HttpServerBase>
   {
   public:

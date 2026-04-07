@@ -1,16 +1,20 @@
 #pragma once
+#ifndef HTTPADV_V1_STREAMS_URISTREAM_H
+#define HTTPADV_V1_STREAMS_URISTREAM_H
+
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
 #include "../transport/ByteStream.h"
+#include "../util/Span.h"
 
 namespace httpadv::v1::streams
 {
-    using httpadv::v1::transport::AvailableResult;
-    using httpadv::v1::transport::IByteSource;
-    using httpadv::v1::transport::StdStringByteSource;
+    using lumalink::platform::buffers::AvailableResult;
+    using lumalink::platform::buffers::IByteSource;
+    using lumalink::platform::buffers::StdStringByteSource;
 
     /**
      * @brief A stream that decodes URI-encoded data (percent-encoding and + for space).
@@ -33,8 +37,8 @@ namespace httpadv::v1::streams
         UriDecodingStream(const uint8_t *uri, size_t length);
         explicit UriDecodingStream(std::unique_ptr<IByteSource> innerStream);
         AvailableResult available() override;
-        size_t read(httpadv::v1::util::span<uint8_t> buffer) override;
-        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override;
+        size_t read(lumalink::span<uint8_t> buffer) override;
+        size_t peek(lumalink::span<uint8_t> buffer) override;
 
     private:
         int readSingleByte();
@@ -63,8 +67,8 @@ namespace httpadv::v1::streams
         UriEncodingStream(const uint8_t *uri, size_t length);
         explicit UriEncodingStream(std::unique_ptr<IByteSource> innerStream);
         AvailableResult available() override;
-        size_t read(httpadv::v1::util::span<uint8_t> buffer) override;
-        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override;
+        size_t read(lumalink::span<uint8_t> buffer) override;
+        size_t peek(lumalink::span<uint8_t> buffer) override;
 
     private:
         int readSingleByte();
@@ -77,3 +81,5 @@ namespace httpadv::v1::streams
         explicit FormEncodingStream(std::vector<std::pair<std::string, std::string>> &&data);
     };
 }
+
+#endif // HTTPADV_V1_STREAMS_URISTREAM_H

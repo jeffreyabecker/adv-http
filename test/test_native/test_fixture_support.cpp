@@ -15,6 +15,7 @@ using namespace httpadv::v1::routing;
 using namespace httpadv::v1::server;
 using namespace httpadv::v1::staticfiles;
 using namespace httpadv::v1::transport;
+using namespace lumalink::platform::buffers;
 using namespace httpadv::v1::util;
 using namespace httpadv::v1::websocket;
 
@@ -171,12 +172,12 @@ namespace
         client.disconnect();
         TEST_ASSERT_TRUE(client.connected());
 
-        TEST_ASSERT_EQUAL_UINT64(1, client.read(httpadv::v1::util::span<std::uint8_t>(oneByte, 1)));
+        TEST_ASSERT_EQUAL_UINT64(1, client.read(lumalink::span<std::uint8_t>(oneByte, 1)));
         TEST_ASSERT_EQUAL_UINT8('x', oneByte[0]);
         TEST_ASSERT_TRUE(client.connected());
 
-        TEST_ASSERT_EQUAL_UINT64(1, client.read(httpadv::v1::util::span<std::uint8_t>(oneByte, 1)));
-        TEST_ASSERT_EQUAL_UINT64(1, client.read(httpadv::v1::util::span<std::uint8_t>(oneByte, 1)));
+        TEST_ASSERT_EQUAL_UINT64(1, client.read(lumalink::span<std::uint8_t>(oneByte, 1)));
+        TEST_ASSERT_EQUAL_UINT64(1, client.read(lumalink::span<std::uint8_t>(oneByte, 1)));
         TEST_ASSERT_FALSE(client.connected());
     }
 

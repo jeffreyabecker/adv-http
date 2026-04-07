@@ -23,10 +23,10 @@ namespace httpadv::v1::pipeline
         }
 
         std::uint8_t buffer[httpadv::v1::core::PIPELINE_STACK_BUFFER_SIZE] = {};
-        httpadv::v1::transport::AvailableResult available = httpadv::v1::transport::TemporarilyUnavailableResult();
+        lumalink::platform::buffers::AvailableResult available = lumalink::platform::buffers::TemporarilyUnavailableResult();
         while ((available = client.available()).hasBytes())
         {
-            const std::size_t bytesRead = client.read(httpadv::v1::util::span<std::uint8_t>(buffer, sizeof(buffer)));
+            const std::size_t bytesRead = client.read(lumalink::span<std::uint8_t>(buffer, sizeof(buffer)));
             if (bytesRead == 0)
             {
                 break;

@@ -11,7 +11,6 @@
 #include <utility>
 #include <vector>
 
-#include "../../src/httpadv/v1/platform/PathMapper.h"
 #include "../../src/httpadv/v1/core/HttpContentTypes.h"
 #include "../../src/httpadv/v1/core/HttpMethod.h"
 #include "../../src/httpadv/v1/core/HttpStatus.h"
@@ -315,68 +314,6 @@ namespace
         TEST_ASSERT_EQUAL_STRING("text/markdown", contentTypes.getContentTypeByExtension("md"));
     }
 
-    void test_windows_path_mapper_normalizes_segments_and_scoped_paths_directly()
-    {
-        using httpadv::v1::platform::WindowsPathMapper;
-
-        TEST_ASSERT_TRUE(WindowsPathMapper::HasDriveLetterPrefix("C:/nested/asset.txt"));
-        TEST_ASSERT_FALSE(WindowsPathMapper::HasDriveLetterPrefix("/nested/asset.txt"));
-
-        TEST_ASSERT_EQUAL_STRING("nested/asset.txt", WindowsPathMapper::NormalizePath("C:\\nested\\.\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("outside.txt", WindowsPathMapper::NormalizePath("../outside.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", WindowsPathMapper::WithLeadingSlash("nested\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", WindowsPathMapper::Join("/nested", "asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("asset.txt", std::string(WindowsPathMapper::BasenameView("/nested/asset.txt")).c_str());
-        TEST_ASSERT_EQUAL_STRING("C:\\nested\\asset.txt", WindowsPathMapper::NormalizeScopedPath("C:/nested/asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("C:\\nested\\asset.txt", WindowsPathMapper::JoinScopedPath("C:\\nested", "asset.txt").c_str());
-
-        const WindowsPathMapper unrooted;
-        TEST_ASSERT_FALSE(unrooted.hasRootPath());
-        TEST_ASSERT_TRUE(unrooted.rootPath().empty());
-        TEST_ASSERT_EQUAL_STRING("nested\\asset.txt", unrooted.exposePath("nested\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("nested\\asset.txt", unrooted.resolveScopedPath("nested\\asset.txt").c_str());
-
-        const WindowsPathMapper rooted("assets/");
-        TEST_ASSERT_TRUE(rooted.hasRootPath());
-        TEST_ASSERT_EQUAL_STRING("assets", rooted.rootPath().c_str());
-        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", rooted.exposePath("nested\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("assets\\nested\\asset.txt", rooted.resolveScopedPath("nested\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("assets", rooted.resolveScopedPath(".").c_str());
-        TEST_ASSERT_FALSE(rooted.resolveScopedPath("../outside.txt").find("..") != std::string::npos);
-        TEST_ASSERT_EQUAL_STRING("assets\\outside.txt", rooted.resolveScopedPath("../outside.txt").c_str());
-    }
-
-    void test_posix_path_mapper_normalizes_segments_and_scoped_paths_directly()
-    {
-        using httpadv::v1::platform::PosixPathMapper;
-
-        TEST_ASSERT_TRUE(PosixPathMapper::HasDriveLetterPrefix("C:/nested/asset.txt"));
-        TEST_ASSERT_FALSE(PosixPathMapper::HasDriveLetterPrefix("/nested/asset.txt"));
-
-        TEST_ASSERT_EQUAL_STRING("nested/asset.txt", PosixPathMapper::NormalizePath("C:\\nested\\.\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("outside.txt", PosixPathMapper::NormalizePath("../outside.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", PosixPathMapper::WithLeadingSlash("nested\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", PosixPathMapper::Join("/nested", "asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("asset.txt", std::string(PosixPathMapper::BasenameView("/nested/asset.txt")).c_str());
-        TEST_ASSERT_EQUAL_STRING("C:/nested/asset.txt", PosixPathMapper::NormalizeScopedPath("C:\\nested\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", PosixPathMapper::JoinScopedPath("/nested", "asset.txt").c_str());
-
-        const PosixPathMapper unrooted;
-        TEST_ASSERT_FALSE(unrooted.hasRootPath());
-        TEST_ASSERT_TRUE(unrooted.rootPath().empty());
-        TEST_ASSERT_EQUAL_STRING("nested\\asset.txt", unrooted.exposePath("nested\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("nested/asset.txt", unrooted.resolveScopedPath("nested\\asset.txt").c_str());
-
-        const PosixPathMapper rooted("assets/");
-        TEST_ASSERT_TRUE(rooted.hasRootPath());
-        TEST_ASSERT_EQUAL_STRING("assets", rooted.rootPath().c_str());
-        TEST_ASSERT_EQUAL_STRING("/nested/asset.txt", rooted.exposePath("nested\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("assets/nested/asset.txt", rooted.resolveScopedPath("nested\\asset.txt").c_str());
-        TEST_ASSERT_EQUAL_STRING("assets", rooted.resolveScopedPath(".").c_str());
-        TEST_ASSERT_FALSE(rooted.resolveScopedPath("../outside.txt").find("..") != std::string::npos);
-        TEST_ASSERT_EQUAL_STRING("assets/outside.txt", rooted.resolveScopedPath("../outside.txt").c_str());
-    }
-
     void test_html_encode_returns_empty_for_null_or_empty_inputs()
     {
         const std::string encodedNull = httpadv::v1::util::WebUtility::HtmlEncode(static_cast<const char *>(nullptr));
@@ -525,8 +462,6 @@ namespace
         RUN_TEST(test_http_status_exposes_code_comparison_and_description_behavior);
         RUN_TEST(test_http_method_request_body_allowance_matches_current_policy);
         RUN_TEST(test_http_content_types_normalizes_extensions_and_falls_back_to_unknown);
-        RUN_TEST(test_windows_path_mapper_normalizes_segments_and_scoped_paths_directly);
-        RUN_TEST(test_posix_path_mapper_normalizes_segments_and_scoped_paths_directly);
         RUN_TEST(test_html_encode_returns_empty_for_null_or_empty_inputs);
         RUN_TEST(test_html_encode_preserves_expected_entities_without_progmem_helpers);
         RUN_TEST(test_html_attribute_encode_returns_empty_for_null_or_empty_inputs);

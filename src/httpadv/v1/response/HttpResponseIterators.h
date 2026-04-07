@@ -13,12 +13,12 @@ namespace httpadv::v1::response
   using httpadv::v1::core::HttpHeaderCollection;
   using httpadv::v1::core::HttpHeaderNames;
   using httpadv::v1::core::HttpStatus;
-  using httpadv::v1::transport::ConcatByteSource;
-  using httpadv::v1::transport::ExhaustedResult;
-  using httpadv::v1::transport::IByteSource;
-  using httpadv::v1::transport::AvailableResult;
-  using httpadv::v1::transport::SpanByteSource;
-  using httpadv::v1::transport::StdStringByteSource;
+  using lumalink::platform::buffers::ConcatByteSource;
+  using lumalink::platform::buffers::ExhaustedResult;
+  using lumalink::platform::buffers::IByteSource;
+  using lumalink::platform::buffers::AvailableResult;
+  using lumalink::platform::buffers::SpanByteSource;
+  using lumalink::platform::buffers::StdStringByteSource;
 
   // Helper functions
   std::string getHeaderDateValue();
@@ -112,12 +112,12 @@ namespace httpadv::v1::response
       return source_ ? source_->available() : ExhaustedResult();
     }
 
-    size_t read(httpadv::v1::util::span<uint8_t> buffer) override
+    size_t read(lumalink::span<uint8_t> buffer) override
     {
       return source_ ? source_->read(buffer) : 0;
     }
 
-    size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
+    size_t peek(lumalink::span<uint8_t> buffer) override
     {
       return source_ ? source_->peek(buffer) : 0;
     }

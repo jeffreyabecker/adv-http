@@ -34,6 +34,7 @@ using namespace httpadv::v1::routing;
 using namespace httpadv::v1::server;
 using namespace httpadv::v1::staticfiles;
 using namespace httpadv::v1::transport;
+using namespace lumalink::platform::buffers;
 using namespace httpadv::v1::util;
 using namespace httpadv::v1::websocket;
 
@@ -151,7 +152,7 @@ namespace
             return AvailableBytes(spec_.content.size() - position_);
         }
 
-        size_t read(httpadv::v1::util::span<uint8_t> buffer) override
+        size_t read(lumalink::span<uint8_t> buffer) override
         {
             if (spec_.directory || closed_ || buffer.empty())
             {
@@ -163,7 +164,7 @@ namespace
             return copied;
         }
 
-        size_t peek(httpadv::v1::util::span<uint8_t> buffer) override
+        size_t peek(lumalink::span<uint8_t> buffer) override
         {
             if (spec_.directory || closed_ || buffer.empty())
             {
@@ -178,7 +179,7 @@ namespace
             return copied;
         }
 
-        std::size_t write(httpadv::v1::util::span<const uint8_t>) override
+        std::size_t write(lumalink::span<const uint8_t>) override
         {
             return 0;
         }

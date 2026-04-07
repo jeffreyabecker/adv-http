@@ -10,7 +10,7 @@ namespace httpadv::v1::response
 {
   using httpadv::v1::core::HttpHeaderCollection;
   using httpadv::v1::core::HttpStatus;
-  using httpadv::v1::transport::IByteSource;
+  using lumalink::platform::buffers::IByteSource;
 
   class IHttpResponse
   {

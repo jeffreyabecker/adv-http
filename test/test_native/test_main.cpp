@@ -41,8 +41,6 @@ void tearDown() {
   }
 }
 
-int run_test_filesystem_posix();
-int run_test_memory_filesystem();
 int run_test_native_smoke();
 int run_test_clock();
 int run_test_body_handlers();
@@ -53,9 +51,7 @@ int run_test_request_parser();
 int run_test_response_streams();
 int run_test_routing();
 int run_test_static_files();
-int run_test_stream_available();
 int run_test_stream_utilities();
-int run_test_transport_native();
 int run_test_utilities();
 int run_test_websocket_error_policy();
 int run_test_websocket_frame_codec();
@@ -74,14 +70,10 @@ int main(int, char **) {
   failureCount += run_test_routing();
   failureCount += run_test_static_files();
   failureCount += run_test_response_streams();
-  failureCount += run_test_stream_available();
   failureCount += run_test_stream_utilities();
-  failureCount += run_test_transport_native();
   failureCount += run_test_websocket_error_policy();
   failureCount += run_test_websocket_frame_codec();
   failureCount += run_test_websocket_context();
-  failureCount += run_test_filesystem_posix();
-  failureCount += run_test_memory_filesystem();
   failureCount += run_test_utilities();
 
   return failureCount;

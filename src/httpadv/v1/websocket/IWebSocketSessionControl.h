@@ -9,7 +9,7 @@
 
 namespace httpadv::v1::websocket
 {
-    using httpadv::v1::util::span;
+    using lumalink::Span;
 
     enum class WebSocketSendResult
     {

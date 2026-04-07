@@ -38,6 +38,7 @@ using namespace httpadv::v1::routing;
 using namespace httpadv::v1::server;
 using namespace httpadv::v1::staticfiles;
 using namespace httpadv::v1::transport;
+using namespace lumalink::platform::buffers;
 using namespace httpadv::v1::util;
 using namespace httpadv::v1::websocket;
 
@@ -379,12 +380,12 @@ namespace
             return TemporarilyUnavailableResult();
         }
 
-        std::size_t read(httpadv::v1::util::span<std::uint8_t>) override
+        std::size_t read(lumalink::span<std::uint8_t>) override
         {
             return 0;
         }
 
-        std::size_t peek(httpadv::v1::util::span<std::uint8_t>) override
+        std::size_t peek(lumalink::span<std::uint8_t>) override
         {
             return 0;
         }
