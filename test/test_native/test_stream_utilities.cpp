@@ -1,11 +1,11 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
-#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+#include "../../src/lumalink/http/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/streams/Streams.h"
-#include "../../src/httpadv/v1/streams/Base64Stream.h"
+#include "../../src/lumalink/http/streams/Streams.h"
+#include "../../src/lumalink/http/streams/Base64Stream.h"
 
 #include <cstring>
 #include <memory>

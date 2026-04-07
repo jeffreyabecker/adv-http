@@ -1,11 +1,11 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include\HttpTestFixtures.h"
 
-#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+#include "../../src/lumalink/http/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/pipeline/PipelineError.h"
+#include "../../src/lumalink/http/pipeline/PipelineError.h"
 
 using namespace lumalink::http::core;
 using namespace lumalink::http::handlers;

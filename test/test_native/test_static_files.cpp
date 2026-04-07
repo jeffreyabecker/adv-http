@@ -3,17 +3,17 @@
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/transport/IFileSystem.h"
-#include "../../src/httpadv/v1/core/HttpContentTypes.h"
-#include "../../src/httpadv/v1/core/HttpHeader.h"
-#include "../../src/httpadv/v1/core/HttpContext.h"
-#include "../../src/httpadv/v1/handlers/HttpHandler.h"
-#include "../../src/httpadv/v1/staticfiles/AggregateFileLocator.h"
-#include "../../src/httpadv/v1/staticfiles/DefaultFileLocator.h"
-#include "../../src/httpadv/v1/staticfiles/FileLocator.h"
-#include "../../src/httpadv/v1/staticfiles/StaticFileHandler.h"
-#include "../../src/httpadv/v1/staticfiles/StaticFilesBuilder.h"
-#include "../../src/httpadv/v1/server/HttpServerBase.h"
+#include "../../src/lumalink/http/transport/IFileSystem.h"
+#include "../../src/lumalink/http/core/HttpContentTypes.h"
+#include "../../src/lumalink/http/core/HttpHeader.h"
+#include "../../src/lumalink/http/core/HttpContext.h"
+#include "../../src/lumalink/http/handlers/HttpHandler.h"
+#include "../../src/lumalink/http/staticfiles/AggregateFileLocator.h"
+#include "../../src/lumalink/http/staticfiles/DefaultFileLocator.h"
+#include "../../src/lumalink/http/staticfiles/FileLocator.h"
+#include "../../src/lumalink/http/staticfiles/StaticFileHandler.h"
+#include "../../src/lumalink/http/staticfiles/StaticFilesBuilder.h"
+#include "../../src/lumalink/http/server/HttpServerBase.h"
 
 #include <cstddef>
 #include <cstdint>

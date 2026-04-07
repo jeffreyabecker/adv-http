@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../src/httpadv/v1/transport/ByteStream.h"
+#include "../../../src/lumalink/http/transport/ByteStream.h"
 
 #include <algorithm>
 #include <cstddef>

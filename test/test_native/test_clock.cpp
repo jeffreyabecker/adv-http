@@ -1,10 +1,10 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
-#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+#include "../../src/lumalink/http/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/util/Clock.h"
+#include "../../src/lumalink/http/util/Clock.h"
 
 using namespace lumalink::http::core;
 using namespace lumalink::http::handlers;

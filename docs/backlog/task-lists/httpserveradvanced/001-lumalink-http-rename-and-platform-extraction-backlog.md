@@ -1,3 +1,4 @@
+2026-04-07 - Copilot: moved the public HTTP header tree under `src/lumalink/http`, removed the legacy top-level wrapper header, updated in-repo include paths, and revalidated the native suite.
 2026-04-07 - Copilot: cleaned remaining legacy namespace-closing markers in active source files and revalidated the native suite.
 2026-04-07 - Copilot: started Phase 4 namespace cutover in source and test code, removed the legacy namespace shim header, and marked namespace migration tasks in progress.
 2026-04-07 - Copilot: expanded cutover plan with additional implementation phases between migration and validation.
@@ -31,7 +32,7 @@ Status legend:
 
 ## Implementation Status
 
-Current status: platform extraction is complete; library rename execution is underway, with active source/test namespace cutover completed and package/include rename work still pending.
+Current status: platform extraction is complete; library rename execution is underway, with active source/test namespace cutover completed and include-root cutover started while package metadata rename remains pending.
 
 Completed so far:
 
@@ -91,7 +92,7 @@ These milestones define the rename execution gates for the library cutover. A mi
 |---|---|---|---|---|
 | M1 - Identity Lock | todo | Finalize package identity, naming, and release-cut posture for the rename | LUMA-01, LUMA-16, LUMA-20 | Package naming and breaking-change policy are final with explicit no-compatibility commitment |
 | M2 - Namespace Cutover | doing | Replace legacy public namespace usage inside this repository with final `lumalink::http` namespace surface | LUMA-17, LUMA-26, LUMA-27, LUMA-28 | Public namespace and alias surfaces in this library are fully renamed with no compatibility aliases |
-| M3 - Include Surface Cutover | todo | Replace legacy include-root and umbrella-header usage with final `lumalink/http/...` include structure | LUMA-18, LUMA-21 | Legacy include roots and umbrella references fail validation; final include structure is canonical |
+| M3 - Include Surface Cutover | doing | Replace legacy include-root and umbrella-header usage with final `lumalink/http/...` include structure | LUMA-18, LUMA-21 | Legacy include roots and umbrella references fail validation; final include structure is canonical |
 | M4 - Consumer Cutover | todo | Publish downstream migration updates for Arduino, PlatformIO, and native consumers | LUMA-19 | Consumer docs/examples and dependency guidance are updated for direct rename adoption |
 | M5 - Validation And Cleanup | todo | Prove renamed surfaces across native/embedded validation and remove residual legacy artifacts | LUMA-22, LUMA-23, LUMA-24, LUMA-25, LUMA-40 | Tests and compile validation pass on renamed surfaces; legacy names and residual paths are removed |
 
@@ -136,7 +137,7 @@ These milestones define the rename execution gates for the library cutover. A mi
 | LUMA-26 | done | Rename namespace declarations and namespace-closing markers in this repository across `src/`, `test/`, and public headers from `httpadv::v1`/`httpadv` to `lumalink::http` | Backlog | LUMA-17 | All in-repo namespace declarations and comments reflect final namespace with no retained legacy namespace blocks |
 | LUMA-27 | doing | Remove legacy namespace wrapper/alias surfaces in this repository, including unversioned alias exports and `src/httpadv/namespace.h` compatibility role | Backlog | LUMA-17, LUMA-26 | This library no longer exports legacy namespace aliases or wrapper namespace headers |
 | LUMA-28 | doing | Update all in-repo call sites, tests, docs, and examples to use `lumalink::http` names directly and prohibit `httpadv` token reuse | Backlog | LUMA-26, LUMA-27 | No remaining in-repo usage of old namespace tokens in maintained code/docs except historical changelog references |
-| LUMA-18 | todo | Execute include-root and umbrella-header rename to final `lumalink/http/...` structure, including removal or replacement of `HttpServerAdvanced.h` | Backlog | LUMA-08, LUMA-16, LUMA-17 | Public include story is final and contains no legacy include fallback headers |
+| LUMA-18 | doing | Execute include-root and umbrella-header rename to final `lumalink/http/...` structure, including removal or replacement of `HttpServerAdvanced.h` | Backlog | LUMA-08, LUMA-16, LUMA-17 | Public include story is final and contains no legacy include fallback headers |
 | LUMA-19 | todo | Update downstream Arduino, PlatformIO, and native consumer guidance/examples for the renamed package, include, and namespace surfaces | Backlog | LUMA-16, LUMA-17, LUMA-18 | Consumer migration guidance is complete and requires direct updates without compatibility patches |
 | LUMA-20 | todo | Capture release/versioning/changelog expectations for the breaking library rename across package name, include paths, and namespaces | Backlog | LUMA-17, LUMA-18, LUMA-19, LUMA-28 | Release notes define a clean rename cut with no backwards-compatibility fixes |
 
@@ -198,7 +199,9 @@ These milestones define the rename execution gates for the library cutover. A mi
 - versioned `httpadv::v1` namespace usage in active `src/` and `test/` code has been replaced with `lumalink::http`
 - legacy `src/httpadv/namespace.h` wrapper participation has been removed from the umbrella surface and the shim header has been deleted
 - remaining legacy `namespace HttpServerAdvanced` closing markers have been removed from active source files
-- native validation still passes after namespace-marker cleanup (`192/192` native tests)
+- public HTTP headers have been moved under `src/lumalink/http/` and the legacy top-level `src/HttpServerAdvanced.h` wrapper has been removed
+- maintained test and fixture include paths now target `src/lumalink/http/` directly
+- native validation still passes after namespace and include-root cutover work (`192/192` native tests)
 - remaining execution scope is centered on the HTTP library rename and public-surface cleanup
 
 ## Source References
@@ -206,9 +209,8 @@ These milestones define the rename execution gates for the library cutover. A mi
 - `library.properties`
 - `library.json`
 - `keywords.txt`
-- `src/HttpServerAdvanced.h`
 - `src/httpadv/namespace.h`
-- `src/httpadv/v1/HttpServerAdvanced.h`
+- `src/lumalink/http/HttpServerAdvanced.h`
 - `src/httpadv/v1/transport/TransportTraits.h`
 - `src/httpadv/v1/transport/TransportInterfaces.h`
 - `src/httpadv/v1/platform/TransportFactory.h`

@@ -3,21 +3,21 @@
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/util/Clock.h"
-#include "../../src/httpadv/v1/core/HttpHeader.h"
-#include "../../src/httpadv/v1/core/HttpContext.h"
-#include "../../src/httpadv/v1/handlers/HandlerTypes.h"
-#include "../../src/httpadv/v1/routing/BasicAuthentication.h"
-#include "../../src/httpadv/v1/routing/CrossOriginRequestSharing.h"
-#include "../../src/httpadv/v1/routing/HandlerMatcher.h"
-#include "../../src/httpadv/v1/routing/HandlerProviderRegistry.h"
-#include "../../src/httpadv/v1/routing/ProviderRegistryBuilder.h"
-#include "../../src/httpadv/v1/routing/ReplaceVariables.h"
-#include "../../src/httpadv/v1/response/StringResponse.h"
-#include "../../src/httpadv/v1/server/HttpServerBase.h"
-#include "../../src/httpadv/v1/server/WebServerBuilder.h"
-#include "../../src/httpadv/v1/server/WebServerConfig.h"
-#include "../../src/httpadv/v1/websocket/WebSocketCallbacks.h"
+#include "../../src/lumalink/http/util/Clock.h"
+#include "../../src/lumalink/http/core/HttpHeader.h"
+#include "../../src/lumalink/http/core/HttpContext.h"
+#include "../../src/lumalink/http/handlers/HandlerTypes.h"
+#include "../../src/lumalink/http/routing/BasicAuthentication.h"
+#include "../../src/lumalink/http/routing/CrossOriginRequestSharing.h"
+#include "../../src/lumalink/http/routing/HandlerMatcher.h"
+#include "../../src/lumalink/http/routing/HandlerProviderRegistry.h"
+#include "../../src/lumalink/http/routing/ProviderRegistryBuilder.h"
+#include "../../src/lumalink/http/routing/ReplaceVariables.h"
+#include "../../src/lumalink/http/response/StringResponse.h"
+#include "../../src/lumalink/http/server/HttpServerBase.h"
+#include "../../src/lumalink/http/server/WebServerBuilder.h"
+#include "../../src/lumalink/http/server/WebServerConfig.h"
+#include "../../src/lumalink/http/websocket/WebSocketCallbacks.h"
 
 #include <any>
 #include <cstddef>

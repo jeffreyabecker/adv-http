@@ -1,12 +1,12 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 
-#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+#include "../../src/lumalink/http/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/websocket\IWebSocketSessionControl.h"
-#include "../../src/httpadv/v1/websocket\WebSocketActivationSnapshot.h"
-#include "../../src/httpadv/v1/websocket\WebSocketContext.h"
+#include "../../src/lumalink/http/websocket\IWebSocketSessionControl.h"
+#include "../../src/lumalink/http/websocket\WebSocketActivationSnapshot.h"
+#include "../../src/lumalink/http/websocket\WebSocketContext.h"
 
 #include <any>
 #include <string>

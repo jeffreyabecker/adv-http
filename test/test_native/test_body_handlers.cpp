@@ -1,18 +1,18 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/HttpTestFixtures.h"
 
-#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+#include "../../src/lumalink/http/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/core/HttpContext.h"
-#include "../../src/httpadv/v1/core/HttpContextPhase.h"
-#include "../../src/httpadv/v1/handlers/BufferedStringBodyHandler.h"
-#include "../../src/httpadv/v1/handlers/BufferingHttpHandlerBase.h"
-#include "../../src/httpadv/v1/handlers/FormBodyHandler.h"
-#include "../../src/httpadv/v1/handlers/MultipartFormDataHandler.h"
-#include "../../src/httpadv/v1/handlers/RawBodyHandler.h"
-#include "../../src/httpadv/v1/server/HttpServerBase.h"
+#include "../../src/lumalink/http/core/HttpContext.h"
+#include "../../src/lumalink/http/core/HttpContextPhase.h"
+#include "../../src/lumalink/http/handlers/BufferedStringBodyHandler.h"
+#include "../../src/lumalink/http/handlers/BufferingHttpHandlerBase.h"
+#include "../../src/lumalink/http/handlers/FormBodyHandler.h"
+#include "../../src/lumalink/http/handlers/MultipartFormDataHandler.h"
+#include "../../src/lumalink/http/handlers/RawBodyHandler.h"
+#include "../../src/lumalink/http/server/HttpServerBase.h"
 
 #include <cstdint>
 #include <functional>
@@ -23,7 +23,7 @@
 
 #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 #include <ArduinoJson.h>
-#include "../../src/httpadv/v1/handlers/JsonBodyHandler.h"
+#include "../../src/lumalink/http/handlers/JsonBodyHandler.h"
 #endif
 
 using namespace lumalink::http::core;

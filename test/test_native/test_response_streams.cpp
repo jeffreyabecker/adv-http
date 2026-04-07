@@ -1,16 +1,16 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/ByteStreamFixtures.h"
 
-#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+#include "../../src/lumalink/http/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/response/ChunkedHttpResponseBodyStream.h"
-#include "../../src/httpadv/v1/response/FormResponse.h"
-#include "../../src/httpadv/v1/response/HttpResponse.h"
-#include "../../src/httpadv/v1/response/StringResponse.h"
-#include "../../src/httpadv/v1/transport/ByteStream.h"
-#include "../../src/httpadv/v1/streams/Streams.h"
+#include "../../src/lumalink/http/response/ChunkedHttpResponseBodyStream.h"
+#include "../../src/lumalink/http/response/FormResponse.h"
+#include "../../src/lumalink/http/response/HttpResponse.h"
+#include "../../src/lumalink/http/response/StringResponse.h"
+#include "../../src/lumalink/http/transport/ByteStream.h"
+#include "../../src/lumalink/http/streams/Streams.h"
 
 #include <algorithm>
 #include <map>
@@ -19,7 +19,7 @@
 
 #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 #include <ArduinoJson.h>
-#include "../../src/httpadv/v1/response/JsonResponse.h"
+#include "../../src/lumalink/http/response/JsonResponse.h"
 #endif
 
 using namespace lumalink::http::core;

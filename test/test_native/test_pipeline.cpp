@@ -1,24 +1,24 @@
 #include "../support/include/ConsolidatedNativeSuite.h"
 #include "../support/include/HttpTestFixtures.h"
 
-#include "../../src/httpadv/v1/HttpServerAdvanced.h"
+#include "../../src/lumalink/http/HttpServerAdvanced.h"
 
 #include <unity.h>
 
-#include "../../src/httpadv/v1/util/Clock.h"
-#include "../../src/httpadv/v1/core/HttpContext.h"
-#include "../../src/httpadv/v1/core/HttpTimeouts.h"
-#include "../../src/httpadv/v1/handlers/HttpHandler.h"
-#include "../../src/httpadv/v1/pipeline/HttpPipeline.h"
-#include "../../src/httpadv/v1/pipeline/IPipelineHandler.h"
-#include "../../src/httpadv/v1/pipeline/PipelineError.h"
-#include "../../src/httpadv/v1/pipeline/PipelineHandleClientResult.h"
-#include "../../src/httpadv/v1/routing/HandlerMatcher.h"
-#include "../../src/httpadv/v1/response/StringResponse.h"
-#include "../../src/httpadv/v1/server/HttpServerBase.h"
-#include "../../src/httpadv/v1/websocket/WebSocketCallbacks.h"
-#include "../../src/httpadv/v1/websocket/WebSocketContext.h"
-#include "../../src/httpadv/v1/websocket/WebSocketUpgradeHandler.h"
+#include "../../src/lumalink/http/util/Clock.h"
+#include "../../src/lumalink/http/core/HttpContext.h"
+#include "../../src/lumalink/http/core/HttpTimeouts.h"
+#include "../../src/lumalink/http/handlers/HttpHandler.h"
+#include "../../src/lumalink/http/pipeline/HttpPipeline.h"
+#include "../../src/lumalink/http/pipeline/IPipelineHandler.h"
+#include "../../src/lumalink/http/pipeline/PipelineError.h"
+#include "../../src/lumalink/http/pipeline/PipelineHandleClientResult.h"
+#include "../../src/lumalink/http/routing/HandlerMatcher.h"
+#include "../../src/lumalink/http/response/StringResponse.h"
+#include "../../src/lumalink/http/server/HttpServerBase.h"
+#include "../../src/lumalink/http/websocket/WebSocketCallbacks.h"
+#include "../../src/lumalink/http/websocket/WebSocketContext.h"
+#include "../../src/lumalink/http/websocket/WebSocketUpgradeHandler.h"
 
 #include <cstddef>
 #include <cstdint>

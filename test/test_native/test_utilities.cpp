@@ -11,18 +11,18 @@
 #include <utility>
 #include <vector>
 
-#include "../../src/httpadv/v1/core/HttpContentTypes.h"
-#include "../../src/httpadv/v1/core/HttpMethod.h"
-#include "../../src/httpadv/v1/core/HttpStatus.h"
-#include "../../src/httpadv/v1/core/IHttpContextHandlerFactory.h"
-#include "../../src/httpadv/v1/core/Defines.h"
-#include "../../src/httpadv/v1/core/HttpContext.h"
-#include "../../src/httpadv/v1/util/HttpUtility.h"
-#include "../../src/httpadv/v1/core/HttpHeaderCollection.h"
-#include "../../src/httpadv/v1/routing/CrossOriginRequestSharing.h"
-#include "../../src/httpadv/v1/routing/HandlerMatcher.h"
-#include "../../src/httpadv/v1/response/StringResponse.h"
-#include "../../src/httpadv/v1/util/UriView.h"
+#include "../../src/lumalink/http/core/HttpContentTypes.h"
+#include "../../src/lumalink/http/core/HttpMethod.h"
+#include "../../src/lumalink/http/core/HttpStatus.h"
+#include "../../src/lumalink/http/core/IHttpContextHandlerFactory.h"
+#include "../../src/lumalink/http/core/Defines.h"
+#include "../../src/lumalink/http/core/HttpContext.h"
+#include "../../src/lumalink/http/util/HttpUtility.h"
+#include "../../src/lumalink/http/core/HttpHeaderCollection.h"
+#include "../../src/lumalink/http/routing/CrossOriginRequestSharing.h"
+#include "../../src/lumalink/http/routing/HandlerMatcher.h"
+#include "../../src/lumalink/http/response/StringResponse.h"
+#include "../../src/lumalink/http/util/UriView.h"
 
 namespace
 {
