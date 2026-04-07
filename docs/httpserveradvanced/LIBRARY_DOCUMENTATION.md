@@ -2,6 +2,8 @@
 
 A comprehensive, pipeline-based HTTP server library for cross-platform application code that targets both embedded and desktop environments. The HTTP core, routing, handlers, and response pipeline are designed to remain portable while transport, filesystem, clock, and framework-owned integration points stay at the platform boundary. Optional JSON support can be enabled through the library build configuration when the JSON dependency is available. HTTPS/TLS server support is not part of the maintained library surface.
 
+Rename and extraction planning for the move to `lumalink::http` and `lumalink::platform` is tracked in `docs/httpserveradvanced/LUMALINK_RENAME_SURFACE_INVENTORY.md`. This document still describes the current `HttpServerAdvanced` surface.
+
 ---
 
 ## Table of Contents
@@ -20,7 +22,8 @@ A comprehensive, pipeline-based HTTP server library for cross-platform applicati
 3. [Class Relationships](#class-relationships)
 4. [Usage Patterns](#usage-patterns)
 5. [Transport Factory Migration](#transport-factory-migration)
-6. [WebSocket Support Scope](#websocket-support-scope)
+6. [Rename Inventory](#rename-inventory)
+7. [WebSocket Support Scope](#websocket-support-scope)
 
 ---
 
@@ -68,6 +71,16 @@ Transport factories now have a compile-time primary path and a runtime compatibi
 - A transport factory type should expose static `createServer(std::uint16_t)`, `createClient(std::string_view, std::uint16_t)`, and `createPeer()` methods.
 - [src/httpadv/v1/transport/TransportTraits.h](src/httpadv/v1/transport/TransportTraits.h) detects that contract and exposes `IsStaticTransportFactoryV<TFactory>`.
 - The same header also exposes `makeTransportFactory<TFactory>()` for legacy code that still needs a `std::unique_ptr<ITransportFactory>`.
+
+## Rename Inventory
+
+The concrete Phase 2 rename inventory and target include-root decisions live in `docs/httpserveradvanced/LUMALINK_RENAME_SURFACE_INVENTORY.md`.
+
+Key outcomes locked by that note:
+
+- Current public rename surfaces have been inventoried across package metadata, umbrella headers, namespaces, macro prefixes, and docs.
+- The target HTTP include root is `lumalink/http/` with no public `v1` path segment.
+- Platform-specific adapter implementations should stop leaking through the HTTP umbrella surface and move behind the separate `lumalink::platform` package boundary.
 
 
 ## WebSocket Support Scope

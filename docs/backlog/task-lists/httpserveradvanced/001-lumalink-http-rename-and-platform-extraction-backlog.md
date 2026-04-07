@@ -1,3 +1,8 @@
+2026-04-06 - Copilot: documented the contract-versus-implementation split without changing source code.
+2026-04-06 - Copilot: kept platform selection as a compile-time mechanism, owned by the platform library instead of the HTTP umbrella header.
+2026-04-06 - Copilot: assigned adapter-specific test coverage to the new platform library.
+2026-04-06 - Copilot: assigned TransportFactory, file adapters, and path-mapping helpers to the new platform library.
+2026-04-06 - Copilot: completed the Phase 2 rename-surface inventory and documented the target include-root structure.
 2026-04-06 - Copilot: moved versioning out of the public namespace and into package metadata only.
 2026-04-06 - Copilot: recorded the platform dependency direction and narrowed the platform boundary to buffers, transport, and filesystem.
 2026-04-06 - Copilot: created backlog for the lumalink HTTP rename and platform-library extraction.
@@ -36,19 +41,19 @@ This item is intentionally phase-oriented. Follow-up backlog items should break 
 
 ### Phase 2: Surface Inventory And Rename Scope
 
-- [ ] Inventory all public rename surfaces, including `library.properties`, `library.json`, top-level umbrella headers, include roots under `src/httpadv`, documentation, examples, tests, and repository URLs.
-- [ ] Inventory every namespace declaration and alias rooted in `httpadv`, including unversioned convenience aliases and any comments or closing-namespace markers that still use obsolete names.
-- [ ] Identify all public include paths that consumers are expected to include directly and decide their target `lumalink/http/...` structure.
-- [ ] Identify all macros, configuration constants, generated metadata, and user-facing symbols that still encode `HttpServerAdvanced` or `httpadv` naming.
-- [ ] Record every place where platform code is exposed through the HTTP umbrella surface, including `TransportFactory`, adapter headers, and any platform-selected defaults.
+- [x] Inventory all public rename surfaces, including `library.properties`, `library.json`, top-level umbrella headers, include roots under `src/httpadv`, documentation, examples, tests, and repository URLs, in `docs/httpserveradvanced/LUMALINK_RENAME_SURFACE_INVENTORY.md`.
+- [x] Inventory every namespace declaration and alias rooted in `httpadv`, including unversioned convenience aliases and any comments or closing-namespace markers that still use obsolete names, in `docs/httpserveradvanced/LUMALINK_RENAME_SURFACE_INVENTORY.md`.
+- [x] Identify all public include paths that consumers are expected to include directly and define their target `lumalink/http/...` structure in `docs/httpserveradvanced/LUMALINK_RENAME_SURFACE_INVENTORY.md`.
+- [x] Identify all macros, configuration constants, generated metadata, and user-facing symbols that still encode `HttpServerAdvanced` or `httpadv` naming in `docs/httpserveradvanced/LUMALINK_RENAME_SURFACE_INVENTORY.md`.
+- [x] Record every place where platform code is exposed through the HTTP umbrella surface, including `TransportFactory`, adapter headers, and compile-time platform selection defaults, in `docs/httpserveradvanced/LUMALINK_RENAME_SURFACE_INVENTORY.md`.
 
 ### Phase 3: Platform Library Extraction Design
 
 - [x] Define the minimal platform contract that HTTP consumes as buffers, transport, and filesystem only.
-- [ ] Separate pure interfaces and traits from concrete implementations so only the contract required by HTTP remains in the HTTP-owned dependency surface.
-- [ ] Decide where `TransportFactory`, file adapters, and path-mapping helpers belong after the split, and whether any of them should be decomposed into smaller platform-facing interfaces.
-- [ ] Define package boundaries for Arduino, POSIX, Windows, and in-memory/native test adapters so they can live in `lumalink::platform` without reintroducing HTTP ownership.
-- [ ] Define how `lumalink::http` selects or receives a platform implementation without using compile-time platform selection directly inside the HTTP umbrella header.
+- [x] Document the split between pure interfaces/traits and concrete implementations so only the contract required by HTTP remains in the HTTP-owned dependency surface, without changing code yet.
+- [x] Move `TransportFactory`, file adapters, and path-mapping helpers into `lumalink::platform` after the split, with any further decomposition handled inside the platform library rather than the HTTP package.
+- [x] Place Arduino, POSIX, Windows, and in-memory/native test adapters in `lumalink::platform`, and move adapter-specific tests with them so platform validation lives in the new library rather than the HTTP package.
+- [x] Keep platform selection as a compile-time mechanism, but move that selection into `lumalink::platform` so `lumalink::http` consumes the selected platform contract without owning platform-specific compile-time branching in its umbrella header.
 
 ### Phase 4: Migration Sequencing And Consumer Impact
 
@@ -94,3 +99,4 @@ High
 - `src/httpadv/v1/platform/memory/MemoryFileAdapter.h`
 - `test/test_native/test_transport_native.cpp`
 - `test/test_native/test_filesystem_posix.cpp`
+- `docs/httpserveradvanced/LUMALINK_RENAME_SURFACE_INVENTORY.md`
