@@ -151,14 +151,6 @@ namespace httpadv::v1::routing
             return *this;
         }
 
-        HandlerBuilder &filterRequest(std::function<bool(httpadv::v1::core::HttpContext &)> predicate)
-        {
-            return filterRequest(IHttpHandler::Predicate([predicate = std::move(predicate)](httpadv::v1::core::HttpRequestContext &context)
-            {
-                return predicate(static_cast<httpadv::v1::core::HttpContext &>(context));
-            }));
-        }
-
         template <typename TPredicate,
                   typename = std::enable_if_t<!std::is_same_v<std::decay_t<TPredicate>, IHttpHandler::Predicate> &&
                                               std::is_constructible_v<IHttpHandler::Predicate, TPredicate>>>

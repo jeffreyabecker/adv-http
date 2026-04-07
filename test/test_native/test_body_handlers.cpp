@@ -293,7 +293,7 @@ namespace
                 capturedBodies.push_back(std::move(body));
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                 return {{"route-id", "42"}};
             });
@@ -323,7 +323,7 @@ namespace
                 ++invocationCount;
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                 return {};
             });
@@ -350,7 +350,7 @@ namespace
                 capturedBuffers.push_back(std::move(buffer));
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                 return {{"buffer", "alpha"}};
             });
@@ -391,7 +391,7 @@ namespace
                 capturedBuffers.push_back(std::move(buffer));
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                 return {};
             });
@@ -425,7 +425,7 @@ namespace
                 capturedBodies.push_back(std::move(body));
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                 return {{"resource", "route"}, {"kind", "form"}};
             });
@@ -476,7 +476,7 @@ namespace
                 ++invocationCount;
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                 return {};
             });
@@ -497,7 +497,7 @@ namespace
             {
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                 return {};
             });
@@ -537,7 +537,7 @@ namespace
                     std::string(reinterpret_cast<const char *>(buffer.data()), buffer.size())});
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                     return {{"part", "route-part"}};
             });
@@ -582,7 +582,7 @@ namespace
                 capturedParts.push_back({buffer.status(), std::string(buffer.name()), buffer.size()});
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                 return {};
             });
@@ -614,7 +614,7 @@ namespace
                 capturedParts.push_back(std::move(buffer));
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                 return {};
             });
@@ -652,7 +652,7 @@ namespace
                 sawParseErrors.push_back(Json::deserializationError(context) != nullptr);
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                 return {{"format", "json"}, {"scope", "route"}};
             });
@@ -686,7 +686,7 @@ namespace
                 sawParseErrors.push_back(Json::deserializationError(context) != nullptr);
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                 return {};
             });
@@ -714,7 +714,7 @@ namespace
                 ++invocationCount;
                 return nullptr;
             },
-            [](HttpContext &) -> RouteParameters
+            [](HttpRequestContext &) -> RouteParameters
             {
                 return {};
             });
@@ -744,9 +744,9 @@ namespace
             {
                 return nullptr;
             },
-            [&extractorPhases](HttpContext &context) -> RouteParameters
+            [&extractorPhases](HttpRequestContext &context) -> RouteParameters
             {
-                extractorPhases.push_back(context.completedPhases());
+                extractorPhases.push_back(static_cast<HttpContext &>(context).completedPhases());
                 return {{"kind", "raw"}};
             });
 
@@ -780,9 +780,9 @@ namespace
                 capturedBodyValues.push_back(value.has_value() ? *value : std::string());
                 return nullptr;
             },
-            [&extractorPhase](HttpContext &context) -> RouteParameters
+            [&extractorPhase](HttpRequestContext &context) -> RouteParameters
             {
-                extractorPhase = context.completedPhases();
+                extractorPhase = static_cast<HttpContext &>(context).completedPhases();
                 context.items()["route-key"] = std::string("route-value");
                 return {{"resource", "route"}, {"id", "123"}};
             });

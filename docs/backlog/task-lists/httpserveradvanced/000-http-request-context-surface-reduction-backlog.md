@@ -1,3 +1,4 @@
+2026-04-06 - Copilot: completed Phase 2 Tasks 1 and 2 — predicate/matcher/builder surfaces and extraction contracts narrowed to HttpRequestContext; legacy HttpContext& shim overload removed from HandlerBuilder; test extractor lambdas updated.
 2026-04-06 - Copilot: completed the first request-only helper cleanup slice in routing and websocket registration.
 2026-04-06 - Copilot: created backlog for reducing non-pipeline HttpContext usage in favor of HttpRequestContext.
 
@@ -30,8 +31,8 @@ This item is intentionally scoped to non-pipeline surfaces first. Code that depe
 
 ### Phase 2: Routing And Extraction Contract Narrowing
 
-1. [ ] Rework request predicate, matcher, and builder surfaces so request-only predicates and callbacks operate on `HttpRequestContext` unless they require concrete-only behavior.
-2. [ ] Rework route parameter extraction contracts to stop requiring `HttpContext` where extraction only depends on request URL, headers, and request-owned items.
+1. [x] Rework request predicate, matcher, and builder surfaces so request-only predicates and callbacks operate on `HttpRequestContext` unless they require concrete-only behavior.
+2. [x] Rework route parameter extraction contracts to stop requiring `HttpContext` where extraction only depends on request URL, headers, and request-owned items.
 3. [ ] Review static-file request resolution and decoration paths and narrow any request-only portions to `HttpRequestContext` while preserving concrete handling where provider or lifecycle integration still needs `HttpContext`.
 
 ### Phase 3: Handler API Refactoring

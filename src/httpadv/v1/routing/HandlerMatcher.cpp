@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-#include "../core/HttpContext.h"
+#include "../core/HttpRequestContext.h"
 #include "../util/UriView.h"
 
 namespace httpadv::v1::routing

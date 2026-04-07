@@ -64,8 +64,7 @@ namespace httpadv::v1::routing
             providerRegistry_.add(
                 IHttpHandler::Predicate([&request](httpadv::v1::core::HttpRequestContext &requestContext)
                 {
-                    auto &context = static_cast<httpadv::v1::core::HttpContext &>(requestContext);
-                    return request.canHandle(context);
+                    return request.canHandle(requestContext);
                 }),
                 std::move(handler));
         }
