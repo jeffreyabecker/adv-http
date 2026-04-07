@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "../transport/ByteStream.h"
-#include "../util/Span.h"
+#include "LumaLinkPlatform.h"
 
 namespace httpadv::v1::streams
 {

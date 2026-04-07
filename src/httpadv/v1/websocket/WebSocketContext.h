@@ -16,7 +16,7 @@
 namespace httpadv::v1::websocket
 {
     using httpadv::v1::core::HttpHeaderCollection;
-    using lumalink::Span;
+    using lumalink::span;
 
     class WebSocketProtocolExecution;
     class WebSocketContextTestProbe;

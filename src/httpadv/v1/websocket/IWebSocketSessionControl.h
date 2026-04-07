@@ -2,14 +2,14 @@
 
 #include "WebSocketFrameCodec.h"
 
-#include "../util/Span.h"
+#include "LumaLinkPlatform.h"
 
 #include <cstdint>
 #include <string_view>
 
 namespace httpadv::v1::websocket
 {
-    using lumalink::Span;
+    using lumalink::span;
 
     enum class WebSocketSendResult
     {

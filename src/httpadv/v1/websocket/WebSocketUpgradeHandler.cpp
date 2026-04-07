@@ -4,7 +4,7 @@
 #include "WebSocketContext.h"
 #include "WebSocketProtocolExecution.h"
 
-#include "../util/Span.h"
+#include "LumaLinkPlatform.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
 #include "../core/HttpStatus.h"

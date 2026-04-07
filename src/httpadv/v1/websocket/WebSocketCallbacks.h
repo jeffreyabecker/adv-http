@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../util/Span.h"
+#include "LumaLinkPlatform.h"
 
 #include <cstdint>
 #include <functional>
@@ -8,7 +8,7 @@
 
 namespace httpadv::v1::websocket
 {
-    using lumalink::Span;
+    using lumalink::span;
 
     class WebSocketContext;
 

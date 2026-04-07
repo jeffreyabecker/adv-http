@@ -1,4 +1,4 @@
 #pragma once
 
-#include "../util/Span.h"
+#include "LumaLinkPlatform.h"
 #include "lumalink/platform/buffers/ByteStream.h"

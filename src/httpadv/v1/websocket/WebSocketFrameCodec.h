@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../util/Span.h"
+#include "LumaLinkPlatform.h"
 
 #include <array>
 #include <cstddef>
@@ -9,7 +9,7 @@
 
 namespace httpadv::v1::websocket
 {
-    using lumalink::Span;
+    using lumalink::span;
 
     enum class WebSocketOpcode : std::uint8_t
     {
