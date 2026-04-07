@@ -7,7 +7,7 @@ The native lane exists to protect the library's cross-platform design: the same 
 ## Runner Rules
 
 - `test/test_native/test_main.cpp` is the only native `main()` entrypoint in the repository.
-- Suites expose `run_test_*()` functions and execute through `HttpServerAdvanced::TestSupport::RunConsolidatedSuite(...)` from `test/support/include/ConsolidatedNativeSuite.h`.
+- Suites expose `run_test_*()` functions and execute through `lumalink::http::TestSupport::RunConsolidatedSuite(...)` from `test/support/include/ConsolidatedNativeSuite.h`.
 - New suites must not define their own `main()` or bypass the consolidated runner.
 
 ## Shared Support Layout
@@ -78,3 +78,4 @@ Board-specific or integration behavior belongs in dedicated hardware test sketch
 
 - Primary native test command: `./tools/run_native_tests.ps1`
 - Direct PlatformIO equivalent: `pio test -e native`
+- The native runner also fails fast if active `src/` or `test/` code reintroduces legacy `httpadv::` or `httpadv/v1` tokens.

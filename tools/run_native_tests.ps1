@@ -7,6 +7,11 @@ $projectRoot = Split-Path -Parent $scriptDirectory
 Push-Location $projectRoot
 
 try {
+    & (Join-Path $scriptDirectory 'assert-no-legacy-http-tokens.ps1')
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+
     if (Get-Command pio -ErrorAction SilentlyContinue) {
         & pio test -e native
     }

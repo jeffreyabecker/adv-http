@@ -1,3 +1,4 @@
+2026-04-07 - Copilot: added a native-runner guard that fails when active `src/` or `test/` code reintroduces legacy `httpadv::` or `httpadv/v1` tokens.
 2026-04-07 - Copilot: moved the public HTTP header tree under `src/lumalink/http`, removed the legacy top-level wrapper header, updated in-repo include paths, and revalidated the native suite.
 2026-04-07 - Copilot: cleaned remaining legacy namespace-closing markers in active source files and revalidated the native suite.
 2026-04-07 - Copilot: started Phase 4 namespace cutover in source and test code, removed the legacy namespace shim header, and marked namespace migration tasks in progress.
@@ -149,7 +150,7 @@ These milestones define the rename execution gates for the library cutover. A mi
 | LUMA-30 | todo | Execute namespace rename wave 1 across foundational headers and sources (`core`, `transport`, `pipeline`, `routing`) from `httpadv::v1` to `lumalink::http` | Backlog | LUMA-26, LUMA-29 | Wave 1 compiles and no public API in these subsystems exposes legacy namespace tokens |
 | LUMA-31 | todo | Execute namespace rename wave 2 across higher-level subsystems (`handlers`, `response`, `server`, `staticfiles`, `websocket`, `util`, `streams`) | Backlog | LUMA-30 | Wave 2 compiles and no public API in these subsystems exposes legacy namespace tokens |
 | LUMA-32 | todo | Execute namespace rename wave 3 across tests, fixtures, and test-support utilities to consume `lumalink::http` directly | Backlog | LUMA-31, LUMA-28 | All maintained tests and fixtures compile with final namespace usage only |
-| LUMA-33 | todo | Add guard checks that fail the build when new `httpadv::` namespace declarations/usages are introduced outside historical changelog/backlog text | Backlog | LUMA-30, LUMA-31, LUMA-32 | CI/local validation fails on reintroduction of legacy namespace tokens |
+| LUMA-33 | done | Add guard checks that fail the build when new `httpadv::` namespace declarations/usages are introduced outside historical changelog/backlog text | Backlog | LUMA-30, LUMA-31, LUMA-32 | CI/local validation fails on reintroduction of legacy namespace tokens |
 
 ## Phase 6 - Include Graph And Header-Surface Cutover
 
@@ -201,6 +202,7 @@ These milestones define the rename execution gates for the library cutover. A mi
 - remaining legacy `namespace HttpServerAdvanced` closing markers have been removed from active source files
 - public HTTP headers have been moved under `src/lumalink/http/` and the legacy top-level `src/HttpServerAdvanced.h` wrapper has been removed
 - maintained test and fixture include paths now target `src/lumalink/http/` directly
+- `tools/run_native_tests.ps1` now fails fast when active source or test files reintroduce `httpadv::` or `httpadv/v1` tokens
 - native validation still passes after namespace and include-root cutover work (`192/192` native tests)
 - remaining execution scope is centered on the HTTP library rename and public-surface cleanup
 
