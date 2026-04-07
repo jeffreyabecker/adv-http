@@ -8,8 +8,8 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "C:/ode/pico-httpserveradvanced",
-                "C:/ode/pico-httpserveradvanced/.pio/libdeps/rpipicow/ArduinoJson/src",
+                "C:/ode/lumalink-http",
+                "C:/ode/lumalink-http/.pio/libdeps/rpipicow/ArduinoJson/src",
                 "C:/ode/lumalink-platform/src",
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/libraries/WiFi/src",
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/libraries/lwIP_CYW43/src",
@@ -19,8 +19,8 @@
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/libraries/PicoOTA/src",
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/libraries/LittleFS/src",
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/libraries/MD5Builder/src",
-                "C:/ode/pico-httpserveradvanced/src",
-                "C:/ode/pico-httpserveradvanced/src/llhttp/include",
+                "C:/ode/lumalink-http/src",
+                "C:/ode/lumalink-http/src/llhttp/include",
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040",
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040/api/deprecated",
                 "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040/api/deprecated-avr-comp",
@@ -166,8 +166,8 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "C:/ode/pico-httpserveradvanced",
-                    "C:/ode/pico-httpserveradvanced/.pio/libdeps/rpipicow/ArduinoJson/src",
+                    "C:/ode/lumalink-http",
+                    "C:/ode/lumalink-http/.pio/libdeps/rpipicow/ArduinoJson/src",
                     "C:/ode/lumalink-platform/src",
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/libraries/WiFi/src",
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/libraries/lwIP_CYW43/src",
@@ -177,8 +177,8 @@
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/libraries/PicoOTA/src",
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/libraries/LittleFS/src",
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/libraries/MD5Builder/src",
-                    "C:/ode/pico-httpserveradvanced/src",
-                    "C:/ode/pico-httpserveradvanced/src/llhttp/include",
+                    "C:/ode/lumalink-http/src",
+                    "C:/ode/lumalink-http/src/llhttp/include",
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040",
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040/api/deprecated",
                     "C:/Users/jeffr/.platformio/packages/framework-arduinopico/cores/rp2040/api/deprecated-avr-comp",
