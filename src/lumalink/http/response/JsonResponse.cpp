@@ -3,7 +3,7 @@
 #include "JsonResponse.h"
 #include "../core/HttpHeaderCollection.h"
 #include "HttpResponse.h"
-#include "../transport/ByteStream.h"
+#include "LumaLinkPlatform.h"
 #include "../core/HttpContentTypes.h"
 
 namespace lumalink::http::response

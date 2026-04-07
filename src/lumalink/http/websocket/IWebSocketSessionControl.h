@@ -1,5 +1,6 @@
 #pragma once
 
+#include <exception>
 #include "WebSocketFrameCodec.h"
 
 #include "LumaLinkPlatform.h"

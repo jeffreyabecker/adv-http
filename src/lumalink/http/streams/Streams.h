@@ -1,5 +1,6 @@
 #pragma once
-#include "../transport/ByteStream.h"
+#include <exception>
+#include "LumaLinkPlatform.h"
 
 namespace lumalink::http::streams
 {

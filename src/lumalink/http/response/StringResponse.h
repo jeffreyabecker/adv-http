@@ -5,10 +5,11 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <exception>
 #include "../core/HttpStatus.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
-#include "../transport/ByteStream.h"
+#include "LumaLinkPlatform.h"
 #include "HttpResponse.h"
 #include "../core/HttpContentTypes.h"
 

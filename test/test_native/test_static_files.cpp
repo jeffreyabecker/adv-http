@@ -3,7 +3,7 @@
 
 #include <unity.h>
 
-#include "../../src/lumalink/http/transport/IFileSystem.h"
+#include <lumalink/platform/filesystem/FileSystem.h>
 #include "../../src/lumalink/http/core/HttpContentTypes.h"
 #include "../../src/lumalink/http/core/HttpHeader.h"
 #include "../../src/lumalink/http/core/HttpContext.h"
@@ -33,7 +33,7 @@ using namespace lumalink::http::response;
 using namespace lumalink::http::routing;
 using namespace lumalink::http::server;
 using namespace lumalink::http::staticfiles;
-using namespace lumalink::http::transport;
+using namespace lumalink::platform::filesystem;
 using namespace lumalink::platform::buffers;
 using namespace lumalink::http::util;
 using namespace lumalink::http::websocket;

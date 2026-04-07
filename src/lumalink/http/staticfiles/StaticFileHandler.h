@@ -1,6 +1,7 @@
 #pragma once
-#include "../transport/IFileSystem.h"
-#include "../transport/ByteStream.h"
+#include <exception>
+#include "LumaLinkPlatform.h"
+#include "LumaLinkPlatform.h"
 
 #include "../core/HttpContentTypes.h"
 #include "../core/HttpRequestContext.h"
@@ -22,8 +23,8 @@ namespace lumalink::http::staticfiles
   using lumalink::http::handlers::IHttpHandler;
   using lumalink::http::response::IHttpResponse;
   using lumalink::http::routing::HandlerMatcher;
-  using lumalink::http::transport::FileHandle;
-  using lumalink::http::transport::IFile;
+  using lumalink::platform::filesystem::FileHandle;
+  using lumalink::platform::filesystem::IFile;
 
   class StaticFileHandlerFactory : public IHandlerProvider
   {

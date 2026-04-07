@@ -5,7 +5,7 @@
 #include "../../../src/lumalink/http/core/IHttpContextHandlerFactory.h"
 #include "../../../src/lumalink/http/core/HttpContext.h"
 #include "../../../src/lumalink/http/pipeline/IPipelineHandler.h"
-#include "../../../src/lumalink/http/transport/TransportInterfaces.h"
+#include <lumalink/platform/transport/TransportInterfaces.h>
 #include "../../../src/lumalink/http/response/StringResponse.h"
 
 #include <cstddef>
@@ -25,7 +25,7 @@ namespace lumalink::http::TestSupport
     using namespace lumalink::http::handlers;
     using namespace lumalink::http::pipeline;
     using namespace lumalink::http::response;
-    using namespace lumalink::http::transport;
+    using namespace lumalink::platform::transport;
     using namespace lumalink::platform::buffers;
     using namespace lumalink::http::util;
 

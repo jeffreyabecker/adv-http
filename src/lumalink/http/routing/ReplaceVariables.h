@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../transport/ByteStream.h"
+#include "LumaLinkPlatform.h"
 #include "../core/Defines.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../transport/IFileSystem.h"
+#include <exception>
+#include "LumaLinkPlatform.h"
 #include "FileLocator.h"
 
 #include <memory>

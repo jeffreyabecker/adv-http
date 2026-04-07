@@ -69,7 +69,7 @@ Transport factories now have a compile-time primary path and a runtime compatibi
 ### Static Factory Contract
 
 - A transport factory type should expose static `createServer(std::uint16_t)`, `createClient(std::string_view, std::uint16_t)`, and `createPeer()` methods.
-- [src/lumalink/http/transport/TransportTraits.h](src/lumalink/http/transport/TransportTraits.h) detects that contract and exposes `IsStaticTransportFactoryV<TFactory>`.
+- [Transport factory traits](c:/ode/lumalink-platform/src/lumalink/platform/transport/TransportTraits.h) live in `lumalink::platform` and expose `IsStaticTransportFactoryV<TFactory>` for platform-owned factories.
 - The same header also exposes `makeTransportFactory<TFactory>()` for legacy code that still needs a `std::unique_ptr<ITransportFactory>`.
 
 ## Rename Inventory

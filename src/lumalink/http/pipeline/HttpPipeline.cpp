@@ -5,7 +5,7 @@
 
 namespace lumalink::http::pipeline
 {
-    HttpPipeline::HttpPipeline(std::unique_ptr<lumalink::http::transport::IClient> client, HttpServerBase &server,
+    HttpPipeline::HttpPipeline(std::unique_ptr<lumalink::platform::transport::IClient> client, HttpServerBase &server,
                                                              const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,
                                                              const Clock &clock)
                 : client_(std::move(client)),
@@ -478,7 +478,7 @@ namespace lumalink::http::pipeline
         return startMillis_;
     }
 
-    lumalink::http::transport::IClient &HttpPipeline::client()
+    lumalink::platform::transport::IClient &HttpPipeline::client()
     {
         return *client_;
     }

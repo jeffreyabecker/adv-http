@@ -1,6 +1,7 @@
 #pragma once
 #include <initializer_list>
-#include "../transport/ByteStream.h"
+#include <exception>
+#include "LumaLinkPlatform.h"
 #include "../core/HttpStatus.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"

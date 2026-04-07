@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include "../transport/ByteStream.h"
+#include "LumaLinkPlatform.h"
 #include "../core/Defines.h"
 
 namespace lumalink::http::response

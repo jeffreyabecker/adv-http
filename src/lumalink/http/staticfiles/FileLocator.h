@@ -1,5 +1,5 @@
 #pragma once
-#include "../transport/IFileSystem.h"
+#include "LumaLinkPlatform.h"
 
 #include <string_view>
 
@@ -11,7 +11,7 @@ namespace lumalink::http::core
 namespace lumalink::http::staticfiles
 {
     using lumalink::http::core::HttpRequestContext;
-    using lumalink::http::transport::FileHandle;
+    using lumalink::platform::filesystem::FileHandle;
 
     class FileLocator
     {

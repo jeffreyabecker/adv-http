@@ -2,6 +2,7 @@
 // #pragma once
 
 // Core HTTP types and utilities
+#include <exception>
 #include "lumalink/http/core/Defines.h"
 #include "lumalink/http/core/HttpContentTypes.h"
 #include "lumalink/http/core/HttpRequestContext.h"
@@ -12,8 +13,7 @@
 #include "lumalink/http/core/HttpStatus.h"
 #include "lumalink/http/core/HttpTimeouts.h"
 #include "lumalink/http/core/IHttpContextHandlerFactory.h"
-#include "lumalink/http/transport/ByteStream.h"
-#include "lumalink/http/transport/TransportTraits.h"
+#include "LumaLinkPlatform.h"
 
 
 // HTTP Handlers

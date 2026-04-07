@@ -1,5 +1,6 @@
 #pragma once
-#include "../transport/IFileSystem.h"
+#include <exception>
+#include "LumaLinkPlatform.h"
 #include "../core/HttpContentTypes.h"
 #include "../routing/HandlerProviderRegistry.h"
 #include "../server/WebServerBuilder.h"
@@ -21,7 +22,7 @@ namespace lumalink::http::staticfiles
   using lumalink::http::response::IHttpResponse;
   using lumalink::http::routing::HandlerMatcher;
   using lumalink::http::server::WebServerBuilder;
-  using lumalink::http::transport::IFileSystem;
+  using lumalink::platform::filesystem::IFileSystem;
 
   class StaticFilesBuilder
   {

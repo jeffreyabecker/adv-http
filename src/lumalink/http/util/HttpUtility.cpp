@@ -4,7 +4,7 @@
 #include <cstring>
 #include <string_view>
 
-#include "../transport/ByteStream.h"
+#include "LumaLinkPlatform.h"
 #include "../streams/Base64Stream.h"
 #include "../streams/UriStream.h"
 

@@ -37,7 +37,7 @@ $legacyPatterns = @(
     },
     @{
         Name = 'legacy include root'
-        Pattern = '\bhttpadv/v1/'
+        Pattern = '\bhttpadv/'
     },
     @{
         Name = 'legacy source-tree include root'

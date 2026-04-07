@@ -1,13 +1,13 @@
 #pragma once
-#ifndef HTTPADV_V1_STREAMS_URISTREAM_H
-#define HTTPADV_V1_STREAMS_URISTREAM_H
 
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
-#include "../transport/ByteStream.h"
+#include <exception>
+
+#include "LumaLinkPlatform.h"
 #include "LumaLinkPlatform.h"
 
 namespace lumalink::http::streams
@@ -82,4 +82,3 @@ namespace lumalink::http::streams
     };
 }
 
-#endif // HTTPADV_V1_STREAMS_URISTREAM_H

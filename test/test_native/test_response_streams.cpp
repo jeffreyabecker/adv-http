@@ -9,7 +9,7 @@
 #include "../../src/lumalink/http/response/FormResponse.h"
 #include "../../src/lumalink/http/response/HttpResponse.h"
 #include "../../src/lumalink/http/response/StringResponse.h"
-#include "../../src/lumalink/http/transport/ByteStream.h"
+#include <lumalink/platform/buffers/ByteStream.h>
 #include "../../src/lumalink/http/streams/Streams.h"
 
 #include <algorithm>
@@ -29,7 +29,8 @@ using namespace lumalink::http::response;
 using namespace lumalink::http::routing;
 using namespace lumalink::http::server;
 using namespace lumalink::http::staticfiles;
-using namespace lumalink::http::transport;
+using namespace lumalink::platform::buffers;
+using namespace lumalink::platform::transport;
 using namespace lumalink::platform::buffers;
 using namespace lumalink::http::util;
 using namespace lumalink::http::websocket;

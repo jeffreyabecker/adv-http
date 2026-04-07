@@ -1,5 +1,6 @@
 #pragma once
 
+#include <exception>
 #include "LumaLinkPlatform.h"
 
 #include <array>

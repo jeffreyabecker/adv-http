@@ -4,14 +4,14 @@
 
 #include "../util/Clock.h"
 #include "../core/HttpTimeouts.h"
-#include "../transport/ByteStream.h"
+#include "LumaLinkPlatform.h"
 #include "ConnectionSession.h"
 #include "HttpProtocolExecution.h"
 #include "IPipelineHandler.h"
 #include "IProtocolExecution.h"
 #include "RequestParser.h"
 #include "PipelineHandleClientResult.h"
-#include "../transport/TransportInterfaces.h"
+#include "LumaLinkPlatform.h"
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -44,7 +44,7 @@ namespace lumalink::http::pipeline
         };
 
     private:
-        std::unique_ptr<lumalink::http::transport::IClient> client_;
+        std::unique_ptr<lumalink::platform::transport::IClient> client_;
         HttpServerBase &server_;
         const Clock &clock_;
         std::function<PipelineHandlerPtr()> handlerFactory_;
@@ -80,7 +80,7 @@ namespace lumalink::http::pipeline
         IProtocolExecution *currentProtocolExecution();
         const IProtocolExecution *currentProtocolExecution() const;
     public:
-        HttpPipeline(std::unique_ptr<lumalink::http::transport::IClient> client, HttpServerBase &server,
+        HttpPipeline(std::unique_ptr<lumalink::platform::transport::IClient> client, HttpServerBase &server,
                      const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,
                      const Clock &clock);
 
@@ -93,7 +93,7 @@ namespace lumalink::http::pipeline
         void abortReadingRequest();
         void abortWritingResponse();
         ClockMillis startedAt() const;
-        lumalink::http::transport::IClient &client();
+        lumalink::platform::transport::IClient &client();
         ConnectionState connectionState() const;
     };
 

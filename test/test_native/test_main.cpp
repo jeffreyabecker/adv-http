@@ -53,6 +53,7 @@ int run_test_routing();
 int run_test_static_files();
 int run_test_stream_utilities();
 int run_test_utilities();
+int run_test_renamed_surface();
 int run_test_websocket_error_policy();
 int run_test_websocket_frame_codec();
 int run_test_websocket_context();
@@ -75,6 +76,7 @@ int main(int, char **) {
   failureCount += run_test_websocket_frame_codec();
   failureCount += run_test_websocket_context();
   failureCount += run_test_utilities();
+  failureCount += run_test_renamed_surface();
 
   return failureCount;
 }

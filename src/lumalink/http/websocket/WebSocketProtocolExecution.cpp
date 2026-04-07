@@ -47,7 +47,7 @@ namespace lumalink::http::websocket
         context_.bindControl(this);
     }
 
-    lumalink::http::server::ConnectionSessionResult WebSocketProtocolExecution::handle(lumalink::http::transport::IClient &client, const lumalink::http::util::Clock &)
+    lumalink::http::server::ConnectionSessionResult WebSocketProtocolExecution::handle(lumalink::platform::transport::IClient &client, const lumalink::http::util::Clock &)
     {
         if (!client.connected())
         {
@@ -322,7 +322,7 @@ namespace lumalink::http::websocket
         return closeState_ == CloseState::Closed;
     }
 
-    bool WebSocketProtocolExecution::flushPendingWrite(lumalink::http::transport::IClient &client)
+    bool WebSocketProtocolExecution::flushPendingWrite(lumalink::platform::transport::IClient &client)
     {
         while (pendingWriteOffset_ < pendingWrite_.size())
         {

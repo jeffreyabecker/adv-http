@@ -233,8 +233,9 @@ These milestones define the rename execution gates for the library cutover. A mi
 - `keywords.txt`
 - `src/httpadv/namespace.h`
 - `src/lumalink/http/LumaLinkHttp.h`
-- `src/lumalink/http/transport/TransportTraits.h`
-- `src/lumalink/http/transport/TransportInterfaces.h`
+- `c:\ode\lumalink-platform\src\lumalink\platform\transport\TransportTraits.h`
+- `c:\ode\lumalink-platform\src\lumalink\platform\transport\TransportInterfaces.h`
+- `c:\ode\lumalink-platform\src\lumalink\platform\filesystem\FileSystem.h`
 - `src/httpadv/v1/platform/TransportFactory.h`
 - `src/httpadv/v1/platform/arduino/ArduinoWiFiTransport.h`
 - `src/httpadv/v1/platform/arduino/ArduinoFileAdapter.h`

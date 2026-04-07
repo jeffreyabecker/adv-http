@@ -5,7 +5,7 @@
 #include "ConnectionSession.h"
 #include "PipelineError.h"
 
-#include "../transport/ByteStream.h"
+#include "LumaLinkPlatform.h"
 
 namespace lumalink::http::pipeline
 {

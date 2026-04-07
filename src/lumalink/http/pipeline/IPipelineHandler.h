@@ -4,7 +4,7 @@
 
 #include "../core/HttpTimeouts.h"
 #include "RequestHandlingResult.h"
-#include "../transport/ByteStream.h"
+#include "LumaLinkPlatform.h"
 #include "PipelineError.h"
 
 #include <cstddef>

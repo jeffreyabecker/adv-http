@@ -3,12 +3,12 @@
 #include "ConnectionSession.h"
 #include "PipelineError.h"
 #include "RequestHandlingResult.h"
-#include "../transport/TransportInterfaces.h"
+#include "LumaLinkPlatform.h"
 
 namespace lumalink::http::pipeline
 {
     using lumalink::http::server::ConnectionSessionResult;
-    using lumalink::http::transport::IClient;
+    using lumalink::platform::transport::IClient;
     using lumalink::http::util::Clock;
 
     class IProtocolExecution

@@ -4,7 +4,7 @@
 #include "../core/HttpStatus.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
-#include "../transport/ByteStream.h"
+#include "LumaLinkPlatform.h"
 
 namespace lumalink::http::response
 {

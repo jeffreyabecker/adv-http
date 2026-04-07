@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../../src/lumalink/http/transport/ByteStream.h"
+#include <lumalink/platform/buffers/ByteStream.h>
 
 #include <algorithm>
 #include <cstddef>

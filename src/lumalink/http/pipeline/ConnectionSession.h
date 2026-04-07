@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../transport/TransportInterfaces.h"
+#include <exception>
+#include "LumaLinkPlatform.h"
 
 #include "../util/Clock.h"
 
@@ -11,7 +12,7 @@ namespace lumalink::http::pipeline
 
 namespace lumalink::http::server
 {
-    using lumalink::http::transport::IClient;
+    using lumalink::platform::transport::IClient;
     using lumalink::http::util::Clock;
     using lumalink::http::pipeline::IProtocolExecution;
 

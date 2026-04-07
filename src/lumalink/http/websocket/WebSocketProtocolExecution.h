@@ -19,7 +19,7 @@ namespace lumalink::http::websocket
     public:
         WebSocketProtocolExecution(std::string handshakeResponse, WebSocketContext context);
 
-        lumalink::http::server::ConnectionSessionResult handle(lumalink::http::transport::IClient &client, const lumalink::http::util::Clock &clock) override;
+        lumalink::http::server::ConnectionSessionResult handle(lumalink::platform::transport::IClient &client, const lumalink::http::util::Clock &clock) override;
         lumalink::http::pipeline::IProtocolExecution *protocolExecution() override
         {
             return this;
@@ -65,7 +65,7 @@ namespace lumalink::http::websocket
         std::uint16_t closeCode_ = static_cast<std::uint16_t>(WebSocketCloseCode::NormalClosure);
         std::string closeReason_;
 
-        bool flushPendingWrite(lumalink::http::transport::IClient &client);
+        bool flushPendingWrite(lumalink::platform::transport::IClient &client);
         bool queueSerializedFrame(WebSocketOpcode opcode, span<const std::uint8_t> payload, bool fin = true);
         bool queueCloseFrame(WebSocketCloseCode code, span<const std::uint8_t> reason = span<const std::uint8_t>());
         void handleParsedFrame(const WebSocketFrame &frame);

@@ -4,7 +4,7 @@
 #include "../pipeline/HttpPipeline.h"
 #include "../pipeline/IPipelineHandler.h"
 #include "../pipeline/PipelineHandleClientResult.h"
-#include "../transport/TransportInterfaces.h"
+#include "LumaLinkPlatform.h"
 #include "../core/HttpTimeouts.h"
 
 #include <memory>
@@ -21,7 +21,7 @@ namespace lumalink::http::server
     using lumalink::http::core::HttpTimeouts;
     using lumalink::http::pipeline::HttpPipeline;
     using lumalink::http::pipeline::PipelineHandlerPtr;
-    using lumalink::http::transport::IServer;
+    using lumalink::platform::transport::IServer;
     using lumalink::http::util::Clock;
 
     class HttpServerBase

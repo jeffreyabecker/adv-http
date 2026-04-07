@@ -5,9 +5,9 @@
 
 namespace
 {
-    lumalink::http::transport::FileHandle OpenFile(lumalink::http::transport::IFileSystem *filesystem, std::string_view path)
+    lumalink::platform::filesystem::FileHandle OpenFile(lumalink::platform::filesystem::IFileSystem *filesystem, std::string_view path)
     {
-        return filesystem->open(path, lumalink::http::transport::FileOpenMode::Read);
+        return filesystem->open(path, lumalink::platform::filesystem::FileOpenMode::Read);
     }
 
     bool StartsWith(std::string_view value, std::string_view prefix)
