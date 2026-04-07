@@ -3,15 +3,15 @@
 
 #include <string_view>
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
     class HttpRequestContext;
 }
 
-namespace httpadv::v1::staticfiles
+namespace lumalink::http::staticfiles
 {
-    using httpadv::v1::core::HttpRequestContext;
-    using httpadv::v1::transport::FileHandle;
+    using lumalink::http::core::HttpRequestContext;
+    using lumalink::http::transport::FileHandle;
 
     class FileLocator
     {
@@ -21,6 +21,6 @@ namespace httpadv::v1::staticfiles
         virtual bool canHandle(std::string_view path) = 0;
     };
 
-} // namespace httpadv::v1::staticfiles
+} // namespace lumalink::http::staticfiles
 
 

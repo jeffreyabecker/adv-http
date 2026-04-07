@@ -22,17 +22,17 @@
 #include "../../src/httpadv/v1/response/JsonResponse.h"
 #endif
 
-using namespace httpadv::v1::core;
-using namespace httpadv::v1::handlers;
-using namespace httpadv::v1::pipeline;
-using namespace httpadv::v1::response;
-using namespace httpadv::v1::routing;
-using namespace httpadv::v1::server;
-using namespace httpadv::v1::staticfiles;
-using namespace httpadv::v1::transport;
+using namespace lumalink::http::core;
+using namespace lumalink::http::handlers;
+using namespace lumalink::http::pipeline;
+using namespace lumalink::http::response;
+using namespace lumalink::http::routing;
+using namespace lumalink::http::server;
+using namespace lumalink::http::staticfiles;
+using namespace lumalink::http::transport;
 using namespace lumalink::platform::buffers;
-using namespace httpadv::v1::util;
-using namespace httpadv::v1::websocket;
+using namespace lumalink::http::util;
+using namespace lumalink::http::websocket;
 
 namespace
 {
@@ -56,15 +56,15 @@ namespace
 
     void test_byte_source_reads_direct_body_content()
     {
-        auto body = std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("ok"));
+        auto body = std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("ok"));
 
-        const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body);
+        const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*body);
         TEST_ASSERT_EQUAL_STRING("ok", content.c_str());
     }
 
     void test_byte_source_reports_temporarily_unavailable()
     {
-        auto body = std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(
+        auto body = std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(
             std::initializer_list<std::pair<const char *, bool>>{{"", true}});
 
         TEST_ASSERT_TRUE(body->available().isTemporarilyUnavailable());
@@ -73,17 +73,17 @@ namespace
     void test_chunked_response_body_stream_reads_from_byte_source()
     {
         auto body = ChunkedHttpResponseBodyStream::create(
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("Hi")));
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("Hi")));
 
-        const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body);
+        const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*body);
         TEST_ASSERT_EQUAL_STRING("2\r\nHi\r\n0\r\n\r\n", content.c_str());
     }
 
     void test_chunked_response_body_stream_emits_final_terminator_for_empty_source()
     {
-        auto body = ChunkedHttpResponseBodyStream::create(std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>());
+        auto body = ChunkedHttpResponseBodyStream::create(std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>());
 
-        const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body);
+        const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*body);
         TEST_ASSERT_EQUAL_STRING("0\r\n\r\n", content.c_str());
         TEST_ASSERT_TRUE(body->available().isExhausted());
 
@@ -94,24 +94,24 @@ namespace
     void test_chunked_response_body_stream_preserves_varying_source_chunk_sizes()
     {
         auto body = ChunkedHttpResponseBodyStream::create(
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"A", false}, {"BCD", false}, {"EF", false}}));
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"A", false}, {"BCD", false}, {"EF", false}}));
 
-        const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body);
+        const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*body);
         TEST_ASSERT_EQUAL_STRING("1\r\nA\r\n3\r\nBCD\r\n2\r\nEF\r\n0\r\n\r\n", content.c_str());
     }
 
     void test_chunked_response_body_stream_splits_large_available_span_at_frame_boundary()
     {
-        const std::string payload(httpadv::v1::core::ETHERNET_FRAME_BUFFER_SIZE + 3, 'a');
+        const std::string payload(lumalink::http::core::ETHERNET_FRAME_BUFFER_SIZE + 3, 'a');
         auto body = ChunkedHttpResponseBodyStream::create(
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText(payload)));
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText(payload)));
 
-        const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body);
+        const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*body);
 
         std::string expected;
         expected.reserve(payload.size() + 32);
         expected += "59c\r\n";
-        expected.append(httpadv::v1::core::ETHERNET_FRAME_BUFFER_SIZE, 'a');
+        expected.append(lumalink::http::core::ETHERNET_FRAME_BUFFER_SIZE, 'a');
         expected += "\r\n3\r\n";
         expected.append(3, 'a');
         expected += "\r\n0\r\n\r\n";
@@ -122,10 +122,10 @@ namespace
     void test_http_response_accepts_byte_source_body()
     {
         HttpHeaderCollection headers;
-        HttpResponse response(HttpStatus::Ok(), std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("body")), std::move(headers));
+        HttpResponse response(HttpStatus::Ok(), std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("body")), std::move(headers));
 
         auto body = response.getBody();
-        const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body);
+        const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*body);
         TEST_ASSERT_EQUAL_STRING("body", content.c_str());
     }
 
@@ -134,7 +134,7 @@ namespace
         HttpHeaderCollection headers;
         headers.set(HttpHeader::ContentType("application/custom"));
 
-        HttpResponse response(HttpStatus::Accepted(), std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("body")), std::move(headers));
+        HttpResponse response(HttpStatus::Accepted(), std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("body")), std::move(headers));
 
         TEST_ASSERT_EQUAL(202, static_cast<int>(response.status()));
         TEST_ASSERT_TRUE(response.headers().exists(HttpHeaderNames::ContentType, "application/custom"));
@@ -146,11 +146,11 @@ namespace
     void test_http_response_transfers_body_ownership_once()
     {
         HttpHeaderCollection headers;
-        HttpResponse response(HttpStatus::Ok(), std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("abc")), std::move(headers));
+        HttpResponse response(HttpStatus::Ok(), std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("abc")), std::move(headers));
 
         auto firstBody = response.getBody();
         TEST_ASSERT_NOT_NULL(firstBody.get());
-        TEST_ASSERT_EQUAL_STRING("abc", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*firstBody).c_str());
+        TEST_ASSERT_EQUAL_STRING("abc", lumalink::http::TestSupport::ReadByteSourceAsStdString(*firstBody).c_str());
 
         auto secondBody = response.getBody();
         TEST_ASSERT_NULL(secondBody.get());
@@ -159,11 +159,11 @@ namespace
     void test_http_response_accepts_empty_body_source()
     {
         HttpHeaderCollection headers;
-        HttpResponse response(HttpStatus::Ok(), std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(), std::move(headers));
+        HttpResponse response(HttpStatus::Ok(), std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(), std::move(headers));
 
         auto body = response.getBody();
         TEST_ASSERT_NOT_NULL(body.get());
-        TEST_ASSERT_EQUAL_STRING("", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("", lumalink::http::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     void test_string_response_sets_default_headers_and_preserves_custom_content_type()
@@ -182,7 +182,7 @@ namespace
         TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::Connection, "keep-alive"));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING("body", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("body", lumalink::http::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     void test_string_response_content_type_overload_keeps_exact_body_bytes()
@@ -200,7 +200,7 @@ namespace
         TEST_ASSERT_TRUE(typedResponse->headers().exists(HttpHeaderNames::ContentLength, "3"));
 
         auto typedBody = typedResponse->getBody();
-        TEST_ASSERT_EQUAL_STRING("a,b", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*typedBody).c_str());
+        TEST_ASSERT_EQUAL_STRING("a,b", lumalink::http::TestSupport::ReadByteSourceAsStdString(*typedBody).c_str());
     }
 
     void test_form_response_sets_defaults_and_preserves_explicit_headers()
@@ -222,7 +222,7 @@ namespace
         TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::ContentLength, "33"));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING("greeting=hello+world&symbol=1%2B1", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("greeting=hello+world&symbol=1%2B1", lumalink::http::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     void test_form_response_map_overload_preserves_key_order_from_map()
@@ -235,7 +235,7 @@ namespace
         auto body = response->getBody();
 
         TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::ContentType, "application/x-www-form-urlencoded"));
-        TEST_ASSERT_EQUAL_STRING("alpha=1&beta=2", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("alpha=1&beta=2", lumalink::http::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
 #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
@@ -258,7 +258,7 @@ namespace
         TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::Connection, "keep-alive"));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING("{\"message\":\"ok\"}", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("{\"message\":\"ok\"}", lumalink::http::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 #endif
 
@@ -266,11 +266,11 @@ namespace
     {
         auto response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("Hi")),
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("Hi")),
             MakeDeterministicResponseHeaders());
 
         auto source = CreateResponseStream(std::move(response));
-        const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*source);
+        const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*source);
 
         TEST_ASSERT_EQUAL_STRING(
             "HTTP/1.1 200 OK\r\n"
@@ -294,7 +294,7 @@ namespace
         auto response = std::make_unique<HttpResponse>(HttpStatus::Ok(), nullptr, std::move(headers));
 
         auto source = CreateResponseStream(std::move(response));
-        const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*source);
+        const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*source);
 
         TEST_ASSERT_EQUAL_STRING(
             "HTTP/1.1 200 OK\r\n"
@@ -317,11 +317,11 @@ namespace
 
         auto response = std::make_unique<HttpResponse>(
             HttpStatus::NoContent(),
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("body")),
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("body")),
             std::move(headers));
 
         auto source = CreateResponseStream(std::move(response));
-        const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*source);
+        const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*source);
 
         TEST_ASSERT_EQUAL_STRING(
             "HTTP/1.1 204 No Content\r\n"
@@ -339,11 +339,11 @@ namespace
         {
             auto response = std::make_unique<HttpResponse>(
                 HttpStatus::Continue(),
-                std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("body")),
+                std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("body")),
                 MakeDeterministicResponseHeaders());
 
             auto source = CreateResponseStream(std::move(response));
-            const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*source);
+            const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*source);
 
             TEST_ASSERT_EQUAL_STRING(
                 "HTTP/1.1 100 Continue\r\n"
@@ -359,11 +359,11 @@ namespace
         {
             auto response = std::make_unique<HttpResponse>(
                 HttpStatus::NotModified(),
-                std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("body")),
+                std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("body")),
                 MakeDeterministicResponseHeaders());
 
             auto source = CreateResponseStream(std::move(response));
-            const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*source);
+            const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*source);
 
             TEST_ASSERT_EQUAL_STRING(
                 "HTTP/1.1 304 Not Modified\r\n"
@@ -389,7 +389,7 @@ namespace
         auto response = std::make_unique<HttpResponse>(HttpStatus::Ok(), nullptr, std::move(headers));
 
         auto source = CreateResponseStream(std::move(response));
-        const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*source);
+        const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*source);
 
         TEST_ASSERT_EQUAL_STRING(
             "HTTP/1.1 200 OK\r\n"
@@ -414,11 +414,11 @@ namespace
 
         auto response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("Hi")),
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("Hi")),
             std::move(headers));
 
         auto source = CreateResponseStream(std::move(response));
-        const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*source);
+        const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*source);
 
         TEST_ASSERT_EQUAL_STRING(
             "HTTP/1.1 200 OK\r\n"
@@ -447,11 +447,11 @@ namespace
 
         auto response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("!")),
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("!")),
             std::move(headers));
 
         auto source = CreateResponseStream(std::move(response));
-        const std::string content = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*source);
+        const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*source);
 
         TEST_ASSERT_EQUAL_STRING(
             "HTTP/1.1 200 OK\r\n"
@@ -471,7 +471,7 @@ namespace
     {
         auto response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("Hi")),
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("Hi")),
             MakeDeterministicResponseHeaders());
 
         auto source = CreateResponseStream(std::move(response));
@@ -509,11 +509,11 @@ namespace
     {
         auto response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"", true}, {"Hi", false}}),
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"", true}, {"Hi", false}}),
             MakeDeterministicResponseHeaders());
 
         auto source = CreateResponseStream(std::move(response));
-        const std::string content = httpadv::v1::TestSupport::DrainByteSourceWithAvailability(*source);
+        const std::string content = lumalink::http::TestSupport::DrainByteSourceWithAvailability(*source);
 
         TEST_ASSERT_EQUAL_STRING(
             "HTTP/1.1 200 OK\r\n"
@@ -531,24 +531,24 @@ namespace
     void test_chunked_response_stream_handles_temporary_unavailability_between_chunks()
     {
         auto body = ChunkedHttpResponseBodyStream::create(
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"Hi", false}, {"", true}, {"!", false}}));
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"Hi", false}, {"", true}, {"!", false}}));
 
-        const std::string content = httpadv::v1::TestSupport::DrainByteSourceWithAvailability(*body);
+        const std::string content = lumalink::http::TestSupport::DrainByteSourceWithAvailability(*body);
         TEST_ASSERT_EQUAL_STRING("2\r\nHi\r\n1\r\n!\r\n0\r\n\r\n", content.c_str());
     }
 
     void test_chunked_response_stream_handles_temporary_unavailability_across_multiple_boundaries()
     {
         auto body = ChunkedHttpResponseBodyStream::create(
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"AB", false}, {"", true}, {"CD", false}, {"", true}, {"E", false}}));
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"AB", false}, {"", true}, {"CD", false}, {"", true}, {"E", false}}));
 
-        const std::string content = httpadv::v1::TestSupport::DrainByteSourceWithAvailability(*body);
+        const std::string content = lumalink::http::TestSupport::DrainByteSourceWithAvailability(*body);
         TEST_ASSERT_EQUAL_STRING("2\r\nAB\r\n2\r\nCD\r\n1\r\nE\r\n0\r\n\r\n", content.c_str());
     }
 
     void test_recording_byte_channel_captures_written_bytes_and_flushes()
     {
-        httpadv::v1::TestSupport::RecordingByteChannel channel;
+        lumalink::http::TestSupport::RecordingByteChannel channel;
 
         const std::string payload = "hello";
         const std::size_t bytesWritten = channel.write(std::string_view(payload));
@@ -563,9 +563,9 @@ namespace
 
     void test_recording_byte_channel_can_expose_scripted_input()
     {
-        httpadv::v1::TestSupport::RecordingByteChannel channel({{"A", false}, {"", true}, {"BC", false}});
+        lumalink::http::TestSupport::RecordingByteChannel channel({{"A", false}, {"", true}, {"BC", false}});
 
-        const std::string content = httpadv::v1::TestSupport::DrainByteSourceWithAvailability(channel);
+        const std::string content = lumalink::http::TestSupport::DrainByteSourceWithAvailability(channel);
 
         TEST_ASSERT_EQUAL_STRING("ABC", content.c_str());
     }
@@ -609,7 +609,7 @@ namespace
 
 int run_test_response_streams()
 {
-    return httpadv::v1::TestSupport::RunConsolidatedSuite(
+    return lumalink::http::TestSupport::RunConsolidatedSuite(
         "response streams",
         runUnitySuite,
         localSetUp,

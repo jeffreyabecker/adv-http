@@ -1,6 +1,6 @@
 #include "WebSocketContext.h"
 
-namespace httpadv::v1::websocket
+namespace lumalink::http::websocket
 {
     WebSocketContext::WebSocketContext(WebSocketActivationSnapshot activation, WebSocketCallbacks callbacks)
         : activation_(std::move(activation)),

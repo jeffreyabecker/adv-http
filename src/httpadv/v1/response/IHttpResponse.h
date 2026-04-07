@@ -6,10 +6,10 @@
 #include "../core/HttpHeaderCollection.h"
 #include "../transport/ByteStream.h"
 
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
-  using httpadv::v1::core::HttpHeaderCollection;
-  using httpadv::v1::core::HttpStatus;
+  using lumalink::http::core::HttpHeaderCollection;
+  using lumalink::http::core::HttpStatus;
   using lumalink::platform::buffers::IByteSource;
 
   class IHttpResponse
@@ -22,5 +22,5 @@ namespace httpadv::v1::response
     virtual std::unique_ptr<IByteSource> getBody() = 0;
   };
 
-} // namespace httpadv::v1::response
+} // namespace lumalink::http::response
 

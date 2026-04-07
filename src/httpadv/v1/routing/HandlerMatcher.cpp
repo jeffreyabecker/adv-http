@@ -9,10 +9,10 @@
 #include "../core/HttpRequestContext.h"
 #include "../util/UriView.h"
 
-namespace httpadv::v1::routing
+namespace lumalink::http::routing
 {
-    using httpadv::v1::core::HttpHeaderNames;
-    using httpadv::v1::handlers::RouteParameters;
+    using lumalink::http::core::HttpHeaderNames;
+    using lumalink::http::handlers::RouteParameters;
 
     namespace
     {
@@ -279,7 +279,7 @@ namespace httpadv::v1::routing
 
         bool matchUriPattern(std::string_view uri, std::string_view uriPattern, RouteParameters *parameters)
         {
-            const httpadv::v1::util::UriView parsedUri(uri);
+            const lumalink::http::util::UriView parsedUri(uri);
             const std::string_view path = trimLeadingDelimiter(parsedUri.path());
             const std::string_view normalizedPattern = trimLeadingDelimiter(uriPattern);
             const std::vector<std::string_view> pathSegments = splitPathSegments(path);
@@ -312,7 +312,7 @@ namespace httpadv::v1::routing
 
     bool defaultCheckContentType(HttpRequestContext &context, const std::vector<std::string> &allowedContentTypes)
     {
-        std::optional<httpadv::v1::core::HttpHeader> contentType = context.headers().find("Content-Type");
+        std::optional<lumalink::http::core::HttpHeader> contentType = context.headers().find("Content-Type");
         if (!contentType.has_value())
         {
             return false;
@@ -510,6 +510,6 @@ namespace httpadv::v1::routing
     {
     }
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::routing
 
 

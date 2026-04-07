@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace httpadv::v1::transport
+namespace lumalink::http::transport
 {
     namespace detail
     {

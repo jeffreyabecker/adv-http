@@ -1,6 +1,6 @@
 #include "AggregateFileLocator.h"
 
-namespace httpadv::v1::staticfiles
+namespace lumalink::http::staticfiles
 {
 
 
@@ -39,6 +39,6 @@ namespace httpadv::v1::staticfiles
         return false;
     }
 
-} // namespace httpadv::v1::staticfiles
+} // namespace lumalink::http::staticfiles
 
 

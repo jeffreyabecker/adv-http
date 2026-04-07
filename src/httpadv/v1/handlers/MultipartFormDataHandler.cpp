@@ -1,7 +1,7 @@
 #include "MultipartFormDataHandler.h"
 #include <cstring>
 
-namespace httpadv::v1::handlers
+namespace lumalink::http::handlers
 {
     namespace
     {
@@ -107,4 +107,4 @@ namespace httpadv::v1::handlers
         }
         return nullptr;
     }
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::handlers

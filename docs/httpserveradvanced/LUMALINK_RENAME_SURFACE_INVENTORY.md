@@ -24,7 +24,6 @@ This note records the rename surface inventory after completion of the `lumalink
 ### Public Headers And Include Roots
 
 - `src/HttpServerAdvanced.h` is the current top-level public wrapper header.
-- `src/httpadv/namespace.h` establishes the unversioned `httpadv` root namespace.
 - `src/httpadv/v1/HttpServerAdvanced.h` is the current umbrella header for nearly the full HTTP surface.
 - Public subsystem headers currently live under `src/httpadv/v1/` with these major areas:
   - `core/`
@@ -41,9 +40,10 @@ This note records the rename surface inventory after completion of the `lumalink
 
 ### Namespace Surfaces
 
-- The canonical current namespace is `httpadv::v1::<subsystem>` across the codebase.
-- `src/httpadv/v1/HttpServerAdvanced.h` also exposes unversioned `httpadv` convenience aliases such as `httpadv::WebServer`, `httpadv::HttpResponse`, `httpadv::StringResponse`, and `httpadv::transport`.
-- Closing namespace comments and prose throughout the codebase still use a mix of `httpadv` and legacy `HttpServerAdvanced` labels.
+- Active source and test code now declares and consumes `lumalink::http::<subsystem>` directly.
+- The remaining public legacy surface is the header graph and include-root layout under `src/httpadv/v1/`, not the active C++ namespace declarations themselves.
+- The deleted `src/httpadv/namespace.h` shim is no longer part of the public surface.
+- Legacy namespace-closing markers in active source have been cleaned; remaining rename work is centered on include paths, package metadata, macros, and maintained docs/examples.
 
 ### Macros, Configuration Constants, And User-Facing Symbols
 
@@ -140,5 +140,6 @@ The platform library project is located at `c:\ode\lumalink-platform`.
 
 - Public rename surfaces are inventoried across package metadata, include roots, namespaces, macros, docs, and test-facing entrypoints.
 - Platform extraction is complete and integrated through `lumalink/platform/...` include usage in HTTP-facing code.
-- Remaining work in this repository is namespace and include-surface rename cleanup, plus removal of residual legacy platform tree content.
+- Active source/test namespace migration to `lumalink::http` is complete, including cleanup of stale namespace-closing markers.
+- Remaining work in this repository is package metadata rename, include-surface cutover, docs/example updates, and removal of residual legacy platform tree content.
 - Cleanup must be a direct cutover to final names and boundaries with no compatibility layers or alias bridges.

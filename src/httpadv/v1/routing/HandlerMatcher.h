@@ -8,10 +8,10 @@
 #include <string_view>
 #include <vector>
 
-namespace httpadv::v1::routing
+namespace lumalink::http::routing
 {
-    using httpadv::v1::core::HttpRequestContext;
-    using httpadv::v1::handlers::RouteParameters;
+    using lumalink::http::core::HttpRequestContext;
+    using lumalink::http::handlers::RouteParameters;
 
     constexpr char REQUEST_MATCHER_PATH_DELIMITER = '/';
     constexpr char REQUEST_MATCHER_PARAMETER_PREFIX = ':';
@@ -94,7 +94,7 @@ namespace httpadv::v1::routing
 
     RouteParameters defaultExtractParameters(HttpRequestContext &context, std::string_view uriPattern);
 
-} // namespace httpadv::v1::routing
+} // namespace lumalink::http::routing
 
 
 

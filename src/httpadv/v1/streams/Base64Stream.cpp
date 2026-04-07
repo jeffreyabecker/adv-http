@@ -1,7 +1,7 @@
 #include "Base64Stream.h"
 #include <cstring>
 
-namespace httpadv::v1::streams
+namespace lumalink::http::streams
 {
     // Base64DecoderStream
 
@@ -294,4 +294,4 @@ namespace httpadv::v1::streams
         return val;
     }
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::streams

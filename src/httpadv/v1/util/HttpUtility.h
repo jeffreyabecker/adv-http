@@ -9,7 +9,7 @@
 
 #include "KeyValuePairView.h"
 
-namespace httpadv::v1::util
+namespace lumalink::http::util
 {
     class WebUtility
     {
@@ -46,4 +46,4 @@ namespace httpadv::v1::util
         static std::string Base64DecodeToString(std::string_view input, bool urlCompatible = false);
     };
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::util

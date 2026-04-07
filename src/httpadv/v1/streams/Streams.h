@@ -1,7 +1,7 @@
 #pragma once
 #include "../transport/ByteStream.h"
 
-namespace httpadv::v1::streams
+namespace lumalink::http::streams
 {
     using lumalink::platform::buffers::SingleByteSource;
 

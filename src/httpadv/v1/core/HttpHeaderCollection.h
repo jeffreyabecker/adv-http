@@ -6,7 +6,7 @@
 #include <string_view>
 #include "HttpHeader.h"
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
   namespace HttpHeaderCollectionDetail
   {
@@ -130,4 +130,4 @@ namespace httpadv::v1::core
     }
   };
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::core

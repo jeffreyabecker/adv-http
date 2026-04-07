@@ -12,15 +12,15 @@
 #include <string>
 #include <string_view>
 
-namespace httpadv::v1::routing
+namespace lumalink::http::routing
 {
-    using httpadv::v1::core::HttpHeader;
-    using httpadv::v1::core::HttpHeaderNames;
-    using httpadv::v1::core::HttpRequestContext;
-    using httpadv::v1::core::HttpStatus;
-    using httpadv::v1::handlers::IHttpHandler;
-    using httpadv::v1::response::IHttpResponse;
-    using httpadv::v1::response::StringResponse;
+    using lumalink::http::core::HttpHeader;
+    using lumalink::http::core::HttpHeaderNames;
+    using lumalink::http::core::HttpRequestContext;
+    using lumalink::http::core::HttpStatus;
+    using lumalink::http::handlers::IHttpHandler;
+    using lumalink::http::response::IHttpResponse;
+    using lumalink::http::response::StringResponse;
 
     namespace BasicAuthImpl
     {
@@ -39,7 +39,7 @@ namespace httpadv::v1::routing
             {
                 return false;
             }
-            const std::string decodedCredentials = httpadv::v1::util::WebUtility::Base64DecodeToString(authHeaderValue.substr(Prefix.size()));
+            const std::string decodedCredentials = lumalink::http::util::WebUtility::Base64DecodeToString(authHeaderValue.substr(Prefix.size()));
             const std::string_view decodedView(decodedCredentials.data(), decodedCredentials.size());
             const std::size_t separatorIndex = decodedView.find(':');
             if (separatorIndex == std::string_view::npos)
@@ -102,7 +102,7 @@ namespace httpadv::v1::routing
             std::move(onSuccess),
             std::move(onFailure));
     }
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::routing
 
 
 

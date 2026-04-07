@@ -8,10 +8,10 @@
 #include "HttpResponseIterators.h"
 #include "IHttpResponse.h"
 #include <memory>
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
-  using httpadv::v1::core::HttpHeaderCollection;
-  using httpadv::v1::core::HttpStatus;
+  using lumalink::http::core::HttpHeaderCollection;
+  using lumalink::http::core::HttpStatus;
   using lumalink::platform::buffers::IByteSource;
 
   class HttpResponse : public IHttpResponse
@@ -33,6 +33,6 @@ namespace httpadv::v1::response
 
   std::unique_ptr<IByteSource> CreateResponseStream(std::unique_ptr<IHttpResponse> response);
 
-} // namespace httpadv::v1::response
+} // namespace lumalink::http::response
 
 

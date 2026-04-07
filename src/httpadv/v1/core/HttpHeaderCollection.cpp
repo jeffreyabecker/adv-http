@@ -1,7 +1,7 @@
 #include "HttpHeaderCollection.h"
 #include "HttpHeader.h"
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
     void HttpHeaderCollection::set(const HttpHeader &header, bool forceOverwrite)
     {
@@ -51,4 +51,4 @@ namespace httpadv::v1::core
         }
     }
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::core

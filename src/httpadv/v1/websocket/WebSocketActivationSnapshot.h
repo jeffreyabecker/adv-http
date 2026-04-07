@@ -7,9 +7,9 @@
 #include <map>
 #include <string>
 
-namespace httpadv::v1::websocket
+namespace lumalink::http::websocket
 {
-    using httpadv::v1::core::HttpHeaderCollection;
+    using lumalink::http::core::HttpHeaderCollection;
 
     struct WebSocketActivationSnapshot
     {

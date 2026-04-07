@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace httpadv::v1::pipeline
+namespace lumalink::http::pipeline
 {
     enum class PipelineErrorCode : int32_t
     {
@@ -56,4 +56,4 @@ namespace httpadv::v1::pipeline
     private:
         PipelineErrorCode code_;
     };
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::pipeline

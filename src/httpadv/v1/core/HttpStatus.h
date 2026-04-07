@@ -9,7 +9,7 @@
 #include <string>
 
 
-namespace httpadv::v1::core {
+namespace lumalink::http::core {
 
 class HttpStatus {
 public:
@@ -428,4 +428,4 @@ private:
   std::string description_;
 };
 
-} // namespace httpadv::v1::core
+} // namespace lumalink::http::core

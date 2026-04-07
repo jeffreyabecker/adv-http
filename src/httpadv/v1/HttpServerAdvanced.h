@@ -1,8 +1,6 @@
 // dont do a pragma here because its a wrapper around other include files
 // #pragma once
 
-#include "httpadv/namespace.h"
-
 // Core HTTP types and utilities
 #include "httpadv/v1/core/Defines.h"
 #include "httpadv/v1/core/HttpContentTypes.h"

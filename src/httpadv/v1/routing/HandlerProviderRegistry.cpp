@@ -3,24 +3,24 @@
 #include "../response/HttpResponse.h"
 #include "../response/StringResponse.h"
 
-namespace httpadv::v1::routing
+namespace lumalink::http::routing
 {
 
-    using httpadv::v1::core::HttpHeader;
-    using httpadv::v1::core::HttpHeaderNames;
-    using httpadv::v1::core::HttpStatus;
-    using httpadv::v1::handlers::HandlerProvider;
-    using httpadv::v1::handlers::HttpHandler;
-    using httpadv::v1::handlers::IHttpHandler;
-    using httpadv::v1::response::IHttpResponse;
-    using httpadv::v1::response::StringResponse;
+    using lumalink::http::core::HttpHeader;
+    using lumalink::http::core::HttpHeaderNames;
+    using lumalink::http::core::HttpStatus;
+    using lumalink::http::handlers::HandlerProvider;
+    using lumalink::http::handlers::HttpHandler;
+    using lumalink::http::handlers::IHttpHandler;
+    using lumalink::http::response::IHttpResponse;
+    using lumalink::http::response::StringResponse;
 
-    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createDefaultHandler(httpadv::v1::core::HttpRequestContext &context)
+    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createDefaultHandler(lumalink::http::core::HttpRequestContext &context)
     {
         return std::make_unique<HttpHandler>(
             StringResponse::create(HttpStatus::NotFound(), "404 Not Found",
                                  {HttpHeader(HttpHeaderNames::ContentType, "text/plain")}),
-            [](const httpadv::v1::core::HttpRequestContext &)
+            [](const lumalink::http::core::HttpRequestContext &)
             { return true; });
     }
 
@@ -39,13 +39,13 @@ namespace httpadv::v1::routing
         return std::make_unique<ResponseFilterApplicator>(std::move(innerHandler), globalResponseFilter_, globalRequestInterceptor_);
     }
 
-    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createContextHandler(httpadv::v1::core::HttpRequestContext &context)
+    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createContextHandler(lumalink::http::core::HttpRequestContext &context)
     {
         if (!globalRequestFilter_ || globalRequestFilter_(context))
         {
             for (auto &creator : factories_)
             {
-                httpadv::v1::handlers::IHandlerProvider &factory = creator.get();
+                lumalink::http::handlers::IHandlerProvider &factory = creator.get();
                 if (factory.canHandle(context))
                 {
                     return wrapHandler(factory.create(context));
@@ -63,7 +63,7 @@ namespace httpadv::v1::routing
         defaultFactory_ = creator;
     }
 
-    void HandlerProviderRegistry::add(httpadv::v1::handlers::IHandlerProvider &handlerFactory, AddPosition position)
+    void HandlerProviderRegistry::add(lumalink::http::handlers::IHandlerProvider &handlerFactory, AddPosition position)
     {
         if (position == AddAt::Beginning)
         {
@@ -94,8 +94,8 @@ namespace httpadv::v1::routing
 
     void HandlerProviderRegistry::add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position)
     {
-        add(predicate, [invocation](httpadv::v1::core::HttpRequestContext &context)
-            { return std::make_unique<HttpHandler>(invocation, [](const httpadv::v1::core::HttpRequestContext &)
+        add(predicate, [invocation](lumalink::http::core::HttpRequestContext &context)
+            { return std::make_unique<HttpHandler>(invocation, [](const lumalink::http::core::HttpRequestContext &)
                                                    { return true; }); }, position);
     }
 
@@ -109,7 +109,7 @@ namespace httpadv::v1::routing
         if( globalRequestFilter_)
         {
             auto previousFilter = globalRequestFilter_;
-            globalRequestFilter_ = [previousFilter, predicate](httpadv::v1::core::HttpRequestContext &context) -> bool
+            globalRequestFilter_ = [previousFilter, predicate](lumalink::http::core::HttpRequestContext &context) -> bool
             {
                 return previousFilter(context) && predicate(context);
             };
@@ -148,7 +148,7 @@ namespace httpadv::v1::routing
         if (globalRequestInterceptor_)
         {
             auto previousInterceptor = globalRequestInterceptor_;
-            globalRequestInterceptor_ = [previousInterceptor, interceptor](httpadv::v1::core::HttpRequestContext &context, IHttpHandler::InvocationNext next) -> IHttpHandler::HandlerResult
+            globalRequestInterceptor_ = [previousInterceptor, interceptor](lumalink::http::core::HttpRequestContext &context, IHttpHandler::InvocationNext next) -> IHttpHandler::HandlerResult
             {
                 return interceptor(context, IHttpHandler::InvocationNext(context, [previousInterceptor, &context, next]() mutable -> IHttpHandler::HandlerResult
                                    { return previousInterceptor(context, next); }));
@@ -160,7 +160,7 @@ namespace httpadv::v1::routing
         }
     }
 
-} // namespace httpadv::v1::routing
+} // namespace lumalink::http::routing
 
 
 

@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
 
     constexpr std::size_t ETHERNET_FRAME_BUFFER_SIZE = 1436; // Standard Ethernet MTU minus headers
@@ -152,6 +152,6 @@ namespace httpadv::v1::core
 #endif
 
     static constexpr bool EnableArduinoJson = HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON != 0;
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::core
 
 

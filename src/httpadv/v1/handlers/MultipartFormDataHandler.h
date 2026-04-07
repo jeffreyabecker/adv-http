@@ -17,18 +17,18 @@
 #include "../routing/HandlerMatcher.h"
 #include "../core/HttpContentTypes.h"
 #include "../util/HttpUtility.h"
-namespace httpadv::v1::handlers
+namespace lumalink::http::handlers
 {
-    using httpadv::v1::core::HttpRequestContext;
-    using httpadv::v1::core::HttpContentTypes;
-    using httpadv::v1::core::HttpHeader;
-    using httpadv::v1::core::HttpHeaderNames;
-    using httpadv::v1::core::HttpStatus;
-    using httpadv::v1::core::MULTIPART_FORM_DATA_BUFFER_SIZE;
-    using httpadv::v1::response::IHttpResponse;
-    using httpadv::v1::response::StringResponse;
-    using httpadv::v1::routing::HandlerMatcher;
-    using httpadv::v1::util::WebUtility;
+    using lumalink::http::core::HttpRequestContext;
+    using lumalink::http::core::HttpContentTypes;
+    using lumalink::http::core::HttpHeader;
+    using lumalink::http::core::HttpHeaderNames;
+    using lumalink::http::core::HttpStatus;
+    using lumalink::http::core::MULTIPART_FORM_DATA_BUFFER_SIZE;
+    using lumalink::http::response::IHttpResponse;
+    using lumalink::http::response::StringResponse;
+    using lumalink::http::routing::HandlerMatcher;
+    using lumalink::http::util::WebUtility;
 
     enum class MultipartStatus
     {
@@ -103,9 +103,9 @@ namespace httpadv::v1::handlers
     public:
         MultipartFormDataHandler(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &, MultipartFormDataBuffer)> handler, ExtractArgsFromRequest extractor)
             : handler_(handler), extractor_(extractor) {}
-        virtual HandlerResult handleStep(httpadv::v1::core::HttpRequestContext &context)
+        virtual HandlerResult handleStep(lumalink::http::core::HttpRequestContext &context)
         {
-            if (!response_ && context.completedPhases() >= httpadv::v1::core::HttpContextPhase::CompletedReadingMessage)
+            if (!response_ && context.completedPhases() >= lumalink::http::core::HttpContextPhase::CompletedReadingMessage)
             {
                 handleBodyChunk(context, nullptr, 0);
             }
@@ -115,7 +115,7 @@ namespace httpadv::v1::handlers
             }
             return nullptr;
         }
-        virtual void handleBodyChunk(httpadv::v1::core::HttpRequestContext &context, const uint8_t *at, std::size_t length)
+        virtual void handleBodyChunk(lumalink::http::core::HttpRequestContext &context, const uint8_t *at, std::size_t length)
         {
             if (response_)
             {
@@ -274,10 +274,10 @@ namespace httpadv::v1::handlers
 
         static IHttpHandler::Factory makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
         {
-            return [handler, extractor](httpadv::v1::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
+            return [handler, extractor](lumalink::http::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
             {
                 auto params = extractor(context);
-                // MultipartFormDataHandler expects handler of signature (httpadv::v1::core::HttpRequestContext&, RouteParameters&, MultipartFormDataBuffer)
+                // MultipartFormDataHandler expects handler of signature (lumalink::http::core::HttpRequestContext&, RouteParameters&, MultipartFormDataBuffer)
                 // We'll create a simpler handler that just accepts the multipart buffer
                 auto wrappedHandler = [handler](HttpRequestContext &ctx, RouteParameters &params, MultipartFormDataBuffer buffer)
                 {
@@ -287,7 +287,7 @@ namespace httpadv::v1::handlers
                     return handler(ctx, std::move(params), std::move(postData));
                 };
                 return std::make_unique<MultipartFormDataHandler>(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &, MultipartFormDataBuffer)>(wrappedHandler),
-                                                                  ExtractArgsFromRequest([params](httpadv::v1::core::HttpRequestContext &c)
+                                                                  ExtractArgsFromRequest([params](lumalink::http::core::HttpRequestContext &c)
                                                                                          {
                                                                                              (void)c;
                                                                                              return params;
@@ -332,6 +332,6 @@ namespace httpadv::v1::handlers
             baseUri.setAllowedContentTypes({HttpContentTypes::MultipartFormData});
         }
     };
-} // namespace httpadv::v1::handlers
+} // namespace lumalink::http::handlers
 
 

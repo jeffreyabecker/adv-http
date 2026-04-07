@@ -17,15 +17,15 @@
 #include <type_traits>
 #include <utility>
 
-namespace httpadv::v1::routing
+namespace lumalink::http::routing
 {
-    using httpadv::v1::handlers::ExtractArgsFromRequest;
-    using httpadv::v1::handlers::GetRequest;
-    using httpadv::v1::handlers::HttpHandler;
-    using httpadv::v1::handlers::IHttpHandler;
-    using httpadv::v1::handlers::RouteParameters;
-    using httpadv::v1::websocket::WebSocketCallbacks;
-    using httpadv::v1::websocket::WebSocketUpgradeHandler;
+    using lumalink::http::handlers::ExtractArgsFromRequest;
+    using lumalink::http::handlers::GetRequest;
+    using lumalink::http::handlers::HttpHandler;
+    using lumalink::http::handlers::IHttpHandler;
+    using lumalink::http::handlers::RouteParameters;
+    using lumalink::http::websocket::WebSocketCallbacks;
+    using lumalink::http::websocket::WebSocketUpgradeHandler;
 
     // Forward declaration
     template <typename THandler> class HandlerBuilder;
@@ -63,7 +63,7 @@ namespace httpadv::v1::routing
         inline void on(HandlerMatcher &request, IHttpHandler::Factory handler)
         {
             providerRegistry_.add(
-                IHttpHandler::Predicate([&request](httpadv::v1::core::HttpRequestContext &requestContext)
+                IHttpHandler::Predicate([&request](lumalink::http::core::HttpRequestContext &requestContext)
                 {
                     return request.canHandle(requestContext);
                 }),
@@ -74,16 +74,16 @@ namespace httpadv::v1::routing
         {
             std::string registeredPath(path);
             providerRegistry_.add(
-                IHttpHandler::Predicate([registeredPath](httpadv::v1::core::HttpRequestContext &requestContext)
+                IHttpHandler::Predicate([registeredPath](lumalink::http::core::HttpRequestContext &requestContext)
                 {
                     return WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(requestContext) &&
                            defaultCheckUriPattern(requestContext.uriView().path(), registeredPath);
                 }),
-                IHttpHandler::Factory([callbacks = std::move(callbacks)](httpadv::v1::core::HttpRequestContext &) mutable -> std::unique_ptr<IHttpHandler>
+                IHttpHandler::Factory([callbacks = std::move(callbacks)](lumalink::http::core::HttpRequestContext &) mutable -> std::unique_ptr<IHttpHandler>
                 {
                     return std::make_unique<HttpHandler>(
                         IHttpHandler::InvocationCallback(
-                        [callbacks = std::move(callbacks)](httpadv::v1::core::HttpRequestContext &requestContext) mutable -> IHttpHandler::HandlerResult
+                        [callbacks = std::move(callbacks)](lumalink::http::core::HttpRequestContext &requestContext) mutable -> IHttpHandler::HandlerResult
                         {
                             WebSocketUpgradeHandler upgradeHandler;
                             return upgradeHandler.handle(requestContext, callbacks);
@@ -96,13 +96,13 @@ namespace httpadv::v1::routing
         }
 
         // Template methods for handler registration
-        template <typename THandler, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler, typename = std::enable_if_t<lumalink::http::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const HandlerMatcher &request, const typename THandler::Invocation &handler)
         {
             HandlerMatcher req = request;
             THandler::restrict(req);
             // Adapt HandlerMatcher's ArgsExtractor (takes 2 params) to ExtractArgsFromRequest (takes 1 param)
-            ExtractArgsFromRequest adapterExtractor = [req](httpadv::v1::core::HttpRequestContext &context) { return req.extractParameters(context); };
+            ExtractArgsFromRequest adapterExtractor = [req](lumalink::http::core::HttpRequestContext &context) { return req.extractParameters(context); };
             auto addHandler = [this](IHttpHandler::Predicate predicate, IHttpHandler::Factory factory)
             {
                 providerRegistry_.add(std::move(predicate), std::move(factory));
@@ -112,7 +112,7 @@ namespace httpadv::v1::routing
 
         template <typename THandler,
                   typename TCallable,
-                  typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
+                  typename = std::enable_if_t<lumalink::http::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::Invocation> &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::InvocationWithoutParams> &&
                                               (std::is_constructible_v<typename THandler::Invocation, TCallable> ||
@@ -132,7 +132,7 @@ namespace httpadv::v1::routing
             return on<THandler>(request, typename THandler::Invocation(std::forward<TCallable>(handler)));
         }
 
-        template <typename THandler, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler, typename = std::enable_if_t<lumalink::http::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const HandlerMatcher &request, const typename THandler::InvocationWithoutParams &handler)
         {
             HandlerMatcher req = request;
@@ -143,13 +143,13 @@ namespace httpadv::v1::routing
             };
             return HandlerBuilder<THandler>(std::move(addHandler), request, handler);
         }
-        template <typename THandler, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler, typename = std::enable_if_t<lumalink::http::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const char *path, const typename THandler::Invocation &handler)
         {
             HandlerMatcher request(path);
             THandler::restrict(request);
             // Adapt HandlerMatcher's ArgsExtractor (takes 2 params) to ExtractArgsFromRequest (takes 1 param)
-            ExtractArgsFromRequest adapterExtractor = [request](httpadv::v1::core::HttpRequestContext &context) { return request.extractParameters(context); };
+            ExtractArgsFromRequest adapterExtractor = [request](lumalink::http::core::HttpRequestContext &context) { return request.extractParameters(context); };
             auto addHandler = [this](IHttpHandler::Predicate predicate, IHttpHandler::Factory factory)
             {
                 providerRegistry_.add(std::move(predicate), std::move(factory));
@@ -159,7 +159,7 @@ namespace httpadv::v1::routing
 
         template <typename THandler,
                   typename TCallable,
-                  typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
+                  typename = std::enable_if_t<lumalink::http::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::Invocation> &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::InvocationWithoutParams> &&
                                               (std::is_constructible_v<typename THandler::Invocation, TCallable> ||
@@ -179,7 +179,7 @@ namespace httpadv::v1::routing
             return on<THandler>(path, typename THandler::Invocation(std::forward<TCallable>(handler)));
         }
 
-        template <typename THandler, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler, typename = std::enable_if_t<lumalink::http::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const char *path, const typename THandler::InvocationWithoutParams &handler)
         {
             HandlerMatcher request(path);
@@ -193,11 +193,11 @@ namespace httpadv::v1::routing
 
         void onNotFound(IHttpHandler::InvocationCallback invocation)
         {
-            providerRegistry_.setDefaultHandlerFactory([invocation](httpadv::v1::core::HttpRequestContext &context)
-                                              { return std::make_unique<HttpHandler>(invocation, [](const httpadv::v1::core::HttpRequestContext &)
+            providerRegistry_.setDefaultHandlerFactory([invocation](lumalink::http::core::HttpRequestContext &context)
+                                              { return std::make_unique<HttpHandler>(invocation, [](const lumalink::http::core::HttpRequestContext &)
                                                                                      { return true; }); });
         }
     };
-} // namespace httpadv::v1::routing
+} // namespace lumalink::http::routing
 
 

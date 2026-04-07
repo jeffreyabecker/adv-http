@@ -5,11 +5,11 @@
 #include "RequestHandlingResult.h"
 #include "../transport/TransportInterfaces.h"
 
-namespace httpadv::v1::pipeline
+namespace lumalink::http::pipeline
 {
-    using httpadv::v1::server::ConnectionSessionResult;
-    using httpadv::v1::transport::IClient;
-    using httpadv::v1::util::Clock;
+    using lumalink::http::server::ConnectionSessionResult;
+    using lumalink::http::transport::IClient;
+    using lumalink::http::util::Clock;
 
     class IProtocolExecution
     {

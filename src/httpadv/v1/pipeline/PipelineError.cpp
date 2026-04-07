@@ -1,6 +1,6 @@
 #include "PipelineError.h"
 
-namespace httpadv::v1::pipeline
+namespace lumalink::http::pipeline
 {
     const char *PipelineErrorName(PipelineErrorCode c)
     {
@@ -129,4 +129,4 @@ namespace httpadv::v1::pipeline
             return "Unknown pipeline error";
         }
     }
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::pipeline

@@ -14,14 +14,14 @@
 #include <string_view>
 #include <vector>
 
-namespace httpadv::v1::staticfiles
+namespace lumalink::http::staticfiles
 {
 
-  using httpadv::v1::handlers::IHttpHandler;
-  using httpadv::v1::response::IHttpResponse;
-  using httpadv::v1::routing::HandlerMatcher;
-  using httpadv::v1::server::WebServerBuilder;
-  using httpadv::v1::transport::IFileSystem;
+  using lumalink::http::handlers::IHttpHandler;
+  using lumalink::http::response::IHttpResponse;
+  using lumalink::http::routing::HandlerMatcher;
+  using lumalink::http::server::WebServerBuilder;
+  using lumalink::http::transport::IFileSystem;
 
   class StaticFilesBuilder
   {
@@ -41,7 +41,7 @@ namespace httpadv::v1::staticfiles
 
   protected:
     static constexpr const char *NAME = "StaticFiles";
-    void init(httpadv::v1::server::WebServerBuilder &coreBuilder);
+    void init(lumalink::http::server::WebServerBuilder &coreBuilder);
 
   public:
     StaticFilesBuilder(IFileSystem &fs,
@@ -72,4 +72,4 @@ namespace httpadv::v1::staticfiles
   std::function<void(WebServerBuilder &)> &
   StaticFiles(IFileSystem &fs,
               std::function<void(StaticFilesBuilder &)> setupFunc = nullptr);
-}; // namespace httpadv::v1::staticfiles
+}; // namespace lumalink::http::staticfiles

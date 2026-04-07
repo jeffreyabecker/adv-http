@@ -15,14 +15,14 @@
 #include <any>
 #include <string_view>
 
-namespace httpadv::v1::server
+namespace lumalink::http::server
 {
-    using httpadv::v1::core::MAX_CONCURRENT_CONNECTIONS;
-    using httpadv::v1::core::HttpTimeouts;
-    using httpadv::v1::pipeline::HttpPipeline;
-    using httpadv::v1::pipeline::PipelineHandlerPtr;
-    using httpadv::v1::transport::IServer;
-    using httpadv::v1::util::Clock;
+    using lumalink::http::core::MAX_CONCURRENT_CONNECTIONS;
+    using lumalink::http::core::HttpTimeouts;
+    using lumalink::http::pipeline::HttpPipeline;
+    using lumalink::http::pipeline::PipelineHandlerPtr;
+    using lumalink::http::transport::IServer;
+    using lumalink::http::util::Clock;
 
     class HttpServerBase
     {
@@ -60,6 +60,6 @@ namespace httpadv::v1::server
         mutable std::map<std::string, std::any> items_;
     };
 
-} // namespace httpadv::v1::server
+} // namespace lumalink::http::server
 
 

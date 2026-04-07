@@ -2,11 +2,11 @@
 #include "IHttpContextHandlerFactory.h"
 #include "../routing/HandlerProviderRegistry.h"
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
-    using httpadv::v1::handlers::HandlerResult;
-    using httpadv::v1::handlers::IHttpHandler;
-    using httpadv::v1::routing::HandlerProviderRegistry;
+    using lumalink::http::handlers::HandlerResult;
+    using lumalink::http::handlers::IHttpHandler;
+    using lumalink::http::routing::HandlerProviderRegistry;
 
     class DeferredRegistryHandler : public IHttpHandler
     {
@@ -68,7 +68,7 @@ namespace httpadv::v1::core
             return std::make_unique<DeferredRegistryHandler>(providerRegistry_);
         }
     };
-} // namespace httpadv::v1::core
+} // namespace lumalink::http::core
 
 
 

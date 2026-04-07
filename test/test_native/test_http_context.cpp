@@ -21,17 +21,17 @@
 #include <string_view>
 #include <vector>
 
-using namespace httpadv::v1::core;
-using namespace httpadv::v1::handlers;
-using namespace httpadv::v1::pipeline;
-using namespace httpadv::v1::response;
-using namespace httpadv::v1::routing;
-using namespace httpadv::v1::server;
-using namespace httpadv::v1::staticfiles;
-using namespace httpadv::v1::transport;
+using namespace lumalink::http::core;
+using namespace lumalink::http::handlers;
+using namespace lumalink::http::pipeline;
+using namespace lumalink::http::response;
+using namespace lumalink::http::routing;
+using namespace lumalink::http::server;
+using namespace lumalink::http::staticfiles;
+using namespace lumalink::http::transport;
 using namespace lumalink::platform::buffers;
-using namespace httpadv::v1::util;
-using namespace httpadv::v1::websocket;
+using namespace lumalink::http::util;
+using namespace lumalink::http::websocket;
 
 namespace
 {
@@ -86,7 +86,7 @@ namespace
     {
     }
 
-    httpadv::v1::TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback createWebSocketUpgradeHandlerFactory(
+    lumalink::http::TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback createWebSocketUpgradeHandlerFactory(
         std::string_view path,
         WebSocketCallbacks callbacks = {})
     {
@@ -108,13 +108,13 @@ namespace
 
     void test_http_context_preserves_custom_method_through_factory_and_handler_steps()
     {
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         std::unique_ptr<CapturingHandler> capturingHandler = std::make_unique<CapturingHandler>();
         CapturingHandler *capturingHandlerPtr = capturingHandler.get();
         std::vector<std::string> factoryMethods;
         std::vector<HttpContextPhaseFlags> factoryPhases;
 
-        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(
+        lumalink::http::TestSupport::RecordingRequestHandlerFactory factory(
             [&factoryMethods, &factoryPhases, &capturingHandler](HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
             {
                 factoryMethods.push_back(std::string(context.methodView()));
@@ -161,10 +161,10 @@ namespace
         std::string_view method,
         std::string_view path,
         const std::vector<std::pair<std::string, std::string>> &headers,
-        httpadv::v1::TestSupport::RecordingRequestHandlerFactory &factory,
+        lumalink::http::TestSupport::RecordingRequestHandlerFactory &factory,
         RequestHandlingResult::Kind expectedKind)
     {
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto pipelineHandler = HttpContext::createPipelineHandler(server, factory);
         RequestParser parser(*pipelineHandler);
 
@@ -192,7 +192,7 @@ namespace
         {
             TEST_ASSERT_NOT_NULL(result.responseStream.get());
             TEST_ASSERT_NULL(result.upgradedSession.get());
-            return httpadv::v1::TestSupport::ReadByteSourceAsStdString(*result.responseStream);
+            return lumalink::http::TestSupport::ReadByteSourceAsStdString(*result.responseStream);
         }
 
         return std::string();
@@ -200,8 +200,8 @@ namespace
 
     void test_http_context_websocket_upgrade_accepts_split_request_and_returns_upgrade_session()
     {
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
-        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
+        lumalink::http::TestSupport::RecordingRequestHandlerFactory factory(
             createWebSocketUpgradeHandlerFactory("/chat"));
 
         auto pipelineHandler = HttpContext::createPipelineHandler(server, factory);
@@ -231,7 +231,7 @@ namespace
         TEST_ASSERT_NOT_NULL(result.upgradedSession.get());
         TEST_ASSERT_NULL(result.responseStream.get());
 
-        httpadv::v1::TestSupport::FakeClient client;
+        lumalink::http::TestSupport::FakeClient client;
         ManualClock clock(1000);
         const ConnectionSessionResult firstStep = result.upgradedSession->handle(client, clock);
 
@@ -247,7 +247,7 @@ namespace
     void test_http_context_websocket_upgrade_rejects_invalid_requests_with_deterministic_statuses()
     {
         {
-            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            lumalink::http::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "POST",
                 "/chat",
@@ -266,7 +266,7 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            lumalink::http::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -284,7 +284,7 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            lumalink::http::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -302,7 +302,7 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            lumalink::http::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -321,7 +321,7 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            lumalink::http::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -340,7 +340,7 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            lumalink::http::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -359,7 +359,7 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            lumalink::http::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -378,7 +378,7 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
+            lumalink::http::TestSupport::RecordingRequestHandlerFactory factory(createWebSocketUpgradeHandlerFactory("/chat"));
             const std::string responseText = ExecuteAndCaptureResponseText(
                 "GET",
                 "/chat",
@@ -410,7 +410,7 @@ namespace
 
 int run_test_http_context()
 {
-    return httpadv::v1::TestSupport::RunConsolidatedSuite(
+    return lumalink::http::TestSupport::RunConsolidatedSuite(
         "http request",
         runUnitySuite,
         localSetUp,

@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-namespace httpadv::v1::util
+namespace lumalink::http::util
 {
     template <typename TKey, typename TValue>
     class KeyValuePairView

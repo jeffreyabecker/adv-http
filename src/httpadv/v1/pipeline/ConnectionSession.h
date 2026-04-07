@@ -4,16 +4,16 @@
 
 #include "../util/Clock.h"
 
-namespace httpadv::v1::pipeline
+namespace lumalink::http::pipeline
 {
     class IProtocolExecution;
 }
 
-namespace httpadv::v1::server
+namespace lumalink::http::server
 {
-    using httpadv::v1::transport::IClient;
-    using httpadv::v1::util::Clock;
-    using httpadv::v1::pipeline::IProtocolExecution;
+    using lumalink::http::transport::IClient;
+    using lumalink::http::util::Clock;
+    using lumalink::http::pipeline::IProtocolExecution;
 
     enum class ConnectionSessionResult
     {

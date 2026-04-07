@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <string_view>
 
-namespace httpadv::v1::pipeline
+namespace lumalink::http::pipeline
 {
 
 

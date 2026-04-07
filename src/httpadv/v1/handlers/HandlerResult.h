@@ -5,9 +5,9 @@
 
 #include <memory>
 
-namespace httpadv::v1::handlers
+namespace lumalink::http::handlers
 {
-    using httpadv::v1::server::IConnectionSession;
+    using lumalink::http::server::IConnectionSession;
 
     struct HandlerResult
     {
@@ -19,7 +19,7 @@ namespace httpadv::v1::handlers
         };
 
         Kind kind = Kind::None;
-        std::unique_ptr<httpadv::v1::response::IHttpResponse> response;
+        std::unique_ptr<lumalink::http::response::IHttpResponse> response;
         std::unique_ptr<IConnectionSession> upgradedSession;
 
         HandlerResult() = default;
@@ -28,13 +28,13 @@ namespace httpadv::v1::handlers
         {
         }
 
-        HandlerResult(std::unique_ptr<httpadv::v1::response::IHttpResponse> httpResponse)
+        HandlerResult(std::unique_ptr<lumalink::http::response::IHttpResponse> httpResponse)
             : kind(httpResponse ? Kind::Response : Kind::None),
               response(std::move(httpResponse))
         {
         }
 
-        static HandlerResult responseResult(std::unique_ptr<httpadv::v1::response::IHttpResponse> httpResponse)
+        static HandlerResult responseResult(std::unique_ptr<lumalink::http::response::IHttpResponse> httpResponse)
         {
             return HandlerResult(std::move(httpResponse));
         }
@@ -62,7 +62,7 @@ namespace httpadv::v1::handlers
             return kind == Kind::Upgrade;
         }
 
-        httpadv::v1::response::IHttpResponse *get() const
+        lumalink::http::response::IHttpResponse *get() const
         {
             return response.get();
         }

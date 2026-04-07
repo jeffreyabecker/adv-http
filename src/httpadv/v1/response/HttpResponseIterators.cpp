@@ -3,7 +3,7 @@
 #include <ctime>
 #include <cstring>
 
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
     std::string getHeaderDateValue()
     {
@@ -53,5 +53,5 @@ namespace httpadv::v1::response
             }
         }
     }
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::response
 

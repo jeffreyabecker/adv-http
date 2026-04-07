@@ -27,7 +27,7 @@ namespace
 
 int run_test_native_smoke()
 {
-    return httpadv::v1::TestSupport::RunConsolidatedSuite(
+    return lumalink::http::TestSupport::RunConsolidatedSuite(
         "native smoke",
         runUnitySuite,
         localSetUp,

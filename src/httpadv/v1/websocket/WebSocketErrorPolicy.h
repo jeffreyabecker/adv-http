@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace httpadv::v1::websocket
+namespace lumalink::http::websocket
 {
     enum class WsErrorCategory
     {

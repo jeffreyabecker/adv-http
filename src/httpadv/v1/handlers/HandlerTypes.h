@@ -13,9 +13,9 @@
 #include "JsonBodyHandler.h"
 #endif
 #include "BufferedStringBodyHandler.h"
-namespace httpadv::v1::handlers
+namespace lumalink::http::handlers
 {
-    using httpadv::v1::core::HttpRequestContext;
+    using lumalink::http::core::HttpRequestContext;
 
     // Type definitions
     class GetRequest
@@ -34,7 +34,7 @@ namespace httpadv::v1::handlers
 
         static IHttpHandler::Factory makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
         {
-            return [handler, extractor](httpadv::v1::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
+            return [handler, extractor](lumalink::http::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
             {
                 auto params = extractor(context);
                 return std::make_unique<HttpHandler>(IHttpHandler::InvocationCallback([handler, params = std::move(params)](HttpRequestContext &context) mutable -> IHttpHandler::HandlerResult
@@ -87,6 +87,6 @@ namespace httpadv::v1::handlers
 
 
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::handlers
 
 

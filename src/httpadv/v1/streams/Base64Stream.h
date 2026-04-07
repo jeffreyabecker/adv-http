@@ -1,6 +1,6 @@
 #pragma once
 #include "../transport/ByteStream.h"
-namespace httpadv::v1::streams
+namespace lumalink::http::streams
 {
     using lumalink::platform::buffers::AvailableResult;
     using lumalink::platform::buffers::IByteSource;
@@ -84,4 +84,4 @@ namespace httpadv::v1::streams
         int peekSingleByte();
         int readSingleByte();
     };
-} // namespace httpadv::v1::streams
+} // namespace lumalink::http::streams

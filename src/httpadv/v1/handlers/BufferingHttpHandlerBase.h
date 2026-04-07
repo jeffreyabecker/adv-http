@@ -11,9 +11,9 @@
 #include <string_view>
 #include "../core/HttpRequestContext.h"
 
-namespace httpadv::v1::handlers
+namespace lumalink::http::handlers
 {
-    using httpadv::v1::core::HttpHeader;
+    using lumalink::http::core::HttpHeader;
 
     inline bool tryParseHeaderLength(std::string_view value, size_t &parsedLength)
     {
@@ -26,7 +26,7 @@ namespace httpadv::v1::handlers
 
     // Template base for handlers that buffer request bodies.
     // MaxBuffered defaults to the library-configured value `MAX_BUFFERED_BODY_LENGTH`.
-    template <std::ptrdiff_t MaxBuffered = httpadv::v1::core::MAX_BUFFERED_BODY_LENGTH>
+    template <std::ptrdiff_t MaxBuffered = lumalink::http::core::MAX_BUFFERED_BODY_LENGTH>
     class BufferingHttpHandlerBase : public IHttpHandler
     {
     private:
@@ -38,11 +38,11 @@ namespace httpadv::v1::handlers
     public:
         virtual ~BufferingHttpHandlerBase() = default;
 
-        virtual HandlerResult handleBody(httpadv::v1::core::HttpRequestContext &context, std::vector<uint8_t> &&body) = 0;
+        virtual HandlerResult handleBody(lumalink::http::core::HttpRequestContext &context, std::vector<uint8_t> &&body) = 0;
 
-        HandlerResult handleStep(httpadv::v1::core::HttpRequestContext &context) override
+        HandlerResult handleStep(lumalink::http::core::HttpRequestContext &context) override
         {
-            if (context.completedPhases() < httpadv::v1::core::HttpContextPhase::CompletedReadingMessage)
+            if (context.completedPhases() < lumalink::http::core::HttpContextPhase::CompletedReadingMessage)
             {
                 return nullptr;
             }
@@ -55,7 +55,7 @@ namespace httpadv::v1::handlers
             return handleBody(context, std::move(bodyBuffer_));
         }
 
-        void handleBodyChunk(httpadv::v1::core::HttpRequestContext &context, const uint8_t *at, std::size_t length) override
+        void handleBodyChunk(lumalink::http::core::HttpRequestContext &context, const uint8_t *at, std::size_t length) override
         {
             const std::ptrdiff_t cfg = configuredMax;
             if (cfg == 0)
@@ -102,5 +102,5 @@ namespace httpadv::v1::handlers
     // Convenience alias with default template parameter
     using DefaultBufferingHttpHandlerBase = BufferingHttpHandlerBase<>;
 
-} // namespace httpadv::v1::handlers
+} // namespace lumalink::http::handlers
 

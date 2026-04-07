@@ -20,7 +20,7 @@
 #include <string_view>
 #include <vector>
 
-namespace httpadv::v1::websocket
+namespace lumalink::http::websocket
 {
     namespace
     {
@@ -230,23 +230,23 @@ namespace httpadv::v1::websocket
             source.append(WebSocketGuid);
 
             const std::array<std::uint8_t, 20> digest = sha1Digest(source);
-            return httpadv::v1::util::WebUtility::Base64Encode(digest.data(), digest.size(), false);
+            return lumalink::http::util::WebUtility::Base64Encode(digest.data(), digest.size(), false);
         }
 
-        std::optional<WebSocketUpgradeHandler::UpgradeFailure> validateUpgradeRequest(const httpadv::v1::core::HttpRequestContext &request, std::string &normalizedKey)
+        std::optional<WebSocketUpgradeHandler::UpgradeFailure> validateUpgradeRequest(const lumalink::http::core::HttpRequestContext &request, std::string &normalizedKey)
         {
             if (request.methodView() != "GET")
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::InvalidMethod;
             }
 
-            const auto connectionHeader = request.headers().find(httpadv::v1::core::HttpHeaderNames::Connection);
+            const auto connectionHeader = request.headers().find(lumalink::http::core::HttpHeaderNames::Connection);
             if (!connectionHeader.has_value() || !containsTokenCaseInsensitive(connectionHeader->valueView(), UpgradeToken))
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::MissingUpgradeIntent;
             }
 
-            const auto upgradeHeader = request.headers().find(httpadv::v1::core::HttpHeaderNames::Upgrade);
+            const auto upgradeHeader = request.headers().find(lumalink::http::core::HttpHeaderNames::Upgrade);
             if (!upgradeHeader.has_value())
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::MissingUpgradeIntent;
@@ -257,7 +257,7 @@ namespace httpadv::v1::websocket
                 return WebSocketUpgradeHandler::UpgradeFailure::ConflictingHeaders;
             }
 
-            const auto versionHeader = request.headers().find(httpadv::v1::core::HttpHeaderNames::SecWebSocketVersion);
+            const auto versionHeader = request.headers().find(lumalink::http::core::HttpHeaderNames::SecWebSocketVersion);
             if (!versionHeader.has_value())
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::UnsupportedVersion;
@@ -269,7 +269,7 @@ namespace httpadv::v1::websocket
                 return WebSocketUpgradeHandler::UpgradeFailure::UnsupportedVersion;
             }
 
-            const auto keyHeader = request.headers().find(httpadv::v1::core::HttpHeaderNames::SecWebSocketKey);
+            const auto keyHeader = request.headers().find(lumalink::http::core::HttpHeaderNames::SecWebSocketKey);
             if (!keyHeader.has_value())
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::InvalidKeyLength;
@@ -281,13 +281,13 @@ namespace httpadv::v1::websocket
                 return WebSocketUpgradeHandler::UpgradeFailure::InvalidKeyLength;
             }
 
-            const std::vector<std::uint8_t> decodedKey = httpadv::v1::util::WebUtility::Base64Decode(normalizedKey, false);
+            const std::vector<std::uint8_t> decodedKey = lumalink::http::util::WebUtility::Base64Decode(normalizedKey, false);
             if (decodedKey.size() != 16U)
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::MalformedKeyText;
             }
 
-            if (httpadv::v1::util::WebUtility::Base64Encode(decodedKey.data(), decodedKey.size(), false) != normalizedKey)
+            if (lumalink::http::util::WebUtility::Base64Encode(decodedKey.data(), decodedKey.size(), false) != normalizedKey)
             {
                 return WebSocketUpgradeHandler::UpgradeFailure::MalformedKeyText;
             }
@@ -308,7 +308,7 @@ namespace httpadv::v1::websocket
             return response;
         }
 
-        WebSocketActivationSnapshot createActivationSnapshot(const httpadv::v1::core::HttpRequestContext &request)
+        WebSocketActivationSnapshot createActivationSnapshot(const lumalink::http::core::HttpRequestContext &request)
         {
             WebSocketActivationSnapshot snapshot;
             snapshot.items = request.items();
@@ -324,23 +324,23 @@ namespace httpadv::v1::websocket
         }
     }
 
-    bool WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(const httpadv::v1::core::HttpRequestContext &request)
+    bool WebSocketUpgradeHandler::isWebSocketUpgradeCandidate(const lumalink::http::core::HttpRequestContext &request)
     {
-        const httpadv::v1::core::HttpHeaderCollection &headers = request.headers();
-        if (headers.exists(httpadv::v1::core::HttpHeaderNames::SecWebSocketKey) ||
-            headers.exists(httpadv::v1::core::HttpHeaderNames::SecWebSocketVersion) ||
-            headers.exists(httpadv::v1::core::HttpHeaderNames::SecWebSocketProtocol))
+        const lumalink::http::core::HttpHeaderCollection &headers = request.headers();
+        if (headers.exists(lumalink::http::core::HttpHeaderNames::SecWebSocketKey) ||
+            headers.exists(lumalink::http::core::HttpHeaderNames::SecWebSocketVersion) ||
+            headers.exists(lumalink::http::core::HttpHeaderNames::SecWebSocketProtocol))
         {
             return true;
         }
 
-        const auto upgradeHeader = headers.find(httpadv::v1::core::HttpHeaderNames::Upgrade);
+        const auto upgradeHeader = headers.find(lumalink::http::core::HttpHeaderNames::Upgrade);
         if (upgradeHeader.has_value() && containsTokenCaseInsensitive(upgradeHeader->valueView(), WebSocketUpgradeToken))
         {
             return true;
         }
 
-        const auto connectionHeader = headers.find(httpadv::v1::core::HttpHeaderNames::Connection);
+        const auto connectionHeader = headers.find(lumalink::http::core::HttpHeaderNames::Connection);
         if (connectionHeader.has_value() && containsTokenCaseInsensitive(connectionHeader->valueView(), UpgradeToken))
         {
             return true;
@@ -349,7 +349,7 @@ namespace httpadv::v1::websocket
         return false;
     }
 
-    HandlerResult WebSocketUpgradeHandler::handle(httpadv::v1::core::HttpRequestContext &request, const WebSocketCallbacks &callbacks) const
+    HandlerResult WebSocketUpgradeHandler::handle(lumalink::http::core::HttpRequestContext &request, const WebSocketCallbacks &callbacks) const
     {
         std::string key;
         const std::optional<UpgradeFailure> failure = validateUpgradeRequest(request, key);
@@ -364,41 +364,41 @@ namespace httpadv::v1::websocket
         return HandlerResult::upgradeResult(std::move(session));
     }
 
-    HandlerResult WebSocketUpgradeHandler::rejectUpgrade(httpadv::v1::core::HttpRequestContext &request, UpgradeFailure failure)
+    HandlerResult WebSocketUpgradeHandler::rejectUpgrade(lumalink::http::core::HttpRequestContext &request, UpgradeFailure failure)
     {
         (void)request;
-        httpadv::v1::core::HttpStatus status = httpadv::v1::core::HttpStatus::BadRequest();
+        lumalink::http::core::HttpStatus status = lumalink::http::core::HttpStatus::BadRequest();
         std::string message = "WebSocket upgrade rejected: malformed headers or key";
 
         switch (failure)
         {
         case UpgradeFailure::InvalidMethod:
-            status = httpadv::v1::core::HttpStatus::MethodNotAllowed();
+            status = lumalink::http::core::HttpStatus::MethodNotAllowed();
             message = "WebSocket upgrade rejected: method must be GET";
             break;
         case UpgradeFailure::MissingUpgradeIntent:
-            status = httpadv::v1::core::HttpStatus::UpgradeRequired();
+            status = lumalink::http::core::HttpStatus::UpgradeRequired();
             message = "WebSocket upgrade rejected: missing upgrade intent";
             break;
         case UpgradeFailure::UnsupportedVersion:
-            status = httpadv::v1::core::HttpStatus::BadRequest();
+            status = lumalink::http::core::HttpStatus::BadRequest();
             message = "WebSocket upgrade rejected: unsupported version";
             break;
         case UpgradeFailure::InvalidKeyLength:
-            status = httpadv::v1::core::HttpStatus::BadRequest();
+            status = lumalink::http::core::HttpStatus::BadRequest();
             message = "WebSocket upgrade rejected: invalid key length";
             break;
         case UpgradeFailure::MalformedKeyText:
-            status = httpadv::v1::core::HttpStatus::BadRequest();
+            status = lumalink::http::core::HttpStatus::BadRequest();
             message = "WebSocket upgrade rejected: malformed key";
             break;
         case UpgradeFailure::ConflictingHeaders:
-            status = httpadv::v1::core::HttpStatus::BadRequest();
+            status = lumalink::http::core::HttpStatus::BadRequest();
             message = "WebSocket upgrade rejected: conflicting headers";
             break;
         }
 
         return HandlerResult::responseResult(
-            httpadv::v1::response::StringResponse::create(status, message, {}));
+            lumalink::http::response::StringResponse::create(status, message, {}));
     }
 }

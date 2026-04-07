@@ -12,152 +12,148 @@
 #include <utility>
 #include <vector>
 
-namespace httpadv
+namespace lumalink::http::TestSupport
 {
-    inline namespace v1
+    using namespace lumalink::platform::buffers;
+
+    inline std::string ReadByteSourceAsStdString(IByteSource &source)
     {
-        namespace TestSupport
+        std::string result;
+        std::uint8_t buffer[256] = {};
+
+        while (true)
         {
-            using namespace lumalink::platform::buffers;
-
-            inline std::string ReadByteSourceAsStdString(IByteSource &source)
+            const std::size_t bytesRead = source.read(lumalink::span<std::uint8_t>(buffer, sizeof(buffer)));
+            if (bytesRead == 0)
             {
-                std::string result;
-                std::uint8_t buffer[256] = {};
-
-                while (true)
-                {
-                    const std::size_t bytesRead = source.read(lumalink::span<std::uint8_t>(buffer, sizeof(buffer)));
-                    if (bytesRead == 0)
-                    {
-                        break;
-                    }
-
-                    result.append(reinterpret_cast<const char *>(buffer), bytesRead);
-                }
-
-                return result;
+                break;
             }
 
-            inline std::string DrainByteSourceWithAvailability(IByteSource &source, std::size_t maxUnavailablePolls = 8)
+            result.append(reinterpret_cast<const char *>(buffer), bytesRead);
+        }
+
+        return result;
+    }
+
+    inline std::string DrainByteSourceWithAvailability(IByteSource &source, std::size_t maxUnavailablePolls = 8)
+    {
+        std::string result;
+        std::uint8_t buffer[256] = {};
+        std::size_t unavailablePolls = 0;
+
+        while (true)
+        {
+            const AvailableResult available = source.available();
+            if (available.hasBytes())
             {
-                std::string result;
-                std::uint8_t buffer[256] = {};
-                std::size_t unavailablePolls = 0;
-
-                while (true)
+                const std::size_t bytesRead = source.read(lumalink::span<std::uint8_t>(buffer, (std::min)(available.count, sizeof(buffer))));
+                if (bytesRead == 0)
                 {
-                    const AvailableResult available = source.available();
-                    if (available.hasBytes())
-                    {
-                        const std::size_t bytesRead = source.read(lumalink::span<std::uint8_t>(buffer, (std::min)(available.count, sizeof(buffer))));
-                        if (bytesRead == 0)
-                        {
-                            break;
-                        }
-
-                        result.append(reinterpret_cast<const char *>(buffer), bytesRead);
-                        unavailablePolls = 0;
-                        continue;
-                    }
-
-                    if (available.isTemporarilyUnavailable())
-                    {
-                        ++unavailablePolls;
-                        if (unavailablePolls > maxUnavailablePolls)
-                        {
-                            break;
-                        }
-
-                        continue;
-                    }
-
                     break;
                 }
 
-                return result;
+                result.append(reinterpret_cast<const char *>(buffer), bytesRead);
+                unavailablePolls = 0;
+                continue;
             }
 
-            class ScriptedByteSource : public IByteSource
+            if (available.isTemporarilyUnavailable())
             {
-            public:
-                struct Step
+                ++unavailablePolls;
+                if (unavailablePolls > maxUnavailablePolls)
                 {
-                    std::string text;
-                    bool temporarilyUnavailable = false;
-                    bool unavailableReported = false;
-                };
-
-                ScriptedByteSource() = default;
-
-                explicit ScriptedByteSource(std::initializer_list<std::pair<const char *, bool>> steps)
-                {
-                    for (const auto &step : steps)
-                    {
-                        steps_.push_back({step.first != nullptr ? step.first : "", step.second, false});
-                    }
+                    break;
                 }
 
-                static ScriptedByteSource FromText(const char *text)
+                continue;
+            }
+
+            break;
+        }
+
+        return result;
+    }
+
+    class ScriptedByteSource : public IByteSource
+    {
+    public:
+        struct Step
+        {
+            std::string text;
+            bool temporarilyUnavailable = false;
+            bool unavailableReported = false;
+        };
+
+        ScriptedByteSource() = default;
+
+        explicit ScriptedByteSource(std::initializer_list<std::pair<const char *, bool>> steps)
+        {
+            for (const auto &step : steps)
+            {
+                steps_.push_back({step.first != nullptr ? step.first : "", step.second, false});
+            }
+        }
+
+        static ScriptedByteSource FromText(const char *text)
+        {
+            ScriptedByteSource source;
+            source.steps_.push_back({text != nullptr ? text : "", false, false});
+            return source;
+        }
+
+        static ScriptedByteSource FromText(std::string_view text)
+        {
+            ScriptedByteSource source;
+            source.steps_.push_back({std::string(text), false, false});
+            return source;
+        }
+
+        AvailableResult available() override
+        {
+            advancePastConsumedSteps();
+            if (stepIndex_ >= steps_.size())
+            {
+                return ExhaustedResult();
+            }
+
+            Step &step = steps_[stepIndex_];
+            if (step.temporarilyUnavailable)
+            {
+                if (!step.unavailableReported)
                 {
-                    ScriptedByteSource source;
-                    source.steps_.push_back({text != nullptr ? text : "", false, false});
-                    return source;
+                    step.unavailableReported = true;
+                    return TemporarilyUnavailableResult();
                 }
 
-                static ScriptedByteSource FromText(std::string_view text)
-                {
-                    ScriptedByteSource source;
-                    source.steps_.push_back({std::string(text), false, false});
-                    return source;
-                }
+                ++stepIndex_;
+                positionInStep_ = 0;
+                return available();
+            }
 
-                AvailableResult available() override
-                {
-                    advancePastConsumedSteps();
-                    if (stepIndex_ >= steps_.size())
-                    {
-                        return ExhaustedResult();
-                    }
+            return AvailableBytes(step.text.size() - positionInStep_);
+        }
 
-                    Step &step = steps_[stepIndex_];
-                    if (step.temporarilyUnavailable)
-                    {
-                        if (!step.unavailableReported)
-                        {
-                            step.unavailableReported = true;
-                            return TemporarilyUnavailableResult();
-                        }
+        std::size_t read(lumalink::span<std::uint8_t> buffer) override
+        {
+            return copyInto(buffer, true);
+        }
 
-                        ++stepIndex_;
-                        positionInStep_ = 0;
-                        return available();
-                    }
+        std::size_t peek(lumalink::span<std::uint8_t> buffer) override
+        {
+            return copyInto(buffer, false);
+        }
 
-                    return AvailableBytes(step.text.size() - positionInStep_);
-                }
+    private:
+        std::vector<Step> steps_;
+        std::size_t stepIndex_ = 0;
+        std::size_t positionInStep_ = 0;
 
-                std::size_t read(lumalink::span<std::uint8_t> buffer) override
-                {
-                    return copyInto(buffer, true);
-                }
-
-                std::size_t peek(lumalink::span<std::uint8_t> buffer) override
-                {
-                    return copyInto(buffer, false);
-                }
-
-            private:
-                std::vector<Step> steps_;
-                std::size_t stepIndex_ = 0;
-                std::size_t positionInStep_ = 0;
-
-                void advancePastConsumedSteps()
-                {
-                    while (stepIndex_ < steps_.size())
-                    {
-                        Step &step = steps_[stepIndex_];
-                        if (step.temporarilyUnavailable)
+        void advancePastConsumedSteps()
+        {
+            while (stepIndex_ < steps_.size())
+            {
+                Step &step = steps_[stepIndex_];
+                if (step.temporarilyUnavailable)
                         {
                             if (step.unavailableReported)
                             {
@@ -271,7 +267,5 @@ namespace httpadv
                 std::vector<std::uint8_t> written_;
                 std::vector<std::size_t> writeSizes_;
                 std::size_t flushCount_ = 0;
-            };
-        }
-    }
+    };
 }

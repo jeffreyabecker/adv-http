@@ -11,7 +11,7 @@
 #else
 #include "lumalink/platform/posix/PosixSocketTransport.h"
 #endif
-namespace httpadv::v1::server
+namespace lumalink::http::server
 {
   template <typename THttpServer>
   class FriendlyWebServer : public THttpServer
@@ -61,4 +61,4 @@ namespace httpadv::v1::server
 
   using WebServer = FriendlyWebServer<HttpServerBase>;
 
-} // namespace httpadv::v1::server
+} // namespace lumalink::http::server

@@ -10,17 +10,17 @@
 #include "../core/HttpHeaderCollection.h"
 #include "HttpHandler.h"
 #include "../response/IHttpResponse.h"
-namespace httpadv::v1::handlers
+namespace lumalink::http::handlers
 {
-    using httpadv::v1::core::HttpRequestContext;
+    using lumalink::http::core::HttpRequestContext;
 
     // Forward declarations
     class IHandlerProvider
     {
     public:
         virtual ~IHandlerProvider() = default;
-        virtual bool canHandle(httpadv::v1::core::HttpRequestContext &context) = 0;
-        virtual std::unique_ptr<IHttpHandler> create(httpadv::v1::core::HttpRequestContext &context) = 0;
+        virtual bool canHandle(lumalink::http::core::HttpRequestContext &context) = 0;
+        virtual std::unique_ptr<IHttpHandler> create(lumalink::http::core::HttpRequestContext &context) = 0;
     };
     class HandlerProvider : public IHandlerProvider
     {
@@ -31,11 +31,11 @@ namespace httpadv::v1::handlers
     public:
         HandlerProvider(IHttpHandler::Factory factory, IHttpHandler::Predicate request)
             : factory_(factory), request_(request) {}
-        virtual bool canHandle(httpadv::v1::core::HttpRequestContext &context) override
+        virtual bool canHandle(lumalink::http::core::HttpRequestContext &context) override
         {
             return request_(context);
         }
-        virtual std::unique_ptr<IHttpHandler> create(httpadv::v1::core::HttpRequestContext &context) override
+        virtual std::unique_ptr<IHttpHandler> create(lumalink::http::core::HttpRequestContext &context) override
         {
             return factory_(context);
         }

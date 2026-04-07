@@ -8,11 +8,11 @@
 #include <string>
 #include <string_view>
 
-namespace httpadv::v1::staticfiles
+namespace lumalink::http::staticfiles
 {
-    using httpadv::v1::core::HttpRequestContext;
-    using httpadv::v1::transport::FileHandle;
-    using httpadv::v1::transport::IFileSystem;
+    using lumalink::http::core::HttpRequestContext;
+    using lumalink::http::transport::FileHandle;
+    using lumalink::http::transport::IFileSystem;
 
     class DefaultFileLocator : public FileLocator
     {
@@ -53,7 +53,7 @@ namespace httpadv::v1::staticfiles
         virtual bool canHandle(std::string_view path) override;
     };
 
-} // namespace httpadv::v1::staticfiles
+} // namespace lumalink::http::staticfiles
 
 
 

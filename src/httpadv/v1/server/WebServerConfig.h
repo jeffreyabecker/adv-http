@@ -5,15 +5,15 @@
 #include <type_traits>
 #include <utility>
 
-namespace httpadv::v1::server
+namespace lumalink::http::server
 {   
-    using httpadv::v1::core::HttpContentTypes;
-    using httpadv::v1::handlers::IHttpHandler;
-    using httpadv::v1::response::IHttpResponse;
-    using httpadv::v1::routing::HandlerBuilder;
-    using httpadv::v1::routing::HandlerMatcher;
-    using httpadv::v1::routing::HandlerProviderRegistry;
-    using httpadv::v1::routing::ProviderRegistryBuilder;
+    using lumalink::http::core::HttpContentTypes;
+    using lumalink::http::handlers::IHttpHandler;
+    using lumalink::http::response::IHttpResponse;
+    using lumalink::http::routing::HandlerBuilder;
+    using lumalink::http::routing::HandlerMatcher;
+    using lumalink::http::routing::HandlerProviderRegistry;
+    using lumalink::http::routing::ProviderRegistryBuilder;
 
     class WebServerConfig
     {
@@ -56,15 +56,15 @@ namespace httpadv::v1::server
         }
 
         // Template methods for handler registration
-        template <typename THandler = httpadv::v1::handlers::GetRequest, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler = lumalink::http::handlers::GetRequest, typename = std::enable_if_t<lumalink::http::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const HandlerMatcher &request, const typename THandler::Invocation &handler)
         {
             return builder_.handlers().on<THandler>(request, handler);
         }
 
-        template <typename THandler = httpadv::v1::handlers::GetRequest,
+        template <typename THandler = lumalink::http::handlers::GetRequest,
                   typename TCallable,
-                  typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
+                  typename = std::enable_if_t<lumalink::http::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::Invocation> &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::InvocationWithoutParams> &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::LegacyInvocation> &&
@@ -78,20 +78,20 @@ namespace httpadv::v1::server
             return builder_.handlers().on<THandler>(request, std::forward<TCallable>(handler));
         }
 
-        template <typename THandler = httpadv::v1::handlers::GetRequest, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler = lumalink::http::handlers::GetRequest, typename = std::enable_if_t<lumalink::http::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const HandlerMatcher &request, const typename THandler::InvocationWithoutParams &handler)
         {
             return builder_.handlers().on<THandler>(request, handler);
         }
-        template <typename THandler = httpadv::v1::handlers::GetRequest, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler = lumalink::http::handlers::GetRequest, typename = std::enable_if_t<lumalink::http::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const char *path, const typename THandler::Invocation &handler)
         {
             return builder_.handlers().on<THandler>(path, handler);
         }
 
-        template <typename THandler = httpadv::v1::handlers::GetRequest,
+        template <typename THandler = lumalink::http::handlers::GetRequest,
                   typename TCallable,
-                  typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
+                  typename = std::enable_if_t<lumalink::http::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::Invocation> &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::InvocationWithoutParams> &&
                                               !std::is_same_v<std::decay_t<TCallable>, typename THandler::LegacyInvocation> &&
@@ -105,7 +105,7 @@ namespace httpadv::v1::server
             return builder_.handlers().on<THandler>(path, std::forward<TCallable>(handler));
         }
 
-        template <typename THandler = httpadv::v1::handlers::GetRequest, typename = std::enable_if_t<httpadv::v1::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
+        template <typename THandler = lumalink::http::handlers::GetRequest, typename = std::enable_if_t<lumalink::http::handlers::HandlerRestrictions::is_valid_handler_type<THandler>::value>>
         HandlerBuilder<THandler> on(const char *path, const typename THandler::InvocationWithoutParams &handler)
         {
             return builder_.handlers().on<THandler>(path, handler);

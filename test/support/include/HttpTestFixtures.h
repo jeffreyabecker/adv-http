@@ -19,25 +19,22 @@
 #include <utility>
 #include <vector>
 
-namespace httpadv
+namespace lumalink::http::TestSupport
 {
-    inline namespace v1
+    using namespace lumalink::http::core;
+    using namespace lumalink::http::handlers;
+    using namespace lumalink::http::pipeline;
+    using namespace lumalink::http::response;
+    using namespace lumalink::http::transport;
+    using namespace lumalink::platform::buffers;
+    using namespace lumalink::http::util;
+
+    struct CapturedResponse
     {
-        namespace TestSupport
-        {
-            using namespace httpadv::v1::core;
-            using namespace httpadv::v1::handlers;
-            using namespace httpadv::v1::pipeline;
-            using namespace httpadv::v1::response;
-            using namespace httpadv::v1::transport;
-using namespace lumalink::platform::buffers;
-            using namespace httpadv::v1::util;
-            struct CapturedResponse
-            {
-                HttpStatus status;
-                std::vector<std::pair<std::string, std::string>> headers;
-                std::string body;
-            };
+        HttpStatus status;
+        std::vector<std::pair<std::string, std::string>> headers;
+        std::string body;
+    };
 
     inline CapturedResponse CaptureResponse(std::unique_ptr<IHttpResponse> response)
     {
@@ -661,6 +658,4 @@ using namespace lumalink::platform::buffers;
         bool began_ = false;
         bool ended_ = false;
     };
-        }
-    }
 }

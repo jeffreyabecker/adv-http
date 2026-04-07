@@ -12,26 +12,26 @@
 #include <string>
 #include <vector>
 
-namespace httpadv::v1::websocket
+namespace lumalink::http::websocket
 {
-    class WebSocketProtocolExecution : public httpadv::v1::server::IConnectionSession, public httpadv::v1::pipeline::IProtocolExecution, public IWebSocketSessionControl
+    class WebSocketProtocolExecution : public lumalink::http::server::IConnectionSession, public lumalink::http::pipeline::IProtocolExecution, public IWebSocketSessionControl
     {
     public:
         WebSocketProtocolExecution(std::string handshakeResponse, WebSocketContext context);
 
-        httpadv::v1::server::ConnectionSessionResult handle(httpadv::v1::transport::IClient &client, const httpadv::v1::util::Clock &clock) override;
-        httpadv::v1::pipeline::IProtocolExecution *protocolExecution() override
+        lumalink::http::server::ConnectionSessionResult handle(lumalink::http::transport::IClient &client, const lumalink::http::util::Clock &clock) override;
+        lumalink::http::pipeline::IProtocolExecution *protocolExecution() override
         {
             return this;
         }
-        const httpadv::v1::pipeline::IProtocolExecution *protocolExecution() const override
+        const lumalink::http::pipeline::IProtocolExecution *protocolExecution() const override
         {
             return this;
         }
-        void onError(httpadv::v1::pipeline::PipelineError error) override;
+        void onError(lumalink::http::pipeline::PipelineError error) override;
         void onDisconnect() override;
         bool hasPendingResult() const override;
-        httpadv::v1::pipeline::RequestHandlingResult takeResult() override;
+        lumalink::http::pipeline::RequestHandlingResult takeResult() override;
         bool isFinished() const override;
 
         WebSocketSendResult sendText(std::string_view payload) override;
@@ -65,7 +65,7 @@ namespace httpadv::v1::websocket
         std::uint16_t closeCode_ = static_cast<std::uint16_t>(WebSocketCloseCode::NormalClosure);
         std::string closeReason_;
 
-        bool flushPendingWrite(httpadv::v1::transport::IClient &client);
+        bool flushPendingWrite(lumalink::http::transport::IClient &client);
         bool queueSerializedFrame(WebSocketOpcode opcode, span<const std::uint8_t> payload, bool fin = true);
         bool queueCloseFrame(WebSocketCloseCode code, span<const std::uint8_t> reason = span<const std::uint8_t>());
         void handleParsedFrame(const WebSocketFrame &frame);

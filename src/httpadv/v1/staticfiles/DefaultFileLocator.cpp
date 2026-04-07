@@ -5,9 +5,9 @@
 
 namespace
 {
-    httpadv::v1::transport::FileHandle OpenFile(httpadv::v1::transport::IFileSystem *filesystem, std::string_view path)
+    lumalink::http::transport::FileHandle OpenFile(lumalink::http::transport::IFileSystem *filesystem, std::string_view path)
     {
-        return filesystem->open(path, httpadv::v1::transport::FileOpenMode::Read);
+        return filesystem->open(path, lumalink::http::transport::FileOpenMode::Read);
     }
 
     bool StartsWith(std::string_view value, std::string_view prefix)
@@ -72,7 +72,7 @@ namespace
     }
 }
 
-namespace httpadv::v1::staticfiles {
+namespace lumalink::http::staticfiles {
 
 DefaultFileLocator::RequestPathPredicate DefaultFileLocator::createPathPredicate(std::string_view includePrefix, std::string_view excludePrefix) {
     return [includePrefix = std::string(includePrefix), excludePrefix = std::string(excludePrefix)](std::string_view path) {
@@ -153,5 +153,5 @@ bool DefaultFileLocator::canHandle(std::string_view path) {
     return pathPredicate_(path);
 }
 
-} // namespace httpadv::v1::staticfiles
+} // namespace lumalink::http::staticfiles
 

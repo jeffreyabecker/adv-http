@@ -2,7 +2,7 @@
 
 #include "HttpUtility.h"
 
-namespace httpadv::v1::util
+namespace lumalink::http::util
 {
     UriView::UriView()
         : UriView(std::string())
@@ -138,4 +138,4 @@ namespace httpadv::v1::util
             fragment_ = std::string_view(data + pos + 1, len - pos - 1);
         }
     }
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::util

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstring>
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
 
     class HttpMethod
@@ -31,4 +31,4 @@ namespace httpadv::v1::core
                    strcmp(method, HttpMethod::Delete) == 0;
         }
     };
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::core

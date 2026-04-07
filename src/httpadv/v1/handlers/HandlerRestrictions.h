@@ -6,18 +6,18 @@
 #include "../response/IHttpResponse.h"
 #include "IHttpHandler.h"
 
-namespace httpadv::v1::routing
+namespace lumalink::http::routing
 {
     class HandlerMatcher;
 }
 
-namespace httpadv::v1::handlers
+namespace lumalink::http::handlers
 {
-    using httpadv::v1::response::IHttpResponse;
+    using lumalink::http::response::IHttpResponse;
 
     // Forward declare for trait checking
     using RouteParameters = std::map<std::string, std::string>;
-    using ExtractArgsFromRequest = std::function<RouteParameters(httpadv::v1::core::HttpRequestContext &context)>;
+    using ExtractArgsFromRequest = std::function<RouteParameters(lumalink::http::core::HttpRequestContext &context)>;
 
     namespace HandlerRestrictions
     {
@@ -113,9 +113,9 @@ namespace httpadv::v1::handlers
         };
 
         template <typename T>
-        struct has_restrict<T, std::void_t<decltype(T::restrict(std::declval<httpadv::v1::routing::HandlerMatcher&>()))>> : std::true_type
+        struct has_restrict<T, std::void_t<decltype(T::restrict(std::declval<lumalink::http::routing::HandlerMatcher&>()))>> : std::true_type
         {
         };
     }
-} // namespace httpadv::v1::handlers
+} // namespace lumalink::http::handlers
 

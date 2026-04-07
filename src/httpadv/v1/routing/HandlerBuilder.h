@@ -9,12 +9,12 @@
 #include <type_traits>
 #include <utility>
 
-namespace httpadv::v1::routing
+namespace lumalink::http::routing
 {
-    using httpadv::v1::handlers::ExtractArgsFromRequest;
-    using httpadv::v1::handlers::IHttpHandler;
-    using httpadv::v1::handlers::RouteParameters;
-    using httpadv::v1::response::IHttpResponse;
+    using lumalink::http::handlers::ExtractArgsFromRequest;
+    using lumalink::http::handlers::IHttpHandler;
+    using lumalink::http::handlers::RouteParameters;
+    using lumalink::http::response::IHttpResponse;
 
     template <typename THandler>
     class HandlerBuilder
@@ -36,7 +36,7 @@ namespace httpadv::v1::routing
             }
             return THandler::makeFactory(invocation, extractor_);
         }
-        static RouteParameters EmptyParameters(httpadv::v1::core::HttpRequestContext &context)
+        static RouteParameters EmptyParameters(lumalink::http::core::HttpRequestContext &context)
         {
             (void)context;
             return {};
@@ -69,7 +69,7 @@ namespace httpadv::v1::routing
             if (addHandler_)
             {
 
-                IHttpHandler::Predicate predicate = [matcher = std::move(matcher_), predicate = std::move(predicate_)](httpadv::v1::core::HttpRequestContext &context)
+                IHttpHandler::Predicate predicate = [matcher = std::move(matcher_), predicate = std::move(predicate_)](lumalink::http::core::HttpRequestContext &context)
                 {
                     if (predicate)
                     {
@@ -140,7 +140,7 @@ namespace httpadv::v1::routing
         HandlerBuilder &filterRequest(IHttpHandler::Predicate predicate)
         {
             auto originalPredicate = predicate_;
-            predicate_ = [originalPredicate, predicate](httpadv::v1::core::HttpRequestContext &context)
+            predicate_ = [originalPredicate, predicate](lumalink::http::core::HttpRequestContext &context)
             {
                 if (originalPredicate && !originalPredicate(context))
                 {
@@ -199,6 +199,6 @@ namespace httpadv::v1::routing
         }
     };
 
-} // namespace httpadv::v1::routing
+} // namespace lumalink::http::routing
 
 

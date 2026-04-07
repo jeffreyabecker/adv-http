@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <algorithm>
 
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
 
     ChunkedHttpResponseBodyStream::ChunkedHttpResponseBodyStream(std::unique_ptr<IByteSource> innerSource)
@@ -201,5 +201,5 @@ namespace httpadv::v1::response
         return 1;
     }
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::response
 

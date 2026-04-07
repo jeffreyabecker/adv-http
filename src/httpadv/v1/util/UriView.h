@@ -5,7 +5,7 @@
 
 #include "HttpUtility.h"
 
-namespace httpadv::v1::util
+namespace lumalink::http::util
 {
     class UriView
     {
@@ -41,4 +41,4 @@ namespace httpadv::v1::util
         void parse();
     };
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::util

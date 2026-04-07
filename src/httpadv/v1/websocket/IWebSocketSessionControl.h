@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace httpadv::v1::websocket
+namespace lumalink::http::websocket
 {
     using lumalink::span;
 

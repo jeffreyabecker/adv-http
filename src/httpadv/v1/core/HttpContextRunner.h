@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
     class HttpContextRunner
     {
@@ -31,10 +31,10 @@ namespace httpadv::v1::core
         virtual int onBody(const std::uint8_t *at, std::size_t length) = 0;
 
         virtual void advance(HttpContextPhaseFlags trigger) = 0;
-        virtual void onError(httpadv::v1::pipeline::PipelineError error) = 0;
+        virtual void onError(lumalink::http::pipeline::PipelineError error) = 0;
         virtual void onClientDisconnected() = 0;
 
         virtual bool hasPendingResult() const = 0;
-        virtual httpadv::v1::pipeline::RequestHandlingResult takeResult() = 0;
+        virtual lumalink::http::pipeline::RequestHandlingResult takeResult() = 0;
     };
 }

@@ -1,6 +1,6 @@
 #include "StaticFilesBuilder.h"
 
-namespace httpadv::v1::staticfiles {
+namespace lumalink::http::staticfiles {
 StaticFilesBuilder::StaticFilesBuilder(
     IFileSystem &fs, std::function<void(StaticFilesBuilder &)> setupFunc)
   : setupFunc_(setupFunc), filesystem_(&fs) {
@@ -10,7 +10,7 @@ StaticFilesBuilder::StaticFilesBuilder(
 StaticFilesBuilder::~StaticFilesBuilder() {}
 
 void StaticFilesBuilder::init(
-    httpadv::v1::server::WebServerBuilder &coreBuilder) {
+    lumalink::http::server::WebServerBuilder &coreBuilder) {
   if (setupFunc_) {
     setupFunc_(*this);
   }
@@ -88,7 +88,7 @@ StaticFilesBuilder &
 StaticFilesBuilder::onNotFound(std::string_view requestPath) {
   const std::string fallbackPath(requestPath);
   notFoundRequestPathResolver_ =
-      [fallbackPath](httpadv::v1::core::HttpRequestContext &)
+      [fallbackPath](lumalink::http::core::HttpRequestContext &)
       -> std::optional<std::string> {
     return fallbackPath;
   };
@@ -183,4 +183,4 @@ StaticFiles(IFileSystem &fs,
   return *instance;
 }
 
-} // namespace httpadv::v1::staticfiles
+} // namespace lumalink::http::staticfiles

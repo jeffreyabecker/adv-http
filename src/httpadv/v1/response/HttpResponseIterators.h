@@ -7,12 +7,12 @@
 #include "ChunkedHttpResponseBodyStream.h"
 #include "IHttpResponse.h"
 
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
-  using httpadv::v1::core::HttpHeader;
-  using httpadv::v1::core::HttpHeaderCollection;
-  using httpadv::v1::core::HttpHeaderNames;
-  using httpadv::v1::core::HttpStatus;
+  using lumalink::http::core::HttpHeader;
+  using lumalink::http::core::HttpHeaderCollection;
+  using lumalink::http::core::HttpHeaderNames;
+  using lumalink::http::core::HttpStatus;
   using lumalink::platform::buffers::ConcatByteSource;
   using lumalink::platform::buffers::ExhaustedResult;
   using lumalink::platform::buffers::IByteSource;
@@ -128,6 +128,6 @@ namespace httpadv::v1::response
     return std::make_unique<HttpPipelineResponseSource>(std::move(response));
   }
 
-} // namespace httpadv::v1::response
+} // namespace lumalink::http::response
 
 

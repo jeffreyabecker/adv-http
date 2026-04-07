@@ -4,10 +4,10 @@
 #include "../core/HttpRequestContext.h"
 #include "WebSocketCallbacks.h"
 
-namespace httpadv::v1::websocket
+namespace lumalink::http::websocket
 {
-    using httpadv::v1::handlers::HandlerResult;
-    using httpadv::v1::core::HttpRequestContext;
+    using lumalink::http::handlers::HandlerResult;
+    using lumalink::http::core::HttpRequestContext;
 
     class WebSocketUpgradeHandler
     {

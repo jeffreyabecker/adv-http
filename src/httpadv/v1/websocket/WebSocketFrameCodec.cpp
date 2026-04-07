@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace httpadv::v1::websocket
+namespace lumalink::http::websocket
 {
     namespace
     {

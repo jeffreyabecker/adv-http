@@ -4,7 +4,7 @@
 
 #include <charconv>
 
-namespace httpadv::v1::handlers
+namespace lumalink::http::handlers
 {
     namespace
     {
@@ -18,9 +18,9 @@ namespace httpadv::v1::handlers
         }
     }
 
-    IHttpHandler::HandlerResult RawBodyHandler::handleStep(httpadv::v1::core::HttpRequestContext &context)
+    IHttpHandler::HandlerResult RawBodyHandler::handleStep(lumalink::http::core::HttpRequestContext &context)
     {
-        if (!response_ && context.completedPhases() >= httpadv::v1::core::HttpContextPhase::CompletedReadingMessage)
+        if (!response_ && context.completedPhases() >= lumalink::http::core::HttpContextPhase::CompletedReadingMessage)
         {
             handleBodyChunk(context, nullptr, 0);
         }
@@ -31,7 +31,7 @@ namespace httpadv::v1::handlers
         return nullptr;
     }
 
-    void RawBodyHandler::handleBodyChunk(httpadv::v1::core::HttpRequestContext &context, const uint8_t *at, std::size_t length)
+    void RawBodyHandler::handleBodyChunk(lumalink::http::core::HttpRequestContext &context, const uint8_t *at, std::size_t length)
     {
         if (response_)
         {
@@ -40,7 +40,7 @@ namespace httpadv::v1::handlers
         if (receivedLength_ == 0)
         {
             params_ = extractor_(context);
-            std::optional<httpadv::v1::core::HttpHeader> contentLengthHeader = context.headers().find(httpadv::v1::core::HttpHeaderNames::ContentLength);
+            std::optional<lumalink::http::core::HttpHeader> contentLengthHeader = context.headers().find(lumalink::http::core::HttpHeaderNames::ContentLength);
             contentLength_ = contentLengthHeader.has_value() ? parseContentLength(contentLengthHeader->valueView()) : 0;
         }
         response_ = handler_(context, params_, RawBodyBuffer(receivedLength_, contentLength_, at, length));
@@ -49,7 +49,7 @@ namespace httpadv::v1::handlers
 
     RawBody::Invocation RawBody::curryWithoutParams(InvocationWithoutParams handler)
     {
-        return [handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &, RawBodyBuffer buffer)
+        return [handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &, RawBodyBuffer buffer)
         {
             return handler(context, buffer);
         };
@@ -57,17 +57,17 @@ namespace httpadv::v1::handlers
 
     IHttpHandler::Factory RawBody::makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
     {
-        return [handler, extractor](httpadv::v1::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
+        return [handler, extractor](lumalink::http::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
         {
             auto params = extractor(context);
             // Create a handler that adapts RawBodyBuffer to raw parameters
-            std::function<IHttpHandler::HandlerResult(httpadv::v1::core::HttpRequestContext &, RouteParameters &, RawBodyBuffer)> bufferHandler =
-                [handler](httpadv::v1::core::HttpRequestContext &ctx, RouteParameters &params, RawBodyBuffer buffer)
+            std::function<IHttpHandler::HandlerResult(lumalink::http::core::HttpRequestContext &, RouteParameters &, RawBodyBuffer)> bufferHandler =
+                [handler](lumalink::http::core::HttpRequestContext &ctx, RouteParameters &params, RawBodyBuffer buffer)
             {
                 return handler(ctx, params, buffer);
             };
             return std::make_unique<RawBodyHandler>(bufferHandler,
-                                                    ExtractArgsFromRequest([params](httpadv::v1::core::HttpRequestContext &c)
+                                                    ExtractArgsFromRequest([params](lumalink::http::core::HttpRequestContext &c)
                                                                            {
                                                                                (void)c;
                                                                                return params;
@@ -77,7 +77,7 @@ namespace httpadv::v1::handlers
 
     RawBody::Invocation RawBody::curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
+        return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
         {
             return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, &params, buffer]() mutable
                                { return handler(context, params, buffer); }));
@@ -86,7 +86,7 @@ namespace httpadv::v1::handlers
 
     RawBody::Invocation RawBody::applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
+        return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
         {
             return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, &params, &buffer]() mutable
                                { return handler(context, params, buffer); }));
@@ -95,7 +95,7 @@ namespace httpadv::v1::handlers
 
     RawBody::Invocation RawBody::applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
     {
-        return [filter, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
+        return [filter, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
         {
             auto response = handler(context, params, buffer);
             if (!response.isResponse())
@@ -107,6 +107,6 @@ namespace httpadv::v1::handlers
             return response;
         };
     }
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::handlers
 
 

@@ -2,9 +2,9 @@
 #include "../util/HttpUtility.h"
 #include "../routing/HandlerMatcher.h"
 
-namespace httpadv::v1::handlers
+namespace lumalink::http::handlers
 {
-    IHttpHandler::HandlerResult FormBodyHandler::handleBody(httpadv::v1::core::HttpRequestContext &context, std::vector<uint8_t> &&body)
+    IHttpHandler::HandlerResult FormBodyHandler::handleBody(lumalink::http::core::HttpRequestContext &context, std::vector<uint8_t> &&body)
     {
         auto params = extractor_(context);
         WebUtility::QueryParameters postData = WebUtility::ParseQueryParameters(reinterpret_cast<const char *>(body.data()), body.size());
@@ -13,7 +13,7 @@ namespace httpadv::v1::handlers
 
     Form::Invocation Form::curryWithoutParams(InvocationWithoutParams handler)
     {
-        return [handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &&, PostBodyData &&postData)
+        return [handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&, PostBodyData &&postData)
         {
             return handler(context, std::move(postData));
         };
@@ -21,11 +21,11 @@ namespace httpadv::v1::handlers
 
     IHttpHandler::Factory Form::makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
     {
-        return [handler, extractor](httpadv::v1::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
+        return [handler, extractor](lumalink::http::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
         {
             auto params = extractor(context);
             return std::make_unique<FormBodyHandler>(handler,
-                                                     [params](httpadv::v1::core::HttpRequestContext &c)
+                                                     [params](lumalink::http::core::HttpRequestContext &c)
                                                      {
                                                          (void)c;
                                                          return params;
@@ -35,7 +35,7 @@ namespace httpadv::v1::handlers
 
     Form::Invocation Form::curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
+        return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
         {
             return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params), postData = std::move(postData)]() mutable
                                { return handler(context, std::move(params), std::move(postData)); }));
@@ -44,7 +44,7 @@ namespace httpadv::v1::handlers
 
     Form::Invocation Form::applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
+        return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
         {
             return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params), postData = std::move(postData)]() mutable
                                { return handler(context, std::move(params), std::move(postData)); }));
@@ -53,7 +53,7 @@ namespace httpadv::v1::handlers
 
     Form::Invocation Form::applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
     {
-        return [filter, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
+        return [filter, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
         {
             auto response = handler(context, std::move(params), std::move(postData));
             if (!response.isResponse())
@@ -65,5 +65,5 @@ namespace httpadv::v1::handlers
             return response;
         };
     }
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::handlers
 

@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 
-namespace httpadv::v1::streams
+namespace lumalink::http::streams
 {
     namespace
     {

@@ -30,17 +30,17 @@
 #include <utility>
 #include <vector>
 
-using namespace httpadv::v1::core;
-using namespace httpadv::v1::handlers;
-using namespace httpadv::v1::pipeline;
-using namespace httpadv::v1::response;
-using namespace httpadv::v1::routing;
-using namespace httpadv::v1::server;
-using namespace httpadv::v1::staticfiles;
-using namespace httpadv::v1::transport;
+using namespace lumalink::http::core;
+using namespace lumalink::http::handlers;
+using namespace lumalink::http::pipeline;
+using namespace lumalink::http::response;
+using namespace lumalink::http::routing;
+using namespace lumalink::http::server;
+using namespace lumalink::http::staticfiles;
+using namespace lumalink::http::transport;
 using namespace lumalink::platform::buffers;
-using namespace httpadv::v1::util;
-using namespace httpadv::v1::websocket;
+using namespace lumalink::http::util;
+using namespace lumalink::http::websocket;
 
 namespace
 {
@@ -369,7 +369,7 @@ namespace
 
     std::unique_ptr<IByteSource> makeTextSource(std::string_view text)
     {
-        return std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText(text));
+        return std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText(text));
     }
 
     class BlockingByteSource : public IByteSource
@@ -402,13 +402,13 @@ namespace
             std::string localAddress = "10.0.0.1",
             uint16_t localPort = 8080)
             : clock_(1000),
-              server_(std::make_unique<httpadv::v1::TestSupport::FakeServer>())
+              server_(std::make_unique<lumalink::http::TestSupport::FakeServer>())
         {
             timeouts_.setReadTimeout(25);
             timeouts_.setActivityTimeout(40);
             timeouts_.setTotalRequestLengthMs(200);
 
-            auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(
+            auto client = std::make_unique<lumalink::http::TestSupport::FakeClient>(
                 readSteps,
                 std::move(remoteAddress),
                 remotePort,
@@ -439,7 +439,7 @@ namespace
             return *pipeline_;
         }
 
-        httpadv::v1::TestSupport::FakeClient &client()
+        lumalink::http::TestSupport::FakeClient &client()
         {
             return *client_;
         }
@@ -474,7 +474,7 @@ namespace
         HttpTimeouts timeouts_;
         HttpServerBase server_;
         std::unique_ptr<HttpPipeline> pipeline_;
-        httpadv::v1::TestSupport::FakeClient *client_ = nullptr;
+        lumalink::http::TestSupport::FakeClient *client_ = nullptr;
         ScenarioHandler *handler_ = nullptr;
         std::vector<std::unique_ptr<ScenarioHandler>> handlerHistory_;
     };
@@ -487,12 +487,12 @@ namespace
     {
     }
 
-    httpadv::v1::TestSupport::RecordingRequestHandlerFactory createWebSocketAwareRequestFactory(
+    lumalink::http::TestSupport::RecordingRequestHandlerFactory createWebSocketAwareRequestFactory(
         std::string_view path,
         WebSocketCallbacks callbacks = {},
-        httpadv::v1::TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback handlerFactory = nullptr)
+        lumalink::http::TestSupport::RecordingRequestHandlerFactory::HandlerFactoryCallback handlerFactory = nullptr)
     {
-        return httpadv::v1::TestSupport::RecordingRequestHandlerFactory(
+        return lumalink::http::TestSupport::RecordingRequestHandlerFactory(
             [registeredPath = std::string(path), callbacks = std::move(callbacks), handlerFactory = std::move(handlerFactory)](HttpRequestContext &context) mutable -> std::unique_ptr<IHttpHandler>
             {
                 if (handlerFactory)
@@ -872,7 +872,7 @@ namespace
             {
                 handler.setOnMessageComplete([](ScenarioHandler &scenario)
                 {
-                    scenario.emitResponse(std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(
+                    scenario.emitResponse(std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(
                         std::initializer_list<std::pair<const char *, bool>>{{"ab", false}, {"", true}, {"cd", false}, {"", true}, {"ef", false}}));
                 });
             });
@@ -909,7 +909,7 @@ namespace
             {
                 handler.setOnMessageComplete([](ScenarioHandler &scenario)
                 {
-                    scenario.emitResponse(std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(
+                    scenario.emitResponse(std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(
                         std::initializer_list<std::pair<const char *, bool>>{{"ab", false}, {"", true}, {"cd", false}}));
                 });
             });
@@ -948,7 +948,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
@@ -957,8 +957,8 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
-        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
+        auto client = std::make_unique<lumalink::http::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
+        lumalink::http::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -998,7 +998,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
@@ -1007,8 +1007,8 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
-        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
+        auto client = std::make_unique<lumalink::http::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
+        lumalink::http::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1045,7 +1045,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
@@ -1054,9 +1054,9 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(
+        auto client = std::make_unique<lumalink::http::TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {PingFrame, false}});
-        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
+        lumalink::http::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1099,7 +1099,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
@@ -1108,9 +1108,9 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(
+        auto client = std::make_unique<lumalink::http::TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {CloseFrame, false}});
-        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
+        lumalink::http::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1152,7 +1152,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
@@ -1161,9 +1161,9 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(
+        auto client = std::make_unique<lumalink::http::TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {InvalidUnmaskedFrame, false}});
-        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
+        lumalink::http::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1204,7 +1204,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             {},
@@ -1213,8 +1213,8 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
-        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
+        auto client = std::make_unique<lumalink::http::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
+        lumalink::http::TestSupport::FakeClient *clientPtr = client.get();
         clientPtr->setWriteScript({8, 0, 8, 0, 256});
 
         HttpPipeline pipeline(
@@ -1290,7 +1290,7 @@ namespace
             callbackEvents.push_back(std::string("error:") + std::string(message));
         };
 
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             callbacks,
@@ -1299,9 +1299,9 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(
+        auto client = std::make_unique<lumalink::http::TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}, {TextFrame, false}, {BinaryFrame, false}, {CloseFrame, false}});
-        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
+        lumalink::http::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1377,7 +1377,7 @@ namespace
             TEST_ASSERT_TRUE(context.isOpen());
         };
 
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>("192.168.4.1", 8080));
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>("192.168.4.1", 8080));
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/chat",
             callbacks,
@@ -1387,7 +1387,7 @@ namespace
                 return nullptr;
             });
 
-        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(
+        auto client = std::make_unique<lumalink::http::TestSupport::FakeClient>(
             std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}},
             "10.1.2.3",
             4321,
@@ -1438,7 +1438,7 @@ namespace
         timeouts.setActivityTimeout(40);
         timeouts.setTotalRequestLengthMs(200);
 
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto requestFactory = createWebSocketAwareRequestFactory(
             "/other",
             {},
@@ -1455,8 +1455,8 @@ namespace
                     });
             });
 
-        auto client = std::make_unique<httpadv::v1::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
-        httpadv::v1::TestSupport::FakeClient *clientPtr = client.get();
+        auto client = std::make_unique<lumalink::http::TestSupport::FakeClient>(std::initializer_list<std::pair<const char *, bool>>{{RequestText, false}});
+        lumalink::http::TestSupport::FakeClient *clientPtr = client.get();
 
         HttpPipeline pipeline(
             std::move(client),
@@ -1508,7 +1508,7 @@ namespace
 
 int run_test_pipeline()
 {
-    return httpadv::v1::TestSupport::RunConsolidatedSuite(
+    return lumalink::http::TestSupport::RunConsolidatedSuite(
         "pipeline",
         runUnitySuite,
         localSetUp,

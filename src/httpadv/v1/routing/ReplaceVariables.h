@@ -17,15 +17,15 @@
 #include <utility>
 #include <vector>
 
-namespace httpadv::v1::routing
+namespace lumalink::http::routing
 {
-    using httpadv::v1::core::HttpHeader;
-    using httpadv::v1::core::HttpHeaderCollection;
-    using httpadv::v1::core::HttpHeaderNames;
-    using httpadv::v1::core::HttpStatus;
-    using httpadv::v1::handlers::IHttpHandler;
-    using httpadv::v1::response::IHttpResponse;
-    using httpadv::v1::response::HttpResponse;
+    using lumalink::http::core::HttpHeader;
+    using lumalink::http::core::HttpHeaderCollection;
+    using lumalink::http::core::HttpHeaderNames;
+    using lumalink::http::core::HttpStatus;
+    using lumalink::http::handlers::IHttpHandler;
+    using lumalink::http::response::IHttpResponse;
+    using lumalink::http::response::HttpResponse;
     using lumalink::platform::buffers::AvailableBytes;
     using lumalink::platform::buffers::AvailableResult;
     using lumalink::platform::buffers::ExhaustedResult;
@@ -585,4 +585,4 @@ namespace httpadv::v1::routing
         return ReplaceVariables(std::move(resolver), std::move(options));
     }
 
-} // namespace httpadv::v1::routing
+} // namespace lumalink::http::routing

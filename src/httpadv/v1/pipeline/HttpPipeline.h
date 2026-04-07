@@ -17,17 +17,17 @@
 #include <optional>
 #include <algorithm>
 
-namespace httpadv::v1::server
+namespace lumalink::http::server
 {
     class HttpServerBase;
 }
 
-namespace httpadv::v1::pipeline
+namespace lumalink::http::pipeline
 {
-    using httpadv::v1::core::HttpTimeouts;
-    using httpadv::v1::server::HttpServerBase;
-    using httpadv::v1::util::Clock;
-    using httpadv::v1::util::ClockMillis;
+    using lumalink::http::core::HttpTimeouts;
+    using lumalink::http::server::HttpServerBase;
+    using lumalink::http::util::Clock;
+    using lumalink::http::util::ClockMillis;
 
     class HttpPipeline
     {
@@ -44,7 +44,7 @@ namespace httpadv::v1::pipeline
         };
 
     private:
-        std::unique_ptr<httpadv::v1::transport::IClient> client_;
+        std::unique_ptr<lumalink::http::transport::IClient> client_;
         HttpServerBase &server_;
         const Clock &clock_;
         std::function<PipelineHandlerPtr()> handlerFactory_;
@@ -80,7 +80,7 @@ namespace httpadv::v1::pipeline
         IProtocolExecution *currentProtocolExecution();
         const IProtocolExecution *currentProtocolExecution() const;
     public:
-        HttpPipeline(std::unique_ptr<httpadv::v1::transport::IClient> client, HttpServerBase &server,
+        HttpPipeline(std::unique_ptr<lumalink::http::transport::IClient> client, HttpServerBase &server,
                      const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,
                      const Clock &clock);
 
@@ -93,9 +93,9 @@ namespace httpadv::v1::pipeline
         void abortReadingRequest();
         void abortWritingResponse();
         ClockMillis startedAt() const;
-        httpadv::v1::transport::IClient &client();
+        lumalink::http::transport::IClient &client();
         ConnectionState connectionState() const;
     };
 
-} // namespace httpadv::v1::pipeline
+} // namespace lumalink::http::pipeline
 

@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
     namespace
     {
@@ -32,7 +32,7 @@ namespace httpadv::v1::response
         FieldCollection &&data,
         std::initializer_list<HttpHeader> headers)
     {
-        auto formStream = std::make_unique<httpadv::v1::streams::FormEncodingStream>(std::move(data));
+        auto formStream = std::make_unique<lumalink::http::streams::FormEncodingStream>(std::move(data));
         const AvailableResult available = formStream->available();
         size_t contentLength = available.hasBytes() ? available.count : 0;
         auto headersCollection = buildFormHeaders(headers, contentLength);
@@ -79,4 +79,4 @@ namespace httpadv::v1::response
         return create(status, std::move(vectorData), headers);
     }
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::response

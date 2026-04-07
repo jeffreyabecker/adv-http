@@ -7,9 +7,9 @@
 
 #include "../transport/ByteStream.h"
 
-namespace httpadv::v1::pipeline
+namespace lumalink::http::pipeline
 {
-    using httpadv::v1::server::IConnectionSession;
+    using lumalink::http::server::IConnectionSession;
     using lumalink::platform::buffers::IByteSource;
 
     struct RequestHandlingResult

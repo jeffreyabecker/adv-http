@@ -6,12 +6,12 @@
 #include "../transport/ByteStream.h"
 #include "../core/HttpContentTypes.h"
 
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
 
     namespace
     {
-        HttpHeaderCollection buildJsonHeaders(std::initializer_list<httpadv::v1::core::HttpHeader> headers, size_t contentLength)
+        HttpHeaderCollection buildJsonHeaders(std::initializer_list<lumalink::http::core::HttpHeader> headers, size_t contentLength)
         {
             HttpHeaderCollection headersCollection;
             for (const auto &header : headers)
@@ -20,7 +20,7 @@ namespace httpadv::v1::response
             }
             if (!headersCollection.exists(HttpHeaderNames::ContentType))
             {
-                headersCollection.set(HttpHeader(HttpHeaderNames::ContentType, httpadv::v1::core::HttpContentTypes::Json));
+                headersCollection.set(HttpHeader(HttpHeaderNames::ContentType, lumalink::http::core::HttpContentTypes::Json));
             }
             if (!headersCollection.exists(HttpHeaderNames::ContentLength))
             {
@@ -30,7 +30,7 @@ namespace httpadv::v1::response
         }
     }
 
-    std::unique_ptr<IHttpResponse> JsonResponse::create(HttpStatus status, const JsonDocument &doc, std::initializer_list<httpadv::v1::core::HttpHeader> headers)
+    std::unique_ptr<IHttpResponse> JsonResponse::create(HttpStatus status, const JsonDocument &doc, std::initializer_list<lumalink::http::core::HttpHeader> headers)
     {
         // I'm not thrilled about this double serialization, but ArduinoJson doesn't provide a way to
         // serialize using a pull model.
@@ -48,6 +48,6 @@ namespace httpadv::v1::response
     }
 
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::response
 #endif
 

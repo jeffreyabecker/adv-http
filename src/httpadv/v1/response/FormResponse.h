@@ -12,7 +12,7 @@
 #include "../streams/UriStream.h"
 #include "HttpResponse.h"
 
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
     class FormResponse
     {

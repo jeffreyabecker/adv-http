@@ -10,7 +10,7 @@
 #include "../transport/ByteStream.h"
 #include "LumaLinkPlatform.h"
 
-namespace httpadv::v1::streams
+namespace lumalink::http::streams
 {
     using lumalink::platform::buffers::AvailableResult;
     using lumalink::platform::buffers::IByteSource;

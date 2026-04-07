@@ -12,10 +12,10 @@
 #include "HttpResponse.h"
 #include "../core/HttpContentTypes.h"
 
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
-    using httpadv::v1::core::HttpHeader;
-    using httpadv::v1::core::HttpStatus;
+    using lumalink::http::core::HttpHeader;
+    using lumalink::http::core::HttpStatus;
 
     class StringResponse
     {
@@ -36,6 +36,6 @@ namespace httpadv::v1::response
     };
 
 
-} // namespace httpadv::v1::response
+} // namespace lumalink::http::response
 
 

@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace httpadv::v1::websocket
+namespace lumalink::http::websocket
 {
     namespace
     {
@@ -47,7 +47,7 @@ namespace httpadv::v1::websocket
         context_.bindControl(this);
     }
 
-    httpadv::v1::server::ConnectionSessionResult WebSocketProtocolExecution::handle(httpadv::v1::transport::IClient &client, const httpadv::v1::util::Clock &)
+    lumalink::http::server::ConnectionSessionResult WebSocketProtocolExecution::handle(lumalink::http::transport::IClient &client, const lumalink::http::util::Clock &)
     {
         if (!client.connected())
         {
@@ -55,20 +55,20 @@ namespace httpadv::v1::websocket
             context_.notifyError("WebSocket disconnected");
             context_.notifyClose(policy.closeCode, "");
             closeState_ = CloseState::Closed;
-            return httpadv::v1::server::ConnectionSessionResult::AbortConnection;
+            return lumalink::http::server::ConnectionSessionResult::AbortConnection;
         }
 
         const bool hadPendingBeforeFlush = !pendingWrite_.empty();
         if (!flushPendingWrite(client))
         {
-            return httpadv::v1::server::ConnectionSessionResult::Continue;
+            return lumalink::http::server::ConnectionSessionResult::Continue;
         }
 
         if (!handshakeWritten_)
         {
             handshakeWritten_ = true;
             context_.notifyOpen();
-            return httpadv::v1::server::ConnectionSessionResult::Continue;
+            return lumalink::http::server::ConnectionSessionResult::Continue;
         }
 
         if (hadPendingBeforeFlush && closeState_ == CloseState::CloseQueued)
@@ -78,11 +78,11 @@ namespace httpadv::v1::websocket
             {
                 context_.notifyClose(closeCode_, closeReason_);
                 closeState_ = CloseState::Closed;
-                return httpadv::v1::server::ConnectionSessionResult::Completed;
+                return lumalink::http::server::ConnectionSessionResult::Completed;
             }
         }
 
-        std::array<std::uint8_t, httpadv::v1::core::PIPELINE_STACK_BUFFER_SIZE> readBuffer = {};
+        std::array<std::uint8_t, lumalink::http::core::PIPELINE_STACK_BUFFER_SIZE> readBuffer = {};
         while (client.available().hasBytes())
         {
             const std::size_t bytesRead = client.read(span<std::uint8_t>(readBuffer.data(), readBuffer.size()));
@@ -113,7 +113,7 @@ namespace httpadv::v1::websocket
                     {
                         context_.notifyClose(policy.closeCode, "");
                         closeState_ = CloseState::Closed;
-                        return httpadv::v1::server::ConnectionSessionResult::AbortConnection;
+                        return lumalink::http::server::ConnectionSessionResult::AbortConnection;
                     }
 
                     queueCloseFrame(static_cast<WebSocketCloseCode>(policy.closeCode));
@@ -142,7 +142,7 @@ namespace httpadv::v1::websocket
         {
             if (!flushPendingWrite(client))
             {
-                return httpadv::v1::server::ConnectionSessionResult::Continue;
+                return lumalink::http::server::ConnectionSessionResult::Continue;
             }
         }
 
@@ -150,7 +150,7 @@ namespace httpadv::v1::websocket
         {
             if (!flushPendingWrite(client))
             {
-                return httpadv::v1::server::ConnectionSessionResult::Continue;
+                return lumalink::http::server::ConnectionSessionResult::Continue;
             }
 
             closeState_ = CloseState::CloseSent;
@@ -158,11 +158,11 @@ namespace httpadv::v1::websocket
             {
                 context_.notifyClose(closeCode_, closeReason_);
                 closeState_ = CloseState::Closed;
-                return httpadv::v1::server::ConnectionSessionResult::Completed;
+                return lumalink::http::server::ConnectionSessionResult::Completed;
             }
         }
 
-        return httpadv::v1::server::ConnectionSessionResult::Continue;
+        return lumalink::http::server::ConnectionSessionResult::Continue;
     }
 
     WebSocketSendResult WebSocketProtocolExecution::sendText(std::string_view payload)
@@ -182,7 +182,7 @@ namespace httpadv::v1::websocket
             return WebSocketSendResult::InvalidState;
         }
 
-        if (payload.size() > httpadv::v1::core::WsMaxMessageSize)
+        if (payload.size() > lumalink::http::core::WsMaxMessageSize)
         {
             return WebSocketSendResult::TooLarge;
         }
@@ -217,7 +217,7 @@ namespace httpadv::v1::websocket
             return WebSocketSendResult::InvalidState;
         }
 
-        if (payload.size() > httpadv::v1::core::WsMaxMessageSize)
+        if (payload.size() > lumalink::http::core::WsMaxMessageSize)
         {
             return WebSocketSendResult::TooLarge;
         }
@@ -281,14 +281,14 @@ namespace httpadv::v1::websocket
         return context_;
     }
 
-    void WebSocketProtocolExecution::onError(httpadv::v1::pipeline::PipelineError error)
+    void WebSocketProtocolExecution::onError(lumalink::http::pipeline::PipelineError error)
     {
         if (closeState_ == CloseState::Closed)
         {
             return;
         }
 
-        const WsClosePolicy policy = policyFor(error.code() == httpadv::v1::pipeline::PipelineErrorCode::Timeout ? WsErrorCategory::IdleTimeout : WsErrorCategory::WriteFailure);
+        const WsClosePolicy policy = policyFor(error.code() == lumalink::http::pipeline::PipelineErrorCode::Timeout ? WsErrorCategory::IdleTimeout : WsErrorCategory::WriteFailure);
         context_.notifyError(error.message());
         context_.notifyClose(policy.closeCode, "");
         closeState_ = CloseState::Closed;
@@ -312,9 +312,9 @@ namespace httpadv::v1::websocket
         return false;
     }
 
-    httpadv::v1::pipeline::RequestHandlingResult WebSocketProtocolExecution::takeResult()
+    lumalink::http::pipeline::RequestHandlingResult WebSocketProtocolExecution::takeResult()
     {
-        return httpadv::v1::pipeline::RequestHandlingResult();
+        return lumalink::http::pipeline::RequestHandlingResult();
     }
 
     bool WebSocketProtocolExecution::isFinished() const
@@ -322,7 +322,7 @@ namespace httpadv::v1::websocket
         return closeState_ == CloseState::Closed;
     }
 
-    bool WebSocketProtocolExecution::flushPendingWrite(httpadv::v1::transport::IClient &client)
+    bool WebSocketProtocolExecution::flushPendingWrite(lumalink::http::transport::IClient &client)
     {
         while (pendingWriteOffset_ < pendingWrite_.size())
         {
@@ -375,7 +375,7 @@ namespace httpadv::v1::websocket
 
     void WebSocketProtocolExecution::handleParsedFrame(const WebSocketFrame &frame)
     {
-        if (frame.header.payloadLength > httpadv::v1::core::WsMaxFramePayloadSize)
+        if (frame.header.payloadLength > lumalink::http::core::WsMaxFramePayloadSize)
         {
             const WsClosePolicy policy = policyFor(WsErrorCategory::MessageTooLarge);
             context_.notifyError("WebSocket frame payload too large");
@@ -436,7 +436,7 @@ namespace httpadv::v1::websocket
         {
             if (frame.header.fin)
             {
-                if (frame.payload.size() > httpadv::v1::core::WsMaxMessageSize)
+                if (frame.payload.size() > lumalink::http::core::WsMaxMessageSize)
                 {
                     const WsClosePolicy policy = policyFor(WsErrorCategory::MessageTooLarge);
                     context_.notifyError("WebSocket message too big");
@@ -523,10 +523,10 @@ namespace httpadv::v1::websocket
     {
         if (payload.empty())
         {
-            return messageBuffer_.size() <= httpadv::v1::core::WsMaxMessageSize;
+            return messageBuffer_.size() <= lumalink::http::core::WsMaxMessageSize;
         }
 
-        const std::size_t remaining = httpadv::v1::core::WsMaxMessageSize - (std::min)(messageBuffer_.size(), httpadv::v1::core::WsMaxMessageSize);
+        const std::size_t remaining = lumalink::http::core::WsMaxMessageSize - (std::min)(messageBuffer_.size(), lumalink::http::core::WsMaxMessageSize);
         if (payload.size() > remaining)
         {
             return false;

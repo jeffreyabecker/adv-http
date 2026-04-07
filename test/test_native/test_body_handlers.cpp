@@ -26,17 +26,17 @@
 #include "../../src/httpadv/v1/handlers/JsonBodyHandler.h"
 #endif
 
-using namespace httpadv::v1::core;
-using namespace httpadv::v1::handlers;
-using namespace httpadv::v1::pipeline;
-using namespace httpadv::v1::response;
-using namespace httpadv::v1::routing;
-using namespace httpadv::v1::server;
-using namespace httpadv::v1::staticfiles;
-using namespace httpadv::v1::transport;
+using namespace lumalink::http::core;
+using namespace lumalink::http::handlers;
+using namespace lumalink::http::pipeline;
+using namespace lumalink::http::response;
+using namespace lumalink::http::routing;
+using namespace lumalink::http::server;
+using namespace lumalink::http::staticfiles;
+using namespace lumalink::http::transport;
 using namespace lumalink::platform::buffers;
-using namespace httpadv::v1::util;
-using namespace httpadv::v1::websocket;
+using namespace lumalink::http::util;
+using namespace lumalink::http::websocket;
 
 namespace
 {
@@ -59,7 +59,7 @@ namespace
     {
     public:
         explicit RequestHarness(std::unique_ptr<IHttpHandler> handler)
-            : server_(std::make_unique<httpadv::v1::TestSupport::FakeServer>()),
+            : server_(std::make_unique<lumalink::http::TestSupport::FakeServer>()),
               pendingHandler_(std::move(handler)),
               handlerPtr_(pendingHandler_.get()),
               factory_([this](HttpRequestContext &) -> std::unique_ptr<IHttpHandler>
@@ -130,14 +130,14 @@ namespace
             if (result.kind == RequestHandlingResult::Kind::Response && result.responseStream)
             {
                 ++responseStreamCount_;
-                responseText_ = httpadv::v1::TestSupport::ReadByteSourceAsStdString(*result.responseStream);
+                responseText_ = lumalink::http::TestSupport::ReadByteSourceAsStdString(*result.responseStream);
             }
         }
 
         HttpServerBase server_;
         std::unique_ptr<IHttpHandler> pendingHandler_;
         IHttpHandler *handlerPtr_ = nullptr;
-        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory_;
+        lumalink::http::TestSupport::RecordingRequestHandlerFactory factory_;
         std::unique_ptr<IPipelineHandler, std::function<void(IPipelineHandler *)>> pipeline_;
         std::size_t responseStreamCount_ = 0;
         std::string responseText_;
@@ -840,7 +840,7 @@ namespace
 
 int run_test_body_handlers()
 {
-    return httpadv::v1::TestSupport::RunConsolidatedSuite(
+    return lumalink::http::TestSupport::RunConsolidatedSuite(
         "body handlers",
         runUnitySuite,
         localSetUp,

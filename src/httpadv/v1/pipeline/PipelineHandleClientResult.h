@@ -1,7 +1,7 @@
 #pragma once
 
 
-namespace httpadv::v1::pipeline
+namespace lumalink::http::pipeline
 {
 
 

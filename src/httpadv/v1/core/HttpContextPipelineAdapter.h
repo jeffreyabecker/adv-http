@@ -5,9 +5,9 @@
 
 #include <memory>
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
-    class HttpContextPipelineAdapter : public httpadv::v1::pipeline::IPipelineHandler
+    class HttpContextPipelineAdapter : public lumalink::http::pipeline::IPipelineHandler
     {
     public:
         explicit HttpContextPipelineAdapter(std::unique_ptr<HttpContextRunner> runner);
@@ -24,12 +24,12 @@ namespace httpadv::v1::core
         int onHeadersComplete() override;
         int onBody(const std::uint8_t *at, std::size_t length) override;
         int onMessageComplete() override;
-        void onError(httpadv::v1::pipeline::PipelineError error) override;
+        void onError(lumalink::http::pipeline::PipelineError error) override;
         void onResponseStarted() override;
         void onResponseCompleted() override;
         void onClientDisconnected() override;
         bool hasPendingResult() const override;
-        httpadv::v1::pipeline::RequestHandlingResult takeResult() override;
+        lumalink::http::pipeline::RequestHandlingResult takeResult() override;
 
         HttpContextRunner &runner();
         const HttpContextRunner &runner() const;

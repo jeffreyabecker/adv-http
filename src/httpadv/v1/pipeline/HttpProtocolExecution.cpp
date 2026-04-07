@@ -2,7 +2,7 @@
 
 #include "../core/Defines.h"
 
-namespace httpadv::v1::pipeline
+namespace lumalink::http::pipeline
 {
     HttpProtocolExecution::HttpProtocolExecution(PipelineHandlerPtr handler)
         : handler_(std::move(handler))
@@ -22,7 +22,7 @@ namespace httpadv::v1::pipeline
             return ConnectionSessionResult::Continue;
         }
 
-        std::uint8_t buffer[httpadv::v1::core::PIPELINE_STACK_BUFFER_SIZE] = {};
+        std::uint8_t buffer[lumalink::http::core::PIPELINE_STACK_BUFFER_SIZE] = {};
         lumalink::platform::buffers::AvailableResult available = lumalink::platform::buffers::TemporarilyUnavailableResult();
         while ((available = client.available()).hasBytes())
         {

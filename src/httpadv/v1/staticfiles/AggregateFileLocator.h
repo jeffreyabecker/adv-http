@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-namespace httpadv::v1::staticfiles
+namespace lumalink::http::staticfiles
 {
     class AggregateFileLocator : public FileLocator
     {
@@ -20,4 +20,4 @@ namespace httpadv::v1::staticfiles
         bool canHandle(std::string_view path) override;
     };
 
-} // namespace httpadv::v1::staticfiles
+} // namespace lumalink::http::staticfiles

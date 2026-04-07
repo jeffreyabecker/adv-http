@@ -16,19 +16,19 @@ bool EndsWith(std::string_view value, std::string_view suffix) {
              0;
 }
 
-class DecoratedStaticHandler : public httpadv::v1::handlers::IHttpHandler {
+class DecoratedStaticHandler : public lumalink::http::handlers::IHttpHandler {
 public:
   DecoratedStaticHandler(
-      std::unique_ptr<httpadv::v1::handlers::IHttpHandler> innerHandler,
-      httpadv::v1::response::IHttpResponse::ResponseFilter responseFilter,
-      httpadv::v1::handlers::IHttpHandler::InterceptorCallback interceptor)
+      std::unique_ptr<lumalink::http::handlers::IHttpHandler> innerHandler,
+      lumalink::http::response::IHttpResponse::ResponseFilter responseFilter,
+      lumalink::http::handlers::IHttpHandler::InterceptorCallback interceptor)
       : innerHandler_(std::move(innerHandler)),
         responseFilter_(std::move(responseFilter)),
         interceptor_(std::move(interceptor)) {}
 
-  HandlerResult handleStep(httpadv::v1::core::HttpRequestContext &context) override {
+  HandlerResult handleStep(lumalink::http::core::HttpRequestContext &context) override {
     HandlerResult result = interceptor_
-                               ? interceptor_(context, httpadv::v1::handlers::IHttpHandler::InvocationNext(context, [this, &context]() {
+                               ? interceptor_(context, lumalink::http::handlers::IHttpHandler::InvocationNext(context, [this, &context]() {
                                    return innerHandler_->handleStep(context);
                                  }))
                                : innerHandler_->handleStep(context);
@@ -40,19 +40,19 @@ public:
     return result;
   }
 
-  void handleBodyChunk(httpadv::v1::core::HttpRequestContext &context,
+  void handleBodyChunk(lumalink::http::core::HttpRequestContext &context,
                        const uint8_t *at, std::size_t length) override {
     innerHandler_->handleBodyChunk(context, at, length);
   }
 
 private:
-  std::unique_ptr<httpadv::v1::handlers::IHttpHandler> innerHandler_;
-  httpadv::v1::response::IHttpResponse::ResponseFilter responseFilter_;
-  httpadv::v1::handlers::IHttpHandler::InterceptorCallback interceptor_;
+  std::unique_ptr<lumalink::http::handlers::IHttpHandler> innerHandler_;
+  lumalink::http::response::IHttpResponse::ResponseFilter responseFilter_;
+  lumalink::http::handlers::IHttpHandler::InterceptorCallback interceptor_;
 };
 } // namespace
 
-namespace httpadv::v1::staticfiles {
+namespace lumalink::http::staticfiles {
 struct StaticFileHandlerFactory::ResolvedRequest {
   bool canHandle = false;
   std::string requestPath;
@@ -102,7 +102,7 @@ StaticFileHandlerFactory::getLastWriteValue(const IFile &file) {
 }
 
 std::unique_ptr<IHttpResponse> StaticFileHandlerFactory::createFileResponse(
-    FileHandle file, httpadv::v1::core::HttpContentTypes &contentTypes) {
+    FileHandle file, lumalink::http::core::HttpContentTypes &contentTypes) {
   if (!file) {
     return nullptr;
   }
@@ -119,43 +119,43 @@ std::unique_ptr<IHttpResponse> StaticFileHandlerFactory::createFileResponse(
     contentType = contentTypes.getContentTypeFromPath(filePath);
   }
 
-  httpadv::v1::core::HttpHeaderCollection headers;
-  headers.push_back(httpadv::v1::core::HttpHeader::ContentType(contentType));
+  lumalink::http::core::HttpHeaderCollection headers;
+  headers.push_back(lumalink::http::core::HttpHeader::ContentType(contentType));
   if (const std::optional<std::size_t> fileSize = file->size();
       fileSize.has_value()) {
     const std::string contentLength = std::to_string(*fileSize);
     headers.push_back(
-        httpadv::v1::core::HttpHeader::ContentLength(contentLength.c_str()));
+        lumalink::http::core::HttpHeader::ContentLength(contentLength.c_str()));
   }
 
   if (const std::optional<std::string> etag = getEtag(*file);
       etag.has_value()) {
-    headers.push_back(httpadv::v1::core::HttpHeader::ETag(std::move(*etag)));
+    headers.push_back(lumalink::http::core::HttpHeader::ETag(std::move(*etag)));
   }
 
   if (const std::optional<std::string> lastModified = getLastWriteValue(*file);
       lastModified.has_value()) {
     headers.push_back(
-        httpadv::v1::core::HttpHeader::LastModified(std::move(*lastModified)));
+        lumalink::http::core::HttpHeader::LastModified(std::move(*lastModified)));
   }
 
   if (isGzipped) {
-    headers.push_back(httpadv::v1::core::HttpHeader::ContentEncoding("gzip"));
+    headers.push_back(lumalink::http::core::HttpHeader::ContentEncoding("gzip"));
   }
   if (isBrotli) {
-    headers.push_back(httpadv::v1::core::HttpHeader::ContentEncoding("br"));
+    headers.push_back(lumalink::http::core::HttpHeader::ContentEncoding("br"));
   }
 
   std::unique_ptr<lumalink::platform::buffers::IByteSource> body = std::move(file);
-  return std::make_unique<httpadv::v1::response::HttpResponse>(
-      httpadv::v1::core::HttpStatus::Ok(), std::move(body),
+  return std::make_unique<lumalink::http::response::HttpResponse>(
+      lumalink::http::core::HttpStatus::Ok(), std::move(body),
       std::move(headers));
 }
 
 // Public methods
 StaticFileHandlerFactory::StaticFileHandlerFactory(
     std::unique_ptr<FileLocator> fileLocator,
-    httpadv::v1::core::HttpContentTypes &contentTypes,
+    lumalink::http::core::HttpContentTypes &contentTypes,
     std::vector<ResponseFilterRule> responseFilterRules,
     std::vector<InterceptorRule> interceptorRules,
   std::vector<RequestPredicateRule> requestPredicateRules,
@@ -268,7 +268,7 @@ std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::decorateHandler(
     auto previousInterceptor = interceptor;
     auto nextInterceptor = rule.wrapper;
     interceptor =
-        [previousInterceptor, nextInterceptor](httpadv::v1::core::HttpRequestContext &innerContext,
+        [previousInterceptor, nextInterceptor](lumalink::http::core::HttpRequestContext &innerContext,
                                                IHttpHandler::InvocationNext next)
         -> IHttpHandler::HandlerResult {
       return nextInterceptor(
@@ -301,13 +301,13 @@ StaticFileHandlerFactory::create(HttpRequestContext &context) {
   }
 
   const std::string_view method = context.methodView();
-  bool isGet = (method == httpadv::v1::core::HttpMethod::Get);
-  bool isHead = (method == httpadv::v1::core::HttpMethod::Head);
+  bool isGet = (method == lumalink::http::core::HttpMethod::Get);
+  bool isHead = (method == lumalink::http::core::HttpMethod::Head);
 
   if (!isGet && !isHead) {
-    return decorateHandler(context, httpadv::v1::handlers::HttpHandler::create(httpadv::v1::response::StringResponse::create(
-      httpadv::v1::core::HttpStatus::MethodNotAllowed(), "Method Not Allowed",
-      {std::move(httpadv::v1::core::HttpHeader::Allow("GET, HEAD"))})));
+    return decorateHandler(context, lumalink::http::handlers::HttpHandler::create(lumalink::http::response::StringResponse::create(
+      lumalink::http::core::HttpStatus::MethodNotAllowed(), "Method Not Allowed",
+      {std::move(lumalink::http::core::HttpHeader::Allow("GET, HEAD"))})));
   }
 
   FileHandle file = std::move(resolvedRequest.file);
@@ -319,7 +319,7 @@ StaticFileHandlerFactory::create(HttpRequestContext &context) {
   }
 
   return decorateHandler(
-      context, httpadv::v1::handlers::HttpHandler::create(
+      context, lumalink::http::handlers::HttpHandler::create(
                    createFileResponse(std::move(file), contentTypes_)));
 }
 
@@ -333,4 +333,4 @@ void StaticFileHandlerFactory::setNotFoundRequestPathResolver(
   notFoundRequestPathResolver_ = std::move(resolver);
 }
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::staticfiles

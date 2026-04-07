@@ -8,7 +8,7 @@
 #include "../streams/Base64Stream.h"
 #include "../streams/UriStream.h"
 
-namespace httpadv::v1::util
+namespace lumalink::http::util
 {
     namespace
     {
@@ -87,7 +87,7 @@ namespace httpadv::v1::util
 
     std::string WebUtility::DecodeURIComponent(const char *str, std::size_t length)
     {
-        httpadv::v1::streams::UriDecodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
+        lumalink::http::streams::UriDecodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
         auto decoded = lumalink::platform::buffers::ReadAsVector(uriStream);
         return std::string(decoded.begin(), decoded.end());
     }
@@ -99,7 +99,7 @@ namespace httpadv::v1::util
 
     std::string WebUtility::EncodeURIComponent(const char *str, std::size_t length)
     {
-        httpadv::v1::streams::UriEncodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
+        lumalink::http::streams::UriEncodingStream uriStream(reinterpret_cast<const uint8_t *>(str), length);
         auto encoded = lumalink::platform::buffers::ReadAsVector(uriStream);
         return std::string(encoded.begin(), encoded.end());
     }
@@ -273,7 +273,7 @@ namespace httpadv::v1::util
 
     std::string WebUtility::Base64Encode(const uint8_t *data, std::size_t length, bool urlCompatible)
     {
-        httpadv::v1::streams::Base64EncoderStream base64Stream = httpadv::v1::streams::Base64EncoderStream::create(data, length, urlCompatible);
+        lumalink::http::streams::Base64EncoderStream base64Stream = lumalink::http::streams::Base64EncoderStream::create(data, length, urlCompatible);
         return lumalink::platform::buffers::ReadAsStdString(base64Stream);
     }
 
@@ -284,13 +284,13 @@ namespace httpadv::v1::util
 
     std::vector<uint8_t> WebUtility::Base64Decode(std::string_view input, bool urlCompatible)
     {
-        httpadv::v1::streams::Base64DecoderStream base64Stream = httpadv::v1::streams::Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(input.data()), input.size(), urlCompatible);
+        lumalink::http::streams::Base64DecoderStream base64Stream = lumalink::http::streams::Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(input.data()), input.size(), urlCompatible);
         return lumalink::platform::buffers::ReadAsVector(base64Stream);
     }
 
     std::string WebUtility::Base64DecodeToString(const char *data, std::size_t length, bool urlCompatible)
     {
-        httpadv::v1::streams::Base64DecoderStream base64Stream = httpadv::v1::streams::Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(data), length, urlCompatible);
+        lumalink::http::streams::Base64DecoderStream base64Stream = lumalink::http::streams::Base64DecoderStream::create(reinterpret_cast<const uint8_t *>(data), length, urlCompatible);
         return lumalink::platform::buffers::ReadAsStdString(base64Stream);
     }
 
@@ -298,4 +298,4 @@ namespace httpadv::v1::util
     {
         return Base64DecodeToString(input.data(), input.size(), urlCompatible);
     }
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::util

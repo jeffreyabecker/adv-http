@@ -9,17 +9,17 @@
 #include <string>
 #include <string_view>
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
     class HttpHeaderCollection;
 }
 
-namespace httpadv::v1::util
+namespace lumalink::http::util
 {
     class UriView;
 }
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
     class HttpRequestContext
     {
@@ -42,6 +42,6 @@ namespace httpadv::v1::core
         virtual uint16_t localPort() const = 0;
         virtual HttpContextPhaseFlags completedPhases() const = 0;
         std::map<std::string, std::any> &items() const { return items_; }
-        virtual httpadv::v1::util::UriView &uriView() const = 0;
+        virtual lumalink::http::util::UriView &uriView() const = 0;
     };
 }

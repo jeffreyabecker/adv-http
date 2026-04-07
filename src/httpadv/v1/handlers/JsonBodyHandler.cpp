@@ -3,9 +3,9 @@
 
 #if HTTPSERVER_ADVANCED_ENABLE_ARDUINO_JSON == 1
 
-namespace httpadv::v1::handlers {
+namespace lumalink::http::handlers {
 IHttpHandler::HandlerResult
-JsonBodyHandler::handleBody(httpadv::v1::core::HttpRequestContext &context, std::vector<uint8_t> &&body) {
+JsonBodyHandler::handleBody(lumalink::http::core::HttpRequestContext &context, std::vector<uint8_t> &&body) {
   context.items().erase(Json::DeserializationErrorItemKey);
 
   auto params = extractor_(context);
@@ -19,7 +19,7 @@ JsonBodyHandler::handleBody(httpadv::v1::core::HttpRequestContext &context, std:
 }
 
 Json::Invocation Json::curryWithoutParams(InvocationWithoutParams handler) {
-  return [handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &&,
+  return [handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&,
                    JsonDocument &&jsonData) {
     return handler(context, std::move(jsonData));
   };
@@ -28,11 +28,11 @@ Json::Invocation Json::curryWithoutParams(InvocationWithoutParams handler) {
 IHttpHandler::Factory Json::makeFactory(Invocation handler,
                                         ExtractArgsFromRequest extractor) {
   return [handler,
-          extractor](httpadv::v1::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler> {
+          extractor](lumalink::http::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler> {
     auto params = extractor(context);
     return std::make_unique<JsonBodyHandler>(
         handler,
-        ExtractArgsFromRequest([params](httpadv::v1::core::HttpRequestContext &c)
+        ExtractArgsFromRequest([params](lumalink::http::core::HttpRequestContext &c)
         {
           (void)c;
           return params;
@@ -43,7 +43,7 @@ IHttpHandler::Factory Json::makeFactory(Invocation handler,
 Json::Invocation
 Json::curryInterceptor(IHttpHandler::InterceptorCallback interceptor,
                        Invocation handler) {
-  return [interceptor, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &&params,
+  return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params,
                                 JsonDocument &&jsonData) {
     return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params),
                                  jsonData = std::move(jsonData)]() mutable {
@@ -55,7 +55,7 @@ Json::curryInterceptor(IHttpHandler::InterceptorCallback interceptor,
 Json::Invocation
 Json::applyFilter(IHttpHandler::InterceptorCallback interceptor,
                   Invocation handler) {
-  return [interceptor, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &&params,
+  return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params,
                                 JsonDocument &&jsonData) {
     return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params),
                                  jsonData = std::move(jsonData)]() mutable {
@@ -66,7 +66,7 @@ Json::applyFilter(IHttpHandler::InterceptorCallback interceptor,
 
 Json::Invocation Json::applyResponseFilter(IHttpResponse::ResponseFilter filter,
                                            Invocation handler) {
-  return [filter, handler](httpadv::v1::core::HttpRequestContext &context, RouteParameters &&params,
+  return [filter, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params,
                            JsonDocument &&jsonData) {
     auto response = handler(context, std::move(params), std::move(jsonData));
     if (!response.isResponse()) {
@@ -77,6 +77,6 @@ Json::Invocation Json::applyResponseFilter(IHttpResponse::ResponseFilter filter,
     return response;
   };
 }
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::handlers
 
 #endif

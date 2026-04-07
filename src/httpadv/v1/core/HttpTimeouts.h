@@ -2,9 +2,9 @@
 #include "../util/Clock.h"
 #include "Defines.h"
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
-    using httpadv::v1::util::ClockMillis;
+    using lumalink::http::util::ClockMillis;
 
 
     /// @brief Timeouts related to HTTP Server operations

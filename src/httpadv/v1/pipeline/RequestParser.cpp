@@ -3,7 +3,7 @@
 #include "PipelineError.h"
 #include <cstring> // Required for strncmp
 
-namespace httpadv::v1::pipeline
+namespace lumalink::http::pipeline
 {
     // Static method implementations
     RequestParser *RequestParser::get_instance(llhttp_t *parser)
@@ -28,7 +28,7 @@ namespace httpadv::v1::pipeline
         {
             self->currentEvent_ = RequestParserEvent::Url;
             // Buffer the URL chunk
-            if (!self->appendToBuffer(at, length, httpadv::v1::core::MAX_REQUEST_URI_LENGTH, self->urlPos_, self->urlLen_))
+            if (!self->appendToBuffer(at, length, lumalink::http::core::MAX_REQUEST_URI_LENGTH, self->urlPos_, self->urlLen_))
             {
                 // Notify handler about the overflow and abort parsing
                 self->currentEvent_ = RequestParserEvent::Error;
@@ -46,7 +46,7 @@ namespace httpadv::v1::pipeline
         {
             self->currentEvent_ = RequestParserEvent::HeaderField;
             // Buffer the header field chunk
-            if (!self->appendToBuffer(at, length, httpadv::v1::core::MAX_REQUEST_HEADER_NAME_LENGTH, self->headerFieldPos_, self->headerFieldLen_))
+            if (!self->appendToBuffer(at, length, lumalink::http::core::MAX_REQUEST_HEADER_NAME_LENGTH, self->headerFieldPos_, self->headerFieldLen_))
             {
                 // Header name too long: notify handler and stop parsing
                 self->currentEvent_ = RequestParserEvent::Error;
@@ -64,7 +64,7 @@ namespace httpadv::v1::pipeline
         {
             self->currentEvent_ = RequestParserEvent::HeaderValue;
             // Buffer the header value chunk
-            if (!self->appendToBuffer(at, length, httpadv::v1::core::MAX_REQUEST_HEADER_VALUE_LENGTH, self->headerValuePos_, self->headerValueLen_))
+            if (!self->appendToBuffer(at, length, lumalink::http::core::MAX_REQUEST_HEADER_VALUE_LENGTH, self->headerValuePos_, self->headerValueLen_))
             {
                 // Header value too long: notify handler and abort parsing
                 self->currentEvent_ = RequestParserEvent::Error;
@@ -123,7 +123,7 @@ namespace httpadv::v1::pipeline
         if (self)
         {
             // Just buffer the method data
-            if (!self->appendToBuffer(at, length, httpadv::v1::core::MAX_REQUEST_METHOD_LENGTH, self->methodPos_, self->methodLen_))
+            if (!self->appendToBuffer(at, length, lumalink::http::core::MAX_REQUEST_METHOD_LENGTH, self->methodPos_, self->methodLen_))
             {
                 self->currentEvent_ = RequestParserEvent::Error;
                 self->eventHandler_.onError(PipelineError(PipelineErrorCode::InvalidMethodError));
@@ -230,7 +230,7 @@ namespace httpadv::v1::pipeline
         if (self && self->headerFieldLen_ > 0 && self->headerValueLen_ > 0)
         {
             // Header field and value are complete, call onHeader
-            if (self->headerCount_ >= httpadv::v1::core::MAX_REQUEST_HEADER_COUNT)
+            if (self->headerCount_ >= lumalink::http::core::MAX_REQUEST_HEADER_COUNT)
             {
                 self->currentEvent_ = RequestParserEvent::Error;
                 self->eventHandler_.onError(PipelineError(PipelineErrorCode::HeaderTooLarge));

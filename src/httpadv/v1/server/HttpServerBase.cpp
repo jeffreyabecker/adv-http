@@ -2,10 +2,10 @@
 
 #include <cassert>
 
-namespace httpadv::v1::server {
+namespace lumalink::http::server {
 
 HttpServerBase::HttpServerBase(std::unique_ptr<IServer> server)
-    : pipelineHandlerFactory_(nullptr), server_(std::move(server)), clock_(&httpadv::v1::util::DefaultClock()) {
+    : pipelineHandlerFactory_(nullptr), server_(std::move(server)), clock_(&lumalink::http::util::DefaultClock()) {
     assert(server_ && "HttpServerBase requires a valid transport server");
 }
 
@@ -20,7 +20,7 @@ void HttpServerBase::handleClient() {
     }
 
     // Accept new connections up to the configured maximum
-    while (pipelines_.size() < httpadv::v1::core::MAX_CONCURRENT_CONNECTIONS) {
+    while (pipelines_.size() < lumalink::http::core::MAX_CONCURRENT_CONNECTIONS) {
         if (!server_) {
             return;
         }
@@ -121,5 +121,5 @@ void HttpServerBase::setPipelineHandlerFactory(std::function<PipelineHandlerPtr(
     pipelineHandlerFactory_ = factory;
 }
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::server
 

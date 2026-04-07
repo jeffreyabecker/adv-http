@@ -12,13 +12,13 @@
 
 #include "HttpServerBase.h"
 
-namespace httpadv::v1::server
+namespace lumalink::http::server
 {
-    using httpadv::v1::core::HttpContentTypes;
-    using httpadv::v1::core::HttpContext;
-    using httpadv::v1::core::HttpContextHandlerFactory;
-    using httpadv::v1::routing::HandlerProviderRegistry;
-    using httpadv::v1::routing::ProviderRegistryBuilder;
+    using lumalink::http::core::HttpContentTypes;
+    using lumalink::http::core::HttpContext;
+    using lumalink::http::core::HttpContextHandlerFactory;
+    using lumalink::http::routing::HandlerProviderRegistry;
+    using lumalink::http::routing::ProviderRegistryBuilder;
 
     class WebServerBuilder 
     {
@@ -71,6 +71,6 @@ namespace httpadv::v1::server
         HttpContentTypes &contentTypes() { return contentTypes_; }
     };
 
-} // namespace httpadv::v1::server
+} // namespace lumalink::http::server
 
 

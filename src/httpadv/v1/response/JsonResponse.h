@@ -8,13 +8,13 @@
 #include "IHttpResponse.h"
 #include <ArduinoJson.h>
 
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
 
     class JsonResponse
     {
     public:
-        static std::unique_ptr<IHttpResponse> create(HttpStatus status, const JsonDocument &doc, std::initializer_list<httpadv::v1::core::HttpHeader> headers );
+        static std::unique_ptr<IHttpResponse> create(HttpStatus status, const JsonDocument &doc, std::initializer_list<lumalink::http::core::HttpHeader> headers );
         static std::unique_ptr<IHttpResponse> create(HttpStatus status, const JsonDocument &doc);
     };
 }

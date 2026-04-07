@@ -13,43 +13,43 @@
 #include <string_view>
 #include <vector>
 
-using namespace httpadv::v1::core;
-using namespace httpadv::v1::handlers;
-using namespace httpadv::v1::pipeline;
-using namespace httpadv::v1::response;
-using namespace httpadv::v1::routing;
-using namespace httpadv::v1::server;
-using namespace httpadv::v1::staticfiles;
-using namespace httpadv::v1::transport;
+using namespace lumalink::http::core;
+using namespace lumalink::http::handlers;
+using namespace lumalink::http::pipeline;
+using namespace lumalink::http::response;
+using namespace lumalink::http::routing;
+using namespace lumalink::http::server;
+using namespace lumalink::http::staticfiles;
+using namespace lumalink::http::transport;
 using namespace lumalink::platform::buffers;
-using namespace httpadv::v1::util;
-using namespace httpadv::v1::websocket;
+using namespace lumalink::http::util;
+using namespace lumalink::http::websocket;
 
 namespace
 {
     constexpr std::string_view MaxSupportedCustomMethod = "UNSUBSCRIBE";
-    static_assert(MaxSupportedCustomMethod.size() == httpadv::v1::core::MAX_REQUEST_METHOD_LENGTH);
+    static_assert(MaxSupportedCustomMethod.size() == lumalink::http::core::MAX_REQUEST_METHOD_LENGTH);
 
-    class CallbackReturnRecorder : public httpadv::v1::TestSupport::PipelineEventRecorder
+    class CallbackReturnRecorder : public lumalink::http::TestSupport::PipelineEventRecorder
     {
     public:
         int onHeadersComplete() override
         {
-            const int baseResult = httpadv::v1::TestSupport::PipelineEventRecorder::onHeadersComplete();
+            const int baseResult = lumalink::http::TestSupport::PipelineEventRecorder::onHeadersComplete();
             (void)baseResult;
             return headersCompleteReturnCode;
         }
 
         int onBody(const std::uint8_t *at, std::size_t length) override
         {
-            const int baseResult = httpadv::v1::TestSupport::PipelineEventRecorder::onBody(at, length);
+            const int baseResult = lumalink::http::TestSupport::PipelineEventRecorder::onBody(at, length);
             (void)baseResult;
             return bodyReturnCode;
         }
 
         int onMessageComplete() override
         {
-            const int baseResult = httpadv::v1::TestSupport::PipelineEventRecorder::onMessageComplete();
+            const int baseResult = lumalink::http::TestSupport::PipelineEventRecorder::onMessageComplete();
             (void)baseResult;
             return messageCompleteReturnCode;
         }
@@ -108,7 +108,7 @@ namespace
         return parser.execute(reinterpret_cast<const std::uint8_t *>(text.data()), text.size());
     }
 
-    std::size_t FirstEventIndex(const std::vector<httpadv::v1::TestSupport::RecordedPipelineEvent> &events, httpadv::v1::TestSupport::PipelineEventKind kind)
+    std::size_t FirstEventIndex(const std::vector<lumalink::http::TestSupport::RecordedPipelineEvent> &events, lumalink::http::TestSupport::PipelineEventKind kind)
     {
         for (std::size_t i = 0; i < events.size(); ++i)
         {
@@ -123,7 +123,7 @@ namespace
 
     void test_request_parser_accepts_custom_method_verbatim()
     {
-        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+        lumalink::http::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
         const std::string request = BuildRequest("PURGE", "/cache");
@@ -141,12 +141,12 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(1, recorder.messageCompleteCount());
         TEST_ASSERT_TRUE(recorder.errors().empty());
         TEST_ASSERT_TRUE(parser.shouldKeepAlive());
-        TEST_ASSERT_TRUE(recorder.events()[0].kind == httpadv::v1::TestSupport::PipelineEventKind::MessageBegin);
+        TEST_ASSERT_TRUE(recorder.events()[0].kind == lumalink::http::TestSupport::PipelineEventKind::MessageBegin);
     }
 
     void test_request_parser_preserves_split_custom_method_bytes()
     {
-        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+        lumalink::http::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
         const std::string secondChunk = "SEARCH /upnp HTTP/1.1\r\nHost: example.test\r\n\r\n";
@@ -165,7 +165,7 @@ namespace
 
     void test_request_parser_rejects_invalid_custom_method_token()
     {
-        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+        lumalink::http::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
         const std::string request = BuildRequest("BAD(METHOD", "/broken");
@@ -174,12 +174,12 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(0, consumed);
         TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
         TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::InvalidMethodError);
-        TEST_ASSERT_TRUE(recorder.events()[0].kind == httpadv::v1::TestSupport::PipelineEventKind::Error);
+        TEST_ASSERT_TRUE(recorder.events()[0].kind == lumalink::http::TestSupport::PipelineEventKind::Error);
     }
 
     void test_request_parser_accepts_custom_method_at_explicit_limit()
     {
-        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+        lumalink::http::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
         const std::string request = BuildRequest(MaxSupportedCustomMethod, "/limit");
@@ -193,26 +193,26 @@ namespace
 
     void test_request_parser_rejects_custom_method_past_explicit_limit()
     {
-        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+        lumalink::http::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
-        const std::string method = std::string(httpadv::v1::core::MAX_REQUEST_METHOD_LENGTH + 1U, 'M');
+        const std::string method = std::string(lumalink::http::core::MAX_REQUEST_METHOD_LENGTH + 1U, 'M');
         const std::string request = BuildRequest(method, "/too-long");
         const std::size_t consumed = ExecuteText(parser, request);
 
         TEST_ASSERT_EQUAL_UINT64(0, consumed);
         TEST_ASSERT_EQUAL_UINT64(1, recorder.errors().size());
         TEST_ASSERT_TRUE(recorder.errors()[0] == PipelineErrorCode::InvalidMethodError);
-        TEST_ASSERT_TRUE(recorder.events()[0].kind == httpadv::v1::TestSupport::PipelineEventKind::Error);
+        TEST_ASSERT_TRUE(recorder.events()[0].kind == lumalink::http::TestSupport::PipelineEventKind::Error);
     }
 
     void test_request_parser_accepts_uri_exactly_at_limit_and_rejects_uri_past_limit()
     {
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
-            const std::string uri = "/" + RepeatChar('u', httpadv::v1::core::MAX_REQUEST_URI_LENGTH - 1);
+            const std::string uri = "/" + RepeatChar('u', lumalink::http::core::MAX_REQUEST_URI_LENGTH - 1);
             const std::string request = BuildRequest("GET", uri);
             const std::size_t consumed = ExecuteText(parser, request);
 
@@ -222,10 +222,10 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
-            const std::string uri = "/" + RepeatChar('u', httpadv::v1::core::MAX_REQUEST_URI_LENGTH);
+            const std::string uri = "/" + RepeatChar('u', lumalink::http::core::MAX_REQUEST_URI_LENGTH);
             const std::string request = BuildRequest("GET", uri);
             const std::size_t consumed = ExecuteText(parser, request);
 
@@ -238,11 +238,11 @@ namespace
     void test_request_parser_accepts_header_name_and_value_at_limits_and_rejects_overflow()
     {
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
-            const std::string headerName = RepeatChar('N', httpadv::v1::core::MAX_REQUEST_HEADER_NAME_LENGTH);
-            const std::string headerValue = RepeatChar('V', httpadv::v1::core::MAX_REQUEST_HEADER_VALUE_LENGTH);
+            const std::string headerName = RepeatChar('N', lumalink::http::core::MAX_REQUEST_HEADER_NAME_LENGTH);
+            const std::string headerValue = RepeatChar('V', lumalink::http::core::MAX_REQUEST_HEADER_VALUE_LENGTH);
             const std::string request = BuildRequestWithHeaders(
                 "GET /limit HTTP/1.1",
                 {
@@ -258,10 +258,10 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
-            const std::string tooLongHeaderName = RepeatChar('N', httpadv::v1::core::MAX_REQUEST_HEADER_NAME_LENGTH + 1);
+            const std::string tooLongHeaderName = RepeatChar('N', lumalink::http::core::MAX_REQUEST_HEADER_NAME_LENGTH + 1);
             const std::string request = BuildRequestWithHeaders(
                 "GET /overflow-name HTTP/1.1",
                 {
@@ -275,10 +275,10 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
-            const std::string tooLongHeaderValue = RepeatChar('V', httpadv::v1::core::MAX_REQUEST_HEADER_VALUE_LENGTH + 1);
+            const std::string tooLongHeaderValue = RepeatChar('V', lumalink::http::core::MAX_REQUEST_HEADER_VALUE_LENGTH + 1);
             const std::string request = BuildRequestWithHeaders(
                 "GET /overflow-value HTTP/1.1",
                 {
@@ -295,12 +295,12 @@ namespace
     void test_request_parser_accepts_header_count_at_limit_and_rejects_overflow_header_count()
     {
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
             std::vector<std::pair<std::string, std::string>> headers;
-            headers.reserve(httpadv::v1::core::MAX_REQUEST_HEADER_COUNT);
-            for (std::size_t i = 0; i < httpadv::v1::core::MAX_REQUEST_HEADER_COUNT; ++i)
+            headers.reserve(lumalink::http::core::MAX_REQUEST_HEADER_COUNT);
+            for (std::size_t i = 0; i < lumalink::http::core::MAX_REQUEST_HEADER_COUNT; ++i)
             {
                 headers.emplace_back("X-H" + std::to_string(i), "v");
             }
@@ -309,17 +309,17 @@ namespace
             const std::size_t consumed = ExecuteText(parser, request);
 
             TEST_ASSERT_EQUAL_UINT64(request.size(), consumed);
-            TEST_ASSERT_EQUAL_UINT64(httpadv::v1::core::MAX_REQUEST_HEADER_COUNT, recorder.headers().size());
+            TEST_ASSERT_EQUAL_UINT64(lumalink::http::core::MAX_REQUEST_HEADER_COUNT, recorder.headers().size());
             TEST_ASSERT_TRUE(recorder.errors().empty());
         }
 
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
             std::vector<std::pair<std::string, std::string>> headers;
-            headers.reserve(httpadv::v1::core::MAX_REQUEST_HEADER_COUNT + 1);
-            for (std::size_t i = 0; i < httpadv::v1::core::MAX_REQUEST_HEADER_COUNT + 1; ++i)
+            headers.reserve(lumalink::http::core::MAX_REQUEST_HEADER_COUNT + 1);
+            for (std::size_t i = 0; i < lumalink::http::core::MAX_REQUEST_HEADER_COUNT + 1; ++i)
             {
                 headers.emplace_back("X-O" + std::to_string(i), "v");
             }
@@ -336,7 +336,7 @@ namespace
     void test_request_parser_maps_malformed_request_errors_for_url_header_token_content_length_and_version()
     {
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
             const std::string request = "GET /bad url HTTP/1.1\r\nHost: example.test\r\n\r\n";
 
@@ -349,7 +349,7 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
             const std::string request = "GET /ok HTTP/1.1\r\nBad[Header: value\r\n\r\n";
 
@@ -359,7 +359,7 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
             const std::string request = "GET /ok HTTP/1.1\r\nContent-Length: nope\r\n\r\n";
 
@@ -369,7 +369,7 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
             const std::string request = "GET /ok HTTP/12.1\r\nHost: example.test\r\n\r\n";
 
@@ -381,7 +381,7 @@ namespace
 
     void test_request_parser_orders_events_and_stitches_split_headers_and_body_chunks()
     {
-        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+        lumalink::http::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
         const std::string chunk1 = "POST";
@@ -413,10 +413,10 @@ namespace
         TEST_ASSERT_TRUE(recorder.errors().empty());
 
         const auto &events = recorder.events();
-        const std::size_t messageBeginIndex = FirstEventIndex(events, httpadv::v1::TestSupport::PipelineEventKind::MessageBegin);
-        const std::size_t headersCompleteIndex = FirstEventIndex(events, httpadv::v1::TestSupport::PipelineEventKind::HeadersComplete);
-        const std::size_t bodyIndex = FirstEventIndex(events, httpadv::v1::TestSupport::PipelineEventKind::BodyChunk);
-        const std::size_t messageCompleteIndex = FirstEventIndex(events, httpadv::v1::TestSupport::PipelineEventKind::MessageComplete);
+        const std::size_t messageBeginIndex = FirstEventIndex(events, lumalink::http::TestSupport::PipelineEventKind::MessageBegin);
+        const std::size_t headersCompleteIndex = FirstEventIndex(events, lumalink::http::TestSupport::PipelineEventKind::HeadersComplete);
+        const std::size_t bodyIndex = FirstEventIndex(events, lumalink::http::TestSupport::PipelineEventKind::BodyChunk);
+        const std::size_t messageCompleteIndex = FirstEventIndex(events, lumalink::http::TestSupport::PipelineEventKind::MessageComplete);
 
         TEST_ASSERT_TRUE(messageBeginIndex < headersCompleteIndex);
         TEST_ASSERT_TRUE(headersCompleteIndex < bodyIndex);
@@ -461,7 +461,7 @@ namespace
 
     void test_request_parser_reset_allows_reuse_for_subsequent_request()
     {
-        httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+        lumalink::http::TestSupport::PipelineEventRecorder recorder;
         RequestParser parser(recorder);
 
         const std::string firstRequest = BuildRequest("GET", "/first");
@@ -482,7 +482,7 @@ namespace
     void test_request_parser_end_of_input_finishes_complete_messages_and_errors_on_incomplete_input()
     {
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
             const std::string request = BuildRequest("GET", "/eof-ok");
@@ -493,7 +493,7 @@ namespace
         }
 
         {
-            httpadv::v1::TestSupport::PipelineEventRecorder recorder;
+            lumalink::http::TestSupport::PipelineEventRecorder recorder;
             RequestParser parser(recorder);
 
             const std::string incomplete = "GET /eof-fail HTTP/1.1\r\n";
@@ -526,7 +526,7 @@ namespace
 
 int run_test_request_parser()
 {
-    return httpadv::v1::TestSupport::RunConsolidatedSuite(
+    return lumalink::http::TestSupport::RunConsolidatedSuite(
         "request parser",
         runUnitySuite,
         localSetUp,

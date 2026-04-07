@@ -3,9 +3,9 @@
 
 #include "../server/HttpServerBase.h"
 
-namespace httpadv::v1::pipeline
+namespace lumalink::http::pipeline
 {
-    HttpPipeline::HttpPipeline(std::unique_ptr<httpadv::v1::transport::IClient> client, HttpServerBase &server,
+    HttpPipeline::HttpPipeline(std::unique_ptr<lumalink::http::transport::IClient> client, HttpServerBase &server,
                                                              const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,
                                                              const Clock &clock)
                 : client_(std::move(client)),
@@ -91,7 +91,7 @@ namespace httpadv::v1::pipeline
             }
         }
 
-        uint8_t buffer[httpadv::v1::core::PIPELINE_STACK_BUFFER_SIZE];
+        uint8_t buffer[lumalink::http::core::PIPELINE_STACK_BUFFER_SIZE];
         lumalink::platform::buffers::AvailableResult available = lumalink::platform::buffers::TemporarilyUnavailableResult();
         while ((available = responseStream_->available()).hasBytes())
         {
@@ -478,7 +478,7 @@ namespace httpadv::v1::pipeline
         return startMillis_;
     }
 
-    httpadv::v1::transport::IClient &HttpPipeline::client()
+    lumalink::http::transport::IClient &HttpPipeline::client()
     {
         return *client_;
     }
@@ -518,4 +518,4 @@ namespace httpadv::v1::pipeline
         return nullptr;
     }
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::pipeline

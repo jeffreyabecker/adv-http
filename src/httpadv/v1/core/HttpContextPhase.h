@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
     using HttpContextPhaseFlags = uint8_t;
     namespace HttpContextPhase

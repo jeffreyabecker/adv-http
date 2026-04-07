@@ -1,7 +1,7 @@
 #include "HttpResponse.h"
 #include "../streams/Streams.h"
 #include "../core/HttpContentTypes.h"
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
 
     HttpResponse::HttpResponse(HttpStatus status, std::unique_ptr<IByteSource> body, HttpHeaderCollection &&headers)
@@ -24,6 +24,6 @@ namespace httpadv::v1::response
         return std::move(body_);
     }
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::response
 
 

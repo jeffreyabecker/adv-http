@@ -9,9 +9,9 @@
 #include "HandlerRestrictions.h"
 #include "../routing/HandlerMatcher.h"
 
-namespace httpadv::v1::handlers
+namespace lumalink::http::handlers
 {
-    using httpadv::v1::core::HttpRequestContext;
+    using lumalink::http::core::HttpRequestContext;
     class RawBodyBuffer
     {
     private:
@@ -57,8 +57,8 @@ namespace httpadv::v1::handlers
                        { return handler(context, buffer); }),
               extractor_(extractor) {}
 
-        virtual HandlerResult handleStep(httpadv::v1::core::HttpRequestContext &context);
-        virtual void handleBodyChunk(httpadv::v1::core::HttpRequestContext &context, const uint8_t *at, std::size_t length);
+        virtual HandlerResult handleStep(lumalink::http::core::HttpRequestContext &context);
+        virtual void handleBodyChunk(lumalink::http::core::HttpRequestContext &context, const uint8_t *at, std::size_t length);
     };
     class RawBody
     {
@@ -75,9 +75,9 @@ namespace httpadv::v1::handlers
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler);
 
         static Invocation applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler);
-        static void restrict(httpadv::v1::routing::HandlerMatcher &baseUri)
+        static void restrict(lumalink::http::routing::HandlerMatcher &baseUri)
         {
         }
     };
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::handlers
 

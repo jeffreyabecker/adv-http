@@ -4,7 +4,7 @@
 #include "IPipelineHandler.h"
 #include "RequestParser.h"
 
-namespace httpadv::v1::pipeline
+namespace lumalink::http::pipeline
 {
     class HttpProtocolExecution : public IProtocolExecution
     {

@@ -2,7 +2,7 @@
 
 #include <cstdio>
 
-namespace httpadv::v1::TestSupport {
+namespace lumalink::http::TestSupport {
 namespace {
 SuiteHook activeSetUpHook = nullptr;
 SuiteHook activeTearDownHook = nullptr;
@@ -25,17 +25,17 @@ int RunConsolidatedSuite(const char *suiteName, SuiteRunner runner,
   SetActiveSuiteHooks(nullptr, nullptr);
   return failureCount;
 }
-} // namespace httpadv::v1::TestSupport
+} // namespace lumalink::http::TestSupport
 
 void setUp() {
-  auto hook = httpadv::v1::TestSupport::GetActiveSuiteSetUp();
+  auto hook = lumalink::http::TestSupport::GetActiveSuiteSetUp();
   if (hook != nullptr) {
     hook();
   }
 }
 
 void tearDown() {
-  auto hook = httpadv::v1::TestSupport::GetActiveSuiteTearDown();
+  auto hook = lumalink::http::TestSupport::GetActiveSuiteTearDown();
   if (hook != nullptr) {
     hook();
   }

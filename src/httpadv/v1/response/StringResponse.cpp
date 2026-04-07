@@ -4,11 +4,11 @@
 #include <string>
 #include <string_view>
 
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
     namespace
     {
-        HttpHeaderCollection buildHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength, std::string_view defaultContentType = httpadv::v1::core::HttpContentTypes::TextPlain)
+        HttpHeaderCollection buildHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength, std::string_view defaultContentType = lumalink::http::core::HttpContentTypes::TextPlain)
         {
             HttpHeaderCollection headersCollection;
             for (const auto &header : headers)
@@ -79,4 +79,4 @@ namespace httpadv::v1::response
         return create(status, std::string(body), {HttpHeader(HttpHeaderNames::ContentType, contentType)});
     }
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::response

@@ -3,7 +3,7 @@
 #include "../transport/ByteStream.h"
 #include "../core/Defines.h"
 
-namespace httpadv::v1::response
+namespace lumalink::http::response
 {
   using lumalink::platform::buffers::AvailableResult;
   using lumalink::platform::buffers::IByteSource;
@@ -37,7 +37,7 @@ namespace httpadv::v1::response
     size_t trailerPos_ = 0;
     size_t finalPos_ = 0;
 
-    static constexpr size_t chunkDataSize_ = httpadv::v1::core::ETHERNET_FRAME_BUFFER_SIZE;
+    static constexpr size_t chunkDataSize_ = lumalink::http::core::ETHERNET_FRAME_BUFFER_SIZE;
     static constexpr const char trailer_[3] = "\r\n";
     static constexpr const char finalChunk_[6] = "0\r\n\r\n";
 
@@ -57,5 +57,5 @@ namespace httpadv::v1::response
     size_t peek(lumalink::span<uint8_t> buffer) override;
   };
 
-} // namespace httpadv::v1::response
+} // namespace lumalink::http::response
 

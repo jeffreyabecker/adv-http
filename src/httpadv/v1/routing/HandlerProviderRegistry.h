@@ -12,12 +12,12 @@
 #include "../response/IHttpResponse.h"
 #include "../handlers/IHandlerProvider.h"
 
-namespace httpadv::v1::routing
+namespace lumalink::http::routing
 {
-    using httpadv::v1::handlers::HandlerResult;
-    using httpadv::v1::handlers::HandlerProvider;
-    using httpadv::v1::handlers::HttpHandler;
-    using httpadv::v1::response::IHttpResponse;
+    using lumalink::http::handlers::HandlerResult;
+    using lumalink::http::handlers::HandlerProvider;
+    using lumalink::http::handlers::HttpHandler;
+    using lumalink::http::response::IHttpResponse;
 
     class HandlerProviderRegistry
     {
@@ -31,28 +31,28 @@ namespace httpadv::v1::routing
             static const AddPosition End = -1;
         };
 
-        static std::unique_ptr<httpadv::v1::handlers::IHttpHandler> createDefaultHandler(httpadv::v1::core::HttpRequestContext &context);
-        std::unique_ptr<httpadv::v1::handlers::IHttpHandler> wrapHandler(std::unique_ptr<httpadv::v1::handlers::IHttpHandler> innerHandler) const;
-        std::vector<std::reference_wrapper<httpadv::v1::handlers::IHandlerProvider>> factories_;
-        std::vector<std::unique_ptr<httpadv::v1::handlers::IHandlerProvider>> ownedFactoryItems_;
-        httpadv::v1::handlers::IHttpHandler::Factory defaultFactory_ = nullptr;
-        httpadv::v1::handlers::IHttpHandler::Predicate globalRequestFilter_ = nullptr;
-        httpadv::v1::handlers::IHttpHandler::InterceptorCallback globalRequestInterceptor_ = nullptr;
+        static std::unique_ptr<lumalink::http::handlers::IHttpHandler> createDefaultHandler(lumalink::http::core::HttpRequestContext &context);
+        std::unique_ptr<lumalink::http::handlers::IHttpHandler> wrapHandler(std::unique_ptr<lumalink::http::handlers::IHttpHandler> innerHandler) const;
+        std::vector<std::reference_wrapper<lumalink::http::handlers::IHandlerProvider>> factories_;
+        std::vector<std::unique_ptr<lumalink::http::handlers::IHandlerProvider>> ownedFactoryItems_;
+        lumalink::http::handlers::IHttpHandler::Factory defaultFactory_ = nullptr;
+        lumalink::http::handlers::IHttpHandler::Predicate globalRequestFilter_ = nullptr;
+        lumalink::http::handlers::IHttpHandler::InterceptorCallback globalRequestInterceptor_ = nullptr;
         IHttpResponse::ResponseFilter globalResponseFilter_ = nullptr;
 
-        class ResponseFilterApplicator : public httpadv::v1::handlers::IHttpHandler
+        class ResponseFilterApplicator : public lumalink::http::handlers::IHttpHandler
         {
         private:
             IHttpResponse::ResponseFilter filter_;
-            httpadv::v1::handlers::IHttpHandler::InterceptorCallback interceptor_;
-            std::unique_ptr<httpadv::v1::handlers::IHttpHandler> innerHandler_;
+            lumalink::http::handlers::IHttpHandler::InterceptorCallback interceptor_;
+            std::unique_ptr<lumalink::http::handlers::IHttpHandler> innerHandler_;
 
         public:
-            ResponseFilterApplicator(std::unique_ptr<httpadv::v1::handlers::IHttpHandler> innerHandler, IHttpResponse::ResponseFilter filter, httpadv::v1::handlers::IHttpHandler::InterceptorCallback interceptor = nullptr)
+            ResponseFilterApplicator(std::unique_ptr<lumalink::http::handlers::IHttpHandler> innerHandler, IHttpResponse::ResponseFilter filter, lumalink::http::handlers::IHttpHandler::InterceptorCallback interceptor = nullptr)
                 : filter_(filter), interceptor_(interceptor), innerHandler_(std::move(innerHandler)) {}
-            virtual httpadv::v1::handlers::IHttpHandler::HandlerResult handleStep(httpadv::v1::core::HttpRequestContext &context) override
+            virtual lumalink::http::handlers::IHttpHandler::HandlerResult handleStep(lumalink::http::core::HttpRequestContext &context) override
             {
-                httpadv::v1::handlers::IHttpHandler::HandlerResult response = interceptor_ ? interceptor_(context, httpadv::v1::handlers::IHttpHandler::InvocationNext(context, [this, &context]()
+                lumalink::http::handlers::IHttpHandler::HandlerResult response = interceptor_ ? interceptor_(context, lumalink::http::handlers::IHttpHandler::InvocationNext(context, [this, &context]()
                                                                                    { return innerHandler_->handleStep(context); }))
                                                                     : innerHandler_->handleStep(context);
                 if (response.isResponse() && filter_)
@@ -61,7 +61,7 @@ namespace httpadv::v1::routing
                 }
                 return response;
             }
-            virtual void handleBodyChunk(httpadv::v1::core::HttpRequestContext &context, const uint8_t *at, std::size_t length) override
+            virtual void handleBodyChunk(lumalink::http::core::HttpRequestContext &context, const uint8_t *at, std::size_t length) override
             {
                 innerHandler_->handleBodyChunk(context, at, length);
             }
@@ -69,10 +69,10 @@ namespace httpadv::v1::routing
 
     public:
         HandlerProviderRegistry() {}
-        std::unique_ptr<httpadv::v1::handlers::IHttpHandler> createContextHandler(httpadv::v1::core::HttpRequestContext &context);
-        void setDefaultHandlerFactory(httpadv::v1::handlers::IHttpHandler::Factory creator);
+        std::unique_ptr<lumalink::http::handlers::IHttpHandler> createContextHandler(lumalink::http::core::HttpRequestContext &context);
+        void setDefaultHandlerFactory(lumalink::http::handlers::IHttpHandler::Factory creator);
 
-        void add(httpadv::v1::handlers::IHandlerProvider &handlerFactory, AddPosition position = AddAt::End);
+        void add(lumalink::http::handlers::IHandlerProvider &handlerFactory, AddPosition position = AddAt::End);
         template <typename THandler, typename... Args>
         void add(Args &&...args)
         {
@@ -90,10 +90,10 @@ namespace httpadv::v1::routing
             add(ref, position);
         }
 
-        void add(httpadv::v1::handlers::IHttpHandler::Predicate predicate, httpadv::v1::handlers::IHttpHandler::Factory handler, AddPosition position = AddAt::End);
-        void add(httpadv::v1::handlers::IHttpHandler::Predicate predicate, httpadv::v1::handlers::IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End);
-        void with(httpadv::v1::handlers::IHttpHandler::InterceptorCallback interceptor);
-        void filterRequest(httpadv::v1::handlers::IHttpHandler::Predicate predicate);
+        void add(lumalink::http::handlers::IHttpHandler::Predicate predicate, lumalink::http::handlers::IHttpHandler::Factory handler, AddPosition position = AddAt::End);
+        void add(lumalink::http::handlers::IHttpHandler::Predicate predicate, lumalink::http::handlers::IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End);
+        void with(lumalink::http::handlers::IHttpHandler::InterceptorCallback interceptor);
+        void filterRequest(lumalink::http::handlers::IHttpHandler::Predicate predicate);
         void apply(IHttpResponse::ResponseFilter filter);
         // void setGlobalRequestFilter(IHttpHandler::Predicate predicate);
         // void getGlobalRequestFilter(IHttpHandler::Predicate &predicate);

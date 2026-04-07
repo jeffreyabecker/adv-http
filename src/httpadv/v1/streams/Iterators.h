@@ -2,7 +2,7 @@
 #include <cstddef>
 #include "Streams.h"
 
-namespace httpadv::v1::streams
+namespace lumalink::http::streams
 {
     template <typename TSelf>
     class BoundedStreamIterable

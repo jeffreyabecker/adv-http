@@ -15,15 +15,15 @@
 #include <string>
 #include <vector>
 
-namespace httpadv::v1::staticfiles
+namespace lumalink::http::staticfiles
 {
-  using httpadv::v1::core::HttpRequestContext;
-  using httpadv::v1::handlers::IHandlerProvider;
-  using httpadv::v1::handlers::IHttpHandler;
-  using httpadv::v1::response::IHttpResponse;
-  using httpadv::v1::routing::HandlerMatcher;
-  using httpadv::v1::transport::FileHandle;
-  using httpadv::v1::transport::IFile;
+  using lumalink::http::core::HttpRequestContext;
+  using lumalink::http::handlers::IHandlerProvider;
+  using lumalink::http::handlers::IHttpHandler;
+  using lumalink::http::response::IHttpResponse;
+  using lumalink::http::routing::HandlerMatcher;
+  using lumalink::http::transport::FileHandle;
+  using lumalink::http::transport::IFile;
 
   class StaticFileHandlerFactory : public IHandlerProvider
   {
@@ -54,7 +54,7 @@ namespace httpadv::v1::staticfiles
     };
 
   private:
-    httpadv::v1::core::HttpContentTypes &contentTypes_;
+    lumalink::http::core::HttpContentTypes &contentTypes_;
     std::unique_ptr<FileLocator> fileLocator_{};
     MissingRequestPathResolver notFoundRequestPathResolver_{};
     std::string resolvedRequestItemKey_;
@@ -73,7 +73,7 @@ namespace httpadv::v1::staticfiles
 
   public:
     StaticFileHandlerFactory(std::unique_ptr<FileLocator> fileLocator,
-                             httpadv::v1::core::HttpContentTypes &contentTypes,
+                             lumalink::http::core::HttpContentTypes &contentTypes,
                              std::vector<ResponseFilterRule> responseFilterRules = {},
                              std::vector<InterceptorRule> interceptorRules = {},
                              std::vector<RequestPredicateRule> requestPredicateRules = {},
@@ -84,7 +84,7 @@ namespace httpadv::v1::staticfiles
     void setNotFoundRequestPathResolver(MissingRequestPathResolver resolver);
     static std::unique_ptr<IHttpResponse>
     createFileResponse(FileHandle file,
-                       httpadv::v1::core::HttpContentTypes &contentTypes);
+                       lumalink::http::core::HttpContentTypes &contentTypes);
   };
 
-} // namespace httpadv::v1::staticfiles
+} // namespace lumalink::http::staticfiles

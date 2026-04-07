@@ -19,7 +19,7 @@
 #include <string>
 
 
-namespace httpadv::v1::pipeline {
+namespace lumalink::http::pipeline {
 enum class RequestParserEvent {
   None,
   MessageBegin,
@@ -57,7 +57,7 @@ private:
   with a 256-byte inline buffer—but only if profiling shows memory pressure in
   real workloads.
   */
-  std::array<char, httpadv::v1::core::REQUEST_PARSER_BUFFER_LENGTH> buffer_{};
+  std::array<char, lumalink::http::core::REQUEST_PARSER_BUFFER_LENGTH> buffer_{};
   std::size_t writePos_ = 0;
   std::size_t urlPos_ = 0;
   std::size_t urlLen_ = 0;
@@ -274,4 +274,4 @@ public:
 
   RequestParserEvent currentEvent() const { return currentEvent_; }
 };
-} // namespace httpadv::v1::pipeline
+} // namespace lumalink::http::pipeline

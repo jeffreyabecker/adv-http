@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
   struct HttpHeaderNames
   {

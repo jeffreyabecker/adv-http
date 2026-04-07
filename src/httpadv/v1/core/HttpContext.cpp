@@ -5,7 +5,7 @@
 #include "../response/StringResponse.h"
 #include "IHttpContextHandlerFactory.h"
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
     class HttpContextAccess
     {
@@ -38,7 +38,7 @@ namespace httpadv::v1::core
             request.setHeader(field, value);
         }
 
-        static std::unique_ptr<httpadv::v1::handlers::IHttpHandler> createHandler(HttpContext &request)
+        static std::unique_ptr<lumalink::http::handlers::IHttpHandler> createHandler(HttpContext &request)
         {
             return request.createHandler();
         }
@@ -49,13 +49,13 @@ namespace httpadv::v1::core
         class DefaultHttpContextRunner : public HttpContextRunner
         {
         public:
-            DefaultHttpContextRunner(httpadv::v1::server::HttpServerBase &server, IHttpContextHandlerFactory &handlerFactory)
+            DefaultHttpContextRunner(lumalink::http::server::HttpServerBase &server, IHttpContextHandlerFactory &handlerFactory)
                 : context_(server, handlerFactory)
             {
                 HttpContextAccess::bindCompletedPhases(context_, &completedPhases_);
             }
 
-            httpadv::v1::core::HttpRequestContext &context() override
+            lumalink::http::core::HttpRequestContext &context() override
             {
                 return context_;
             }
@@ -90,7 +90,7 @@ namespace httpadv::v1::core
 
             int onBody(const std::uint8_t *at, std::size_t length) override
             {
-                httpadv::v1::handlers::IHttpHandler *handler = tryGetHandler();
+                lumalink::http::handlers::IHttpHandler *handler = tryGetHandler();
                 if (bodyBytesReceived_ == 0)
                 {
                     advance(HttpContextPhase::BeginReadingBody);
@@ -112,7 +112,7 @@ namespace httpadv::v1::core
                 handleStep();
             }
 
-            void onError(httpadv::v1::pipeline::PipelineError error) override
+            void onError(lumalink::http::pipeline::PipelineError error) override
             {
                 if (pendingResult_.hasValue())
                 {
@@ -124,22 +124,22 @@ namespace httpadv::v1::core
 
                 switch (error.code())
                 {
-                case httpadv::v1::pipeline::PipelineErrorCode::InvalidVersion:
-                case httpadv::v1::pipeline::PipelineErrorCode::InvalidMethod:
+                case lumalink::http::pipeline::PipelineErrorCode::InvalidVersion:
+                case lumalink::http::pipeline::PipelineErrorCode::InvalidMethod:
                     status = HttpStatus::BadRequest();
                     message = "Bad Request: ";
                     break;
-                case httpadv::v1::pipeline::PipelineErrorCode::UriTooLong:
-                case httpadv::v1::pipeline::PipelineErrorCode::HeaderTooLarge:
-                case httpadv::v1::pipeline::PipelineErrorCode::BodyTooLarge:
+                case lumalink::http::pipeline::PipelineErrorCode::UriTooLong:
+                case lumalink::http::pipeline::PipelineErrorCode::HeaderTooLarge:
+                case lumalink::http::pipeline::PipelineErrorCode::BodyTooLarge:
                     status = HttpStatus::PayloadTooLarge();
                     message = "Payload Too Large: ";
                     break;
-                case httpadv::v1::pipeline::PipelineErrorCode::Timeout:
+                case lumalink::http::pipeline::PipelineErrorCode::Timeout:
                     status = HttpStatus::RequestTimeout();
                     message = "Request Timeout: ";
                     break;
-                case httpadv::v1::pipeline::PipelineErrorCode::UnsupportedMediaType:
+                case lumalink::http::pipeline::PipelineErrorCode::UnsupportedMediaType:
                     status = HttpStatus::UnsupportedMediaType();
                     message = "Unsupported Media Type: ";
                     break;
@@ -149,10 +149,10 @@ namespace httpadv::v1::core
                     break;
                 }
 
-                std::unique_ptr<httpadv::v1::response::IHttpResponse> response =
-                    httpadv::v1::response::StringResponse::create(
+                std::unique_ptr<lumalink::http::response::IHttpResponse> response =
+                    lumalink::http::response::StringResponse::create(
                         status, message + std::string(error.message()), {});
-                setPendingResult(httpadv::v1::pipeline::RequestHandlingResult::response(httpadv::v1::response::CreateResponseStream(std::move(response))));
+                setPendingResult(lumalink::http::pipeline::RequestHandlingResult::response(lumalink::http::response::CreateResponseStream(std::move(response))));
                 markResponseStarted();
             }
 
@@ -165,21 +165,21 @@ namespace httpadv::v1::core
                 return pendingResult_.hasValue();
             }
 
-            httpadv::v1::pipeline::RequestHandlingResult takeResult() override
+            lumalink::http::pipeline::RequestHandlingResult takeResult() override
             {
-                httpadv::v1::pipeline::RequestHandlingResult result = std::move(pendingResult_);
-                pendingResult_ = httpadv::v1::pipeline::RequestHandlingResult();
+                lumalink::http::pipeline::RequestHandlingResult result = std::move(pendingResult_);
+                pendingResult_ = lumalink::http::pipeline::RequestHandlingResult();
                 return result;
             }
 
         private:
             HttpContext context_;
-            std::unique_ptr<httpadv::v1::handlers::IHttpHandler> handler_;
-            httpadv::v1::pipeline::RequestHandlingResult pendingResult_;
+            std::unique_ptr<lumalink::http::handlers::IHttpHandler> handler_;
+            lumalink::http::pipeline::RequestHandlingResult pendingResult_;
             std::size_t bodyBytesReceived_ = 0;
             HttpContextPhaseFlags completedPhases_ = 0;
 
-            httpadv::v1::handlers::IHttpHandler *tryGetHandler()
+            lumalink::http::handlers::IHttpHandler *tryGetHandler()
             {
                 if (!handler_)
                 {
@@ -189,7 +189,7 @@ namespace httpadv::v1::core
                 return handler_.get();
             }
 
-            void setPendingResult(httpadv::v1::pipeline::RequestHandlingResult result)
+            void setPendingResult(lumalink::http::pipeline::RequestHandlingResult result)
             {
                 pendingResult_ = std::move(result);
             }
@@ -206,22 +206,22 @@ namespace httpadv::v1::core
                     return;
                 }
 
-                httpadv::v1::handlers::IHttpHandler *handler = tryGetHandler();
+                lumalink::http::handlers::IHttpHandler *handler = tryGetHandler();
                 if (handler != nullptr)
                 {
-                    httpadv::v1::handlers::HandlerResult handlerResult = handler->handleStep(context_);
+                    lumalink::http::handlers::HandlerResult handlerResult = handler->handleStep(context_);
                     if (handlerResult.hasValue())
                     {
                         switch (handlerResult.kind)
                         {
-                        case httpadv::v1::handlers::HandlerResult::Kind::Response:
-                            setPendingResult(httpadv::v1::pipeline::RequestHandlingResult::response(httpadv::v1::response::CreateResponseStream(std::move(handlerResult.response))));
+                        case lumalink::http::handlers::HandlerResult::Kind::Response:
+                            setPendingResult(lumalink::http::pipeline::RequestHandlingResult::response(lumalink::http::response::CreateResponseStream(std::move(handlerResult.response))));
                             markResponseStarted();
                             break;
-                        case httpadv::v1::handlers::HandlerResult::Kind::Upgrade:
-                            setPendingResult(httpadv::v1::pipeline::RequestHandlingResult::upgrade(std::move(handlerResult.upgradedSession)));
+                        case lumalink::http::handlers::HandlerResult::Kind::Upgrade:
+                            setPendingResult(lumalink::http::pipeline::RequestHandlingResult::upgrade(std::move(handlerResult.upgradedSession)));
                             break;
-                        case httpadv::v1::handlers::HandlerResult::Kind::None:
+                        case lumalink::http::handlers::HandlerResult::Kind::None:
                         default:
                             break;
                         }
@@ -232,22 +232,22 @@ namespace httpadv::v1::core
 
                 if ((completedPhases_ & HttpContextPhase::CompletedReadingMessage) != 0 && !pendingResult_.hasValue())
                 {
-                    setPendingResult(httpadv::v1::pipeline::RequestHandlingResult::noResponse());
+                    setPendingResult(lumalink::http::pipeline::RequestHandlingResult::noResponse());
                 }
             }
         };
     }
 
-    httpadv::v1::pipeline::PipelineHandlerPtr HttpContext::createPipelineHandler(httpadv::v1::server::HttpServerBase &server, IHttpContextHandlerFactory &handlerFactory)
+    lumalink::http::pipeline::PipelineHandlerPtr HttpContext::createPipelineHandler(lumalink::http::server::HttpServerBase &server, IHttpContextHandlerFactory &handlerFactory)
     {
-        return httpadv::v1::pipeline::PipelineHandlerPtr(
+        return lumalink::http::pipeline::PipelineHandlerPtr(
             new HttpContextPipelineAdapter(std::make_unique<DefaultHttpContextRunner>(server, handlerFactory)),
-            [](httpadv::v1::pipeline::IPipelineHandler *handler)
+            [](lumalink::http::pipeline::IPipelineHandler *handler)
             {
                 delete handler;
             });
     }
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::core
 
 
 

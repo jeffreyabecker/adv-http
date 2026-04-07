@@ -10,14 +10,14 @@
 
 #include <ArduinoJson.h>
 
-namespace httpadv::v1::handlers
+namespace lumalink::http::handlers
 {
-    using httpadv::v1::handlers::ExtractArgsFromRequest;
-    using httpadv::v1::core::HttpRequestContext;
-    using httpadv::v1::core::MAX_BUFFERED_JSON_BODY_LENGTH;
-    using httpadv::v1::response::IHttpResponse;
-    using httpadv::v1::routing::HandlerMatcher;
-    using httpadv::v1::handlers::RouteParameters;
+    using lumalink::http::handlers::ExtractArgsFromRequest;
+    using lumalink::http::core::HttpRequestContext;
+    using lumalink::http::core::MAX_BUFFERED_JSON_BODY_LENGTH;
+    using lumalink::http::response::IHttpResponse;
+    using lumalink::http::routing::HandlerMatcher;
+    using lumalink::http::handlers::RouteParameters;
 
     class JsonBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_JSON_BODY_LENGTH>
     {
@@ -33,7 +33,7 @@ namespace httpadv::v1::handlers
                        { return handler(context, std::move(postData)); }),
               extractor_(extractor) {}
 
-        virtual IHttpHandler::HandlerResult handleBody(httpadv::v1::core::HttpRequestContext &context, std::vector<uint8_t> &&body) override;
+        virtual IHttpHandler::HandlerResult handleBody(lumalink::http::core::HttpRequestContext &context, std::vector<uint8_t> &&body) override;
     };
     class Json
     {
@@ -71,5 +71,5 @@ namespace httpadv::v1::handlers
         }
     };
 
-} // namespace httpadv::v1::handlers
+} // namespace lumalink::http::handlers
 #endif

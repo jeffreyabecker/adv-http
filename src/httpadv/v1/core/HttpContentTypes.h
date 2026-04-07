@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
     class HttpContentTypes
     {
@@ -110,4 +110,4 @@ namespace httpadv::v1::core
             return standardTypes;
         }
     };
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::core

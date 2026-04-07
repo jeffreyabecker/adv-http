@@ -6,12 +6,12 @@
 #include "../core/HttpHeaderCollection.h"
 #include "../response/HttpResponse.h"
 #include "HandlerMatcher.h"
-namespace httpadv::v1::routing
+namespace lumalink::http::routing
 {
-    using httpadv::v1::core::HttpHeaderNames;
-    using httpadv::v1::core::HttpRequestContext;
-    using httpadv::v1::response::HttpResponse;
-    using httpadv::v1::response::IHttpResponse;
+    using lumalink::http::core::HttpHeaderNames;
+    using lumalink::http::core::HttpRequestContext;
+    using lumalink::http::response::HttpResponse;
+    using lumalink::http::response::IHttpResponse;
 
     struct CorsHandlingOptions
     {
@@ -118,22 +118,22 @@ namespace httpadv::v1::routing
 
         return [requestFilter = std::move(requestFilter), filter](auto &builder)
         {
-            builder.handlerProviders().with([requestFilter, filter](httpadv::v1::core::HttpRequestContext &context, httpadv::v1::handlers::IHttpHandler::InvocationNext next) -> httpadv::v1::handlers::IHttpHandler::HandlerResult
+            builder.handlerProviders().with([requestFilter, filter](lumalink::http::core::HttpRequestContext &context, lumalink::http::handlers::IHttpHandler::InvocationNext next) -> lumalink::http::handlers::IHttpHandler::HandlerResult
             {
                 const bool shouldApply = !requestFilter || requestFilter(context);
 
                 if (shouldApply && context.methodView() == "OPTIONS" && context.headers().exists(HttpHeaderNames::AccessControlRequestMethod))
                 {
-                    auto preflightResult = httpadv::v1::handlers::HandlerResult::responseResult(
-                        std::make_unique<HttpResponse>(httpadv::v1::core::HttpStatus::NoContent(), nullptr, httpadv::v1::core::HttpHeaderCollection{}));
-                    return httpadv::v1::handlers::HandlerResult::responseResult(filter(std::move(preflightResult.response)));
+                    auto preflightResult = lumalink::http::handlers::HandlerResult::responseResult(
+                        std::make_unique<HttpResponse>(lumalink::http::core::HttpStatus::NoContent(), nullptr, lumalink::http::core::HttpHeaderCollection{}));
+                    return lumalink::http::handlers::HandlerResult::responseResult(filter(std::move(preflightResult.response)));
                 }
 
-                auto result = next ? next() : httpadv::v1::handlers::IHttpHandler::HandlerResult();
+                auto result = next ? next() : lumalink::http::handlers::IHttpHandler::HandlerResult();
 
                 if (shouldApply && result.isResponse())
                 {
-                    return httpadv::v1::handlers::HandlerResult::responseResult(filter(std::move(result.response)));
+                    return lumalink::http::handlers::HandlerResult::responseResult(filter(std::move(result.response)));
                 }
 
                 return result;
@@ -186,6 +186,6 @@ namespace httpadv::v1::routing
 
     
 
-} // namespace HttpServerAdvanced
+} // namespace lumalink::http::routing
 
 

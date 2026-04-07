@@ -12,16 +12,16 @@
 #include <string>
 #include <string_view>
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {   
-    using httpadv::v1::util::UriView;
+    using lumalink::http::util::UriView;
 
     class HttpContextAccess;
 
     class HttpContext : public HttpRequestContext
     {
     public:
-        HttpContext(httpadv::v1::server::HttpServerBase &server, IHttpContextHandlerFactory& handlerFactory)
+        HttpContext(lumalink::http::server::HttpServerBase &server, IHttpContextHandlerFactory& handlerFactory)
             : server_(server),
               method_(), version_(), url_(), headers_(),
               remoteAddress_(), remotePort_(0), localAddress_(), localPort_(0),
@@ -31,7 +31,7 @@ namespace httpadv::v1::core
 
 
     private:
-        httpadv::v1::server::HttpServerBase &server_;
+        lumalink::http::server::HttpServerBase &server_;
         const HttpContextPhaseFlags *completedPhases_ = nullptr;
         // Retains the legacy HTTP activation data carried through the pipeline.
         std::string method_;
@@ -75,7 +75,7 @@ namespace httpadv::v1::core
             completedPhases_ = completedPhases;
         }
 
-        std::unique_ptr<httpadv::v1::handlers::IHttpHandler> createHandler()
+        std::unique_ptr<lumalink::http::handlers::IHttpHandler> createHandler()
         {
             return handlerFactory_.create(static_cast<HttpRequestContext &>(*this));
         }
@@ -88,7 +88,7 @@ namespace httpadv::v1::core
     public:
         ~HttpContext() = default;
 
-        inline httpadv::v1::server::HttpServerBase &server() { return server_; }
+        inline lumalink::http::server::HttpServerBase &server() { return server_; }
         inline HttpContextPhaseFlags completedPhases() const override { return completedPhases_ != nullptr ? *completedPhases_ : 0; }
 
         // Legacy request accessors preserved on the final context type.
@@ -113,7 +113,7 @@ namespace httpadv::v1::core
         }
 
     public:
-        static httpadv::v1::pipeline::PipelineHandlerPtr createPipelineHandler(httpadv::v1::server::HttpServerBase &server, IHttpContextHandlerFactory& handlerFactory);
+        static lumalink::http::pipeline::PipelineHandlerPtr createPipelineHandler(lumalink::http::server::HttpServerBase &server, IHttpContextHandlerFactory& handlerFactory);
 
         friend class DeferredRegistryHandler;
     };

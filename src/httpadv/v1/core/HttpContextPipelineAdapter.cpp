@@ -1,6 +1,6 @@
 #include "HttpContextPipelineAdapter.h"
 
-namespace httpadv::v1::core
+namespace lumalink::http::core
 {
     HttpContextPipelineAdapter::HttpContextPipelineAdapter(std::unique_ptr<HttpContextRunner> runner)
         : runner_(std::move(runner))
@@ -54,7 +54,7 @@ namespace httpadv::v1::core
         return 0;
     }
 
-    void HttpContextPipelineAdapter::onError(httpadv::v1::pipeline::PipelineError error)
+    void HttpContextPipelineAdapter::onError(lumalink::http::pipeline::PipelineError error)
     {
         runner_->onError(error);
     }
@@ -79,7 +79,7 @@ namespace httpadv::v1::core
         return runner_->hasPendingResult();
     }
 
-    httpadv::v1::pipeline::RequestHandlingResult HttpContextPipelineAdapter::takeResult()
+    lumalink::http::pipeline::RequestHandlingResult HttpContextPipelineAdapter::takeResult()
     {
         return runner_->takeResult();
     }

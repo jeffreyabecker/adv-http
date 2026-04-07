@@ -8,7 +8,7 @@
 #include <chrono>
 #endif
 
-namespace httpadv::v1::util
+namespace lumalink::http::util
 {
     using ClockMillis = std::uint32_t;
 

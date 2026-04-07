@@ -8,7 +8,7 @@
 #include <memory>
 #include <string_view>
 
-namespace httpadv::v1::transport
+namespace lumalink::http::transport
 {
     /**
      * @brief Abstract byte-oriented client connection.

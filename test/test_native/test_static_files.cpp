@@ -26,17 +26,17 @@
 #include <utility>
 #include <vector>
 
-using namespace httpadv::v1::core;
-using namespace httpadv::v1::handlers;
-using namespace httpadv::v1::pipeline;
-using namespace httpadv::v1::response;
-using namespace httpadv::v1::routing;
-using namespace httpadv::v1::server;
-using namespace httpadv::v1::staticfiles;
-using namespace httpadv::v1::transport;
+using namespace lumalink::http::core;
+using namespace lumalink::http::handlers;
+using namespace lumalink::http::pipeline;
+using namespace lumalink::http::response;
+using namespace lumalink::http::routing;
+using namespace lumalink::http::server;
+using namespace lumalink::http::staticfiles;
+using namespace lumalink::http::transport;
 using namespace lumalink::platform::buffers;
-using namespace httpadv::v1::util;
-using namespace httpadv::v1::websocket;
+using namespace lumalink::http::util;
+using namespace lumalink::http::websocket;
 
 namespace
 {
@@ -68,7 +68,7 @@ namespace
     {
     public:
         RequestContextHarness()
-            : server_(std::make_unique<HttpServerBase>(std::make_unique<httpadv::v1::TestSupport::FakeServer>())),
+            : server_(std::make_unique<HttpServerBase>(std::make_unique<lumalink::http::TestSupport::FakeServer>())),
               handler_(std::make_unique<NoOpHandler>()),
               factory_([this](HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
               {
@@ -111,7 +111,7 @@ namespace
     private:
         std::unique_ptr<HttpServerBase> server_;
         std::unique_ptr<IHttpHandler> handler_;
-        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory_;
+        lumalink::http::TestSupport::RecordingRequestHandlerFactory factory_;
         PipelineHandlerPtr pipeline_;
         HttpContext *context_ = nullptr;
         std::string methodStorage_;
@@ -677,7 +677,7 @@ namespace
 
         TEST_ASSERT_TRUE(factory.canHandle(harness.context()));
         std::unique_ptr<IHttpHandler> handler = factory.create(harness.context());
-        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+        const auto response = lumalink::http::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
 
         TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
         TEST_ASSERT_EQUAL_STRING("<h1>spa</h1>", response.body.c_str());
@@ -721,15 +721,15 @@ namespace
 
         TEST_ASSERT_TRUE(factory.canHandle(harness.context()));
         std::unique_ptr<IHttpHandler> handler = factory.create(harness.context());
-        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+        const auto response = lumalink::http::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
 
         TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
         TEST_ASSERT_EQUAL_STRING("console.log('ok');", response.body.c_str());
-        TEST_ASSERT_TRUE(httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentType).has_value());
-        TEST_ASSERT_EQUAL_STRING("application/javascript", httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentType)->c_str());
-        TEST_ASSERT_EQUAL_STRING("18", httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentLength)->c_str());
-        TEST_ASSERT_TRUE(httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ETag).has_value());
-        TEST_ASSERT_TRUE(httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::LastModified).has_value());
+        TEST_ASSERT_TRUE(lumalink::http::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentType).has_value());
+        TEST_ASSERT_EQUAL_STRING("application/javascript", lumalink::http::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentType)->c_str());
+        TEST_ASSERT_EQUAL_STRING("18", lumalink::http::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentLength)->c_str());
+        TEST_ASSERT_TRUE(lumalink::http::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ETag).has_value());
+        TEST_ASSERT_TRUE(lumalink::http::TestSupport::FindCapturedHeader(response, HttpHeaderNames::LastModified).has_value());
     }
 
     void test_static_file_handler_factory_handles_directory_gzip_and_method_restrictions()
@@ -745,25 +745,25 @@ namespace
         RequestContextHarness getHarness;
         getHarness.prepare("GET", "/site");
         std::unique_ptr<IHttpHandler> getHandler = factory.create(getHarness.context());
-        const auto getResponse = httpadv::v1::TestSupport::CaptureResponse(getHandler->handleStep(getHarness.context()));
+        const auto getResponse = lumalink::http::TestSupport::CaptureResponse(getHandler->handleStep(getHarness.context()));
 
         TEST_ASSERT_EQUAL_UINT16(200, getResponse.status.code());
         TEST_ASSERT_EQUAL_STRING("gzipped-index", getResponse.body.c_str());
-        TEST_ASSERT_EQUAL_STRING("text/html", httpadv::v1::TestSupport::FindCapturedHeader(getResponse, HttpHeaderNames::ContentType)->c_str());
-        TEST_ASSERT_EQUAL_STRING("gzip", httpadv::v1::TestSupport::FindCapturedHeader(getResponse, HttpHeaderNames::ContentEncoding)->c_str());
+        TEST_ASSERT_EQUAL_STRING("text/html", lumalink::http::TestSupport::FindCapturedHeader(getResponse, HttpHeaderNames::ContentType)->c_str());
+        TEST_ASSERT_EQUAL_STRING("gzip", lumalink::http::TestSupport::FindCapturedHeader(getResponse, HttpHeaderNames::ContentEncoding)->c_str());
 
         RequestContextHarness headHarness;
         headHarness.prepare("HEAD", "/site");
         std::unique_ptr<IHttpHandler> headHandler = factory.create(headHarness.context());
-        const auto headResponse = httpadv::v1::TestSupport::CaptureResponse(headHandler->handleStep(headHarness.context()));
+        const auto headResponse = lumalink::http::TestSupport::CaptureResponse(headHandler->handleStep(headHarness.context()));
         TEST_ASSERT_EQUAL_UINT16(200, headResponse.status.code());
 
         RequestContextHarness postHarness;
         postHarness.prepare("POST", "/site");
         std::unique_ptr<IHttpHandler> postHandler = factory.create(postHarness.context());
-        const auto postResponse = httpadv::v1::TestSupport::CaptureResponse(postHandler->handleStep(postHarness.context()));
+        const auto postResponse = lumalink::http::TestSupport::CaptureResponse(postHandler->handleStep(postHarness.context()));
         TEST_ASSERT_EQUAL_UINT16(405, postResponse.status.code());
-        TEST_ASSERT_EQUAL_STRING("GET, HEAD", httpadv::v1::TestSupport::FindCapturedHeader(postResponse, HttpHeaderNames::Allow)->c_str());
+        TEST_ASSERT_EQUAL_STRING("GET, HEAD", lumalink::http::TestSupport::FindCapturedHeader(postResponse, HttpHeaderNames::Allow)->c_str());
     }
 
     void test_static_file_handler_factory_omits_metadata_headers_when_file_data_is_absent()
@@ -778,13 +778,13 @@ namespace
         RequestContextHarness harness;
         harness.prepare("GET", "/raw.bin");
         std::unique_ptr<IHttpHandler> handler = factory.create(harness.context());
-        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+        const auto response = lumalink::http::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
 
         TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
         TEST_ASSERT_EQUAL_STRING("abc", response.body.c_str());
-        TEST_ASSERT_FALSE(httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ETag).has_value());
-        TEST_ASSERT_FALSE(httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::LastModified).has_value());
-        TEST_ASSERT_EQUAL_STRING("3", httpadv::v1::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentLength)->c_str());
+        TEST_ASSERT_FALSE(lumalink::http::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ETag).has_value());
+        TEST_ASSERT_FALSE(lumalink::http::TestSupport::FindCapturedHeader(response, HttpHeaderNames::LastModified).has_value());
+        TEST_ASSERT_EQUAL_STRING("3", lumalink::http::TestSupport::FindCapturedHeader(response, HttpHeaderNames::ContentLength)->c_str());
     }
 
     void test_static_file_handler_factory_matcher_scoped_response_filter_only_applies_when_matcher_matches()
@@ -809,15 +809,15 @@ namespace
         htmlHarness.prepare("GET", "/index.html");
         htmlHarness.completeHeaders();
         std::unique_ptr<IHttpHandler> htmlHandler = factory.create(htmlHarness.context());
-        const auto htmlResponse = httpadv::v1::TestSupport::CaptureResponse(htmlHandler->handleStep(htmlHarness.context()));
-        TEST_ASSERT_TRUE(httpadv::v1::TestSupport::FindCapturedHeader(htmlResponse, "X-Template").has_value());
+        const auto htmlResponse = lumalink::http::TestSupport::CaptureResponse(htmlHandler->handleStep(htmlHarness.context()));
+        TEST_ASSERT_TRUE(lumalink::http::TestSupport::FindCapturedHeader(htmlResponse, "X-Template").has_value());
 
         RequestContextHarness jsHarness;
         jsHarness.prepare("GET", "/app.js");
         jsHarness.completeHeaders();
         std::unique_ptr<IHttpHandler> jsHandler = factory.create(jsHarness.context());
-        const auto jsResponse = httpadv::v1::TestSupport::CaptureResponse(jsHandler->handleStep(jsHarness.context()));
-        TEST_ASSERT_FALSE(httpadv::v1::TestSupport::FindCapturedHeader(jsResponse, "X-Template").has_value());
+        const auto jsResponse = lumalink::http::TestSupport::CaptureResponse(jsHandler->handleStep(jsHarness.context()));
+        TEST_ASSERT_FALSE(lumalink::http::TestSupport::FindCapturedHeader(jsResponse, "X-Template").has_value());
     }
 
     void test_static_file_handler_factory_matcher_scoped_interceptor_only_applies_when_matcher_matches()
@@ -846,15 +846,15 @@ namespace
         htmlHarness.prepare("GET", "/index.html");
         htmlHarness.completeHeaders();
         std::unique_ptr<IHttpHandler> htmlHandler = factory.create(htmlHarness.context());
-        const auto htmlResponse = httpadv::v1::TestSupport::CaptureResponse(htmlHandler->handleStep(htmlHarness.context()));
-        TEST_ASSERT_TRUE(httpadv::v1::TestSupport::FindCapturedHeader(htmlResponse, "X-Intercepted").has_value());
+        const auto htmlResponse = lumalink::http::TestSupport::CaptureResponse(htmlHandler->handleStep(htmlHarness.context()));
+        TEST_ASSERT_TRUE(lumalink::http::TestSupport::FindCapturedHeader(htmlResponse, "X-Intercepted").has_value());
 
         RequestContextHarness jsHarness;
         jsHarness.prepare("GET", "/app.js");
         jsHarness.completeHeaders();
         std::unique_ptr<IHttpHandler> jsHandler = factory.create(jsHarness.context());
-        const auto jsResponse = httpadv::v1::TestSupport::CaptureResponse(jsHandler->handleStep(jsHarness.context()));
-        TEST_ASSERT_FALSE(httpadv::v1::TestSupport::FindCapturedHeader(jsResponse, "X-Intercepted").has_value());
+        const auto jsResponse = lumalink::http::TestSupport::CaptureResponse(jsHandler->handleStep(jsHarness.context()));
+        TEST_ASSERT_FALSE(lumalink::http::TestSupport::FindCapturedHeader(jsResponse, "X-Intercepted").has_value());
     }
 
     void test_static_file_handler_factory_matcher_scoped_request_predicate_limits_handling()
@@ -925,7 +925,7 @@ namespace
         FakeFileSystem fs;
         fs.add({"/assets/static/app.js", false, "console.log('ok');", 18, 1711152000});
 
-        auto serverTransport = std::make_unique<httpadv::v1::TestSupport::FakeServer>();
+        auto serverTransport = std::make_unique<lumalink::http::TestSupport::FakeServer>();
         HttpServerBase server(std::move(serverTransport));
         WebServerBuilder builder(server);
 
@@ -940,7 +940,7 @@ namespace
         harness.completeHeaders();
 
         std::unique_ptr<IHttpHandler> handler = builder.handlerProviders().createContextHandler(harness.context());
-        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+        const auto response = lumalink::http::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
 
         TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
         TEST_ASSERT_EQUAL_STRING("console.log('ok');", response.body.c_str());
@@ -952,7 +952,7 @@ namespace
     {
         FakeFileSystem fs;
 
-        auto serverTransport = std::make_unique<httpadv::v1::TestSupport::FakeServer>();
+        auto serverTransport = std::make_unique<lumalink::http::TestSupport::FakeServer>();
         HttpServerBase server(std::move(serverTransport));
         WebServerBuilder builder(server);
 
@@ -970,7 +970,7 @@ namespace
         harness.completeHeaders();
 
         std::unique_ptr<IHttpHandler> handler = builder.handlerProviders().createContextHandler(harness.context());
-        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+        const auto response = lumalink::http::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
 
         TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
         TEST_ASSERT_EQUAL_STRING("asset", response.body.c_str());
@@ -982,7 +982,7 @@ namespace
         FakeFileSystem fs;
         fs.add({"/www/index.html", false, "fallback", 8, 1711152000});
 
-        auto serverTransport = std::make_unique<httpadv::v1::TestSupport::FakeServer>();
+        auto serverTransport = std::make_unique<lumalink::http::TestSupport::FakeServer>();
         HttpServerBase server(std::move(serverTransport));
         WebServerBuilder builder(server);
 
@@ -996,7 +996,7 @@ namespace
         harness.completeHeaders();
 
         std::unique_ptr<IHttpHandler> handler = builder.handlerProviders().createContextHandler(harness.context());
-        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+        const auto response = lumalink::http::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
 
         TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
         TEST_ASSERT_EQUAL_STRING("fallback", response.body.c_str());
@@ -1007,7 +1007,7 @@ namespace
         FakeFileSystem fs;
         fs.add({"/www/404.html", false, "missing-page", 12, 1711152000});
 
-        auto serverTransport = std::make_unique<httpadv::v1::TestSupport::FakeServer>();
+        auto serverTransport = std::make_unique<lumalink::http::TestSupport::FakeServer>();
         HttpServerBase server(std::move(serverTransport));
         WebServerBuilder builder(server);
 
@@ -1018,7 +1018,7 @@ namespace
         harness.completeHeaders();
 
         std::unique_ptr<IHttpHandler> handler = builder.handlerProviders().createContextHandler(harness.context());
-        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+        const auto response = lumalink::http::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
 
         TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
         TEST_ASSERT_EQUAL_STRING("missing-page", response.body.c_str());
@@ -1028,7 +1028,7 @@ namespace
     {
         FakeFileSystem fs;
 
-        auto serverTransport = std::make_unique<httpadv::v1::TestSupport::FakeServer>();
+        auto serverTransport = std::make_unique<lumalink::http::TestSupport::FakeServer>();
         HttpServerBase server(std::move(serverTransport));
         WebServerBuilder builder(server);
 
@@ -1055,7 +1055,7 @@ namespace
         harness.completeHeaders();
 
         std::unique_ptr<IHttpHandler> handler = builder.handlerProviders().createContextHandler(harness.context());
-        const auto response = httpadv::v1::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
+        const auto response = lumalink::http::TestSupport::CaptureResponse(handler->handleStep(harness.context()));
 
         TEST_ASSERT_EQUAL_UINT16(200, response.status.code());
         TEST_ASSERT_EQUAL_STRING("next-handler", response.body.c_str());
@@ -1088,7 +1088,7 @@ namespace
 
 int run_test_static_files()
 {
-    return httpadv::v1::TestSupport::RunConsolidatedSuite(
+    return lumalink::http::TestSupport::RunConsolidatedSuite(
         "static files",
         runUnitySuite,
         localSetUp,

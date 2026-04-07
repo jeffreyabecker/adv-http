@@ -30,16 +30,16 @@
 #include <utility>
 #include <vector>
 
-using namespace httpadv::v1::core;
-using namespace httpadv::v1::handlers;
-using namespace httpadv::v1::pipeline;
-using namespace httpadv::v1::response;
-using namespace httpadv::v1::routing;
-using namespace httpadv::v1::server;
-using namespace httpadv::v1::transport;
+using namespace lumalink::http::core;
+using namespace lumalink::http::handlers;
+using namespace lumalink::http::pipeline;
+using namespace lumalink::http::response;
+using namespace lumalink::http::routing;
+using namespace lumalink::http::server;
+using namespace lumalink::http::transport;
 using namespace lumalink::platform::buffers;
-using namespace httpadv::v1::util;
-using namespace httpadv::v1::websocket;
+using namespace lumalink::http::util;
+using namespace lumalink::http::websocket;
 
 namespace
 {
@@ -153,7 +153,7 @@ namespace
     {
     public:
         RequestContextHarness()
-            : server_(std::make_unique<HttpServerBase>(std::make_unique<httpadv::v1::TestSupport::FakeServer>())),
+            : server_(std::make_unique<HttpServerBase>(std::make_unique<lumalink::http::TestSupport::FakeServer>())),
               handler_(std::make_unique<NoOpHandler>()),
               factory_([this](HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
               {
@@ -192,7 +192,7 @@ namespace
     private:
         std::unique_ptr<HttpServerBase> server_;
         std::unique_ptr<IHttpHandler> handler_;
-        httpadv::v1::TestSupport::RecordingRequestHandlerFactory factory_;
+        lumalink::http::TestSupport::RecordingRequestHandlerFactory factory_;
         PipelineHandlerPtr pipeline_;
         HttpContext *context_ = nullptr;
         std::string methodStorage_;
@@ -204,7 +204,7 @@ namespace
     struct AuthInvocationResult
     {
         bool nextCalled = false;
-        std::optional<httpadv::v1::TestSupport::CapturedResponse> response;
+        std::optional<lumalink::http::TestSupport::CapturedResponse> response;
     };
 
     void localSetUp()
@@ -230,9 +230,9 @@ namespace
         harness.completeHeaders();
     }
 
-    httpadv::v1::TestSupport::CapturedResponse captureHandlerResponse(IHttpHandler &handler, HttpContext &context)
+    lumalink::http::TestSupport::CapturedResponse captureHandlerResponse(IHttpHandler &handler, HttpContext &context)
     {
-        return httpadv::v1::TestSupport::CaptureResponse(handler.handleStep(context));
+        return lumalink::http::TestSupport::CaptureResponse(handler.handleStep(context));
     }
 
     AuthInvocationResult invokeAuth(IHttpHandler::InterceptorCallback interceptor, HttpContext &context)
@@ -246,7 +246,7 @@ namespace
 
         if (response.isResponse())
         {
-            result.response = httpadv::v1::TestSupport::CaptureResponse(std::move(response));
+            result.response = lumalink::http::TestSupport::CaptureResponse(std::move(response));
         }
 
         return result;
@@ -478,7 +478,7 @@ namespace
         TEST_ASSERT_EQUAL_UINT64(1, innerHandler->bodyChunkCount());
         TEST_ASSERT_EQUAL_STRING("abc", innerHandler->body().c_str());
 
-        const auto filterHeader = httpadv::v1::TestSupport::FindCapturedHeader(response, "X-Filter");
+        const auto filterHeader = lumalink::http::TestSupport::FindCapturedHeader(response, "X-Filter");
         TEST_ASSERT_TRUE(filterHeader.has_value());
         TEST_ASSERT_EQUAL_STRING("one,two", filterHeader->c_str());
 
@@ -568,7 +568,7 @@ namespace
         RequestContextHarness configHarness;
         prepareRequest(configHarness, "GET", "/config/path");
 
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         WebServerBuilder webBuilder(server);
         WebServerConfig config(server, webBuilder);
         const std::string configPattern = "/config/:resource";
@@ -631,7 +631,7 @@ namespace
         TEST_ASSERT_TRUE(result.isUpgrade());
         TEST_ASSERT_NOT_NULL(result.upgradedSession.get());
 
-        httpadv::v1::TestSupport::FakeClient client;
+        lumalink::http::TestSupport::FakeClient client;
         ManualClock clock(1000);
         const ConnectionSessionResult firstStep = result.upgradedSession->handle(client, clock);
 
@@ -879,7 +879,7 @@ namespace
         TEST_ASSERT_NOT_NULL(routeParam);
         TEST_ASSERT_EQUAL_STRING("readme", routeParam->c_str());
 
-        const auto builderFilter = httpadv::v1::TestSupport::FindCapturedHeader(matchedResponse, "X-Builder-Filter");
+        const auto builderFilter = lumalink::http::TestSupport::FindCapturedHeader(matchedResponse, "X-Builder-Filter");
         TEST_ASSERT_TRUE(builderFilter.has_value());
         TEST_ASSERT_EQUAL_STRING("applied", builderFilter->c_str());
 
@@ -958,7 +958,7 @@ namespace
         RequestContextHarness configHarness;
         prepareRequest(configHarness, "GET", "/config-base/sample");
 
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         WebServerBuilder webBuilder(server);
         WebServerConfig config(server, webBuilder);
         const std::string configPattern = "/config-base/:slug";
@@ -987,7 +987,7 @@ namespace
         TEST_ASSERT_FALSE(missingHeaderResult.nextCalled);
         TEST_ASSERT_TRUE(missingHeaderResult.response.has_value());
         TEST_ASSERT_EQUAL_UINT16(401, missingHeaderResult.response->status.code());
-        const auto missingHeaderChallenge = httpadv::v1::TestSupport::FindCapturedHeader(*missingHeaderResult.response, HttpHeaderNames::WwwAuthenticate);
+        const auto missingHeaderChallenge = lumalink::http::TestSupport::FindCapturedHeader(*missingHeaderResult.response, HttpHeaderNames::WwwAuthenticate);
         TEST_ASSERT_TRUE(missingHeaderChallenge.has_value());
         TEST_ASSERT_EQUAL_STRING("Basic realm=\"Admin Area\"", missingHeaderChallenge->c_str());
 
@@ -1109,7 +1109,7 @@ namespace
 
     void test_cors_handling_component_can_be_applied_through_web_server_config_use()
     {
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         WebServerBuilder webBuilder(server);
         WebServerConfig config(server, webBuilder);
 
@@ -1134,9 +1134,9 @@ namespace
 
         TEST_ASSERT_EQUAL_UINT16(200, capturedResponse.status.code());
         TEST_ASSERT_EQUAL_STRING("cors-ok", capturedResponse.body.c_str());
-        const auto allowOrigin = httpadv::v1::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowOrigin);
-        const auto allowMethods = httpadv::v1::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowMethods);
-        const auto allowHeaders = httpadv::v1::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowHeaders);
+        const auto allowOrigin = lumalink::http::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowOrigin);
+        const auto allowMethods = lumalink::http::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowMethods);
+        const auto allowHeaders = lumalink::http::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowHeaders);
 
         TEST_ASSERT_TRUE(allowOrigin.has_value());
         TEST_ASSERT_TRUE(allowMethods.has_value());
@@ -1148,7 +1148,7 @@ namespace
 
     void test_cors_handling_component_auto_handles_preflight_options_without_manual_route()
     {
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         WebServerBuilder webBuilder(server);
         WebServerConfig config(server, webBuilder);
 
@@ -1168,9 +1168,9 @@ namespace
 
         TEST_ASSERT_EQUAL_UINT16(204, capturedResponse.status.code());
 
-        const auto allowOrigin = httpadv::v1::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowOrigin);
-        const auto allowMethods = httpadv::v1::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowMethods);
-        const auto allowHeaders = httpadv::v1::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowHeaders);
+        const auto allowOrigin = lumalink::http::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowOrigin);
+        const auto allowMethods = lumalink::http::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowMethods);
+        const auto allowHeaders = lumalink::http::TestSupport::FindCapturedHeader(capturedResponse, HttpHeaderNames::AccessControlAllowHeaders);
 
         TEST_ASSERT_TRUE(allowOrigin.has_value());
         TEST_ASSERT_TRUE(allowMethods.has_value());
@@ -1182,7 +1182,7 @@ namespace
 
     void test_cors_handling_component_uri_pattern_filter_only_applies_to_matching_requests()
     {
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         WebServerBuilder webBuilder(server);
         WebServerConfig config(server, webBuilder);
 
@@ -1218,7 +1218,7 @@ namespace
         auto apiHandler = config.handlerProviders().createContextHandler(apiHarness.context());
         const auto apiResponse = captureHandlerResponse(*apiHandler, apiHarness.context());
 
-        const auto apiAllowOrigin = httpadv::v1::TestSupport::FindCapturedHeader(apiResponse, HttpHeaderNames::AccessControlAllowOrigin);
+        const auto apiAllowOrigin = lumalink::http::TestSupport::FindCapturedHeader(apiResponse, HttpHeaderNames::AccessControlAllowOrigin);
         TEST_ASSERT_TRUE(apiAllowOrigin.has_value());
         TEST_ASSERT_EQUAL_STRING("https://api.example", apiAllowOrigin->c_str());
 
@@ -1227,13 +1227,13 @@ namespace
         auto publicHandler = config.handlerProviders().createContextHandler(publicHarness.context());
         const auto publicResponse = captureHandlerResponse(*publicHandler, publicHarness.context());
 
-        const auto publicAllowOrigin = httpadv::v1::TestSupport::FindCapturedHeader(publicResponse, HttpHeaderNames::AccessControlAllowOrigin);
+        const auto publicAllowOrigin = lumalink::http::TestSupport::FindCapturedHeader(publicResponse, HttpHeaderNames::AccessControlAllowOrigin);
         TEST_ASSERT_FALSE(publicAllowOrigin.has_value());
     }
 
     void test_cors_handling_component_predicate_filter_only_applies_when_predicate_matches()
     {
-        HttpServerBase server(std::make_unique<httpadv::v1::TestSupport::FakeServer>());
+        HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         WebServerBuilder webBuilder(server);
         WebServerConfig config(server, webBuilder);
 
@@ -1262,7 +1262,7 @@ namespace
         auto enabledHandler = config.handlerProviders().createContextHandler(enabledHarness.context());
         const auto enabledResponse = captureHandlerResponse(*enabledHandler, enabledHarness.context());
 
-        const auto enabledAllowOrigin = httpadv::v1::TestSupport::FindCapturedHeader(enabledResponse, HttpHeaderNames::AccessControlAllowOrigin);
+        const auto enabledAllowOrigin = lumalink::http::TestSupport::FindCapturedHeader(enabledResponse, HttpHeaderNames::AccessControlAllowOrigin);
         TEST_ASSERT_TRUE(enabledAllowOrigin.has_value());
         TEST_ASSERT_EQUAL_STRING("https://predicate.example", enabledAllowOrigin->c_str());
 
@@ -1271,7 +1271,7 @@ namespace
         auto disabledHandler = config.handlerProviders().createContextHandler(disabledHarness.context());
         const auto disabledResponse = captureHandlerResponse(*disabledHandler, disabledHarness.context());
 
-        const auto disabledAllowOrigin = httpadv::v1::TestSupport::FindCapturedHeader(disabledResponse, HttpHeaderNames::AccessControlAllowOrigin);
+        const auto disabledAllowOrigin = lumalink::http::TestSupport::FindCapturedHeader(disabledResponse, HttpHeaderNames::AccessControlAllowOrigin);
         TEST_ASSERT_FALSE(disabledAllowOrigin.has_value());
     }
 
@@ -1283,7 +1283,7 @@ namespace
 
         std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"Hello {{na", false}, {"me}} from {{ci", false}, {"ty}}!", false}}),
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(std::initializer_list<std::pair<const char *, bool>>{{"Hello {{na", false}, {"me}} from {{ci", false}, {"ty}}!", false}}),
             std::move(headers));
 
         const std::vector<std::pair<std::string, std::string>> values = {
@@ -1297,7 +1297,7 @@ namespace
         TEST_ASSERT_TRUE(response->headers().exists(HttpHeaderNames::TransferEncoding, "chunked"));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING("Hello Alice from Berlin!", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("Hello Alice from Berlin!", lumalink::http::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     void test_replace_variables_keeps_unresolved_tokens_by_default()
@@ -1307,7 +1307,7 @@ namespace
 
         std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("{{missing}} + {{known}}")),
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("{{missing}} + {{known}}")),
             std::move(headers));
 
         const std::vector<std::pair<std::string, std::string>> values = {
@@ -1317,7 +1317,7 @@ namespace
         response = filter(std::move(response));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING("{{missing}} + ok", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("{{missing}} + ok", lumalink::http::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     void test_replace_variables_respects_missing_value_policy_replace_with_empty()
@@ -1327,7 +1327,7 @@ namespace
 
         std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("{{missing}} + {{known}}")),
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("{{missing}} + {{known}}")),
             std::move(headers));
 
         const std::vector<std::pair<std::string, std::string>> values = {
@@ -1339,7 +1339,7 @@ namespace
         response = filter(std::move(response));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING(" + ok", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING(" + ok", lumalink::http::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     void test_replace_variables_skips_non_text_content_types()
@@ -1350,7 +1350,7 @@ namespace
 
         std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("bin {{x}}")),
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("bin {{x}}")),
             std::move(headers));
 
         const std::vector<std::pair<std::string, std::string>> values = {
@@ -1363,7 +1363,7 @@ namespace
         TEST_ASSERT_FALSE(response->headers().exists(HttpHeaderNames::TransferEncoding));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING("bin {{x}}", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("bin {{x}}", lumalink::http::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     void test_replace_variables_skips_content_encoded_responses()
@@ -1375,7 +1375,7 @@ namespace
 
         std::unique_ptr<IHttpResponse> response = std::make_unique<HttpResponse>(
             HttpStatus::Ok(),
-            std::make_unique<httpadv::v1::TestSupport::ScriptedByteSource>(httpadv::v1::TestSupport::ScriptedByteSource::FromText("{{x}}")),
+            std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(lumalink::http::TestSupport::ScriptedByteSource::FromText("{{x}}")),
             std::move(headers));
 
         const std::vector<std::pair<std::string, std::string>> values = {
@@ -1389,7 +1389,7 @@ namespace
         TEST_ASSERT_FALSE(response->headers().exists(HttpHeaderNames::TransferEncoding));
 
         auto body = response->getBody();
-        TEST_ASSERT_EQUAL_STRING("{{x}}", httpadv::v1::TestSupport::ReadByteSourceAsStdString(*body).c_str());
+        TEST_ASSERT_EQUAL_STRING("{{x}}", lumalink::http::TestSupport::ReadByteSourceAsStdString(*body).c_str());
     }
 
     int runUnitySuite()
@@ -1428,7 +1428,7 @@ namespace
 
 int run_test_routing()
 {
-    return httpadv::v1::TestSupport::RunConsolidatedSuite(
+    return lumalink::http::TestSupport::RunConsolidatedSuite(
         "routing",
         runUnitySuite,
         localSetUp,
