@@ -29,10 +29,10 @@ The native lane exists to protect the library's cross-platform design: the same 
 
 ## Native Source Admission Rule
 
-- The native PlatformIO environment now compiles production sources directly from `src/` via `platformio/native.ini`.
-- Keep `build_src_filter` in `platformio/native.ini` aligned with the intended native scope; prefer broad directory-based inclusion over translation-unit aggregation.
+- The native PlatformIO environment now compiles production sources directly from `src/` via `platformio.ini`.
+- Keep `build_src_filter` in `platformio.ini` aligned with the intended native scope; prefer broad directory-based inclusion over translation-unit aggregation.
 - Do not include production `.cpp` files directly from individual suite files.
-- If a production source is not yet host-safe, fix the guard or dependency issue in production code or narrow `platformio/native.ini` deliberately; do not hide the dependency with ad hoc local includes.
+- If a production source is not yet host-safe, fix the guard or dependency issue in production code or narrow `platformio.ini` deliberately; do not hide the dependency with ad hoc local includes.
 
 ## Request-Driving Strategy
 

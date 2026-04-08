@@ -5,6 +5,19 @@ import shutil
 import sys
 
 
+def _ensure_native_build_dirs(build_env):
+    build_dir = build_env.subst("$BUILD_DIR")
+    if not build_dir:
+        return
+
+    for relative_dir in (
+        "unity_config",
+        "unity_config_build",
+        os.path.join("test", "test_native"),
+    ):
+        os.makedirs(os.path.join(build_dir, relative_dir), exist_ok=True)
+
+
 def _resolve_compiler_dir(build_env):
     compiler_path = build_env.subst("$CXX")
     if compiler_path:
@@ -45,4 +58,5 @@ if sys.platform.startswith("win"):
     if compiler_dir:
         env.PrependENVPath("PATH", compiler_dir)
 
+_ensure_native_build_dirs(env)
 env.AddPostAction("$PROGPATH", _copy_runtime_dll)
