@@ -88,5 +88,12 @@
 #include "lumalink/http/server/WebServerBuilder.h"
 #include "lumalink/http/server/WebServerConfig.h"
 
+// OpenAPI support
+
+#if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
+#include "lumalink/http/server/OpenApiBuilder.h"
+#include "lumalink/http/server/OpenApi.h"
+#endif
+
 // Request handler factory
 #include "lumalink/http/core/HttpContextHandlerFactory.h"

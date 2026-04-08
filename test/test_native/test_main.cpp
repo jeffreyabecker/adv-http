@@ -47,6 +47,7 @@ int run_test_body_handlers();
 int run_test_fixture_support();
 int run_test_http_context();
 int run_test_pipeline();
+int run_test_openapi_builder();
 int run_test_request_parser();
 int run_test_response_streams();
 int run_test_routing();
@@ -67,6 +68,7 @@ int main(int, char **) {
   failureCount += run_test_fixture_support();
   failureCount += run_test_http_context();
   failureCount += run_test_pipeline();
+  failureCount += run_test_openapi_builder();
   failureCount += run_test_request_parser();
   failureCount += run_test_routing();
   failureCount += run_test_static_files();
