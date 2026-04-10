@@ -41,7 +41,8 @@ using namespace lumalink::http::websocket;
 
 namespace
 {
-    template <ssize_t MaxBuffered>
+    #include <cstddef>
+    template <std::ptrdiff_t MaxBuffered>
     class BufferingProbeHandler : public BufferingHttpHandlerBase<MaxBuffered>
     {
     public:
