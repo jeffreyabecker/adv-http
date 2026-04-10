@@ -4,6 +4,7 @@
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
 #include "LumaLinkPlatform.h"
+#include <span>
 #include "ChunkedHttpResponseBodyStream.h"
 #include "IHttpResponse.h"
 
@@ -14,9 +15,12 @@ namespace lumalink::http::response
   using lumalink::http::core::HttpHeaderNames;
   using lumalink::http::core::HttpStatus;
   using lumalink::platform::buffers::ConcatByteSource;
+  using lumalink::platform::buffers::ByteAvailability;
   using lumalink::platform::buffers::ExhaustedResult;
   using lumalink::platform::buffers::IByteSource;
-  using lumalink::platform::buffers::AvailableResult;
+  using lumalink::platform::buffers::AvailableByteCount;
+  using lumalink::platform::buffers::HasAvailableBytes;
+  using lumalink::platform::buffers::IsExhausted;
   using lumalink::platform::buffers::SpanByteSource;
   using lumalink::platform::buffers::StdStringByteSource;
 
@@ -71,10 +75,10 @@ namespace lumalink::http::response
     void buildSource()
     {
       std::unique_ptr<IByteSource> bodySource = response_->getBody();
-      const AvailableResult bodyAvailable = bodySource ? bodySource->available() : ExhaustedResult();
+      const ByteAvailability bodyAvailable = bodySource ? bodySource->available() : ExhaustedResult();
         const std::ptrdiff_t knownBodySize = !bodySource ? 0 :
-          (bodyAvailable.hasBytes() ? static_cast<std::ptrdiff_t>(bodyAvailable.count) :
-          (bodyAvailable.isExhausted() ? 0 : -1));
+          (HasAvailableBytes(bodyAvailable) ? static_cast<std::ptrdiff_t>(AvailableByteCount(bodyAvailable)) :
+          (IsExhausted(bodyAvailable) ? 0 : -1));
 
       EnsureRequiredHeaders(response_->headers(), knownBodySize);
 
@@ -107,17 +111,17 @@ namespace lumalink::http::response
       buildSource();
     }
 
-    AvailableResult available() override
+    ByteAvailability available() override
     {
       return source_ ? source_->available() : ExhaustedResult();
     }
 
-    size_t read(lumalink::span<uint8_t> buffer) override
+    size_t read(std::span<uint8_t> buffer) override
     {
       return source_ ? source_->read(buffer) : 0;
     }
 
-    size_t peek(lumalink::span<uint8_t> buffer) override
+    size_t peek(std::span<uint8_t> buffer) override
     {
       return source_ ? source_->peek(buffer) : 0;
     }

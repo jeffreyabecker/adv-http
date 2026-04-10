@@ -6,11 +6,14 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
+#include <optional>
 #include <vector>
+#include <span>
 
 namespace lumalink::http::websocket
 {
-    using lumalink::span;
+    
 
     enum class WebSocketOpcode : std::uint8_t
     {
@@ -32,17 +35,8 @@ namespace lumalink::http::websocket
         InternalError = 1011
     };
 
-    enum class WebSocketCodecStatus
-    {
-        Ok,
-        NeedMoreData,
-        ProtocolError,
-        BufferTooSmall
-    };
-
     enum class WebSocketCodecError
     {
-        None,
         InvalidReservedBits,
         InvalidOpcode,
         UnmaskedClientFrame,
@@ -51,7 +45,8 @@ namespace lumalink::http::websocket
         MalformedExtendedPayloadLength,
         MalformedClosePayload,
         UnexpectedContinuationFrame,
-        InterruptedContinuationSequence
+        InterruptedContinuationSequence,
+        BufferTooSmall
     };
 
     struct WebSocketFrameHeader
@@ -72,28 +67,21 @@ namespace lumalink::http::websocket
         std::vector<std::uint8_t> payload;
     };
 
-    struct WebSocketParseResult
+    struct WebSocketParseProgress
     {
-        WebSocketCodecStatus status = WebSocketCodecStatus::NeedMoreData;
-        WebSocketCodecError error = WebSocketCodecError::None;
         std::size_t bytesConsumed = 0;
-        bool frameReady = false;
-        WebSocketFrame frame;
+        std::optional<WebSocketFrame> frame;
     };
 
-    struct WebSocketSerializeResult
-    {
-        WebSocketCodecStatus status = WebSocketCodecStatus::Ok;
-        WebSocketCodecError error = WebSocketCodecError::None;
-        std::size_t bytesWritten = 0;
-    };
+    using WebSocketParseResult = std::expected<WebSocketParseProgress, WebSocketCodecError>;
+    using WebSocketSerializeResult = std::expected<std::size_t, WebSocketCodecError>;
 
     class WebSocketFrameParser
     {
     public:
         explicit WebSocketFrameParser(bool requireMaskedClientFrames = true);
 
-        WebSocketParseResult parse(span<const std::uint8_t> input);
+        WebSocketParseResult parse(std::span<const std::uint8_t> input);
         void reset();
 
     private:
@@ -108,7 +96,7 @@ namespace lumalink::http::websocket
         static bool isControlOpcode(WebSocketOpcode opcode);
         static bool isDataOpcode(WebSocketOpcode opcode);
         static bool isKnownOpcode(std::uint8_t opcode);
-        static std::uint64_t readBigEndian(span<const std::uint8_t> bytes);
+        static std::uint64_t readBigEndian(std::span<const std::uint8_t> bytes);
 
         bool requireMaskedClientFrames_ = true;
         bool expectingContinuation_ = false;
@@ -131,8 +119,8 @@ namespace lumalink::http::websocket
     public:
         static std::size_t maxSerializedSize(std::size_t payloadLength);
         static WebSocketSerializeResult serialize(
-            span<std::uint8_t> output,
-            span<const std::uint8_t> payload,
+            std::span<std::uint8_t> output,
+            std::span<const std::uint8_t> payload,
             WebSocketOpcode opcode,
             bool fin = true);
     };

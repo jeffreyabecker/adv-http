@@ -8,6 +8,7 @@
 
 #include <any>
 #include <cstdint>
+#include <span>
 #include <map>
 #include <optional>
 #include <string>
@@ -16,7 +17,6 @@
 namespace lumalink::http::websocket
 {
     using lumalink::http::core::HttpHeaderCollection;
-    using lumalink::span;
 
     class WebSocketProtocolExecution;
     class WebSocketContextTestProbe;
@@ -40,7 +40,7 @@ namespace lumalink::http::websocket
         std::uint16_t localPort() const;
 
         WebSocketSendResult sendText(std::string_view payload);
-        WebSocketSendResult sendBinary(span<const std::uint8_t> payload);
+        WebSocketSendResult sendBinary(std::span<const std::uint8_t> payload);
         WebSocketCloseResult close(WebSocketCloseCode code = WebSocketCloseCode::NormalClosure, std::string_view reason = {});
 
         bool isOpen() const;
@@ -72,7 +72,7 @@ namespace lumalink::http::websocket
         void markClosed(std::uint16_t closeCode, std::string_view reason);
         void notifyOpen();
         void notifyText(std::string_view message);
-        void notifyBinary(span<const std::uint8_t> payload);
+        void notifyBinary(std::span<const std::uint8_t> payload);
         void notifyClose(std::uint16_t closeCode, std::string_view reason);
         void notifyError(std::string_view message);
 

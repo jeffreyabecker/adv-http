@@ -41,7 +41,8 @@ using namespace lumalink::http::websocket;
 
 namespace
 {
-    template <ssize_t MaxBuffered>
+    #include <cstddef>
+    template <std::ptrdiff_t MaxBuffered>
     class BufferingProbeHandler : public BufferingHttpHandlerBase<MaxBuffered>
     {
     public:
@@ -128,10 +129,10 @@ namespace
             }
 
             RequestHandlingResult result = pipeline_->takeResult();
-            if (result.kind == RequestHandlingResult::Kind::Response && result.responseStream)
+            if (result.has_value() && result->kind == RequestHandlingSuccess::Kind::Response && result->responseStream)
             {
                 ++responseStreamCount_;
-                responseText_ = lumalink::http::TestSupport::ReadByteSourceAsStdString(*result.responseStream);
+                responseText_ = lumalink::http::TestSupport::ReadByteSourceAsStdString(*result->responseStream);
             }
         }
 

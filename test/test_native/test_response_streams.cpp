@@ -68,7 +68,7 @@ namespace
         auto body = std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(
             std::initializer_list<std::pair<const char *, bool>>{{"", true}});
 
-        TEST_ASSERT_TRUE(body->available().isTemporarilyUnavailable());
+        TEST_ASSERT_TRUE(IsTemporarilyUnavailable(body->available()));
     }
 
     void test_chunked_response_body_stream_reads_from_byte_source()
@@ -86,10 +86,10 @@ namespace
 
         const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*body);
         TEST_ASSERT_EQUAL_STRING("0\r\n\r\n", content.c_str());
-        TEST_ASSERT_TRUE(body->available().isExhausted());
+        TEST_ASSERT_TRUE(IsExhausted(body->available()));
 
         std::uint8_t byte = 0;
-        TEST_ASSERT_EQUAL_UINT64(0, body->read(lumalink::span<std::uint8_t>(&byte, 1)));
+        TEST_ASSERT_EQUAL_UINT64(0, body->read(std::span<std::uint8_t>(&byte, 1)));
     }
 
     void test_chunked_response_body_stream_preserves_varying_source_chunk_sizes()
@@ -480,12 +480,12 @@ namespace
         std::uint8_t peeked = 0;
         std::uint8_t buffer[7] = {};
 
-        TEST_ASSERT_EQUAL_UINT64(1, source->peek(lumalink::span<std::uint8_t>(&peeked, 1)));
+        TEST_ASSERT_EQUAL_UINT64(1, source->peek(std::span<std::uint8_t>(&peeked, 1)));
         TEST_ASSERT_EQUAL('H', static_cast<char>(peeked));
 
         while (true)
         {
-            const std::size_t bytesRead = source->read(lumalink::span<std::uint8_t>(buffer, sizeof(buffer)));
+            const std::size_t bytesRead = source->read(std::span<std::uint8_t>(buffer, sizeof(buffer)));
             if (bytesRead == 0)
             {
                 break;

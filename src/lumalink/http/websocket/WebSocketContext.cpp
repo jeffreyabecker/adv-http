@@ -68,7 +68,7 @@ namespace lumalink::http::websocket
         return control_->sendText(payload);
     }
 
-    WebSocketSendResult WebSocketContext::sendBinary(span<const std::uint8_t> payload)
+    WebSocketSendResult WebSocketContext::sendBinary(std::span<const std::uint8_t> payload)
     {
         if (control_ == nullptr)
         {
@@ -160,7 +160,7 @@ namespace lumalink::http::websocket
         }
     }
 
-    void WebSocketContext::notifyBinary(span<const std::uint8_t> payload)
+    void WebSocketContext::notifyBinary(std::span<const std::uint8_t> payload)
     {
         if (callbacks_.onBinary)
         {

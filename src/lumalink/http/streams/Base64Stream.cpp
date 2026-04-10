@@ -1,8 +1,12 @@
 #include "Base64Stream.h"
+#include <span>
 #include <cstring>
 
 namespace lumalink::http::streams
 {
+    using lumalink::platform::buffers::AvailableByteCount;
+    using lumalink::platform::buffers::HasAvailableBytes;
+
     // Base64DecoderStream
 
     int Base64DecoderStream::decodeChar(char c)
@@ -71,7 +75,7 @@ namespace lumalink::http::streams
         return Base64DecoderStream(data, length, isUrlSafe ? base64_url_chars : base64_chars);
     }
 
-    AvailableResult Base64DecoderStream::available()
+    ByteAvailability Base64DecoderStream::available()
     {
         if (bufferPos_ < bufferSize_)
         {
@@ -89,16 +93,16 @@ namespace lumalink::http::streams
             return lumalink::platform::buffers::ExhaustedResult();
         }
 
-        const AvailableResult underlyingAvailable = underlyingStream_->available();
-        if (underlyingAvailable.hasBytes())
+        const ByteAvailability underlyingAvailable = underlyingStream_->available();
+        if (HasAvailableBytes(underlyingAvailable))
         {
-            return lumalink::platform::buffers::AvailableBytes((underlyingAvailable.count / 4) * 3);
+            return lumalink::platform::buffers::AvailableBytes((AvailableByteCount(underlyingAvailable) / 4) * 3);
         }
 
         return underlyingAvailable;
     }
 
-    size_t Base64DecoderStream::read(lumalink::span<uint8_t> buffer)
+    size_t Base64DecoderStream::read(std::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -115,7 +119,7 @@ namespace lumalink::http::streams
         return totalRead;
     }
 
-    size_t Base64DecoderStream::peek(lumalink::span<uint8_t> buffer)
+    size_t Base64DecoderStream::peek(std::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {
@@ -208,7 +212,7 @@ namespace lumalink::http::streams
         return Base64EncoderStream(std::make_unique<lumalink::platform::buffers::SpanByteSource>(reinterpret_cast<const uint8_t *>(data), strlen(data)), strlen(data), isUrlSafe ? base64_url_chars : base64_chars, !isUrlSafe && emitPadding);
     }
 
-    AvailableResult Base64EncoderStream::available()
+    ByteAvailability Base64EncoderStream::available()
     {
         if (bufferPos_ < bufferSize_)
         {
@@ -226,8 +230,8 @@ namespace lumalink::http::streams
             return lumalink::platform::buffers::ExhaustedResult();
         }
 
-        const AvailableResult underlyingAvailable = underlyingStream_->available();
-        if (underlyingAvailable.hasBytes())
+        const ByteAvailability underlyingAvailable = underlyingStream_->available();
+        if (HasAvailableBytes(underlyingAvailable))
         {
             return lumalink::platform::buffers::AvailableBytes(1);
         }
@@ -235,7 +239,7 @@ namespace lumalink::http::streams
         return underlyingAvailable;
     }
 
-    size_t Base64EncoderStream::read(lumalink::span<uint8_t> buffer)
+    size_t Base64EncoderStream::read(std::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -252,7 +256,7 @@ namespace lumalink::http::streams
         return totalRead;
     }
 
-    size_t Base64EncoderStream::peek(lumalink::span<uint8_t> buffer)
+    size_t Base64EncoderStream::peek(std::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {

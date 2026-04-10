@@ -6,13 +6,14 @@
 #include <vector>
 
 #include <exception>
+#include <span>
 
 #include "LumaLinkPlatform.h"
 #include "LumaLinkPlatform.h"
 
 namespace lumalink::http::streams
 {
-    using lumalink::platform::buffers::AvailableResult;
+    using lumalink::platform::buffers::ByteAvailability;
     using lumalink::platform::buffers::IByteSource;
     using lumalink::platform::buffers::StdStringByteSource;
 
@@ -36,9 +37,9 @@ namespace lumalink::http::streams
         UriDecodingStream(const char *uri);
         UriDecodingStream(const uint8_t *uri, size_t length);
         explicit UriDecodingStream(std::unique_ptr<IByteSource> innerStream);
-        AvailableResult available() override;
-        size_t read(lumalink::span<uint8_t> buffer) override;
-        size_t peek(lumalink::span<uint8_t> buffer) override;
+        ByteAvailability available() override;
+        size_t read(std::span<uint8_t> buffer) override;
+        size_t peek(std::span<uint8_t> buffer) override;
 
     private:
         int readSingleByte();
@@ -66,9 +67,9 @@ namespace lumalink::http::streams
         UriEncodingStream(const char *uri);
         UriEncodingStream(const uint8_t *uri, size_t length);
         explicit UriEncodingStream(std::unique_ptr<IByteSource> innerStream);
-        AvailableResult available() override;
-        size_t read(lumalink::span<uint8_t> buffer) override;
-        size_t peek(lumalink::span<uint8_t> buffer) override;
+        ByteAvailability available() override;
+        size_t read(std::span<uint8_t> buffer) override;
+        size_t peek(std::span<uint8_t> buffer) override;
 
     private:
         int readSingleByte();

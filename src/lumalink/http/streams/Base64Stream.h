@@ -1,9 +1,10 @@
 #pragma once
 #include <exception>
+#include <span>
 #include "LumaLinkPlatform.h"
 namespace lumalink::http::streams
 {
-    using lumalink::platform::buffers::AvailableResult;
+    using lumalink::platform::buffers::ByteAvailability;
     using lumalink::platform::buffers::IByteSource;
 
     constexpr const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -40,9 +41,9 @@ namespace lumalink::http::streams
         static Base64DecoderStream create(const char *data, bool isUrlSafe = false);
         static Base64DecoderStream create(const uint8_t *data, size_t length, bool isUrlSafe = false);
 
-        AvailableResult available() override;
-        size_t read(lumalink::span<uint8_t> buffer) override;
-        size_t peek(lumalink::span<uint8_t> buffer) override;
+        ByteAvailability available() override;
+        size_t read(std::span<uint8_t> buffer) override;
+        size_t peek(std::span<uint8_t> buffer) override;
 
     private:
         int peekSingleByte();
@@ -77,9 +78,9 @@ namespace lumalink::http::streams
         static Base64EncoderStream create(const uint8_t *data, size_t length, bool isUrlSafe = false, bool emitPadding = true);
         static Base64EncoderStream create(const char *data, bool isUrlSafe = false, bool emitPadding = true);
 
-        AvailableResult available() override;
-        size_t read(lumalink::span<uint8_t> buffer) override;
-        size_t peek(lumalink::span<uint8_t> buffer) override;
+        ByteAvailability available() override;
+        size_t read(std::span<uint8_t> buffer) override;
+        size_t peek(std::span<uint8_t> buffer) override;
 
     private:
         int peekSingleByte();

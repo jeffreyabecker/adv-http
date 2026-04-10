@@ -1,9 +1,13 @@
 #include "ChunkedHttpResponseBodyStream.h"
+#include <span>
 #include <cstdio>
 #include <algorithm>
 
 namespace lumalink::http::response
 {
+    using lumalink::platform::buffers::AvailableByteCount;
+    using lumalink::platform::buffers::HasAvailableBytes;
+    using lumalink::platform::buffers::IsExhausted;
 
     ChunkedHttpResponseBodyStream::ChunkedHttpResponseBodyStream(std::unique_ptr<IByteSource> innerSource)
         : innerSource_(std::move(innerSource)) {}
@@ -16,11 +20,11 @@ namespace lumalink::http::response
     void ChunkedHttpResponseBodyStream::prepareHeader()
     {
         // Determine how many bytes we can promise from the inner stream (up to chunkDataSize_)
-        const AvailableResult innerAvail = innerSource_->available();
-        if (!innerAvail.hasBytes())
+        const ByteAvailability innerAvail = innerSource_->available();
+        if (!HasAvailableBytes(innerAvail))
         {
             // No data or awaiting more; transition to final chunk if truly ended
-            if (innerAvail.isExhausted())
+            if (IsExhausted(innerAvail))
             {
                 state_ = State::Final;
                 finalPos_ = 0;
@@ -29,8 +33,8 @@ namespace lumalink::http::response
             // If temporarily unavailable or errored, we stay in Header and available() will return -1.
             return;
         }
-        chunkRemaining_ = std::min(innerAvail.count, chunkDataSize_);
-        currentChunkIsLast_ = innerAvail.count <= chunkDataSize_;
+        chunkRemaining_ = std::min(AvailableByteCount(innerAvail), chunkDataSize_);
+        currentChunkIsLast_ = AvailableByteCount(innerAvail) <= chunkDataSize_;
         headerLen_ = static_cast<size_t>(std::snprintf(headerBuf_, sizeof(headerBuf_), "%zx\r\n", chunkRemaining_));
         headerPos_ = 0;
         state_ = State::Header;
@@ -41,7 +45,7 @@ namespace lumalink::http::response
         return innerSource_ ? PeekByte(*innerSource_) : -1;
     }
 
-    AvailableResult ChunkedHttpResponseBodyStream::available()
+    ByteAvailability ChunkedHttpResponseBodyStream::available()
     {
         switch (state_)
         {
@@ -167,7 +171,7 @@ namespace lumalink::http::response
         }
     }
 
-    size_t ChunkedHttpResponseBodyStream::read(lumalink::span<uint8_t> buffer)
+    size_t ChunkedHttpResponseBodyStream::read(std::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -184,7 +188,7 @@ namespace lumalink::http::response
         return totalRead;
     }
 
-    size_t ChunkedHttpResponseBodyStream::peek(lumalink::span<uint8_t> buffer)
+    size_t ChunkedHttpResponseBodyStream::peek(std::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {

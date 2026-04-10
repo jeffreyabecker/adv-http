@@ -11,6 +11,7 @@
 #include <any>
 #include <string>
 #include <vector>
+#include <span>
 
 using namespace lumalink::http::core;
 using namespace lumalink::http::handlers;
@@ -67,7 +68,7 @@ namespace
             return nextTextResult;
         }
 
-        WebSocketSendResult sendBinary(span<const std::uint8_t> payload) override
+        WebSocketSendResult sendBinary(std::span<const std::uint8_t> payload) override
         {
             lastBinary.assign(payload.begin(), payload.end());
             return nextBinaryResult;
@@ -129,7 +130,7 @@ namespace
         TEST_ASSERT_EQUAL_STRING("hello", control.lastText.c_str());
 
         const std::uint8_t bytes[] = {0x41, 0x42};
-        TEST_ASSERT_EQUAL_INT(static_cast<int>(WebSocketSendResult::Backpressured), static_cast<int>(context.sendBinary(span<const std::uint8_t>(bytes, sizeof(bytes)))));
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(WebSocketSendResult::Backpressured), static_cast<int>(context.sendBinary(std::span<const std::uint8_t>(bytes, sizeof(bytes)))));
         TEST_ASSERT_EQUAL_UINT64(sizeof(bytes), control.lastBinary.size());
         TEST_ASSERT_EQUAL_UINT8('A', control.lastBinary[0]);
         TEST_ASSERT_EQUAL_UINT8('B', control.lastBinary[1]);

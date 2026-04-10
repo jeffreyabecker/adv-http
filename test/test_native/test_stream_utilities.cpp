@@ -30,7 +30,7 @@ namespace
     class ExhaustedReadStream : public ReadStream
     {
     public:
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             return ExhaustedResult();
         }
@@ -61,7 +61,7 @@ namespace
         {
         }
 
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             return position_ < bytes_.size() ? TemporarilyUnavailableResult() : ExhaustedResult();
         }
@@ -95,7 +95,7 @@ namespace
     class TemporarilyUnavailableReadStream : public ReadStream
     {
     public:
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             return TemporarilyUnavailableResult();
         }

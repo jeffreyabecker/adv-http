@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LumaLinkPlatform.h"
+#include <span>
 #include "../core/Defines.h"
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
@@ -27,8 +28,9 @@ namespace lumalink::http::routing
     using lumalink::http::response::IHttpResponse;
     using lumalink::http::response::HttpResponse;
     using lumalink::platform::buffers::AvailableBytes;
-    using lumalink::platform::buffers::AvailableResult;
+    using lumalink::platform::buffers::ByteAvailability;
     using lumalink::platform::buffers::ExhaustedResult;
+    using lumalink::platform::buffers::IsExhausted;
     using lumalink::platform::buffers::IByteSink;
     using lumalink::platform::buffers::IByteSource;
 
@@ -172,7 +174,7 @@ namespace lumalink::http::routing
             {
             }
 
-            std::size_t write(lumalink::span<const std::uint8_t> buffer) override
+            std::size_t write(std::span<const std::uint8_t> buffer) override
             {
                 storage_.append(reinterpret_cast<const char *>(buffer.data()), buffer.size());
                 return buffer.size();
@@ -413,11 +415,11 @@ namespace lumalink::http::routing
                 while (outputSize() < targetBytes && !streamExhausted_)
                 {
                     std::uint8_t readBuffer[64] = {};
-                    const std::size_t readCount = inner_->read(lumalink::span<std::uint8_t>(readBuffer, sizeof(readBuffer)));
+                    const std::size_t readCount = inner_->read(std::span<std::uint8_t>(readBuffer, sizeof(readBuffer)));
                     if (readCount == 0)
                     {
-                        const AvailableResult available = inner_->available();
-                        if (available.isExhausted())
+                        const ByteAvailability available = inner_->available();
+                        if (IsExhausted(available))
                         {
                             flushPendingParserState();
                             streamExhausted_ = true;
@@ -442,7 +444,7 @@ namespace lumalink::http::routing
             {
             }
 
-            AvailableResult available() override
+            ByteAvailability available() override
             {
                 if (outputSize() > 0)
                 {
@@ -463,7 +465,7 @@ namespace lumalink::http::routing
                 return inner_ ? inner_->available() : ExhaustedResult();
             }
 
-            std::size_t read(lumalink::span<std::uint8_t> buffer) override
+            std::size_t read(std::span<std::uint8_t> buffer) override
             {
                 if (buffer.empty())
                 {
@@ -483,7 +485,7 @@ namespace lumalink::http::routing
                 return copied;
             }
 
-            std::size_t peek(lumalink::span<std::uint8_t> buffer) override
+            std::size_t peek(std::span<std::uint8_t> buffer) override
             {
                 if (buffer.empty())
                 {

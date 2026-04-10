@@ -82,10 +82,7 @@
     "search.exclude": {
         "**/.git": true,
         "**/node_modules": true,
-        "**/build": true,
-        "**/.pio": true,
-        "**/.arduino": true
-
+        "**/build": true
     },
     "chat.tools.terminal.autoApprove": {
         "arduino-cli": true

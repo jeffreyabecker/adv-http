@@ -5,6 +5,11 @@
 
 namespace lumalink::http::pipeline
 {
+    using lumalink::platform::buffers::AvailableByteCount;
+    using lumalink::platform::buffers::ByteAvailability;
+    using lumalink::platform::buffers::HasAvailableBytes;
+    using lumalink::platform::buffers::IsExhausted;
+
     HttpPipeline::HttpPipeline(std::unique_ptr<lumalink::platform::transport::IClient> client, HttpServerBase &server,
                                                              const HttpTimeouts &timeouts, std::function<PipelineHandlerPtr()> handlerFactory,
                                                              const IMonotonicClock &clock)
@@ -92,14 +97,14 @@ namespace lumalink::http::pipeline
         }
 
         uint8_t buffer[lumalink::http::core::PIPELINE_STACK_BUFFER_SIZE];
-        lumalink::platform::buffers::AvailableResult available = lumalink::platform::buffers::TemporarilyUnavailableResult();
-        while ((available = responseStream_->available()).hasBytes())
+        ByteAvailability available = lumalink::platform::buffers::TemporarilyUnavailableResult();
+        while (HasAvailableBytes(available = responseStream_->available()))
         {
-            const size_t bytesToRead = std::min<std::size_t>(sizeof(buffer), available.count);
-            const size_t bytesRead = responseStream_->read(lumalink::span<uint8_t>(buffer, bytesToRead));
+            const size_t bytesToRead = std::min<std::size_t>(sizeof(buffer), AvailableByteCount(available));
+            const size_t bytesRead = responseStream_->read(std::span<uint8_t>(buffer, bytesToRead));
             if (bytesRead > 0)
             {
-                auto written = client_->write(lumalink::span<const uint8_t>(buffer, bytesRead));
+                auto written = client_->write(std::span<const uint8_t>(buffer, bytesRead));
                 startActivity();
                 if (written < bytesRead)
                 {
@@ -116,7 +121,7 @@ namespace lumalink::http::pipeline
                 return;
             }
         }
-        if (available.isExhausted())
+        if (IsExhausted(available))
         {
             responseStream_.reset();
             if (requestExecution_ && responseStartedNotified_)
@@ -175,11 +180,17 @@ namespace lumalink::http::pipeline
         }
 
         RequestHandlingResult result = requestExecution_->takeResult();
-        switch (result.kind)
+        if (!result)
         {
-        case RequestHandlingResult::Kind::Response:
+            setErroredUnrecoverably();
+            return;
+        }
+
+        switch (result->kind)
+        {
+        case RequestHandlingSuccess::Kind::Response:
             requestExecution_->markRequestReadCompleted();
-            responseStream_ = std::move(result.responseStream);
+            responseStream_ = std::move(result->responseStream);
             if (!responseStream_)
             {
                 setErroredUnrecoverably();
@@ -187,9 +198,9 @@ namespace lumalink::http::pipeline
             }
             setConnectionState(ConnectionState::WritingHttpResponse);
             return;
-        case RequestHandlingResult::Kind::Upgrade:
+        case RequestHandlingSuccess::Kind::Upgrade:
             requestExecution_->markRequestReadCompleted();
-            activeSession_ = std::move(result.upgradedSession);
+            activeSession_ = std::move(result->upgradedSession);
             if (!activeSession_)
             {
                 setErroredUnrecoverably();
@@ -197,17 +208,14 @@ namespace lumalink::http::pipeline
             }
             setConnectionState(ConnectionState::UpgradedSessionActive);
             return;
-        case RequestHandlingResult::Kind::NoResponse:
+        case RequestHandlingSuccess::Kind::NoResponse:
             requestExecution_->markRequestReadCompleted();
             if (!beginNextKeepAliveRequest())
             {
                 setConnectionState(ConnectionState::Completed);
             }
             return;
-        case RequestHandlingResult::Kind::Error:
-            setErroredUnrecoverably();
-            return;
-        case RequestHandlingResult::Kind::None:
+        case RequestHandlingSuccess::Kind::None:
         default:
             return;
         }

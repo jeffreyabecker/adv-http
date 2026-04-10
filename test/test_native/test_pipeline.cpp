@@ -122,22 +122,22 @@ namespace
 
         void emitResponse(std::unique_ptr<IByteSource> source)
         {
-            pendingResult_ = RequestHandlingResult::response(std::move(source));
+            pendingResult_ = ResponseRequestHandlingResult(std::move(source));
         }
 
         void emitUpgrade(std::unique_ptr<IConnectionSession> session)
         {
-            pendingResult_ = RequestHandlingResult::upgrade(std::move(session));
+            pendingResult_ = UpgradeRequestHandlingResult(std::move(session));
         }
 
         void emitNoResponse()
         {
-            pendingResult_ = RequestHandlingResult::noResponse();
+            pendingResult_ = NoResponseRequestHandlingResult();
         }
 
         void emitError(PipelineErrorCode errorCode)
         {
-            pendingResult_ = RequestHandlingResult::errorResult(PipelineError(errorCode));
+            pendingResult_ = ErrorRequestHandlingResult(PipelineError(errorCode));
         }
 
         void setOnHeadersComplete(Action action)
@@ -222,20 +222,20 @@ namespace
 
         bool hasPendingResult() const override
         {
-            return pendingResult_.hasValue();
+            return HasPendingRequestHandlingValue(pendingResult_);
         }
 
         RequestHandlingResult takeResult() override
         {
             RequestHandlingResult result = std::move(pendingResult_);
-            pendingResult_ = RequestHandlingResult();
+            pendingResult_ = EmptyRequestHandlingResult();
             return result;
         }
 
     private:
         Action onHeadersCompleteAction_;
         Action onMessageCompleteAction_;
-        RequestHandlingResult pendingResult_;
+        RequestHandlingResult pendingResult_ = EmptyRequestHandlingResult();
         std::string method_;
         std::string url_;
         uint16_t versionMajor_ = 0;
@@ -329,7 +329,7 @@ namespace
 
         RequestHandlingResult takeResult() override
         {
-            return RequestHandlingResult();
+            return EmptyRequestHandlingResult();
         }
 
         bool isFinished() const override
@@ -377,17 +377,17 @@ namespace
     class BlockingByteSource : public IByteSource
     {
     public:
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             return TemporarilyUnavailableResult();
         }
 
-        std::size_t read(lumalink::span<std::uint8_t>) override
+        std::size_t read(std::span<std::uint8_t>) override
         {
             return 0;
         }
 
-        std::size_t peek(lumalink::span<std::uint8_t>) override
+        std::size_t peek(std::span<std::uint8_t>) override
         {
             return 0;
         }
@@ -520,7 +520,7 @@ namespace
             });
     }
 
-    bool hasBinarySuffix(const std::string &value, span<const std::uint8_t> suffix)
+    bool hasBinarySuffix(const std::string &value, std::span<const std::uint8_t> suffix)
     {
         if (suffix.size() > value.size())
         {
@@ -1083,7 +1083,7 @@ namespace
         TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
 
         const std::uint8_t expectedPong[] = {0x8A, 0x02, 'h', 'i'};
-        TEST_ASSERT_TRUE(hasBinarySuffix(clientPtr->writtenText(), span<const std::uint8_t>(expectedPong, sizeof(expectedPong))));
+        TEST_ASSERT_TRUE(hasBinarySuffix(clientPtr->writtenText(), std::span<const std::uint8_t>(expectedPong, sizeof(expectedPong))));
     }
 
     void test_http_pipeline_websocket_session_runtime_completes_after_close_handshake()
@@ -1138,7 +1138,7 @@ namespace
         TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::Completed), static_cast<int>(pipeline.connectionState()));
 
         const std::uint8_t expectedClose[] = {0x88, 0x02, 0x03, 0xE8};
-        TEST_ASSERT_TRUE(hasBinarySuffix(clientPtr->writtenText(), span<const std::uint8_t>(expectedClose, sizeof(expectedClose))));
+        TEST_ASSERT_TRUE(hasBinarySuffix(clientPtr->writtenText(), std::span<const std::uint8_t>(expectedClose, sizeof(expectedClose))));
     }
 
     void test_http_pipeline_websocket_session_runtime_maps_protocol_error_to_close_frame()
@@ -1192,7 +1192,7 @@ namespace
         TEST_ASSERT_EQUAL_INT(static_cast<int>(HttpPipeline::ConnectionState::UpgradedSessionActive), static_cast<int>(pipeline.connectionState()));
 
         const std::uint8_t expectedClose[] = {0x88, 0x02, 0x03, 0xEA};
-        TEST_ASSERT_TRUE(hasBinarySuffix(clientPtr->writtenText(), span<const std::uint8_t>(expectedClose, sizeof(expectedClose))));
+        TEST_ASSERT_TRUE(hasBinarySuffix(clientPtr->writtenText(), std::span<const std::uint8_t>(expectedClose, sizeof(expectedClose))));
     }
 
     void test_http_pipeline_websocket_session_runtime_resumes_partial_handshake_writes_across_loops()
@@ -1287,7 +1287,7 @@ namespace
         {
             callbackEvents.push_back(std::string("text:") + std::string(text));
         };
-        callbacks.onBinary = [&callbackEvents](WebSocketContext &, span<const std::uint8_t> payload)
+        callbacks.onBinary = [&callbackEvents](WebSocketContext &, std::span<const std::uint8_t> payload)
         {
             callbackEvents.push_back(std::string("binary:") + std::string(reinterpret_cast<const char *>(payload.data()), payload.size()));
         };

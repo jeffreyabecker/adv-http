@@ -8,12 +8,8 @@ namespace lumalink::http::websocket
     {
         WebSocketParseResult makeProtocolError(WebSocketCodecError error, std::size_t bytesConsumed)
         {
-            WebSocketParseResult result;
-            result.status = WebSocketCodecStatus::ProtocolError;
-            result.error = error;
-            result.bytesConsumed = bytesConsumed;
-            result.frameReady = false;
-            return result;
+            static_cast<void>(bytesConsumed);
+            return std::unexpected(error);
         }
     }
 
@@ -42,7 +38,7 @@ namespace lumalink::http::websocket
                opcode == static_cast<std::uint8_t>(WebSocketOpcode::Pong);
     }
 
-    std::uint64_t WebSocketFrameParser::readBigEndian(span<const std::uint8_t> bytes)
+    std::uint64_t WebSocketFrameParser::readBigEndian(std::span<const std::uint8_t> bytes)
     {
         std::uint64_t value = 0;
         for (std::size_t i = 0; i < bytes.size(); ++i)
@@ -70,9 +66,8 @@ namespace lumalink::http::websocket
         resetCurrentFrame();
     }
 
-    WebSocketParseResult WebSocketFrameParser::parse(span<const std::uint8_t> input)
+    WebSocketParseResult WebSocketFrameParser::parse(std::span<const std::uint8_t> input)
     {
-        WebSocketParseResult result;
         std::size_t offset = 0;
 
         while (offset < input.size())
@@ -86,9 +81,7 @@ namespace lumalink::http::websocket
 
                 if (pendingBasicHeaderBytesRead_ < 2U)
                 {
-                    result.status = WebSocketCodecStatus::NeedMoreData;
-                    result.bytesConsumed = offset;
-                    return result;
+                    return WebSocketParseProgress{offset, std::nullopt};
                 }
 
                 const std::uint8_t first = pendingBasicHeaderBytes_[0];
@@ -142,19 +135,17 @@ namespace lumalink::http::websocket
 
                 if (pendingLengthByteCount_ > 0U)
                 {
-                    result.status = WebSocketCodecStatus::NeedMoreData;
-                    result.bytesConsumed = offset;
-                    return result;
+                    return WebSocketParseProgress{offset, std::nullopt};
                 }
 
                 std::uint64_t payloadLength = 0;
                 if ((pendingLengthBytes_[0] == 0) && (pendingLengthBytes_[1] == 0) && pendingLengthBytes_[2] == 0 && pendingLengthBytes_[3] == 0 && pendingLengthBytes_[4] == 0 && pendingLengthBytes_[5] == 0)
                 {
-                    payloadLength = readBigEndian(span<const std::uint8_t>(pendingLengthBytes_.data() + 6, 2));
+                    payloadLength = readBigEndian(std::span<const std::uint8_t>(pendingLengthBytes_.data() + 6, 2));
                 }
                 else
                 {
-                    payloadLength = readBigEndian(span<const std::uint8_t>(pendingLengthBytes_.data(), 8));
+                    payloadLength = readBigEndian(std::span<const std::uint8_t>(pendingLengthBytes_.data(), 8));
                 }
 
                 const bool parsedFromTwoBytes = pendingLengthBytes_[2] == 0 && pendingLengthBytes_[3] == 0 && pendingLengthBytes_[4] == 0 && pendingLengthBytes_[5] == 0;
@@ -184,9 +175,7 @@ namespace lumalink::http::websocket
 
                 if (pendingMaskBytesRead_ < 4U)
                 {
-                    result.status = WebSocketCodecStatus::NeedMoreData;
-                    result.bytesConsumed = offset;
-                    return result;
+                    return WebSocketParseProgress{offset, std::nullopt};
                 }
 
                 stage_ = Stage::Payload;
@@ -216,9 +205,7 @@ namespace lumalink::http::websocket
 
                 if (payloadBytesRead_ < currentFrame_.header.payloadLength)
                 {
-                    result.status = WebSocketCodecStatus::NeedMoreData;
-                    result.bytesConsumed = offset;
-                    return result;
+                    return WebSocketParseProgress{offset, std::nullopt};
                 }
 
                 const WebSocketOpcode opcode = currentFrame_.header.opcode;
@@ -262,20 +249,14 @@ namespace lumalink::http::websocket
                     }
                 }
 
-                result.status = WebSocketCodecStatus::Ok;
-                result.error = WebSocketCodecError::None;
-                result.bytesConsumed = offset;
-                result.frameReady = true;
-                result.frame = std::move(currentFrame_);
+                WebSocketParseProgress result{offset, std::move(currentFrame_)};
 
                 resetCurrentFrame();
                 return result;
             }
         }
 
-        result.status = WebSocketCodecStatus::NeedMoreData;
-        result.bytesConsumed = offset;
-        return result;
+        return WebSocketParseProgress{offset, std::nullopt};
     }
 
     std::size_t WebSocketFrameSerializer::maxSerializedSize(std::size_t payloadLength)
@@ -292,25 +273,21 @@ namespace lumalink::http::websocket
     }
 
     WebSocketSerializeResult WebSocketFrameSerializer::serialize(
-        span<std::uint8_t> output,
-        span<const std::uint8_t> payload,
+        std::span<std::uint8_t> output,
+        std::span<const std::uint8_t> payload,
         WebSocketOpcode opcode,
         bool fin)
     {
-        WebSocketSerializeResult result;
         const bool isControl = opcode == WebSocketOpcode::Close || opcode == WebSocketOpcode::Ping || opcode == WebSocketOpcode::Pong;
         if (isControl && (!fin || payload.size() > 125U))
         {
-            result.status = WebSocketCodecStatus::ProtocolError;
-            result.error = !fin ? WebSocketCodecError::ControlFrameFragmented : WebSocketCodecError::ControlFrameTooLarge;
-            return result;
+            return std::unexpected(!fin ? WebSocketCodecError::ControlFrameFragmented : WebSocketCodecError::ControlFrameTooLarge);
         }
 
         const std::size_t requiredSize = maxSerializedSize(payload.size());
         if (output.size() < requiredSize)
         {
-            result.status = WebSocketCodecStatus::BufferTooSmall;
-            return result;
+            return std::unexpected(WebSocketCodecError::BufferTooSmall);
         }
 
         std::size_t offset = 0;
@@ -341,8 +318,6 @@ namespace lumalink::http::websocket
             output[offset + i] = payload[i];
         }
 
-        result.status = WebSocketCodecStatus::Ok;
-        result.bytesWritten = requiredSize;
-        return result;
+        return requiredSize;
     }
 }

@@ -5,7 +5,9 @@
 #include <unity.h>
 
 using namespace lumalink::http::core;
+#if LUMALINK_HTTP_ENABLE_ARDUINO_JSON == 1
 using namespace lumalink::http::openapi;
+#endif
 
 namespace
 {

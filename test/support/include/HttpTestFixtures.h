@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <deque>
 #include <functional>
 #include <memory>
@@ -274,19 +275,19 @@ namespace lumalink::http::TestSupport
 
         bool hasPendingResult() const override
         {
-            return pendingResult_.hasValue();
+            return HasPendingRequestHandlingValue(pendingResult_);
         }
 
         RequestHandlingResult takeResult() override
         {
             RequestHandlingResult result = std::move(pendingResult_);
-            pendingResult_ = RequestHandlingResult();
+            pendingResult_ = EmptyRequestHandlingResult();
             return result;
         }
 
         void emitResponseResult(std::unique_ptr<IByteSource> responseStream)
         {
-            pendingResult_ = RequestHandlingResult::response(std::move(responseStream));
+            pendingResult_ = ResponseRequestHandlingResult(std::move(responseStream));
             events_.push_back({PipelineEventKind::RequestResultDelivered, {}, {}, 0, 0, PipelineErrorCode::None});
         }
 
@@ -394,7 +395,7 @@ namespace lumalink::http::TestSupport
         std::vector<std::pair<std::string, std::string>> headers_;
         std::vector<std::vector<std::uint8_t>> bodyChunks_;
         std::vector<PipelineErrorCode> errors_;
-        RequestHandlingResult pendingResult_;
+        RequestHandlingResult pendingResult_ = EmptyRequestHandlingResult();
         std::size_t headersCompleteCount_ = 0;
         std::size_t messageCompleteCount_ = 0;
         std::size_t responseStartedCount_ = 0;
@@ -417,22 +418,22 @@ namespace lumalink::http::TestSupport
         {
         }
 
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             return readable_.available();
         }
 
-        std::size_t read(lumalink::span<std::uint8_t> buffer) override
+        std::size_t read(std::span<std::uint8_t> buffer) override
         {
             return readable_.read(buffer);
         }
 
-        std::size_t peek(lumalink::span<std::uint8_t> buffer) override
+        std::size_t peek(std::span<std::uint8_t> buffer) override
         {
             return readable_.peek(buffer);
         }
 
-        std::size_t write(lumalink::span<const std::uint8_t> buffer) override
+        std::size_t write(std::span<const std::uint8_t> buffer) override
         {
             if (!connected())
             {
@@ -471,7 +472,7 @@ namespace lumalink::http::TestSupport
             }
 
             std::uint8_t byte = 0;
-            return readable_.peek(lumalink::span<std::uint8_t>(&byte, 1)) > 0;
+            return readable_.peek(std::span<std::uint8_t>(&byte, 1)) > 0;
         }
 
         std::string_view remoteAddress() const override
