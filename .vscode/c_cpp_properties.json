@@ -14,38 +14,3 @@
   ],
   "version": 4
 }
-{
-  "configurations": [
-    {
-      "name": "Win32",
-      "includePath": [
-        "${workspaceFolder}/src",
-        "${workspaceFolder}/src/llhttp/include",
-        "C:/ode",
-        "${workspaceFolder}/test/support/include",
-        "${workspaceFolder}/**"
-      ],
-      "defines": ["UNIT_TEST"],
-      "compilerPath": "cl.exe",
-      "cStandard": "c11",
-      "cppStandard": "c++17",
-      "intelliSenseMode": "msvc-x64"
-    },
-    {
-      "name": "Linux",
-      "includePath": [
-        "${workspaceFolder}/src",
-        "${workspaceFolder}/src/llhttp/include",
-        "${workspaceFolder}/test/support/include",
-        "C:/ode",
-        "${workspaceFolder}/**"
-      ],
-      "defines": ["UNIT_TEST"],
-      "compilerPath": "/usr/bin/g++",
-      "cStandard": "c11",
-      "cppStandard": "c++17",
-      "intelliSenseMode": "gcc-x64"
-    }
-  ],
-  "version": 4
-}
