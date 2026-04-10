@@ -63,17 +63,21 @@ if(BUILD_TESTS)
   # To avoid an external fetch failure during CI/configure, build the native tests
   # with Arduino JSON disabled by default. If you prefer to enable ArduinoJson,
   # provide `-DUSE_ARDUINOJSON=ON` with a valid FetchContent strategy.
-  option(USE_ARDUINOJSON "Fetch and enable ArduinoJson for native tests" OFF)
+  option(USE_ARDUINOJSON "Fetch and enable ArduinoJson for native tests" ON)
   if(USE_ARDUINOJSON)
     FetchContent_Declare(
       arduinojson
       GIT_REPOSITORY https://github.com/bblanchon/ArduinoJson.git
-      GIT_TAG v7.11.1
+      GIT_TAG v7.4.2
     )
     FetchContent_MakeAvailable(arduinojson)
     add_library(arduinojson_iface INTERFACE)
     target_include_directories(arduinojson_iface INTERFACE ${arduinojson_SOURCE_DIR}/src)
     add_library(ArduinoJson::ArduinoJson ALIAS arduinojson_iface)
+    # Make ArduinoJson headers available to the main library target
+    target_link_libraries(lumalink_http PUBLIC ArduinoJson::ArduinoJson)
+    # Ensure the public library target sees ArduinoJson enabled
+    target_compile_definitions(lumalink_http PUBLIC LUMALINK_HTTP_ENABLE_ARDUINO_JSON=1)
   else()
     # Explicitly compile the library and tests with ArduinoJson disabled
     add_compile_definitions(LUMALINK_HTTP_ENABLE_ARDUINO_JSON=0)
