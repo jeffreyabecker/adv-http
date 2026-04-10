@@ -163,7 +163,7 @@ namespace
         std::string_view path,
         const std::vector<std::pair<std::string, std::string>> &headers,
         lumalink::http::TestSupport::RecordingRequestHandlerFactory &factory,
-        RequestHandlingResult::Kind expectedKind)
+        RequestHandlingSuccess::Kind expectedKind)
     {
         HttpServerBase server(std::make_unique<lumalink::http::TestSupport::FakeServer>());
         auto pipelineHandler = HttpContext::createPipelineHandler(server, factory);
@@ -187,13 +187,14 @@ namespace
         TEST_ASSERT_TRUE(pipelineHandler->hasPendingResult());
 
         RequestHandlingResult result = pipelineHandler->takeResult();
-        TEST_ASSERT_EQUAL_INT(static_cast<int>(expectedKind), static_cast<int>(result.kind));
+        TEST_ASSERT_TRUE(result.has_value());
+        TEST_ASSERT_EQUAL_INT(static_cast<int>(expectedKind), static_cast<int>(result->kind));
 
-        if (result.kind == RequestHandlingResult::Kind::Response)
+        if (result->kind == RequestHandlingSuccess::Kind::Response)
         {
-            TEST_ASSERT_NOT_NULL(result.responseStream.get());
-            TEST_ASSERT_NULL(result.upgradedSession.get());
-            return lumalink::http::TestSupport::ReadByteSourceAsStdString(*result.responseStream);
+            TEST_ASSERT_NOT_NULL(result->responseStream.get());
+            TEST_ASSERT_NULL(result->upgradedSession.get());
+            return lumalink::http::TestSupport::ReadByteSourceAsStdString(*result->responseStream);
         }
 
         return std::string();
@@ -228,14 +229,15 @@ namespace
         TEST_ASSERT_TRUE(pipelineHandler->hasPendingResult());
 
         RequestHandlingResult result = pipelineHandler->takeResult();
-        TEST_ASSERT_EQUAL_INT(static_cast<int>(RequestHandlingResult::Kind::Upgrade), static_cast<int>(result.kind));
-        TEST_ASSERT_NOT_NULL(result.upgradedSession.get());
-        TEST_ASSERT_NULL(result.responseStream.get());
+    TEST_ASSERT_TRUE(result.has_value());
+    TEST_ASSERT_EQUAL_INT(static_cast<int>(RequestHandlingSuccess::Kind::Upgrade), static_cast<int>(result->kind));
+    TEST_ASSERT_NOT_NULL(result->upgradedSession.get());
+    TEST_ASSERT_NULL(result->responseStream.get());
 
         lumalink::http::TestSupport::FakeClient client;
         lumalink::platform::time::ManualClock clock;
         clock.setMonotonicMillis(1000);
-        const ConnectionSessionResult firstStep = result.upgradedSession->handle(client, clock);
+        const ConnectionSessionResult firstStep = result->upgradedSession->handle(client, clock);
 
         TEST_ASSERT_EQUAL_INT(static_cast<int>(ConnectionSessionResult::Continue), static_cast<int>(firstStep));
         TEST_ASSERT_EQUAL_STRING(
@@ -261,7 +263,7 @@ namespace
                     {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
                 },
                 factory,
-                RequestHandlingResult::Kind::Response);
+                RequestHandlingSuccess::Kind::Response);
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 405 Method Not Allowed"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
@@ -279,7 +281,7 @@ namespace
                     {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
                 },
                 factory,
-                RequestHandlingResult::Kind::Response);
+                RequestHandlingSuccess::Kind::Response);
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 426 Upgrade Required"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
@@ -297,7 +299,7 @@ namespace
                     {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
                 },
                 factory,
-                RequestHandlingResult::Kind::Response);
+                RequestHandlingSuccess::Kind::Response);
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 426 Upgrade Required"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
@@ -316,7 +318,7 @@ namespace
                     {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
                 },
                 factory,
-                RequestHandlingResult::Kind::Response);
+                RequestHandlingSuccess::Kind::Response);
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
@@ -335,7 +337,7 @@ namespace
                     {"Sec-WebSocket-Key", "short"}
                 },
                 factory,
-                RequestHandlingResult::Kind::Response);
+                RequestHandlingSuccess::Kind::Response);
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
@@ -354,7 +356,7 @@ namespace
                     {"Sec-WebSocket-Key", "!!!!!!!!!!!!!!!!!!!!!!!!"}
                 },
                 factory,
-                RequestHandlingResult::Kind::Response);
+                RequestHandlingSuccess::Kind::Response);
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
@@ -373,7 +375,7 @@ namespace
                     {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
                 },
                 factory,
-                RequestHandlingResult::Kind::Response);
+                RequestHandlingSuccess::Kind::Response);
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);
@@ -393,7 +395,7 @@ namespace
                     {"Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ=="}
                 },
                 factory,
-                RequestHandlingResult::Kind::Response);
+                RequestHandlingSuccess::Kind::Response);
 
             TEST_ASSERT_NOT_NULL(strstr(responseText.c_str(), "HTTP/1.1 400 Bad Request"));
             TEST_ASSERT_TRUE(factory.createCount() >= 1);

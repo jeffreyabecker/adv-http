@@ -6,7 +6,7 @@
 
 namespace lumalink::http::response
 {
-  using lumalink::platform::buffers::AvailableResult;
+  using lumalink::platform::buffers::ByteAvailability;
   using lumalink::platform::buffers::IByteSource;
 
 
@@ -53,7 +53,7 @@ namespace lumalink::http::response
   public:
     explicit ChunkedHttpResponseBodyStream(std::unique_ptr<IByteSource> innerSource);
     static std::unique_ptr<IByteSource> create(std::unique_ptr<IByteSource> innerSource);
-    AvailableResult available() override;
+    ByteAvailability available() override;
     size_t read(std::span<uint8_t> buffer) override;
     size_t peek(std::span<uint8_t> buffer) override;
   };

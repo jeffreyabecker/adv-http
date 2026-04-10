@@ -6,6 +6,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
+#include <optional>
 #include <vector>
 #include <span>
 
@@ -33,17 +35,8 @@ namespace lumalink::http::websocket
         InternalError = 1011
     };
 
-    enum class WebSocketCodecStatus
-    {
-        Ok,
-        NeedMoreData,
-        ProtocolError,
-        BufferTooSmall
-    };
-
     enum class WebSocketCodecError
     {
-        None,
         InvalidReservedBits,
         InvalidOpcode,
         UnmaskedClientFrame,
@@ -52,7 +45,8 @@ namespace lumalink::http::websocket
         MalformedExtendedPayloadLength,
         MalformedClosePayload,
         UnexpectedContinuationFrame,
-        InterruptedContinuationSequence
+        InterruptedContinuationSequence,
+        BufferTooSmall
     };
 
     struct WebSocketFrameHeader
@@ -73,21 +67,14 @@ namespace lumalink::http::websocket
         std::vector<std::uint8_t> payload;
     };
 
-    struct WebSocketParseResult
+    struct WebSocketParseProgress
     {
-        WebSocketCodecStatus status = WebSocketCodecStatus::NeedMoreData;
-        WebSocketCodecError error = WebSocketCodecError::None;
         std::size_t bytesConsumed = 0;
-        bool frameReady = false;
-        WebSocketFrame frame;
+        std::optional<WebSocketFrame> frame;
     };
 
-    struct WebSocketSerializeResult
-    {
-        WebSocketCodecStatus status = WebSocketCodecStatus::Ok;
-        WebSocketCodecError error = WebSocketCodecError::None;
-        std::size_t bytesWritten = 0;
-    };
+    using WebSocketParseResult = std::expected<WebSocketParseProgress, WebSocketCodecError>;
+    using WebSocketSerializeResult = std::expected<std::size_t, WebSocketCodecError>;
 
     class WebSocketFrameParser
     {

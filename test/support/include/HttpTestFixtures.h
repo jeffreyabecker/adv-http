@@ -275,19 +275,19 @@ namespace lumalink::http::TestSupport
 
         bool hasPendingResult() const override
         {
-            return pendingResult_.hasValue();
+            return HasPendingRequestHandlingValue(pendingResult_);
         }
 
         RequestHandlingResult takeResult() override
         {
             RequestHandlingResult result = std::move(pendingResult_);
-            pendingResult_ = RequestHandlingResult();
+            pendingResult_ = EmptyRequestHandlingResult();
             return result;
         }
 
         void emitResponseResult(std::unique_ptr<IByteSource> responseStream)
         {
-            pendingResult_ = RequestHandlingResult::response(std::move(responseStream));
+            pendingResult_ = ResponseRequestHandlingResult(std::move(responseStream));
             events_.push_back({PipelineEventKind::RequestResultDelivered, {}, {}, 0, 0, PipelineErrorCode::None});
         }
 
@@ -395,7 +395,7 @@ namespace lumalink::http::TestSupport
         std::vector<std::pair<std::string, std::string>> headers_;
         std::vector<std::vector<std::uint8_t>> bodyChunks_;
         std::vector<PipelineErrorCode> errors_;
-        RequestHandlingResult pendingResult_;
+        RequestHandlingResult pendingResult_ = EmptyRequestHandlingResult();
         std::size_t headersCompleteCount_ = 0;
         std::size_t messageCompleteCount_ = 0;
         std::size_t responseStartedCount_ = 0;
@@ -418,7 +418,7 @@ namespace lumalink::http::TestSupport
         {
         }
 
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             return readable_.available();
         }

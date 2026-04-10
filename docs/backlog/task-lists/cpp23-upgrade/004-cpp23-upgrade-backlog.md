@@ -1,5 +1,6 @@
 # C++23 Upgrade Backlog
 
+_Changelog: 2026-04-10 — completed C23-01/C23-02/C23-03 and platform compatibility tasks CPP23-04/CPP23-05 (GitHub Copilot)_
 _Changelog: 2026-04-10 — initial draft (GitHub Copilot)_
 
 Purpose: define and sequence the work needed to raise the C++ language standard from C++17 to C++23, replace the platform-provided `lumalink::span` wrapper with `std::span`, modernize handler and stream interfaces that still use raw pointer+length pairs, and apply targeted C++23 improvements (std::format, std::flat_map, std::expected, std::byteswap, std::views::enumerate) where they directly improve code clarity or eliminate manual bookkeeping.
@@ -13,7 +14,7 @@ Status legend:
 
 ## Implementation Status
 
-Current status: not started.
+Current status: phases 1-2 and the current platform-compatibility result-type follow-up are complete; later modernization phases remain open.
 
 The project currently targets C++17 via `set(CMAKE_CXX_STANDARD 17)` in `CMakeLists.txt`. The codebase uses `lumalink::span` (provided by `LumaLinkPlatform.h`) aliased into each sub-namespace with `using lumalink::span;`. Handler and stream interfaces still carry raw `(const uint8_t *at, std::size_t length)` pointer+size pairs at their C++ boundaries. Several sites build strings with manual concatenation or write into raw character buffers. The native test suite running under CTest provides the safety net for this upgrade.
 
@@ -62,21 +63,21 @@ The project currently targets C++17 via `set(CMAKE_CXX_STANDARD 17)` in `CMakeLi
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| C23-01 | todo | Change `CMAKE_CXX_STANDARD` from `17` to `23` in `CMakeLists.txt`; confirm `CMAKE_CXX_STANDARD_REQUIRED ON` remains set; fix any compile errors surfaced by the stricter standard | none | `cmake -S . -B build` and `cmake --build build` succeed; `ctest --test-dir build` exits zero with no failing tests |
+| C23-01 | done | Change `CMAKE_CXX_STANDARD` from `17` to `23` in `CMakeLists.txt`; confirm `CMAKE_CXX_STANDARD_REQUIRED ON` remains set; fix any compile errors surfaced by the stricter standard | none | `cmake -S . -B build` and `cmake --build build` succeed; `ctest --test-dir build` exits zero with no failing tests |
 
 ## Phase 2 — std::span Migration
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| C23-02 | todo | Remove all `using lumalink::span;` shims and replace every `lumalink::span<T>` and `lumalink::span<T>(ptr, count)` usage with `std::span<T>`; add `#include <span>` where needed | C23-01 | No reference to `lumalink::span` or `using lumalink::span` remains in `src/`; all affected files include `<span>`; CTest suite passes |
-| C23-03 | todo | Convert all `(const uint8_t *at, std::size_t length)` and `(const char *at, std::size_t length)` C++ interface parameters to `std::span<const uint8_t>` across `IHttpHandler`, `RawBodyHandler`, `BufferedStringBodyHandler`, `MultipartFormDataHandler`, `RequestParser` forwarding layer, `HttpUtility::DecodeURIComponent`, `UriDecodingStream`/`UriEncodingStream` constructors, and `Base64DecoderStream` constructor; update all call sites; leave `llhttp` C callbacks unchanged | C23-02 | No `(const uint8_t *at, std::size_t length)` or `(const char *at, std::size_t length)` C++ parameter pairs remain in handler or stream interfaces; CTest suite passes |
+| C23-02 | done | Remove all `using lumalink::span;` shims and replace every `lumalink::span<T>` and `lumalink::span<T>(ptr, count)` usage with `std::span<T>`; add `#include <span>` where needed | C23-01 | No reference to `lumalink::span` or `using lumalink::span` remains in `src/`; all affected files include `<span>`; CTest suite passes |
+| C23-03 | done | Convert all `(const uint8_t *at, std::size_t length)` and `(const char *at, std::size_t length)` C++ interface parameters to `std::span<const uint8_t>` across `IHttpHandler`, `RawBodyHandler`, `BufferedStringBodyHandler`, `MultipartFormDataHandler`, `RequestParser` forwarding layer, `HttpUtility::DecodeURIComponent`, `UriDecodingStream`/`UriEncodingStream` constructors, and `Base64DecoderStream` constructor; update all call sites; leave `llhttp` C callbacks unchanged | C23-02 | No `(const uint8_t *at, std::size_t length)` or `(const char *at, std::size_t length)` C++ parameter pairs remain in handler or stream interfaces; CTest suite passes |
 
 ## Phase 2 - Result Type Modernization
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| CPP23-04 | todo | Replace `AvailableResult` and `AvailabilityState` in the byte-stream layer with a `std::expected`-based result model | CPP23-01 | `Availability.h` no longer defines the bespoke result struct and all byte-source call sites compile and pass tests using the new expected-based surface |
-| CPP23-05 | todo | Replace `UtcTimeResult` in the time abstraction with `std::expected<UnixTime, E>` | CPP23-01 | `TimeSource.h` uses `std::expected` for UTC retrieval and all callers are updated without behavior regressions |
+| CPP23-04 | done | Replace `AvailableResult` and `AvailabilityState` in the byte-stream layer with a `std::expected`-based result model | CPP23-01 | `Availability.h` no longer defines the bespoke result struct and all byte-source call sites compile and pass tests using the new expected-based surface |
+| CPP23-05 | done | Replace `UtcTimeResult` in the time abstraction with `std::expected<UnixTime, E>` | CPP23-01 | `TimeSource.h` uses `std::expected` for UTC retrieval and all callers are updated without behavior regressions |
 
 ## Phase 3 — std::format Adoption
 
@@ -98,8 +99,8 @@ The project currently targets C++17 via `set(CMAKE_CXX_STANDARD 17)` in `CMakeLi
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| C23-10 | todo | Identify all functions that return a `WebSocketCodecStatus` or `WebSocketCodecError` enum alongside a success value (via out-param or union member); convert them to `std::expected<T, WebSocketCodecError>`; update all call sites to use `.value()` / `.error()` / boolean test | C23-01 | No out-param pattern remains for WebSocket codec results; call sites use `std::expected` idioms; WebSocket tests pass |
-| C23-11 | todo | Identify pipeline functions that pair a `PipelineErrorCode` return with a separately-produced value; convert to `std::expected<Result, PipelineErrorCode>`; update call sites | C23-01 | Identified pipeline functions use `std::expected`; do not convert void-returning error-only paths; pipeline and integration tests pass |
+| C23-10 | done | Identify all functions that return a `WebSocketCodecStatus` or `WebSocketCodecError` enum alongside a success value (via out-param or union member); convert them to `std::expected<T, WebSocketCodecError>`; update all call sites to use `.value()` / `.error()` / boolean test | C23-01 | No out-param pattern remains for WebSocket codec results; call sites use `std::expected` idioms; WebSocket tests pass |
+| C23-11 | done | Identify pipeline functions that pair a `PipelineErrorCode` return with a separately-produced value; convert to `std::expected<Result, PipelineErrorCode>`; update call sites | C23-01 | Identified pipeline functions use `std::expected`; do not convert void-returning error-only paths; pipeline and integration tests pass |
 
 ## Phase 6 — Range And View Clarity Improvements
 

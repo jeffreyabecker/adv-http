@@ -28,8 +28,9 @@ namespace lumalink::http::routing
     using lumalink::http::response::IHttpResponse;
     using lumalink::http::response::HttpResponse;
     using lumalink::platform::buffers::AvailableBytes;
-    using lumalink::platform::buffers::AvailableResult;
+    using lumalink::platform::buffers::ByteAvailability;
     using lumalink::platform::buffers::ExhaustedResult;
+    using lumalink::platform::buffers::IsExhausted;
     using lumalink::platform::buffers::IByteSink;
     using lumalink::platform::buffers::IByteSource;
 
@@ -417,8 +418,8 @@ namespace lumalink::http::routing
                     const std::size_t readCount = inner_->read(std::span<std::uint8_t>(readBuffer, sizeof(readBuffer)));
                     if (readCount == 0)
                     {
-                        const AvailableResult available = inner_->available();
-                        if (available.isExhausted())
+                        const ByteAvailability available = inner_->available();
+                        if (IsExhausted(available))
                         {
                             flushPendingParserState();
                             streamExhausted_ = true;
@@ -443,7 +444,7 @@ namespace lumalink::http::routing
             {
             }
 
-            AvailableResult available() override
+            ByteAvailability available() override
             {
                 if (outputSize() > 0)
                 {

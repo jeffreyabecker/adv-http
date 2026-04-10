@@ -4,6 +4,10 @@
 
 namespace lumalink::http::pipeline
 {
+    using lumalink::platform::buffers::ByteAvailability;
+    using lumalink::platform::buffers::HasAvailableBytes;
+    using lumalink::platform::buffers::IsExhausted;
+
     HttpProtocolExecution::HttpProtocolExecution(PipelineHandlerPtr handler)
         : handler_(std::move(handler))
     {
@@ -23,8 +27,8 @@ namespace lumalink::http::pipeline
         }
 
         std::uint8_t buffer[lumalink::http::core::PIPELINE_STACK_BUFFER_SIZE] = {};
-        lumalink::platform::buffers::AvailableResult available = lumalink::platform::buffers::TemporarilyUnavailableResult();
-        while ((available = client.available()).hasBytes())
+        ByteAvailability available = lumalink::platform::buffers::TemporarilyUnavailableResult();
+        while (HasAvailableBytes(available = client.available()))
         {
             const std::size_t bytesRead = client.read(std::span<std::uint8_t>(buffer, sizeof(buffer)));
             if (bytesRead == 0)
@@ -57,7 +61,7 @@ namespace lumalink::http::pipeline
             }
         }
 
-        if (available.isExhausted() && !client.connected())
+        if (IsExhausted(available) && !client.connected())
         {
             requestReadCompleted_ = true;
         }
@@ -90,7 +94,7 @@ namespace lumalink::http::pipeline
     {
         if (!handler_)
         {
-            return RequestHandlingResult();
+            return EmptyRequestHandlingResult();
         }
 
         return handler_->takeResult();

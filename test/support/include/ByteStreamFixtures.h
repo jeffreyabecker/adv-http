@@ -44,10 +44,10 @@ namespace lumalink::http::TestSupport
 
         while (true)
         {
-            const AvailableResult available = source.available();
-            if (available.hasBytes())
+            const ByteAvailability available = source.available();
+            if (HasAvailableBytes(available))
             {
-                const std::size_t bytesRead = source.read(std::span<std::uint8_t>(buffer, (std::min)(available.count, sizeof(buffer))));
+                const std::size_t bytesRead = source.read(std::span<std::uint8_t>(buffer, (std::min)(AvailableByteCount(available), sizeof(buffer))));
                 if (bytesRead == 0)
                 {
                     break;
@@ -58,7 +58,7 @@ namespace lumalink::http::TestSupport
                 continue;
             }
 
-            if (available.isTemporarilyUnavailable())
+            if (IsTemporarilyUnavailable(available))
             {
                 ++unavailablePolls;
                 if (unavailablePolls > maxUnavailablePolls)
@@ -109,7 +109,7 @@ namespace lumalink::http::TestSupport
             return source;
         }
 
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             advancePastConsumedSteps();
             if (stepIndex_ >= steps_.size())
@@ -216,7 +216,7 @@ namespace lumalink::http::TestSupport
                 {
                 }
 
-                AvailableResult available() override
+                ByteAvailability available() override
                 {
                     return readable_.available();
                 }

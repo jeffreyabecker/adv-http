@@ -122,22 +122,22 @@ namespace
 
         void emitResponse(std::unique_ptr<IByteSource> source)
         {
-            pendingResult_ = RequestHandlingResult::response(std::move(source));
+            pendingResult_ = ResponseRequestHandlingResult(std::move(source));
         }
 
         void emitUpgrade(std::unique_ptr<IConnectionSession> session)
         {
-            pendingResult_ = RequestHandlingResult::upgrade(std::move(session));
+            pendingResult_ = UpgradeRequestHandlingResult(std::move(session));
         }
 
         void emitNoResponse()
         {
-            pendingResult_ = RequestHandlingResult::noResponse();
+            pendingResult_ = NoResponseRequestHandlingResult();
         }
 
         void emitError(PipelineErrorCode errorCode)
         {
-            pendingResult_ = RequestHandlingResult::errorResult(PipelineError(errorCode));
+            pendingResult_ = ErrorRequestHandlingResult(PipelineError(errorCode));
         }
 
         void setOnHeadersComplete(Action action)
@@ -222,20 +222,20 @@ namespace
 
         bool hasPendingResult() const override
         {
-            return pendingResult_.hasValue();
+            return HasPendingRequestHandlingValue(pendingResult_);
         }
 
         RequestHandlingResult takeResult() override
         {
             RequestHandlingResult result = std::move(pendingResult_);
-            pendingResult_ = RequestHandlingResult();
+            pendingResult_ = EmptyRequestHandlingResult();
             return result;
         }
 
     private:
         Action onHeadersCompleteAction_;
         Action onMessageCompleteAction_;
-        RequestHandlingResult pendingResult_;
+        RequestHandlingResult pendingResult_ = EmptyRequestHandlingResult();
         std::string method_;
         std::string url_;
         uint16_t versionMajor_ = 0;
@@ -329,7 +329,7 @@ namespace
 
         RequestHandlingResult takeResult() override
         {
-            return RequestHandlingResult();
+            return EmptyRequestHandlingResult();
         }
 
         bool isFinished() const override
@@ -377,7 +377,7 @@ namespace
     class BlockingByteSource : public IByteSource
     {
     public:
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             return TemporarilyUnavailableResult();
         }

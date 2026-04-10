@@ -68,7 +68,7 @@ namespace
         auto body = std::make_unique<lumalink::http::TestSupport::ScriptedByteSource>(
             std::initializer_list<std::pair<const char *, bool>>{{"", true}});
 
-        TEST_ASSERT_TRUE(body->available().isTemporarilyUnavailable());
+        TEST_ASSERT_TRUE(IsTemporarilyUnavailable(body->available()));
     }
 
     void test_chunked_response_body_stream_reads_from_byte_source()
@@ -86,7 +86,7 @@ namespace
 
         const std::string content = lumalink::http::TestSupport::ReadByteSourceAsStdString(*body);
         TEST_ASSERT_EQUAL_STRING("0\r\n\r\n", content.c_str());
-        TEST_ASSERT_TRUE(body->available().isExhausted());
+        TEST_ASSERT_TRUE(IsExhausted(body->available()));
 
         std::uint8_t byte = 0;
         TEST_ASSERT_EQUAL_UINT64(0, body->read(std::span<std::uint8_t>(&byte, 1)));

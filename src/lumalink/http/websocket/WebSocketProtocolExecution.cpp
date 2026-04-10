@@ -12,6 +12,8 @@
 
 namespace lumalink::http::websocket
 {
+    using lumalink::platform::buffers::HasAvailableBytes;
+
     namespace
     {
         WsErrorCategory mapCodecErrorCategory(WebSocketCodecError error)
@@ -28,7 +30,7 @@ namespace lumalink::http::websocket
             case WebSocketCodecError::InvalidOpcode:
             case WebSocketCodecError::MalformedExtendedPayloadLength:
             case WebSocketCodecError::MalformedClosePayload:
-            case WebSocketCodecError::None:
+            case WebSocketCodecError::BufferTooSmall:
             default:
                 return WsErrorCategory::FrameParseError;
             }
@@ -84,7 +86,7 @@ namespace lumalink::http::websocket
         }
 
         std::array<std::uint8_t, lumalink::http::core::PIPELINE_STACK_BUFFER_SIZE> readBuffer = {};
-        while (client.available().hasBytes())
+        while (HasAvailableBytes(client.available()))
         {
             const std::size_t bytesRead = client.read(std::span<std::uint8_t>(readBuffer.data(), readBuffer.size()));
             if (bytesRead == 0)
@@ -97,16 +99,16 @@ namespace lumalink::http::websocket
             {
                 const auto input = std::span<const std::uint8_t>(readBuffer.data() + offset, bytesRead - offset);
                 const WebSocketParseResult parseResult = parser_.parse(input);
-                offset += parseResult.bytesConsumed;
+                offset += parseResult ? parseResult->bytesConsumed : 0;
 
-                if (parseResult.status == WebSocketCodecStatus::NeedMoreData)
+                if (parseResult && !parseResult->frame.has_value())
                 {
                     break;
                 }
 
-                if (parseResult.status == WebSocketCodecStatus::ProtocolError)
+                if (!parseResult)
                 {
-                    const WsErrorCategory category = mapCodecErrorCategory(parseResult.error);
+                    const WsErrorCategory category = mapCodecErrorCategory(parseResult.error());
                     const WsClosePolicy policy = policyFor(category);
                     context_.notifyError("WebSocket protocol error");
 
@@ -122,9 +124,9 @@ namespace lumalink::http::websocket
                     break;
                 }
 
-                if (parseResult.status == WebSocketCodecStatus::Ok && parseResult.frameReady)
+                if (parseResult->frame.has_value())
                 {
-                    handleParsedFrame(parseResult.frame);
+                    handleParsedFrame(*parseResult->frame);
                 }
 
                 if (!pendingWrite_.empty() || closeState_ != CloseState::Open)
@@ -315,7 +317,7 @@ namespace lumalink::http::websocket
 
     lumalink::http::pipeline::RequestHandlingResult WebSocketProtocolExecution::takeResult()
     {
-        return lumalink::http::pipeline::RequestHandlingResult();
+        return lumalink::http::pipeline::EmptyRequestHandlingResult();
     }
 
     bool WebSocketProtocolExecution::isFinished() const
@@ -350,20 +352,20 @@ namespace lumalink::http::websocket
         }
 
         pendingWrite_.resize(WebSocketFrameSerializer::maxSerializedSize(payload.size()));
-            const WebSocketSerializeResult result = WebSocketFrameSerializer::serialize(
+        const WebSocketSerializeResult result = WebSocketFrameSerializer::serialize(
             std::span<std::uint8_t>(pendingWrite_.data(), pendingWrite_.size()),
             payload,
             opcode,
             fin);
 
-        if (result.status != WebSocketCodecStatus::Ok)
+        if (!result)
         {
             pendingWrite_.clear();
             pendingWriteOffset_ = 0;
             return false;
         }
 
-        pendingWrite_.resize(result.bytesWritten);
+        pendingWrite_.resize(*result);
         pendingWriteOffset_ = 0;
         return true;
     }

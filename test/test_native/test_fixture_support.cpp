@@ -101,9 +101,10 @@ namespace
 
         TEST_ASSERT_TRUE(recorder.hasPendingResult());
         RequestHandlingResult result = recorder.takeResult();
-        TEST_ASSERT_TRUE(result.kind == RequestHandlingResult::Kind::Response);
-        TEST_ASSERT_NOT_NULL(result.responseStream.get());
-        deliveredBody = lumalink::http::TestSupport::ReadByteSourceAsStdString(*result.responseStream);
+        TEST_ASSERT_TRUE(result.has_value());
+        TEST_ASSERT_TRUE(result->kind == RequestHandlingSuccess::Kind::Response);
+        TEST_ASSERT_NOT_NULL(result->responseStream.get());
+        deliveredBody = lumalink::http::TestSupport::ReadByteSourceAsStdString(*result->responseStream);
 
         TEST_ASSERT_EQUAL_STRING("POST", recorder.method().c_str());
         TEST_ASSERT_EQUAL_STRING("/submit", recorder.url().c_str());

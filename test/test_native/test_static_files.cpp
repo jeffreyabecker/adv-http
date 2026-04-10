@@ -138,7 +138,7 @@ namespace
         {
         }
 
-        AvailableResult available() override
+        ByteAvailability available() override
         {
             if (spec_.directory)
             {

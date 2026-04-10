@@ -114,7 +114,7 @@ namespace lumalink::http::core
 
             void onError(lumalink::http::pipeline::PipelineError error) override
             {
-                if (pendingResult_.hasValue())
+                if (HasPendingRequestHandlingValue(pendingResult_))
                 {
                     return;
                 }
@@ -152,7 +152,7 @@ namespace lumalink::http::core
                 std::unique_ptr<lumalink::http::response::IHttpResponse> response =
                     lumalink::http::response::StringResponse::create(
                         status, message + std::string(error.message()), {});
-                setPendingResult(lumalink::http::pipeline::RequestHandlingResult::response(lumalink::http::response::CreateResponseStream(std::move(response))));
+                setPendingResult(lumalink::http::pipeline::ResponseRequestHandlingResult(lumalink::http::response::CreateResponseStream(std::move(response))));
                 markResponseStarted();
             }
 
@@ -162,20 +162,20 @@ namespace lumalink::http::core
 
             bool hasPendingResult() const override
             {
-                return pendingResult_.hasValue();
+                return HasPendingRequestHandlingValue(pendingResult_);
             }
 
             lumalink::http::pipeline::RequestHandlingResult takeResult() override
             {
                 lumalink::http::pipeline::RequestHandlingResult result = std::move(pendingResult_);
-                pendingResult_ = lumalink::http::pipeline::RequestHandlingResult();
+                pendingResult_ = lumalink::http::pipeline::EmptyRequestHandlingResult();
                 return result;
             }
 
         private:
             HttpContext context_;
             std::unique_ptr<lumalink::http::handlers::IHttpHandler> handler_;
-            lumalink::http::pipeline::RequestHandlingResult pendingResult_;
+            lumalink::http::pipeline::RequestHandlingResult pendingResult_ = lumalink::http::pipeline::EmptyRequestHandlingResult();
             std::size_t bodyBytesReceived_ = 0;
             HttpContextPhaseFlags completedPhases_ = 0;
 
@@ -201,7 +201,7 @@ namespace lumalink::http::core
 
             void handleStep()
             {
-                if (pendingResult_.hasValue())
+                if (HasPendingRequestHandlingValue(pendingResult_))
                 {
                     return;
                 }
@@ -215,11 +215,11 @@ namespace lumalink::http::core
                         switch (handlerResult.kind)
                         {
                         case lumalink::http::handlers::HandlerResult::Kind::Response:
-                            setPendingResult(lumalink::http::pipeline::RequestHandlingResult::response(lumalink::http::response::CreateResponseStream(std::move(handlerResult.response))));
+                            setPendingResult(lumalink::http::pipeline::ResponseRequestHandlingResult(lumalink::http::response::CreateResponseStream(std::move(handlerResult.response))));
                             markResponseStarted();
                             break;
                         case lumalink::http::handlers::HandlerResult::Kind::Upgrade:
-                            setPendingResult(lumalink::http::pipeline::RequestHandlingResult::upgrade(std::move(handlerResult.upgradedSession)));
+                            setPendingResult(lumalink::http::pipeline::UpgradeRequestHandlingResult(std::move(handlerResult.upgradedSession)));
                             break;
                         case lumalink::http::handlers::HandlerResult::Kind::None:
                         default:
@@ -230,9 +230,9 @@ namespace lumalink::http::core
                     }
                 }
 
-                if ((completedPhases_ & HttpContextPhase::CompletedReadingMessage) != 0 && !pendingResult_.hasValue())
+                if ((completedPhases_ & HttpContextPhase::CompletedReadingMessage) != 0 && !HasPendingRequestHandlingValue(pendingResult_))
                 {
-                    setPendingResult(lumalink::http::pipeline::RequestHandlingResult::noResponse());
+                    setPendingResult(lumalink::http::pipeline::NoResponseRequestHandlingResult());
                 }
             }
         };

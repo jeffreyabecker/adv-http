@@ -6,6 +6,9 @@
 
 namespace lumalink::http::response
 {
+    using lumalink::platform::buffers::AvailableByteCount;
+    using lumalink::platform::buffers::HasAvailableBytes;
+
     namespace
     {
         HttpHeaderCollection buildFormHeaders(std::initializer_list<HttpHeader> headers, size_t contentLength)
@@ -33,8 +36,8 @@ namespace lumalink::http::response
         std::initializer_list<HttpHeader> headers)
     {
         auto formStream = std::make_unique<lumalink::http::streams::FormEncodingStream>(std::move(data));
-        const AvailableResult available = formStream->available();
-        size_t contentLength = available.hasBytes() ? available.count : 0;
+        const auto available = formStream->available();
+        size_t contentLength = HasAvailableBytes(available) ? AvailableByteCount(available) : 0;
         auto headersCollection = buildFormHeaders(headers, contentLength);
         return std::make_unique<HttpResponse>(status, std::move(formStream), std::move(headersCollection));
     }

@@ -6,6 +6,8 @@
 
 namespace lumalink::http::streams
 {
+    using lumalink::platform::buffers::HasAvailableBytes;
+
     namespace
     {
         bool isUriUnreserved(unsigned char byte)
@@ -83,15 +85,15 @@ namespace lumalink::http::streams
     {
     }
 
-    AvailableResult UriDecodingStream::available()
+    ByteAvailability UriDecodingStream::available()
     {
         if (!innerStream_)
         {
             return lumalink::platform::buffers::ExhaustedResult();
         }
 
-        const AvailableResult innerAvailable = innerStream_->available();
-        if (state_ != State::Normal && innerAvailable.hasBytes())
+        const ByteAvailability innerAvailable = innerStream_->available();
+        if (state_ != State::Normal && HasAvailableBytes(innerAvailable))
         {
             return lumalink::platform::buffers::AvailableBytes(1);
         }
@@ -211,7 +213,7 @@ namespace lumalink::http::streams
     {
     }
 
-    AvailableResult UriEncodingStream::available()
+    ByteAvailability UriEncodingStream::available()
     {
         if (state_ != State::Normal)
         {
