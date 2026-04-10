@@ -25,7 +25,6 @@
 .DS_Store
 
 # Dependencies
-.pio/
 .venv/
 __pycache__/
 *.tmp

@@ -29,10 +29,9 @@ The native lane exists to protect the library's cross-platform design: the same 
 
 ## Native Source Admission Rule
 
-- The native PlatformIO environment now compiles production sources directly from `src/` via `platformio.ini`.
-- Keep `build_src_filter` in `platformio.ini` aligned with the intended native scope; prefer broad directory-based inclusion over translation-unit aggregation.
+- The native CMake-based environment now compiles production sources directly from `src/` via the top-level `CMakeLists.txt`.
 - Do not include production `.cpp` files directly from individual suite files.
-- If a production source is not yet host-safe, fix the guard or dependency issue in production code or narrow `platformio.ini` deliberately; do not hide the dependency with ad hoc local includes.
+- If a production source is not yet host-safe, fix the guard or dependency issue in production code rather than adding ad hoc local includes.
 
 ## Request-Driving Strategy
 
@@ -77,5 +76,5 @@ Board-specific or integration behavior belongs in dedicated hardware test sketch
 ## Commands
 
 - Primary native test command: `./tools/run_native_tests.ps1`
-- Direct PlatformIO equivalent: `pio test -e native`
+- Direct CMake command: `cmake --build build --config Debug --target RUN_TESTS`
 - The native runner also fails fast if active repo files outside approved historical notes reintroduce `HttpServerAdvanced`, `httpadv::`, or `httpadv/v1/` tokens.
