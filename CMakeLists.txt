@@ -10,6 +10,9 @@ option(BUILD_TESTS "Build native tests" ON)
 
 include(FetchContent)
 
+set(LUMALINK_PLATFORM_GIT_REPOSITORY "https://github.com/jeffreyabecker/lumalink-platform.git" CACHE STRING "Git repository for lumalink-platform")
+set(LUMALINK_PLATFORM_GIT_TAG "v0.9.0" CACHE STRING "Git ref for lumalink-platform (branch, tag, or commit)")
+
 # Integrate vendored llhttp if present
 if(EXISTS ${CMAKE_SOURCE_DIR}/src/llhttp/CMakeLists.txt)
   # Prefer static llhttp on host builds to avoid requiring DLLs at runtime for tests
@@ -32,12 +35,17 @@ target_include_directories(lumalink_http
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/llhttp/include>
 )
 
-# Discover local lumalink-platform source tree (mirrors PlatformIO symlink behavior)
-if(EXISTS "${CMAKE_SOURCE_DIR}/../lumalink-platform/src")
-  target_include_directories(lumalink_http PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/../lumalink-platform/src>)
-elseif(EXISTS "C:/ode/lumalink-platform/src")
-  target_include_directories(lumalink_http PUBLIC $<BUILD_INTERFACE:C:/ode/lumalink-platform/src>)
-endif()
+# Fetch lumalink-platform from the configured Git ref.
+message(STATUS "Fetching lumalink-platform from ${LUMALINK_PLATFORM_GIT_REPOSITORY} @ ${LUMALINK_PLATFORM_GIT_TAG}")
+FetchContent_Declare(
+  lumalink_platform
+  GIT_REPOSITORY ${LUMALINK_PLATFORM_GIT_REPOSITORY}
+  GIT_TAG ${LUMALINK_PLATFORM_GIT_TAG}
+)
+FetchContent_MakeAvailable(lumalink_platform)
+set(LUMALINK_PLATFORM_SOURCE_DIR "${lumalink_platform_SOURCE_DIR}/src")
+
+target_include_directories(lumalink_http PUBLIC $<BUILD_INTERFACE:${LUMALINK_PLATFORM_SOURCE_DIR}>)
 
 if(TARGET llhttp::llhttp)
   target_link_libraries(lumalink_http PUBLIC llhttp::llhttp)
