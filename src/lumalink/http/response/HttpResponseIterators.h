@@ -4,6 +4,7 @@
 #include "../core/HttpHeader.h"
 #include "../core/HttpHeaderCollection.h"
 #include "LumaLinkPlatform.h"
+#include <span>
 #include "ChunkedHttpResponseBodyStream.h"
 #include "IHttpResponse.h"
 
@@ -112,12 +113,12 @@ namespace lumalink::http::response
       return source_ ? source_->available() : ExhaustedResult();
     }
 
-    size_t read(lumalink::span<uint8_t> buffer) override
+    size_t read(std::span<uint8_t> buffer) override
     {
       return source_ ? source_->read(buffer) : 0;
     }
 
-    size_t peek(lumalink::span<uint8_t> buffer) override
+    size_t peek(std::span<uint8_t> buffer) override
     {
       return source_ ? source_->peek(buffer) : 0;
     }

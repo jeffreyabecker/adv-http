@@ -26,7 +26,7 @@ namespace lumalink::http::pipeline
         lumalink::platform::buffers::AvailableResult available = lumalink::platform::buffers::TemporarilyUnavailableResult();
         while ((available = client.available()).hasBytes())
         {
-            const std::size_t bytesRead = client.read(lumalink::span<std::uint8_t>(buffer, sizeof(buffer)));
+            const std::size_t bytesRead = client.read(std::span<std::uint8_t>(buffer, sizeof(buffer)));
             if (bytesRead == 0)
             {
                 break;

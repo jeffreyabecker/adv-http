@@ -1,4 +1,5 @@
 #include "ChunkedHttpResponseBodyStream.h"
+#include <span>
 #include <cstdio>
 #include <algorithm>
 
@@ -167,7 +168,7 @@ namespace lumalink::http::response
         }
     }
 
-    size_t ChunkedHttpResponseBodyStream::read(lumalink::span<uint8_t> buffer)
+    size_t ChunkedHttpResponseBodyStream::read(std::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -184,7 +185,7 @@ namespace lumalink::http::response
         return totalRead;
     }
 
-    size_t ChunkedHttpResponseBodyStream::peek(lumalink::span<uint8_t> buffer)
+    size_t ChunkedHttpResponseBodyStream::peek(std::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {

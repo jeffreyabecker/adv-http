@@ -173,12 +173,12 @@ namespace
         client.disconnect();
         TEST_ASSERT_TRUE(client.connected());
 
-        TEST_ASSERT_EQUAL_UINT64(1, client.read(lumalink::span<std::uint8_t>(oneByte, 1)));
+        TEST_ASSERT_EQUAL_UINT64(1, client.read(std::span<std::uint8_t>(oneByte, 1)));
         TEST_ASSERT_EQUAL_UINT8('x', oneByte[0]);
         TEST_ASSERT_TRUE(client.connected());
 
-        TEST_ASSERT_EQUAL_UINT64(1, client.read(lumalink::span<std::uint8_t>(oneByte, 1)));
-        TEST_ASSERT_EQUAL_UINT64(1, client.read(lumalink::span<std::uint8_t>(oneByte, 1)));
+        TEST_ASSERT_EQUAL_UINT64(1, client.read(std::span<std::uint8_t>(oneByte, 1)));
+        TEST_ASSERT_EQUAL_UINT64(1, client.read(std::span<std::uint8_t>(oneByte, 1)));
         TEST_ASSERT_FALSE(client.connected());
     }
 

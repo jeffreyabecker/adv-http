@@ -6,11 +6,12 @@
 #include "LumaLinkPlatform.h"
 
 #include <cstdint>
+#include <span>
 #include <string_view>
 
 namespace lumalink::http::websocket
 {
-    using lumalink::span;
+    
 
     enum class WebSocketSendResult
     {
@@ -39,7 +40,7 @@ namespace lumalink::http::websocket
         virtual ~IWebSocketSessionControl() = default;
 
         virtual WebSocketSendResult sendText(std::string_view payload) = 0;
-        virtual WebSocketSendResult sendBinary(span<const std::uint8_t> payload) = 0;
+        virtual WebSocketSendResult sendBinary(std::span<const std::uint8_t> payload) = 0;
         virtual WebSocketCloseResult close(WebSocketCloseCode code, std::string_view reason) = 0;
     };
 }

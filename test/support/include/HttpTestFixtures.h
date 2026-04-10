@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <deque>
 #include <functional>
 #include <memory>
@@ -422,17 +423,17 @@ namespace lumalink::http::TestSupport
             return readable_.available();
         }
 
-        std::size_t read(lumalink::span<std::uint8_t> buffer) override
+        std::size_t read(std::span<std::uint8_t> buffer) override
         {
             return readable_.read(buffer);
         }
 
-        std::size_t peek(lumalink::span<std::uint8_t> buffer) override
+        std::size_t peek(std::span<std::uint8_t> buffer) override
         {
             return readable_.peek(buffer);
         }
 
-        std::size_t write(lumalink::span<const std::uint8_t> buffer) override
+        std::size_t write(std::span<const std::uint8_t> buffer) override
         {
             if (!connected())
             {
@@ -471,7 +472,7 @@ namespace lumalink::http::TestSupport
             }
 
             std::uint8_t byte = 0;
-            return readable_.peek(lumalink::span<std::uint8_t>(&byte, 1)) > 0;
+            return readable_.peek(std::span<std::uint8_t>(&byte, 1)) > 0;
         }
 
         std::string_view remoteAddress() const override

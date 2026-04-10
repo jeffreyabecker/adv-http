@@ -8,6 +8,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 
 namespace lumalink::http::websocket
 {
@@ -33,9 +34,9 @@ namespace lumalink::http::websocket
             }
         }
 
-        span<const std::uint8_t> asBytes(std::string_view text)
+        std::span<const std::uint8_t> asBytes(std::string_view text)
         {
-            return span<const std::uint8_t>(reinterpret_cast<const std::uint8_t *>(text.data()), text.size());
+            return std::span<const std::uint8_t>(reinterpret_cast<const std::uint8_t *>(text.data()), text.size());
         }
     }
 
@@ -85,7 +86,7 @@ namespace lumalink::http::websocket
         std::array<std::uint8_t, lumalink::http::core::PIPELINE_STACK_BUFFER_SIZE> readBuffer = {};
         while (client.available().hasBytes())
         {
-            const std::size_t bytesRead = client.read(span<std::uint8_t>(readBuffer.data(), readBuffer.size()));
+            const std::size_t bytesRead = client.read(std::span<std::uint8_t>(readBuffer.data(), readBuffer.size()));
             if (bytesRead == 0)
             {
                 break;
@@ -94,7 +95,7 @@ namespace lumalink::http::websocket
             std::size_t offset = 0;
             while (offset < bytesRead)
             {
-                const auto input = span<const std::uint8_t>(readBuffer.data() + offset, bytesRead - offset);
+                const auto input = std::span<const std::uint8_t>(readBuffer.data() + offset, bytesRead - offset);
                 const WebSocketParseResult parseResult = parser_.parse(input);
                 offset += parseResult.bytesConsumed;
 
@@ -200,7 +201,7 @@ namespace lumalink::http::websocket
         return WebSocketSendResult::Queued;
     }
 
-    WebSocketSendResult WebSocketProtocolExecution::sendBinary(span<const std::uint8_t> payload)
+    WebSocketSendResult WebSocketProtocolExecution::sendBinary(std::span<const std::uint8_t> payload)
     {
         if (closeState_ == CloseState::Closed)
         {
@@ -327,7 +328,7 @@ namespace lumalink::http::websocket
         while (pendingWriteOffset_ < pendingWrite_.size())
         {
             const std::size_t remaining = pendingWrite_.size() - pendingWriteOffset_;
-            const std::size_t written = client.write(span<const std::uint8_t>(pendingWrite_.data() + pendingWriteOffset_, remaining));
+            const std::size_t written = client.write(std::span<const std::uint8_t>(pendingWrite_.data() + pendingWriteOffset_, remaining));
             if (written == 0)
             {
                 return false;
@@ -341,7 +342,7 @@ namespace lumalink::http::websocket
         return true;
     }
 
-    bool WebSocketProtocolExecution::queueSerializedFrame(WebSocketOpcode opcode, span<const std::uint8_t> payload, bool fin)
+    bool WebSocketProtocolExecution::queueSerializedFrame(WebSocketOpcode opcode, std::span<const std::uint8_t> payload, bool fin)
     {
         if (!pendingWrite_.empty())
         {
@@ -349,8 +350,8 @@ namespace lumalink::http::websocket
         }
 
         pendingWrite_.resize(WebSocketFrameSerializer::maxSerializedSize(payload.size()));
-        const WebSocketSerializeResult result = WebSocketFrameSerializer::serialize(
-            span<std::uint8_t>(pendingWrite_.data(), pendingWrite_.size()),
+            const WebSocketSerializeResult result = WebSocketFrameSerializer::serialize(
+            std::span<std::uint8_t>(pendingWrite_.data(), pendingWrite_.size()),
             payload,
             opcode,
             fin);
@@ -367,10 +368,10 @@ namespace lumalink::http::websocket
         return true;
     }
 
-    bool WebSocketProtocolExecution::queueCloseFrame(WebSocketCloseCode code, span<const std::uint8_t> reason)
+    bool WebSocketProtocolExecution::queueCloseFrame(WebSocketCloseCode code, std::span<const std::uint8_t> reason)
     {
         const std::vector<std::uint8_t> payload = buildClosePayload(code, reason);
-        return queueSerializedFrame(WebSocketOpcode::Close, span<const std::uint8_t>(payload.data(), payload.size()), true);
+        return queueSerializedFrame(WebSocketOpcode::Close, std::span<const std::uint8_t>(payload.data(), payload.size()), true);
     }
 
     void WebSocketProtocolExecution::handleParsedFrame(const WebSocketFrame &frame)
@@ -395,7 +396,7 @@ namespace lumalink::http::websocket
         switch (frame.header.opcode)
         {
         case WebSocketOpcode::Ping:
-            queueSerializedFrame(WebSocketOpcode::Pong, span<const std::uint8_t>(frame.payload.data(), frame.payload.size()), true);
+            queueSerializedFrame(WebSocketOpcode::Pong, std::span<const std::uint8_t>(frame.payload.data(), frame.payload.size()), true);
             return;
         case WebSocketOpcode::Pong:
             return;
@@ -417,7 +418,7 @@ namespace lumalink::http::websocket
             {
                 if (!frame.payload.empty())
                 {
-                    queueSerializedFrame(WebSocketOpcode::Close, span<const std::uint8_t>(frame.payload.data(), frame.payload.size()), true);
+                    queueSerializedFrame(WebSocketOpcode::Close, std::span<const std::uint8_t>(frame.payload.data(), frame.payload.size()), true);
                 }
                 else
                 {
@@ -454,7 +455,7 @@ namespace lumalink::http::websocket
                 }
                 else
                 {
-                    context_.notifyBinary(span<const std::uint8_t>(frame.payload.data(), frame.payload.size()));
+                    context_.notifyBinary(std::span<const std::uint8_t>(frame.payload.data(), frame.payload.size()));
                 }
 
                 assemblingMessage_ = false;
@@ -465,7 +466,7 @@ namespace lumalink::http::websocket
             assemblingMessage_ = true;
             assembledMessageType_ = frame.header.opcode;
             messageBuffer_.clear();
-            if (!appendMessageFragment(span<const std::uint8_t>(frame.payload.data(), frame.payload.size())))
+                    if (!appendMessageFragment(std::span<const std::uint8_t>(frame.payload.data(), frame.payload.size())))
             {
                 const WsClosePolicy policy = policyFor(WsErrorCategory::MessageTooLarge);
                 context_.notifyError("WebSocket message too big");
@@ -487,7 +488,7 @@ namespace lumalink::http::websocket
                 return;
             }
 
-            if (!appendMessageFragment(span<const std::uint8_t>(frame.payload.data(), frame.payload.size())))
+            if (!appendMessageFragment(std::span<const std::uint8_t>(frame.payload.data(), frame.payload.size())))
             {
                 const WsClosePolicy policy = policyFor(WsErrorCategory::MessageTooLarge);
                 context_.notifyError("WebSocket message too big");
@@ -507,7 +508,7 @@ namespace lumalink::http::websocket
                 }
                 else if (assembledMessageType_ == WebSocketOpcode::Binary)
                 {
-                    context_.notifyBinary(span<const std::uint8_t>(messageBuffer_.data(), messageBuffer_.size()));
+                    context_.notifyBinary(std::span<const std::uint8_t>(messageBuffer_.data(), messageBuffer_.size()));
                 }
 
                 assemblingMessage_ = false;
@@ -519,7 +520,7 @@ namespace lumalink::http::websocket
         }
     }
 
-    bool WebSocketProtocolExecution::appendMessageFragment(span<const std::uint8_t> payload)
+    bool WebSocketProtocolExecution::appendMessageFragment(std::span<const std::uint8_t> payload)
     {
         if (payload.empty())
         {
@@ -544,7 +545,7 @@ namespace lumalink::http::websocket
         context_.markClosing(closeCode_, closeReason_);
     }
 
-    std::vector<std::uint8_t> WebSocketProtocolExecution::buildClosePayload(WebSocketCloseCode code, span<const std::uint8_t> reason)
+    std::vector<std::uint8_t> WebSocketProtocolExecution::buildClosePayload(WebSocketCloseCode code, std::span<const std::uint8_t> reason)
     {
         std::vector<std::uint8_t> payload;
         payload.reserve(2 + reason.size());

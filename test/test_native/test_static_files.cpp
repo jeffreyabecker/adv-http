@@ -25,6 +25,7 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+#include <span>
 
 using namespace lumalink::http::core;
 using namespace lumalink::http::handlers;
@@ -152,7 +153,7 @@ namespace
             return AvailableBytes(spec_.content.size() - position_);
         }
 
-        size_t read(lumalink::span<uint8_t> buffer) override
+        size_t read(std::span<uint8_t> buffer) override
         {
             if (spec_.directory || closed_ || buffer.empty())
             {
@@ -164,7 +165,7 @@ namespace
             return copied;
         }
 
-        size_t peek(lumalink::span<uint8_t> buffer) override
+        size_t peek(std::span<uint8_t> buffer) override
         {
             if (spec_.directory || closed_ || buffer.empty())
             {
@@ -179,7 +180,7 @@ namespace
             return copied;
         }
 
-        std::size_t write(lumalink::span<const uint8_t>) override
+        std::size_t write(std::span<const uint8_t>) override
         {
             return 0;
         }

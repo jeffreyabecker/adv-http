@@ -89,7 +89,7 @@ namespace
         TEST_ASSERT_TRUE(body->available().isExhausted());
 
         std::uint8_t byte = 0;
-        TEST_ASSERT_EQUAL_UINT64(0, body->read(lumalink::span<std::uint8_t>(&byte, 1)));
+        TEST_ASSERT_EQUAL_UINT64(0, body->read(std::span<std::uint8_t>(&byte, 1)));
     }
 
     void test_chunked_response_body_stream_preserves_varying_source_chunk_sizes()
@@ -480,12 +480,12 @@ namespace
         std::uint8_t peeked = 0;
         std::uint8_t buffer[7] = {};
 
-        TEST_ASSERT_EQUAL_UINT64(1, source->peek(lumalink::span<std::uint8_t>(&peeked, 1)));
+        TEST_ASSERT_EQUAL_UINT64(1, source->peek(std::span<std::uint8_t>(&peeked, 1)));
         TEST_ASSERT_EQUAL('H', static_cast<char>(peeked));
 
         while (true)
         {
-            const std::size_t bytesRead = source->read(lumalink::span<std::uint8_t>(buffer, sizeof(buffer)));
+            const std::size_t bytesRead = source->read(std::span<std::uint8_t>(buffer, sizeof(buffer)));
             if (bytesRead == 0)
             {
                 break;

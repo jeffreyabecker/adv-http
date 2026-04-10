@@ -96,10 +96,10 @@ namespace lumalink::http::pipeline
         while ((available = responseStream_->available()).hasBytes())
         {
             const size_t bytesToRead = std::min<std::size_t>(sizeof(buffer), available.count);
-            const size_t bytesRead = responseStream_->read(lumalink::span<uint8_t>(buffer, bytesToRead));
+            const size_t bytesRead = responseStream_->read(std::span<uint8_t>(buffer, bytesToRead));
             if (bytesRead > 0)
             {
-                auto written = client_->write(lumalink::span<const uint8_t>(buffer, bytesRead));
+                auto written = client_->write(std::span<const uint8_t>(buffer, bytesRead));
                 startActivity();
                 if (written < bytesRead)
                 {

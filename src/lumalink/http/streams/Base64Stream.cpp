@@ -1,4 +1,5 @@
 #include "Base64Stream.h"
+#include <span>
 #include <cstring>
 
 namespace lumalink::http::streams
@@ -98,7 +99,7 @@ namespace lumalink::http::streams
         return underlyingAvailable;
     }
 
-    size_t Base64DecoderStream::read(lumalink::span<uint8_t> buffer)
+    size_t Base64DecoderStream::read(std::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -115,7 +116,7 @@ namespace lumalink::http::streams
         return totalRead;
     }
 
-    size_t Base64DecoderStream::peek(lumalink::span<uint8_t> buffer)
+    size_t Base64DecoderStream::peek(std::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {
@@ -235,7 +236,7 @@ namespace lumalink::http::streams
         return underlyingAvailable;
     }
 
-    size_t Base64EncoderStream::read(lumalink::span<uint8_t> buffer)
+    size_t Base64EncoderStream::read(std::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -252,7 +253,7 @@ namespace lumalink::http::streams
         return totalRead;
     }
 
-    size_t Base64EncoderStream::peek(lumalink::span<uint8_t> buffer)
+    size_t Base64EncoderStream::peek(std::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {

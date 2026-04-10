@@ -11,6 +11,7 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+#include <span>
 
 namespace lumalink::http::TestSupport
 {
@@ -23,7 +24,7 @@ namespace lumalink::http::TestSupport
 
         while (true)
         {
-            const std::size_t bytesRead = source.read(lumalink::span<std::uint8_t>(buffer, sizeof(buffer)));
+            const std::size_t bytesRead = source.read(std::span<std::uint8_t>(buffer, sizeof(buffer)));
             if (bytesRead == 0)
             {
                 break;
@@ -46,7 +47,7 @@ namespace lumalink::http::TestSupport
             const AvailableResult available = source.available();
             if (available.hasBytes())
             {
-                const std::size_t bytesRead = source.read(lumalink::span<std::uint8_t>(buffer, (std::min)(available.count, sizeof(buffer))));
+                const std::size_t bytesRead = source.read(std::span<std::uint8_t>(buffer, (std::min)(available.count, sizeof(buffer))));
                 if (bytesRead == 0)
                 {
                     break;
@@ -133,12 +134,12 @@ namespace lumalink::http::TestSupport
             return AvailableBytes(step.text.size() - positionInStep_);
         }
 
-        std::size_t read(lumalink::span<std::uint8_t> buffer) override
+        std::size_t read(std::span<std::uint8_t> buffer) override
         {
             return copyInto(buffer, true);
         }
 
-        std::size_t peek(lumalink::span<std::uint8_t> buffer) override
+        std::size_t peek(std::span<std::uint8_t> buffer) override
         {
             return copyInto(buffer, false);
         }
@@ -176,7 +177,7 @@ namespace lumalink::http::TestSupport
                     }
                 }
 
-                std::size_t copyInto(lumalink::span<std::uint8_t> buffer, bool consume)
+                std::size_t copyInto(std::span<std::uint8_t> buffer, bool consume)
                 {
                     advancePastConsumedSteps();
                     if (buffer.empty() || stepIndex_ >= steps_.size() || steps_[stepIndex_].temporarilyUnavailable)
@@ -220,17 +221,17 @@ namespace lumalink::http::TestSupport
                     return readable_.available();
                 }
 
-                std::size_t read(lumalink::span<std::uint8_t> buffer) override
+                std::size_t read(std::span<std::uint8_t> buffer) override
                 {
                     return readable_.read(buffer);
                 }
 
-                std::size_t peek(lumalink::span<std::uint8_t> buffer) override
+                std::size_t peek(std::span<std::uint8_t> buffer) override
                 {
                     return readable_.peek(buffer);
                 }
 
-                std::size_t write(lumalink::span<const std::uint8_t> buffer) override
+                std::size_t write(std::span<const std::uint8_t> buffer) override
                 {
                     written_.insert(written_.end(), buffer.begin(), buffer.end());
                     writeSizes_.push_back(buffer.size());

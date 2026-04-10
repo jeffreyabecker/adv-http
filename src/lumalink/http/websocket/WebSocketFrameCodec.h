@@ -7,10 +7,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include <span>
 
 namespace lumalink::http::websocket
 {
-    using lumalink::span;
+    
 
     enum class WebSocketOpcode : std::uint8_t
     {
@@ -93,7 +94,7 @@ namespace lumalink::http::websocket
     public:
         explicit WebSocketFrameParser(bool requireMaskedClientFrames = true);
 
-        WebSocketParseResult parse(span<const std::uint8_t> input);
+        WebSocketParseResult parse(std::span<const std::uint8_t> input);
         void reset();
 
     private:
@@ -108,7 +109,7 @@ namespace lumalink::http::websocket
         static bool isControlOpcode(WebSocketOpcode opcode);
         static bool isDataOpcode(WebSocketOpcode opcode);
         static bool isKnownOpcode(std::uint8_t opcode);
-        static std::uint64_t readBigEndian(span<const std::uint8_t> bytes);
+        static std::uint64_t readBigEndian(std::span<const std::uint8_t> bytes);
 
         bool requireMaskedClientFrames_ = true;
         bool expectingContinuation_ = false;
@@ -131,8 +132,8 @@ namespace lumalink::http::websocket
     public:
         static std::size_t maxSerializedSize(std::size_t payloadLength);
         static WebSocketSerializeResult serialize(
-            span<std::uint8_t> output,
-            span<const std::uint8_t> payload,
+            std::span<std::uint8_t> output,
+            std::span<const std::uint8_t> payload,
             WebSocketOpcode opcode,
             bool fin = true);
     };

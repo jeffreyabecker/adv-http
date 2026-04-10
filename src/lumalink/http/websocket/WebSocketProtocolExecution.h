@@ -9,6 +9,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -35,7 +36,7 @@ namespace lumalink::http::websocket
         bool isFinished() const override;
 
         WebSocketSendResult sendText(std::string_view payload) override;
-        WebSocketSendResult sendBinary(span<const std::uint8_t> payload) override;
+        WebSocketSendResult sendBinary(std::span<const std::uint8_t> payload) override;
         WebSocketCloseResult close(WebSocketCloseCode code, std::string_view reason) override;
 
         WebSocketContext &context();
@@ -66,11 +67,11 @@ namespace lumalink::http::websocket
         std::string closeReason_;
 
         bool flushPendingWrite(lumalink::platform::transport::IClient &client);
-        bool queueSerializedFrame(WebSocketOpcode opcode, span<const std::uint8_t> payload, bool fin = true);
-        bool queueCloseFrame(WebSocketCloseCode code, span<const std::uint8_t> reason = span<const std::uint8_t>());
+        bool queueSerializedFrame(WebSocketOpcode opcode, std::span<const std::uint8_t> payload, bool fin = true);
+        bool queueCloseFrame(WebSocketCloseCode code, std::span<const std::uint8_t> reason = std::span<const std::uint8_t>());
         void handleParsedFrame(const WebSocketFrame &frame);
-        bool appendMessageFragment(span<const std::uint8_t> payload);
+        bool appendMessageFragment(std::span<const std::uint8_t> payload);
         void beginClosing(std::uint16_t closeCode, std::string_view reason);
-        static std::vector<std::uint8_t> buildClosePayload(WebSocketCloseCode code, span<const std::uint8_t> reason);
+        static std::vector<std::uint8_t> buildClosePayload(WebSocketCloseCode code, std::span<const std::uint8_t> reason);
     };
 }

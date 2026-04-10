@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <span>
 #include "LumaLinkPlatform.h"
 #include "../core/Defines.h"
 
@@ -53,8 +54,8 @@ namespace lumalink::http::response
     explicit ChunkedHttpResponseBodyStream(std::unique_ptr<IByteSource> innerSource);
     static std::unique_ptr<IByteSource> create(std::unique_ptr<IByteSource> innerSource);
     AvailableResult available() override;
-    size_t read(lumalink::span<uint8_t> buffer) override;
-    size_t peek(lumalink::span<uint8_t> buffer) override;
+    size_t read(std::span<uint8_t> buffer) override;
+    size_t peek(std::span<uint8_t> buffer) override;
   };
 
 } // namespace lumalink::http::response

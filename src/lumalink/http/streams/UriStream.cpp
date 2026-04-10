@@ -1,4 +1,5 @@
 #include "UriStream.h"
+#include <span>
 
 #include <cstdlib>
 #include <cstring>
@@ -98,7 +99,7 @@ namespace lumalink::http::streams
         return innerAvailable;
     }
 
-    size_t UriDecodingStream::read(lumalink::span<uint8_t> buffer)
+    size_t UriDecodingStream::read(std::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -115,7 +116,7 @@ namespace lumalink::http::streams
         return totalRead;
     }
 
-    size_t UriDecodingStream::peek(lumalink::span<uint8_t> buffer)
+    size_t UriDecodingStream::peek(std::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {
@@ -220,7 +221,7 @@ namespace lumalink::http::streams
         return innerStream_ ? innerStream_->available() : lumalink::platform::buffers::ExhaustedResult();
     }
 
-    size_t UriEncodingStream::read(lumalink::span<uint8_t> buffer)
+    size_t UriEncodingStream::read(std::span<uint8_t> buffer)
     {
         size_t totalRead = 0;
         while (totalRead < buffer.size())
@@ -237,7 +238,7 @@ namespace lumalink::http::streams
         return totalRead;
     }
 
-    size_t UriEncodingStream::peek(lumalink::span<uint8_t> buffer)
+    size_t UriEncodingStream::peek(std::span<uint8_t> buffer)
     {
         if (buffer.empty())
         {
