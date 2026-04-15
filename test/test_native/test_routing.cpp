@@ -774,6 +774,22 @@ namespace
         TEST_ASSERT_FALSE(defaultCheckUriPattern("/guides/http/intro.json?version=1", htmlGlobPattern));
     }
 
+    void test_handler_matcher_ignores_trailing_slashes_for_route_and_request_paths()
+    {
+        TEST_ASSERT_TRUE(defaultCheckUriPattern("/api/system/", "/api/system"));
+        TEST_ASSERT_TRUE(defaultCheckUriPattern("/api/system", "/api/system/"));
+
+        RequestContextHarness withSlashHarness;
+        prepareRequest(withSlashHarness, "GET", "/api/system/");
+        HandlerMatcher withoutSlashPattern("/api/system", "GET");
+        TEST_ASSERT_TRUE(withoutSlashPattern.canHandle(withSlashHarness.context()));
+
+        RequestContextHarness withoutSlashHarness;
+        prepareRequest(withoutSlashHarness, "GET", "/api/system");
+        HandlerMatcher withSlashPattern("/api/system/", "GET");
+        TEST_ASSERT_TRUE(withSlashPattern.canHandle(withoutSlashHarness.context()));
+    }
+
     void test_handler_provider_registry_ignores_null_callbacks_in_composition_chain()
     {
         RequestContextHarness harness;
@@ -1407,6 +1423,7 @@ namespace
         RUN_TEST(test_handler_provider_registry_uses_default_not_found_response_when_no_match_exists);
         RUN_TEST(test_handler_matcher_mutators_override_runtime_checker_and_extractor_behavior);
         RUN_TEST(test_default_uri_pattern_matching_uses_path_and_ignores_query_string_with_wildcards);
+        RUN_TEST(test_handler_matcher_ignores_trailing_slashes_for_route_and_request_paths);
         RUN_TEST(test_handler_provider_registry_ignores_null_callbacks_in_composition_chain);
         RUN_TEST(test_handler_builder_composes_matchers_predicates_interceptors_and_filters);
         RUN_TEST(test_handler_registration_accepts_abstract_request_context_callbacks);

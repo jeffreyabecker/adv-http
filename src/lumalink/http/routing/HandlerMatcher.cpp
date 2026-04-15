@@ -80,6 +80,16 @@ namespace lumalink::http::routing
             return value;
         }
 
+        std::string_view trimTrailingDelimiters(std::string_view value)
+        {
+            while (!value.empty() && value.back() == REQUEST_MATCHER_PATH_DELIMITER)
+            {
+                value.remove_suffix(1);
+            }
+
+            return value;
+        }
+
         std::vector<std::string_view> splitPathSegments(std::string_view value)
         {
             std::vector<std::string_view> segments;
@@ -280,8 +290,8 @@ namespace lumalink::http::routing
         bool matchUriPattern(std::string_view uri, std::string_view uriPattern, RouteParameters *parameters)
         {
             const lumalink::http::util::UriView parsedUri(uri);
-            const std::string_view path = trimLeadingDelimiter(parsedUri.path());
-            const std::string_view normalizedPattern = trimLeadingDelimiter(uriPattern);
+            const std::string_view path = trimTrailingDelimiters(trimLeadingDelimiter(parsedUri.path()));
+            const std::string_view normalizedPattern = trimTrailingDelimiters(trimLeadingDelimiter(uriPattern));
             const std::vector<std::string_view> pathSegments = splitPathSegments(path);
             const std::vector<std::string_view> patternSegments = splitPathSegments(normalizedPattern);
 
