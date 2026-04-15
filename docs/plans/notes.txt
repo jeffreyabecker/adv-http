@@ -1,4 +1,0 @@
-compatibility seam notes:
-- Filesystem adapter behavior should track the library-owned semantics defined in `src/compat/IFileSystem.h` and the filesystem adapter implementation.
-- Stream and print-like behavior should stay aligned with the compatibility abstractions consumed by the HTTP core rather than any single runtime API.
-- Preserve portable expectations first; keep any runtime-specific shape contained inside adapter code.

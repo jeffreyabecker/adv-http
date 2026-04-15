@@ -74,33 +74,9 @@ private:
 
   bool appendToBuffer(const char *data, std::size_t length,
                       std::size_t maxAllowed, std::size_t &startPos,
-                      std::size_t &curLen) {
-    if (curLen == 0) {
-      startPos = writePos_;
-    }
-    if (length == 0) {
-      return true;
-    }
-    if (writePos_ + length > buffer_.size()) {
-      return false;
-    }
-    if (curLen + length > maxAllowed) {
-      return false;
-    }
-    std::memcpy(buffer_.data() + writePos_, data, length);
-    writePos_ += length;
-    curLen += length;
-    return true;
-  }
+                      std::size_t &curLen);
 
-  void resetBuffer() {
-    writePos_ = 0;
-    methodLen_ = 0;
-    urlLen_ = 0;
-    versionLen_ = 0;
-    headerFieldLen_ = 0;
-    headerValueLen_ = 0;
-  }
+  void resetBuffer();
 
   // Helper to get RequestParser* from llhttp_t
   static RequestParser *get_instance(llhttp_t *parser);
@@ -131,136 +107,14 @@ private:
   short versionMajor_ = 1;
   short versionMinor_ = 1;
   // Map llhttp error code to PipelineErrorCode
-  static PipelineErrorCode mapLlhttpErrorToPipelineError(int llhttpError) {
-    switch (llhttpError) {
-    case 0:
-      return PipelineErrorCode::None; // HPE_OK
-    case 1:
-      return PipelineErrorCode::InternalError; // HPE_INTERNAL
-    case 2:
-      return PipelineErrorCode::StrictError; // HPE_STRICT
-    case 25:
-      return PipelineErrorCode::CrExpectedError; // HPE_CR_EXPECTED
-    case 3:
-      return PipelineErrorCode::LfExpectedError; // HPE_LF_EXPECTED
-    case 4:
-      return PipelineErrorCode::
-          UnexpectedContentLengthError; // HPE_UNEXPECTED_CONTENT_LENGTH
-    case 30:
-      return PipelineErrorCode::UnexpectedSpaceError; // HPE_UNEXPECTED_SPACE
-    case 5:
-      return PipelineErrorCode::ClosedConnectionError; // HPE_CLOSED_CONNECTION
-    case 6:
-      return PipelineErrorCode::InvalidMethodError; // HPE_INVALID_METHOD
-    case 7:
-      return PipelineErrorCode::InvalidUrlError; // HPE_INVALID_URL
-    case 8:
-      return PipelineErrorCode::InvalidConstantError; // HPE_INVALID_CONSTANT
-    case 9:
-      return PipelineErrorCode::InvalidVersionError; // HPE_INVALID_VERSION
-    case 10:
-      return PipelineErrorCode::
-          InvalidHeaderTokenError; // HPE_INVALID_HEADER_TOKEN
-    case 11:
-      return PipelineErrorCode::
-          InvalidContentLengthError; // HPE_INVALID_CONTENT_LENGTH
-    case 12:
-      return PipelineErrorCode::InvalidChunkSizeError; // HPE_INVALID_CHUNK_SIZE
-    case 13:
-      return PipelineErrorCode::InvalidStatusError; // HPE_INVALID_STATUS
-    case 14:
-      return PipelineErrorCode::InvalidEofStateError; // HPE_INVALID_EOF_STATE
-    case 15:
-      return PipelineErrorCode::
-          InvalidTransferEncodingError; // HPE_INVALID_TRANSFER_ENCODING
-    default:
-      return PipelineErrorCode::ParseError;
-    }
-  }
+  static PipelineErrorCode mapLlhttpErrorToPipelineError(int llhttpError);
 
 public:
-  RequestParser(IPipelineHandler &eventHandler) : eventHandler_(eventHandler) {
-    llhttp_settings_init(&settings_);
-    settings_.on_message_begin = on_message_begin_cb;
-    settings_.on_protocol = on_protocol_cb;
-    settings_.on_url = on_url_cb;
-    settings_.on_method = on_method_cb;
-    settings_.on_version = on_version_cb;
-    settings_.on_header_field = on_header_field_cb;
-    settings_.on_header_value = on_header_value_cb;
-    settings_.on_headers_complete = on_headers_complete_cb;
-    settings_.on_body = on_body_cb;
-    settings_.on_message_complete = on_message_complete_cb;
-    settings_.on_protocol_complete = on_protocol_complete_cb;
-    settings_.on_url_complete = on_url_complete_cb;
-    settings_.on_method_complete = on_method_complete_cb;
-    settings_.on_version_complete = on_version_complete_cb;
-    settings_.on_header_field_complete = on_header_field_complete_cb;
-    settings_.on_header_value_complete = on_header_value_complete_cb;
+  RequestParser(IPipelineHandler &eventHandler);
 
-    llhttp_init(&parser_, HTTP_REQUEST, &settings_);
-    parser_.data = this;
-  }
+  std::size_t execute(const uint8_t *data, std::size_t length);
 
-  std::size_t execute(const uint8_t *data, std::size_t length) {
-    if (finished_) {
-      return 0;
-    }
-    llhttp_errno_t result = HPE_OK;
-    if (data == nullptr || length == 0) {
-      finished_ = true;
-      result = llhttp_finish(&parser_);
-      if (result != HPE_OK) {
-        // If we already flagged an error (e.g., buffer overflow) the handler
-        // has been notified.
-        if (currentEvent_ != RequestParserEvent::Error) {
-          currentEvent_ = RequestParserEvent::Error;
-          // Map llhttp internal errno to library-level PipelineErrorCode and
-          // report it.
-          eventHandler_.onError(
-              PipelineError(mapLlhttpErrorToPipelineError(result)));
-        }
-      }
-    } else {
-      result = llhttp_execute(&parser_, reinterpret_cast<const char *>(data),
-                              length);
-      if (result != HPE_OK) {
-        if (result == HPE_PAUSED_UPGRADE) {
-          finished_ = true;
-          return length;
-        }
-
-        // If we already flagged an error (e.g., buffer overflow) the handler
-        // has been notified.
-        if (currentEvent_ != RequestParserEvent::Error) {
-          currentEvent_ = RequestParserEvent::Error;
-          // Map llhttp internal errno to library-level PipelineErrorCode and
-          // report it.
-          eventHandler_.onError(
-              PipelineError(mapLlhttpErrorToPipelineError(result)));
-        }
-      }
-      // Reset header counter for the next request on reused parser
-      if (currentEvent_ == RequestParserEvent::MessageComplete ||
-          currentEvent_ == RequestParserEvent::Error) {
-        headerCount_ = 0;
-        resetBuffer();
-      }
-    }
-    return (result == HPE_OK) ? length : 0;
-  }
-
-  void reset() {
-    currentEvent_ = RequestParserEvent::None;
-    finished_ = false;
-    headerCount_ = 0;
-    method_.clear();
-    versionMajor_ = 1;
-    versionMinor_ = 1;
-    resetBuffer();
-    llhttp_init(&parser_, HTTP_REQUEST, &settings_);
-    parser_.data = this;
-  }
+  void reset();
 
   const char *method() const { return method_.c_str(); }
   short versionMajor() const { return versionMajor_; }

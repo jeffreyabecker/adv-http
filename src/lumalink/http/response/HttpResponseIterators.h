@@ -43,73 +43,13 @@ namespace lumalink::http::response
     std::unique_ptr<IHttpResponse> response_;
     std::unique_ptr<IByteSource> source_;
 
-    static bool responseHasNoBody(HttpStatus status)
-    {
-      return status == HttpStatus::NoContent() ||
-             status == HttpStatus::NotModified() ||
-             (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
-    }
-
-    static std::string buildStartLine(HttpStatus status)
-    {
-      return std::string(ResponseStringConstants::HTTP_VERSION) +
-             std::to_string(static_cast<uint16_t>(status)) +
-             ResponseStringConstants::START_LINE_DELIMITER +
-             status.toString() +
-             ResponseStringConstants::CRLF;
-    }
-
-    static std::string buildHeadersBlock(const HttpHeaderCollection &headers)
-    {
-      std::string result;
-      for (const HttpHeader &header : headers)
-      {
-        result.append(header.nameView().data(), header.nameView().size());
-        result.append(ResponseStringConstants::HEADER_DELIMITER);
-        result.append(header.valueView().data(), header.valueView().size());
-        result.append(ResponseStringConstants::CRLF);
-      }
-      return result;
-    }
-
-    void buildSource()
-    {
-      std::unique_ptr<IByteSource> bodySource = response_->getBody();
-      const ByteAvailability bodyAvailable = bodySource ? bodySource->available() : ExhaustedResult();
-        const std::ptrdiff_t knownBodySize = !bodySource ? 0 :
-          (HasAvailableBytes(bodyAvailable) ? static_cast<std::ptrdiff_t>(AvailableByteCount(bodyAvailable)) :
-          (IsExhausted(bodyAvailable) ? 0 : -1));
-
-      EnsureRequiredHeaders(response_->headers(), knownBodySize);
-
-      if (responseHasNoBody(response_->status()))
-      {
-        bodySource.reset();
-      }
-      else if (response_->headers().exists(HttpHeaderNames::TransferEncoding, "chunked") && bodySource)
-      {
-        bodySource = ChunkedHttpResponseBodyStream::create(std::move(bodySource));
-      }
-
-      std::vector<std::unique_ptr<IByteSource>> sources;
-      sources.emplace_back(std::make_unique<StdStringByteSource>(buildStartLine(response_->status())));
-      sources.emplace_back(std::make_unique<StdStringByteSource>(buildHeadersBlock(response_->headers())));
-      sources.emplace_back(std::make_unique<SpanByteSource>(std::string_view(ResponseStringConstants::CRLF, 2)));
-
-      if (bodySource)
-      {
-        sources.emplace_back(std::move(bodySource));
-      }
-
-      source_ = std::make_unique<ConcatByteSource>(std::move(sources));
-    }
+    static bool responseHasNoBody(HttpStatus status);
+    static std::string buildStartLine(HttpStatus status);
+    static std::string buildHeadersBlock(const HttpHeaderCollection &headers);
+    void buildSource();
 
   public:
-    explicit HttpPipelineResponseSource(std::unique_ptr<IHttpResponse> response)
-        : response_(std::move(response))
-    {
-      buildSource();
-    }
+    explicit HttpPipelineResponseSource(std::unique_ptr<IHttpResponse> response);
 
     ByteAvailability available() override
     {
