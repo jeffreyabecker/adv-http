@@ -167,8 +167,8 @@ StaticFileHandlerFactory::StaticFileHandlerFactory(
       interceptorRules_(std::move(interceptorRules)),
       requestPredicateRules_(std::move(requestPredicateRules)) {}
 
-bool StaticFileHandlerFactory::passesRequestPredicates(HttpRequestContext &context) const {
-  for (const RequestPredicateRule &rule : requestPredicateRules_) {
+bool StaticFileHandlerFactory::passesRequestPredicates(HttpRequestContext &context) {
+  for (RequestPredicateRule &rule : requestPredicateRules_) {
     if (!rule.predicate) {
       continue;
     }
@@ -228,8 +228,8 @@ StaticFileHandlerFactory::resolveRequest(HttpRequestContext &context) {
 }
 
 std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::decorateHandler(
-    HttpRequestContext &context,
-    std::unique_ptr<IHttpHandler> innerHandler) const {
+  HttpRequestContext &context,
+  std::unique_ptr<IHttpHandler> innerHandler) {
   if (!innerHandler) {
     return nullptr;
   }
@@ -255,27 +255,31 @@ std::unique_ptr<IHttpHandler> StaticFileHandlerFactory::decorateHandler(
   }
 
   IHttpHandler::InterceptorCallback interceptor = nullptr;
-  for (const InterceptorRule &rule : interceptorRules_) {
+  for (InterceptorRule &rule : interceptorRules_) {
     if (!rule.wrapper || !rule.matcher.canHandle(context)) {
       continue;
     }
 
     if (!interceptor) {
-      interceptor = rule.wrapper;
+      interceptor = [&wrapper = rule.wrapper](lumalink::http::core::HttpRequestContext &innerContext,
+                                              IHttpHandler::InvocationNext next)
+          -> IHttpHandler::HandlerResult {
+        return wrapper(innerContext, std::move(next));
+      };
       continue;
     }
 
-    auto previousInterceptor = interceptor;
-    auto nextInterceptor = rule.wrapper;
+    auto previousInterceptor = std::move(interceptor);
     interceptor =
-        [previousInterceptor, nextInterceptor](lumalink::http::core::HttpRequestContext &innerContext,
+        [previousInterceptor = std::move(previousInterceptor), &nextInterceptor = rule.wrapper](lumalink::http::core::HttpRequestContext &innerContext,
                                                IHttpHandler::InvocationNext next)
+        mutable
         -> IHttpHandler::HandlerResult {
       return nextInterceptor(
           innerContext,
-          IHttpHandler::InvocationNext(innerContext, [previousInterceptor, &innerContext, next]() mutable
+          IHttpHandler::InvocationNext(innerContext, [&previousInterceptor, &innerContext, next = std::move(next)]() mutable
               -> IHttpHandler::HandlerResult {
-            return previousInterceptor(innerContext, next);
+            return previousInterceptor(innerContext, std::move(next));
           }));
     };
   }

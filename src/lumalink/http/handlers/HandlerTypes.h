@@ -46,18 +46,20 @@ namespace lumalink::http::handlers
 
         static Invocation curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpRequestContext &context, RouteParameters &&params)
+            auto interceptorRef = std::make_shared<IHttpHandler::InterceptorCallback>(std::move(interceptor));
+            return [interceptorRef, handler = std::move(handler)](HttpRequestContext &context, RouteParameters &&params) mutable
             {
-                return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params)]() mutable
+                return (*interceptorRef)(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params)]() mutable
                                    { return handler(context, std::move(params)); }));
             };
         }
 
         static Invocation applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
         {
-            return [interceptor, handler](HttpRequestContext &context, RouteParameters &&params)
+            auto interceptorRef = std::make_shared<IHttpHandler::InterceptorCallback>(std::move(interceptor));
+            return [interceptorRef, handler = std::move(handler)](HttpRequestContext &context, RouteParameters &&params) mutable
             {
-                return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params)]() mutable
+                return (*interceptorRef)(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params)]() mutable
                                    { return handler(context, std::move(params)); }));
             };
         }

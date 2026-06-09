@@ -12,7 +12,7 @@ namespace lumalink::http::handlers
 
     Buffered::Invocation Buffered::curryWithoutParams(InvocationWithoutParams handler)
     {
-        return [handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&, BodyData &&postData)
+        return [handler = std::move(handler)](lumalink::http::core::HttpRequestContext &context, RouteParameters &&, BodyData &&postData) mutable
         {
             return handler(context, std::move(postData));
         };
@@ -20,10 +20,14 @@ namespace lumalink::http::handlers
 
     IHttpHandler::Factory Buffered::makeFactory(Invocation handler, ExtractArgsFromRequest extractor)
     {
-        return [handler, extractor](lumalink::http::core::HttpRequestContext &context) -> std::unique_ptr<IHttpHandler>
+        auto handlerRef = std::make_shared<Invocation>(std::move(handler));
+        return [handlerRef, extractor = std::move(extractor)](lumalink::http::core::HttpRequestContext &context) mutable -> std::unique_ptr<IHttpHandler>
         {
             auto params = extractor(context);
-            return std::make_unique<BufferedStringBodyHandler>(handler,
+            return std::make_unique<BufferedStringBodyHandler>(Invocation([handlerRef](lumalink::http::core::HttpRequestContext &innerContext, RouteParameters &&innerParams, BodyData &&innerBody) mutable -> IHttpHandler::HandlerResult
+                                                                          {
+                                                                              return (*handlerRef)(innerContext, std::move(innerParams), std::move(innerBody));
+                                                                          }),
                                                                [params](lumalink::http::core::HttpRequestContext &c)
                                                                {
                                                                    (void)c;
@@ -34,25 +38,29 @@ namespace lumalink::http::handlers
 
     Buffered::Invocation Buffered::curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, BodyData &&postData)
+        auto interceptorRef = std::make_shared<IHttpHandler::InterceptorCallback>(std::move(interceptor));
+        auto handlerRef = std::make_shared<Invocation>(std::move(handler));
+        return [interceptorRef, handlerRef](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, BodyData &&postData) mutable
         {
-            return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params), postData = std::move(postData)]() mutable
-                               { return handler(context, std::move(params), std::move(postData)); }));
+            return (*interceptorRef)(context, IHttpHandler::InvocationNext(context, [handlerRef, &context, params = std::move(params), postData = std::move(postData)]() mutable
+                               { return (*handlerRef)(context, std::move(params), std::move(postData)); }));
         };
     }
 
     Buffered::Invocation Buffered::applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, BodyData &&postData)
+        auto interceptorRef = std::make_shared<IHttpHandler::InterceptorCallback>(std::move(interceptor));
+        auto handlerRef = std::make_shared<Invocation>(std::move(handler));
+        return [interceptorRef, handlerRef](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, BodyData &&postData) mutable
         {
-            return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params), postData = std::move(postData)]() mutable
-                               { return handler(context, std::move(params), std::move(postData)); }));
+            return (*interceptorRef)(context, IHttpHandler::InvocationNext(context, [handlerRef, &context, params = std::move(params), postData = std::move(postData)]() mutable
+                               { return (*handlerRef)(context, std::move(params), std::move(postData)); }));
         };
     }
 
     Buffered::Invocation Buffered::applyResponseFilter(IHttpResponse::ResponseFilter filter, Invocation handler)
     {
-        return [filter, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, BodyData &&postData)
+        return [filter, handler = std::move(handler)](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, BodyData &&postData) mutable
         {
             auto response = handler(context, std::move(params), std::move(postData));
             if (!response.isResponse())

@@ -2,16 +2,28 @@
 
 #include <algorithm>
 #include <cctype>
+#if __has_include(<flat_map>)
+#include <flat_map>
+#else
 #include <map>
+#endif
 #include <string>
 #include <string_view>
 
 namespace lumalink::http::core
 {
+#if __has_include(<flat_map>)
+    template <typename K, typename V, typename Compare = std::less<>>
+    using ContentTypeTable = std::flat_map<K, V, Compare>;
+#else
+    template <typename K, typename V, typename Compare = std::less<>>
+    using ContentTypeTable = std::map<K, V, Compare>;
+#endif
+
     class HttpContentTypes
     {
     private:
-        std::map<std::string, const char *, std::less<>> contentTypes_;
+        ContentTypeTable<std::string, const char *, std::less<>> contentTypes_;
 
         static std::string NormalizeExtension(std::string_view extension)
         {
@@ -81,9 +93,9 @@ namespace lumalink::http::core
         }
 
     private:
-        static const std::map<std::string, const char *, std::less<>> &getTable()
+        static const ContentTypeTable<std::string, const char *, std::less<>> &getTable()
         {
-            static const std::map<std::string, const char *, std::less<>> standardTypes = {
+            static const ContentTypeTable<std::string, const char *, std::less<>> standardTypes = {
                 {"html", Html},
                 {"htm", Html},
                 {"css", Css},

@@ -77,18 +77,20 @@ namespace lumalink::http::handlers
 
     RawBody::Invocation RawBody::curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
+        auto interceptorRef = std::make_shared<IHttpHandler::InterceptorCallback>(std::move(interceptor));
+        return [interceptorRef, handler = std::move(handler)](lumalink::http::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
         {
-            return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, &params, buffer]() mutable
+            return (*interceptorRef)(context, IHttpHandler::InvocationNext(context, [handler, &context, &params, buffer]() mutable
                                { return handler(context, params, buffer); }));
         };
     }
 
     RawBody::Invocation RawBody::applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
+        auto interceptorRef = std::make_shared<IHttpHandler::InterceptorCallback>(std::move(interceptor));
+        return [interceptorRef, handler = std::move(handler)](lumalink::http::core::HttpRequestContext &context, RouteParameters &params, RawBodyBuffer buffer)
         {
-            return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, &params, &buffer]() mutable
+            return (*interceptorRef)(context, IHttpHandler::InvocationNext(context, [handler, &context, &params, &buffer]() mutable
                                { return handler(context, params, buffer); }));
         };
     }

@@ -24,7 +24,7 @@ namespace lumalink::http::routing
             { return true; });
     }
 
-    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::wrapHandler(std::unique_ptr<IHttpHandler> innerHandler) const
+    std::unique_ptr<IHttpHandler> HandlerProviderRegistry::wrapHandler(std::unique_ptr<IHttpHandler> innerHandler)
     {
         if (!innerHandler)
         {
@@ -36,7 +36,16 @@ namespace lumalink::http::routing
             return innerHandler;
         }
 
-        return std::make_unique<ResponseFilterApplicator>(std::move(innerHandler), globalResponseFilter_, globalRequestInterceptor_);
+        IHttpHandler::InterceptorCallback interceptor = nullptr;
+        if (globalRequestInterceptor_)
+        {
+            interceptor = [this](lumalink::http::core::HttpRequestContext &context, IHttpHandler::InvocationNext next) -> IHttpHandler::HandlerResult
+            {
+                return globalRequestInterceptor_(context, std::move(next));
+            };
+        }
+
+        return std::make_unique<ResponseFilterApplicator>(std::move(innerHandler), globalResponseFilter_, std::move(interceptor));
     }
 
     std::unique_ptr<IHttpHandler> HandlerProviderRegistry::createContextHandler(lumalink::http::core::HttpRequestContext &context)
@@ -60,7 +69,7 @@ namespace lumalink::http::routing
 
     void HandlerProviderRegistry::setDefaultHandlerFactory(IHttpHandler::Factory creator)
     {
-        defaultFactory_ = creator;
+        defaultFactory_ = std::move(creator);
     }
 
     void HandlerProviderRegistry::add(lumalink::http::handlers::IHandlerProvider &handlerFactory, AddPosition position)
@@ -86,7 +95,7 @@ namespace lumalink::http::routing
 
     void HandlerProviderRegistry::add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, AddPosition position)
     {
-        auto item = std::make_unique<HandlerProvider>(handler, predicate);
+        auto item = std::make_unique<HandlerProvider>(std::move(handler), std::move(predicate));
         auto &ref = *item;
         ownedFactoryItems_.push_back(std::move(item));
         add(ref, position);
@@ -94,8 +103,10 @@ namespace lumalink::http::routing
 
     void HandlerProviderRegistry::add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position)
     {
-        add(predicate, [invocation](lumalink::http::core::HttpRequestContext &context)
-            { return std::make_unique<HttpHandler>(invocation, [](const lumalink::http::core::HttpRequestContext &)
+        auto invocationRef = std::make_shared<IHttpHandler::InvocationCallback>(std::move(invocation));
+        add(std::move(predicate), [invocationRef](lumalink::http::core::HttpRequestContext &context)
+            { return std::make_unique<HttpHandler>(IHttpHandler::InvocationCallback([invocationRef](lumalink::http::core::HttpRequestContext &innerContext) -> IHttpHandler::HandlerResult
+                                                             { return (*invocationRef)(innerContext); }), [](const lumalink::http::core::HttpRequestContext &)
                                                    { return true; }); }, position);
     }
 
@@ -106,16 +117,17 @@ namespace lumalink::http::routing
             return;
         }
 
-        if( globalRequestFilter_)
+        if (globalRequestFilter_)
         {
-            auto previousFilter = globalRequestFilter_;
-            globalRequestFilter_ = [previousFilter, predicate](lumalink::http::core::HttpRequestContext &context) -> bool
+            auto previousFilter = std::move(globalRequestFilter_);
+            globalRequestFilter_ = [previousFilter = std::move(previousFilter), predicate = std::move(predicate)](lumalink::http::core::HttpRequestContext &context) mutable -> bool
             {
                 return previousFilter(context) && predicate(context);
             };
         }
-        else{
-            globalRequestFilter_ = predicate;
+        else
+        {
+            globalRequestFilter_ = std::move(predicate);
         }
     }
     void HandlerProviderRegistry::apply(IHttpResponse::ResponseFilter filter)
@@ -147,16 +159,16 @@ namespace lumalink::http::routing
 
         if (globalRequestInterceptor_)
         {
-            auto previousInterceptor = globalRequestInterceptor_;
-            globalRequestInterceptor_ = [previousInterceptor, interceptor](lumalink::http::core::HttpRequestContext &context, IHttpHandler::InvocationNext next) -> IHttpHandler::HandlerResult
+            auto previousInterceptor = std::move(globalRequestInterceptor_);
+            globalRequestInterceptor_ = [previousInterceptor = std::move(previousInterceptor), interceptor = std::move(interceptor)](lumalink::http::core::HttpRequestContext &context, IHttpHandler::InvocationNext next) mutable -> IHttpHandler::HandlerResult
             {
-                return interceptor(context, IHttpHandler::InvocationNext(context, [previousInterceptor, &context, next]() mutable -> IHttpHandler::HandlerResult
-                                   { return previousInterceptor(context, next); }));
+                return interceptor(context, IHttpHandler::InvocationNext(context, [&previousInterceptor, &context, next = std::move(next)]() mutable -> IHttpHandler::HandlerResult
+                                   { return previousInterceptor(context, std::move(next)); }));
             };
         }
         else
         {
-            globalRequestInterceptor_ = interceptor;
+            globalRequestInterceptor_ = std::move(interceptor);
         }
     }
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <string>
 #include "BufferingHttpHandlerBase.h"
 #include "HandlerRestrictions.h"
@@ -18,16 +19,16 @@ namespace lumalink::http::handlers
     class BufferedStringBodyHandler : public BufferingHttpHandlerBase<MAX_BUFFERED_FORM_BODY_LENGTH>
     {
     private:
-        std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, std::string &&)> handler_;
+        std::move_only_function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, std::string &&)> handler_;
         ExtractArgsFromRequest extractor_;
 
     public:
-        BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, std::string &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_(handler), extractor_(extractor) {}
-        BufferedStringBodyHandler(std::function<IHttpHandler::HandlerResult(HttpRequestContext &, std::string &&)> handler, ExtractArgsFromRequest extractor)
-            : handler_([handler](HttpRequestContext &context, RouteParameters &&, std::string &&postData)
+        BufferedStringBodyHandler(std::move_only_function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, std::string &&)> handler, ExtractArgsFromRequest extractor)
+            : handler_(std::move(handler)), extractor_(std::move(extractor)) {}
+        BufferedStringBodyHandler(std::move_only_function<IHttpHandler::HandlerResult(HttpRequestContext &, std::string &&)> handler, ExtractArgsFromRequest extractor)
+            : handler_([handler = std::move(handler)](HttpRequestContext &context, RouteParameters &&, std::string &&postData) mutable
                        { return handler(context, std::move(postData)); }),
-              extractor_(extractor) {}
+              extractor_(std::move(extractor)) {}
 
         virtual IHttpHandler::HandlerResult handleBody(lumalink::http::core::HttpRequestContext &context, std::vector<uint8_t> &&body) override;
     };
@@ -36,8 +37,8 @@ namespace lumalink::http::handlers
     {
     public:
         using BodyData = std::string;
-        using InvocationWithoutParams = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, BodyData &&)>;
-        using Invocation = std::function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, BodyData &&)>;
+        using InvocationWithoutParams = std::move_only_function<IHttpHandler::HandlerResult(HttpRequestContext &, BodyData &&)>;
+        using Invocation = std::move_only_function<IHttpHandler::HandlerResult(HttpRequestContext &, RouteParameters &&, BodyData &&)>;
 
         static Invocation curryWithoutParams(InvocationWithoutParams handler);
 

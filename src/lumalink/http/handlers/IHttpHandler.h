@@ -20,11 +20,11 @@ namespace lumalink::http::handlers
         class InvocationNext
         {
         public:
-            using Callback = std::function<HandlerResult()>;
+            using Callback = std::move_only_function<HandlerResult()>;
 
         private:
             lumalink::http::core::HttpRequestContext *context_ = nullptr;
-            Callback callback_;
+            mutable Callback callback_;
 
         public:
             InvocationNext() = default;
@@ -48,10 +48,10 @@ namespace lumalink::http::handlers
             }
         };
 
-        using InvocationCallback = std::function<HandlerResult(lumalink::http::core::HttpRequestContext &context)>;
-        using InterceptorCallback = std::function<HandlerResult(lumalink::http::core::HttpRequestContext &context, InvocationNext next)>;
-        using Predicate = std::function<bool(lumalink::http::core::HttpRequestContext &)>;
-        using Factory = std::function<std::unique_ptr<IHttpHandler>(lumalink::http::core::HttpRequestContext &)>;
+        using InvocationCallback = std::move_only_function<HandlerResult(lumalink::http::core::HttpRequestContext &context)>;
+        using InterceptorCallback = std::move_only_function<HandlerResult(lumalink::http::core::HttpRequestContext &context, InvocationNext next)>;
+        using Predicate = std::move_only_function<bool(lumalink::http::core::HttpRequestContext &)>;
+        using Factory = std::move_only_function<std::unique_ptr<IHttpHandler>(lumalink::http::core::HttpRequestContext &)>;
         virtual ~IHttpHandler() = default;
         /**
          * @brief Handles the given lumalink::http::core::HttpContext.

@@ -1,6 +1,7 @@
 #include "WebSocketFrameCodec.h"
 
 #include <algorithm>
+#include <cstring>
 
 namespace lumalink::http::websocket
 {
@@ -40,12 +41,29 @@ namespace lumalink::http::websocket
 
     std::uint64_t WebSocketFrameParser::readBigEndian(std::span<const std::uint8_t> bytes)
     {
-        std::uint64_t value = 0;
-        for (std::size_t i = 0; i < bytes.size(); ++i)
+        if (bytes.size() == sizeof(std::uint16_t))
         {
-            value = (value << 8U) | static_cast<std::uint64_t>(bytes[i]);
+            std::uint16_t value = 0;
+            std::memcpy(&value, bytes.data(), sizeof(value));
+            if constexpr (std::endian::native == std::endian::little)
+            {
+                value = std::byteswap(value);
+            }
+            return static_cast<std::uint64_t>(value);
         }
-        return value;
+
+        if (bytes.size() == sizeof(std::uint64_t))
+        {
+            std::uint64_t value = 0;
+            std::memcpy(&value, bytes.data(), sizeof(value));
+            if constexpr (std::endian::native == std::endian::little)
+            {
+                value = std::byteswap(value);
+            }
+            return value;
+        }
+
+        return 0;
     }
 
     void WebSocketFrameParser::resetCurrentFrame()

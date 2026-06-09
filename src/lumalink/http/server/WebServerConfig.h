@@ -43,16 +43,16 @@ namespace lumalink::http::server
         }
         void add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, ProviderRegistryBuilder::AddPosition position = ProviderRegistryBuilder::AddAt::End)
         {
-            builder_.handlers().add(predicate, handler, position);
+            builder_.handlers().add(std::move(predicate), std::move(handler), position);
         }
         void add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, ProviderRegistryBuilder::AddPosition position = ProviderRegistryBuilder::AddAt::End)
         {
-            builder_.handlers().add(predicate, invocation, position);
+            builder_.handlers().add(std::move(predicate), std::move(invocation), position);
         }
 
         void on(HandlerMatcher &request, IHttpHandler::Factory handler)
         {
-            builder_.handlers().on(request, handler);
+            builder_.handlers().on(request, std::move(handler));
         }
 
         // Template methods for handler registration
@@ -113,7 +113,7 @@ namespace lumalink::http::server
 
         void onNotFound(IHttpHandler::InvocationCallback invocation)
         {
-            builder_.handlers().onNotFound(invocation);
+            builder_.handlers().onNotFound(std::move(invocation));
         }
         void apply(IHttpResponse::ResponseFilter filter)
         {
@@ -121,7 +121,7 @@ namespace lumalink::http::server
         }
         void filterRequest(IHttpHandler::Predicate predicate)
         {
-            builder_.handlerProviders().filterRequest(predicate);
+            builder_.handlerProviders().filterRequest(std::move(predicate));
         }
         template <typename TPredicate,
                   typename = std::enable_if_t<!std::is_same_v<std::decay_t<TPredicate>, IHttpHandler::Predicate> &&
@@ -132,7 +132,7 @@ namespace lumalink::http::server
         }
         void with(IHttpHandler::InterceptorCallback wrapper)
         {
-            builder_.handlerProviders().with(wrapper);
+            builder_.handlerProviders().with(std::move(wrapper));
         }
         inline HttpServerBase &server()
         {

@@ -129,13 +129,21 @@ namespace lumalink::http::websocket
                     handleParsedFrame(*parseResult->frame);
                 }
 
-                if (!pendingWrite_.empty() || closeState_ != CloseState::Open)
+                if (!pendingWrite_.empty())
+                {
+                    if (!flushPendingWrite(client))
+                    {
+                        break;
+                    }
+                }
+
+                if (closeState_ != CloseState::Open)
                 {
                     break;
                 }
             }
 
-            if (!pendingWrite_.empty() || closeState_ != CloseState::Open)
+            if (closeState_ != CloseState::Open)
             {
                 break;
             }

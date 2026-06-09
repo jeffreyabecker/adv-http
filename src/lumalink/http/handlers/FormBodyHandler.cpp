@@ -35,18 +35,20 @@ namespace lumalink::http::handlers
 
     Form::Invocation Form::curryInterceptor(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
+        auto interceptorRef = std::make_shared<IHttpHandler::InterceptorCallback>(std::move(interceptor));
+        return [interceptorRef, handler = std::move(handler)](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
         {
-            return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params), postData = std::move(postData)]() mutable
+            return (*interceptorRef)(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params), postData = std::move(postData)]() mutable
                                { return handler(context, std::move(params), std::move(postData)); }));
         };
     }
 
     Form::Invocation Form::applyFilter(IHttpHandler::InterceptorCallback interceptor, Invocation handler)
     {
-        return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
+        auto interceptorRef = std::make_shared<IHttpHandler::InterceptorCallback>(std::move(interceptor));
+        return [interceptorRef, handler = std::move(handler)](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params, PostBodyData &&postData)
         {
-            return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params), postData = std::move(postData)]() mutable
+            return (*interceptorRef)(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params), postData = std::move(postData)]() mutable
                                { return handler(context, std::move(params), std::move(postData)); }));
         };
     }

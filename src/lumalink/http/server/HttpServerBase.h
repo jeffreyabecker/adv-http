@@ -41,7 +41,7 @@ namespace lumalink::http::server
         const IMonotonicClock &clock() const;
 
 
-        void setPipelineHandlerFactory(std::function<PipelineHandlerPtr(HttpServerBase &)> factory);
+        void setPipelineHandlerFactory(std::move_only_function<PipelineHandlerPtr(HttpServerBase &)> factory);
 
         // Accessors for concurrent connection limits
         size_t activeConnections() const { return pipelines_.size(); }
@@ -51,7 +51,7 @@ namespace lumalink::http::server
         virtual uint16_t localPort() const;
 
     protected:
-        std::function<PipelineHandlerPtr(HttpServerBase &)> pipelineHandlerFactory_;
+        std::move_only_function<PipelineHandlerPtr(HttpServerBase &)> pipelineHandlerFactory_;
         std::unique_ptr<IServer> server_;
         // Multiple concurrent pipelines (one per accepted client)
         std::vector<std::unique_ptr<HttpPipeline>> pipelines_;

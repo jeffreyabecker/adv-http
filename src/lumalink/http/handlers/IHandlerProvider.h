@@ -30,7 +30,7 @@ namespace lumalink::http::handlers
 
     public:
         HandlerProvider(IHttpHandler::Factory factory, IHttpHandler::Predicate request)
-            : factory_(factory), request_(request) {}
+            : factory_(std::move(factory)), request_(std::move(request)) {}
         virtual bool canHandle(lumalink::http::core::HttpRequestContext &context) override
         {
             return request_(context);

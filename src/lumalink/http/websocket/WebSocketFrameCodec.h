@@ -4,6 +4,7 @@
 #include "LumaLinkPlatform.h"
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <expected>

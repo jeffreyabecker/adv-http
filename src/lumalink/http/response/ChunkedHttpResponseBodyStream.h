@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <span>
+#include <string>
 #include "LumaLinkPlatform.h"
 #include "../core/Defines.h"
 
@@ -32,9 +33,8 @@ namespace lumalink::http::response
     State state_ = State::Header;
     size_t chunkRemaining_ = 0;       ///< bytes left in current body phase
     bool currentChunkIsLast_ = false;
-    char headerBuf_[12] = {};         ///< "XXXX\r\n" (max 8 hex digits + CRLF + NUL)
+    std::string header_;              ///< "<hex>\r\n"
     size_t headerPos_ = 0;
-    size_t headerLen_ = 0;
     size_t trailerPos_ = 0;
     size_t finalPos_ = 0;
 

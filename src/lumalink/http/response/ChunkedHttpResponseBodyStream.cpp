@@ -1,7 +1,7 @@
 #include "ChunkedHttpResponseBodyStream.h"
 #include <span>
-#include <cstdio>
 #include <algorithm>
+#include <format>
 
 namespace lumalink::http::response
 {
@@ -35,7 +35,7 @@ namespace lumalink::http::response
         }
         chunkRemaining_ = std::min(AvailableByteCount(innerAvail), chunkDataSize_);
         currentChunkIsLast_ = AvailableByteCount(innerAvail) <= chunkDataSize_;
-        headerLen_ = static_cast<size_t>(std::snprintf(headerBuf_, sizeof(headerBuf_), "%zx\r\n", chunkRemaining_));
+        header_ = std::format("{:x}\r\n", chunkRemaining_);
         headerPos_ = 0;
         state_ = State::Header;
     }
@@ -50,7 +50,7 @@ namespace lumalink::http::response
         switch (state_)
         {
         case State::Header:
-            if (headerLen_ == 0)
+            if (header_.empty())
             {
                 prepareHeader();
             }
@@ -58,11 +58,11 @@ namespace lumalink::http::response
             {
                 return lumalink::platform::buffers::AvailableBytes(sizeof(finalChunk_) - 1 - finalPos_);
             }
-            if (headerLen_ == 0)
+            if (header_.empty())
             {
                 return lumalink::platform::buffers::TemporarilyUnavailableResult();
             }
-            return lumalink::platform::buffers::AvailableBytes((headerLen_ - headerPos_) + chunkRemaining_ + (sizeof(trailer_) - 1) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
+            return lumalink::platform::buffers::AvailableBytes((header_.size() - headerPos_) + chunkRemaining_ + (sizeof(trailer_) - 1) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Body:
             return lumalink::platform::buffers::AvailableBytes(chunkRemaining_ + (sizeof(trailer_) - 1 - trailerPos_) + (currentChunkIsLast_ ? (sizeof(finalChunk_) - 1) : 0));
         case State::Trailer:
@@ -80,7 +80,7 @@ namespace lumalink::http::response
         switch (state_)
         {
         case State::Header:
-            if (headerLen_ == 0)
+            if (header_.empty())
             {
                 prepareHeader();
             }
@@ -88,11 +88,11 @@ namespace lumalink::http::response
             {
                 return static_cast<uint8_t>(finalChunk_[finalPos_]);
             }
-            if (headerLen_ == 0)
+            if (header_.empty())
             {
                 return -1;
             }
-            return static_cast<uint8_t>(headerBuf_[headerPos_]);
+            return static_cast<uint8_t>(header_[headerPos_]);
         case State::Body:
             return peekInner();
         case State::Trailer:
@@ -110,7 +110,7 @@ namespace lumalink::http::response
         switch (state_)
         {
         case State::Header:
-            if (headerLen_ == 0)
+            if (header_.empty())
             {
                 prepareHeader();
             }
@@ -118,13 +118,13 @@ namespace lumalink::http::response
             {
                 return readSingleByte();
             }
-            if (headerLen_ == 0)
+            if (header_.empty())
             {
                 return -1;
             }
             {
-                int c = static_cast<uint8_t>(headerBuf_[headerPos_++]);
-                if (headerPos_ >= headerLen_)
+                int c = static_cast<uint8_t>(header_[headerPos_++]);
+                if (headerPos_ >= header_.size())
                 {
                     state_ = State::Body;
                 }
@@ -150,7 +150,7 @@ namespace lumalink::http::response
             if (trailerPos_ >= sizeof(trailer_) - 1)
             {
                 // Prepare next chunk header
-                headerLen_ = 0;
+                header_.clear();
                 state_ = State::Header;
                 prepareHeader();
             }

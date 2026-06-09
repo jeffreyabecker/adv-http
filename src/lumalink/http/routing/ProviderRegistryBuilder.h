@@ -12,6 +12,7 @@
 #include "../util/UriView.h"
 
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -53,11 +54,11 @@ namespace lumalink::http::routing
 
         void add(IHttpHandler::Predicate predicate, IHttpHandler::Factory handler, AddPosition position = AddAt::End)
         {
-           providerRegistry_.add(predicate, handler, position);
+           providerRegistry_.add(std::move(predicate), std::move(handler), position);
         }
         void add(IHttpHandler::Predicate predicate, IHttpHandler::InvocationCallback invocation, AddPosition position = AddAt::End)
         {
-            providerRegistry_.add(predicate, invocation, position);
+            providerRegistry_.add(std::move(predicate), std::move(invocation), position);
         }
 
         inline void on(HandlerMatcher &request, IHttpHandler::Factory handler)
@@ -193,8 +194,10 @@ namespace lumalink::http::routing
 
         void onNotFound(IHttpHandler::InvocationCallback invocation)
         {
-            providerRegistry_.setDefaultHandlerFactory([invocation](lumalink::http::core::HttpRequestContext &context)
-                                              { return std::make_unique<HttpHandler>(invocation, [](const lumalink::http::core::HttpRequestContext &)
+            auto invocationRef = std::make_shared<IHttpHandler::InvocationCallback>(std::move(invocation));
+            providerRegistry_.setDefaultHandlerFactory([invocationRef](lumalink::http::core::HttpRequestContext &context)
+                                              { return std::make_unique<HttpHandler>(IHttpHandler::InvocationCallback([invocationRef](lumalink::http::core::HttpRequestContext &innerContext) -> IHttpHandler::HandlerResult
+                                                                                       { return (*invocationRef)(innerContext); }), [](const lumalink::http::core::HttpRequestContext &)
                                                                                      { return true; }); });
         }
     };

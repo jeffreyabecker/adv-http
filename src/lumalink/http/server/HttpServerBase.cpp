@@ -121,8 +121,8 @@ uint16_t HttpServerBase::localPort() const {
 //     items_[serviceName] = serviceInstance;
 // }
 
-void HttpServerBase::setPipelineHandlerFactory(std::function<PipelineHandlerPtr(HttpServerBase &)> factory) {
-    pipelineHandlerFactory_ = factory;
+void HttpServerBase::setPipelineHandlerFactory(std::move_only_function<PipelineHandlerPtr(HttpServerBase &)> factory) {
+    pipelineHandlerFactory_ = std::move(factory);
 }
 
 } // namespace lumalink::http::server

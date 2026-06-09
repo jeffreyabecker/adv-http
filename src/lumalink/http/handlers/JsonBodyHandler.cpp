@@ -43,9 +43,10 @@ IHttpHandler::Factory Json::makeFactory(Invocation handler,
 Json::Invocation
 Json::curryInterceptor(IHttpHandler::InterceptorCallback interceptor,
                        Invocation handler) {
-  return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params,
+  auto interceptorRef = std::make_shared<IHttpHandler::InterceptorCallback>(std::move(interceptor));
+  return [interceptorRef, handler = std::move(handler)](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params,
                                 JsonDocument &&jsonData) {
-    return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params),
+    return (*interceptorRef)(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params),
                                  jsonData = std::move(jsonData)]() mutable {
       return handler(context, std::move(params), std::move(jsonData));
     }));
@@ -55,9 +56,10 @@ Json::curryInterceptor(IHttpHandler::InterceptorCallback interceptor,
 Json::Invocation
 Json::applyFilter(IHttpHandler::InterceptorCallback interceptor,
                   Invocation handler) {
-  return [interceptor, handler](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params,
+  auto interceptorRef = std::make_shared<IHttpHandler::InterceptorCallback>(std::move(interceptor));
+  return [interceptorRef, handler = std::move(handler)](lumalink::http::core::HttpRequestContext &context, RouteParameters &&params,
                                 JsonDocument &&jsonData) {
-    return interceptor(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params),
+    return (*interceptorRef)(context, IHttpHandler::InvocationNext(context, [handler, &context, params = std::move(params),
                                  jsonData = std::move(jsonData)]() mutable {
       return handler(context, std::move(params), std::move(jsonData));
     }));

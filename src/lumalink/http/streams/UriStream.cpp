@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <format>
 
 namespace lumalink::http::streams
 {
@@ -293,7 +294,9 @@ namespace lumalink::http::streams
                 else
                 {
                     // Encode this byte
-                    snprintf(encodedBuffer_, sizeof(encodedBuffer_), "%02X", byte);
+                    const std::string encoded = std::format("%{:02X}", static_cast<unsigned int>(static_cast<unsigned char>(byte)));
+                    encodedBuffer_[0] = encoded[1];
+                    encodedBuffer_[1] = encoded[2];
                     state_ = State::EncodedPercent;
                     encodedIndex_ = 0;
                     return '%';

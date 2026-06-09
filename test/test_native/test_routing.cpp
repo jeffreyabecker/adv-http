@@ -235,7 +235,7 @@ namespace
         return lumalink::http::TestSupport::CaptureResponse(handler.handleStep(context));
     }
 
-    AuthInvocationResult invokeAuth(IHttpHandler::InterceptorCallback interceptor, HttpContext &context)
+    AuthInvocationResult invokeAuth(IHttpHandler::InterceptorCallback &interceptor, HttpContext &context)
     {
         AuthInvocationResult result;
         HandlerResult response = interceptor(context, IHttpHandler::InvocationNext(context, [&result]() -> HandlerResult

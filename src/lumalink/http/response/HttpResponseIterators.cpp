@@ -2,6 +2,7 @@
 #include "../core/HttpHeaderCollection.h"
 #include <ctime>
 #include <cstring>
+#include <format>
 
 namespace lumalink::http::response
 {
@@ -14,11 +15,11 @@ namespace lumalink::http::response
 
     std::string HttpPipelineResponseSource::buildStartLine(HttpStatus status)
     {
-        return std::string(ResponseStringConstants::HTTP_VERSION) +
-               std::to_string(static_cast<uint16_t>(status)) +
-               ResponseStringConstants::START_LINE_DELIMITER +
-               status.toString() +
-               ResponseStringConstants::CRLF;
+        return std::format(
+            "{}{} {}\r\n",
+            ResponseStringConstants::HTTP_VERSION,
+            static_cast<uint16_t>(status),
+            status.toString());
     }
 
     std::string HttpPipelineResponseSource::buildHeadersBlock(const HttpHeaderCollection &headers)

@@ -20,7 +20,7 @@ namespace lumalink::http::routing
     class HandlerBuilder
     {
     private:
-        std::function<void(IHttpHandler::Predicate, IHttpHandler::Factory)> addHandler_;
+        std::move_only_function<void(IHttpHandler::Predicate, IHttpHandler::Factory)> addHandler_;
         IHttpHandler::Predicate predicate_ = nullptr;
         HandlerMatcher matcher_;
         typename THandler::Invocation invocationCallback_;
@@ -43,7 +43,7 @@ namespace lumalink::http::routing
         }
 
     public:
-        HandlerBuilder(std::function<void(IHttpHandler::Predicate, IHttpHandler::Factory)> addHandler, HandlerMatcher matcher,
+        HandlerBuilder(std::move_only_function<void(IHttpHandler::Predicate, IHttpHandler::Factory)> addHandler, HandlerMatcher matcher,
                        typename THandler::InvocationWithoutParams invocationCallback)
             : addHandler_(std::move(addHandler)),
               predicate_(nullptr),
@@ -53,7 +53,7 @@ namespace lumalink::http::routing
         {
         }
 
-        HandlerBuilder(std::function<void(IHttpHandler::Predicate, IHttpHandler::Factory)> addHandler, HandlerMatcher matcher,
+        HandlerBuilder(std::move_only_function<void(IHttpHandler::Predicate, IHttpHandler::Factory)> addHandler, HandlerMatcher matcher,
                        typename THandler::Invocation invocationCallback,
                        ExtractArgsFromRequest extractor)
             : addHandler_(std::move(addHandler)),
@@ -69,7 +69,7 @@ namespace lumalink::http::routing
             if (addHandler_)
             {
 
-                IHttpHandler::Predicate predicate = [matcher = std::move(matcher_), predicate = std::move(predicate_)](lumalink::http::core::HttpRequestContext &context)
+                IHttpHandler::Predicate predicate = [matcher = std::move(matcher_), predicate = std::move(predicate_)](lumalink::http::core::HttpRequestContext &context) mutable
                 {
                     if (predicate)
                     {
@@ -81,7 +81,7 @@ namespace lumalink::http::routing
                     return matcher.canHandle(context);
                 };
 
-                addHandler_(predicate, getFactory());
+                addHandler_(std::move(predicate), getFactory());
                 predicate_ = nullptr;
                 addHandler_ = nullptr;
             }
@@ -124,7 +124,7 @@ namespace lumalink::http::routing
          */
         HandlerBuilder &with(IHttpHandler::InterceptorCallback wrapper)
         {
-            invocationCallback_ = THandler::curryInterceptor(wrapper, invocationCallback_);
+            invocationCallback_ = THandler::curryInterceptor(std::move(wrapper), invocationCallback_);
             return *this;
         }
 
@@ -139,8 +139,8 @@ namespace lumalink::http::routing
 
         HandlerBuilder &filterRequest(IHttpHandler::Predicate predicate)
         {
-            auto originalPredicate = predicate_;
-            predicate_ = [originalPredicate, predicate](lumalink::http::core::HttpRequestContext &context)
+            auto originalPredicate = std::move(predicate_);
+            predicate_ = [originalPredicate = std::move(originalPredicate), predicate = std::move(predicate)](lumalink::http::core::HttpRequestContext &context) mutable
             {
                 if (originalPredicate && !originalPredicate(context))
                 {

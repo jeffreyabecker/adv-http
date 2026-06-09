@@ -32,7 +32,7 @@ namespace lumalink::http::routing
         };
 
         static std::unique_ptr<lumalink::http::handlers::IHttpHandler> createDefaultHandler(lumalink::http::core::HttpRequestContext &context);
-        std::unique_ptr<lumalink::http::handlers::IHttpHandler> wrapHandler(std::unique_ptr<lumalink::http::handlers::IHttpHandler> innerHandler) const;
+        std::unique_ptr<lumalink::http::handlers::IHttpHandler> wrapHandler(std::unique_ptr<lumalink::http::handlers::IHttpHandler> innerHandler);
         std::vector<std::reference_wrapper<lumalink::http::handlers::IHandlerProvider>> factories_;
         std::vector<std::unique_ptr<lumalink::http::handlers::IHandlerProvider>> ownedFactoryItems_;
         lumalink::http::handlers::IHttpHandler::Factory defaultFactory_ = nullptr;
@@ -49,7 +49,7 @@ namespace lumalink::http::routing
 
         public:
             ResponseFilterApplicator(std::unique_ptr<lumalink::http::handlers::IHttpHandler> innerHandler, IHttpResponse::ResponseFilter filter, lumalink::http::handlers::IHttpHandler::InterceptorCallback interceptor = nullptr)
-                : filter_(filter), interceptor_(interceptor), innerHandler_(std::move(innerHandler)) {}
+                : filter_(std::move(filter)), interceptor_(std::move(interceptor)), innerHandler_(std::move(innerHandler)) {}
             virtual lumalink::http::handlers::IHttpHandler::HandlerResult handleStep(lumalink::http::core::HttpRequestContext &context) override
             {
                 lumalink::http::handlers::IHttpHandler::HandlerResult response = interceptor_ ? interceptor_(context, lumalink::http::handlers::IHttpHandler::InvocationNext(context, [this, &context]()

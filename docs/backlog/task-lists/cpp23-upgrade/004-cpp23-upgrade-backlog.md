@@ -1,5 +1,6 @@
 # C++23 Upgrade Backlog
 
+_Changelog: 2026-04-15 — completed C23-04/C23-05/C23-06/C23-07/C23-08/C23-09 (GitHub Copilot)_
 _Changelog: 2026-04-10 — completed C23-01/C23-02/C23-03 and platform compatibility tasks CPP23-04/CPP23-05 (GitHub Copilot)_
 _Changelog: 2026-04-10 — initial draft (GitHub Copilot)_
 
@@ -14,7 +15,7 @@ Status legend:
 
 ## Implementation Status
 
-Current status: phases 1-2 and the current platform-compatibility result-type follow-up are complete; later modernization phases remain open.
+Current status: phases 1-5 are complete; only phase 6 range/view clarity follow-up remains open.
 
 The project currently targets C++17 via `set(CMAKE_CXX_STANDARD 17)` in `CMakeLists.txt`. The codebase uses `lumalink::span` (provided by `LumaLinkPlatform.h`) aliased into each sub-namespace with `using lumalink::span;`. Handler and stream interfaces still carry raw `(const uint8_t *at, std::size_t length)` pointer+size pairs at their C++ boundaries. Several sites build strings with manual concatenation or write into raw character buffers. The native test suite running under CTest provides the safety net for this upgrade.
 
@@ -83,17 +84,17 @@ The project currently targets C++17 via `set(CMAKE_CXX_STANDARD 17)` in `CMakeLi
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| C23-04 | todo | Replace response-line string concatenation in `HttpPipelineResponseSource` with `std::format("{} {} {}\r\n", version, code, description)` | C23-01 | String assembly uses `std::format`; no `+` concatenation of response-line parts remains |
-| C23-05 | todo | Replace manual hex-write into `char headerBuf_[12]` in `ChunkedHttpResponseBodyStream` with `std::format("{:x}\r\n", chunkSize)` | C23-01 | Raw character-buffer write is removed; CTest suite passes |
-| C23-06 | todo | Replace `std::string("Basic realm=\"") + realm + "\""` in `BasicAuthentication` with `std::format("Basic realm=\"{}\"", realm)` | C23-01 | String concatenation replaced; CTest suite passes |
-| C23-07 | todo | Replace manual `%XX` nibble-write in `UriStream` percent-encoding with `std::format("%{:02X}", ch)` | C23-01 | Lookup-table nibble extraction removed; CTest suite passes |
+| C23-04 | done | Replace response-line string concatenation in `HttpPipelineResponseSource` with `std::format("{} {} {}\r\n", version, code, description)` | C23-01 | String assembly uses `std::format`; no `+` concatenation of response-line parts remains |
+| C23-05 | done | Replace manual hex-write into `char headerBuf_[12]` in `ChunkedHttpResponseBodyStream` with `std::format("{:x}\r\n", chunkSize)` | C23-01 | Raw character-buffer write is removed; CTest suite passes |
+| C23-06 | done | Replace `std::string("Basic realm=\"") + realm + "\""` in `BasicAuthentication` with `std::format("Basic realm=\"{}\"", realm)` | C23-01 | String concatenation replaced; CTest suite passes |
+| C23-07 | done | Replace manual `%XX` nibble-write in `UriStream` percent-encoding with `std::format("%{:02X}", ch)` | C23-01 | Lookup-table nibble extraction removed; CTest suite passes |
 
 ## Phase 4 — Container And Utility Improvements
 
 | ID | Status | Task | Depends On | Definition of Done |
 |---|---|---|---|---|
-| C23-08 | todo | Change `std::map<std::string, const char *, std::less<>>` in `HttpContentTypes` to `std::flat_map<std::string, const char *, std::less<>>`; add `#include <flat_map>` | C23-01 | `HttpContentTypes` uses `std::flat_map`; all content-type lookup tests pass |
-| C23-09 | todo | Replace the manual shift-and-OR big-endian reader (`readBigEndian` or equivalent) in `WebSocketFrameCodec` with a `std::byteswap`-based implementation; add `#include <bit>` | C23-01 | Manual multi-byte shift logic is removed; WebSocket codec tests pass |
+| C23-08 | done | Change `std::map<std::string, const char *, std::less<>>` in `HttpContentTypes` to `std::flat_map<std::string, const char *, std::less<>>`; add `#include <flat_map>` | C23-01 | `HttpContentTypes` uses `std::flat_map`; all content-type lookup tests pass |
+| C23-09 | done | Replace the manual shift-and-OR big-endian reader (`readBigEndian` or equivalent) in `WebSocketFrameCodec` with a `std::byteswap`-based implementation; add `#include <bit>` | C23-01 | Manual multi-byte shift logic is removed; WebSocket codec tests pass |
 
 ## Phase 5 — std::expected For Fallible Returns
 
