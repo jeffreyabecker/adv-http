@@ -359,21 +359,21 @@ namespace lumalink::http::websocket
             return false;
         }
 
-        pendingWrite_.resize(WebSocketFrameSerializer::maxSerializedSize(payload.size()));
+        std::vector<std::uint8_t> buffer;
+        buffer.resize(WebSocketFrameSerializer::maxSerializedSize(payload.size()));
         const WebSocketSerializeResult result = WebSocketFrameSerializer::serialize(
-            std::span<std::uint8_t>(pendingWrite_.data(), pendingWrite_.size()),
+            std::span<std::uint8_t>(buffer.data(), buffer.size()),
             payload,
             opcode,
             fin);
 
         if (!result)
         {
-            pendingWrite_.clear();
-            pendingWriteOffset_ = 0;
             return false;
         }
 
-        pendingWrite_.resize(*result);
+        buffer.resize(*result);
+        pendingWrite_ = std::move(buffer);
         pendingWriteOffset_ = 0;
         return true;
     }
